@@ -16,6 +16,10 @@
       {
         "include": "infrastructure/persistence/postgres/catalogos/*.json",
         "outDir": "dist"
+      },
+      {
+        "include": "infrastructure/adapters/lectura-local/*.worker.js",
+        "outDir": "dist"
       }
     ],
     "watchAssets": true

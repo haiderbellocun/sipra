@@ -268,7 +268,10 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     },
     // Extractor LOCAL y determinístico: el único que usan los tipos con procesamiento local
     // (certificado de EPS). Nunca sale a un proveedor externo, sea cual sea `IA_DRIVER`.
-    { provide: EXTRACCION_LOCAL, useExisting: ExtraccionSimuladaAdapter },
+    // Lectura LOCAL (pdf.js, ZXing, Tesseract): texto nativo, QR y OCR sin salir del proceso.
+    { provide: LECTOR_DOCUMENTO_LOCAL, useClass: LectorDocumentoLocalAdapter },
+    ExtraccionLocalAdapter,
+    { provide: EXTRACCION_LOCAL, useExisting: ExtraccionLocalAdapter },
     { provide: COHERENCIA_CRUZADA, useClass: CoherenciaCruzadaAdapter },
     { provide: RUES, useClass: RuesSimuladoAdapter },
     { provide: SINU, useClass: SinuSimuladoAdapter },
@@ -338,4 +341,7 @@ export class AppModule implements OnModuleInit {
       this.colaEnProceso.registrarEjecutor((trabajo) => this.procesarTrabajo.ejecutar(trabajo));
     }
   }
-}
+}import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
+import { LectorDocumentoLocalAdapter } from '../adapters/lectura-local/lector-documento-local.adapter';
+import { ExtraccionLocalAdapter } from '../adapters/ia/extraccion-local.adapter';
+

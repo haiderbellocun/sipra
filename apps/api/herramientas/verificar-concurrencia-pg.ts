@@ -190,6 +190,9 @@ async function main(): Promise<void> {
          VALUES ($1, $2, $3, $4, 'm', 'r', now(), $5, $6::jsonb, $7)`,
         [randomUUID(), idV, tipo, fuente, origen, datos, verificadoPor],
       );
+    await ds.query("INSERT INTO evidencias_validacion_eps (id, validacion_eps_id, tipo, fuente, metodo, resultado, fecha_verificacion, datos_obtenidos) VALUES ($1, $2, 'ocr', 'certificado', 'ocr_local_tesseract_spa', 'leido', now(), '{}'::jsonb)", [randomUUID(), idV]);
+    comprobar('una evidencia de tipo ocr (fuente certificado) se inserta', true);
+    await rechaza('ocr con fuente ADRES', () => insertarCrudo(null, '{}', 'ocr', 'adres'), /ck_evidencias_eps_tipo_fuente/);
     await rechaza('origen con parámetros (URL firmada)', () => insertarCrudo('https://eps.example/v?token=abc', '{}'), /ck_evidencias_eps_origen/);
     await rechaza('origen con credenciales', () => insertarCrudo('https://u:p@eps.example/v', '{}'), /ck_evidencias_eps_origen/);
     await rechaza('datos con la respuesta a un CAPTCHA', () => insertarCrudo(null, '{"captcha":"1234"}'), /ck_evidencias_eps_datos/);

@@ -25,6 +25,8 @@ export const CONFIANZA_MINIMA_COMPARACION = 0.7;
 export interface CampoLeido {
   valor: string | null;
   confianza: number;
+  /** Cómo se leyó el dato (lectura local). Ausente en lecturas de otro origen. */
+  fuente?: 'texto_nativo' | 'ocr' | 'qr' | null;
 }
 
 /**
@@ -42,6 +44,10 @@ export function construirDatosExtraidosEps(campos: Readonly<Record<string, Campo
   const documento = normalizarDocumento(leer('documento_afiliado'));
   const regimen = normalizarRegimen(leer('regimen'));
   const eps = leer('entidad_emisora');
+  const fuentes: Record<string, 'texto_nativo' | 'ocr' | 'qr'> = {};
+  for (const [nombre, campo] of Object.entries(campos)) {
+    if (campo.fuente && leer(nombre) !== null) fuentes[nombre] = campo.fuente;
+  }
   return {
     tipoDocumento: documento.tipo,
     numeroDocumento: documento.numero,
@@ -52,6 +58,7 @@ export function construirDatosExtraidosEps(campos: Readonly<Record<string, Campo
     tipoAfiliado: regimen.tipoAfiliado,
     estadoReportadoCertificado: normalizarEstadoReportado(leer('estado_afiliacion')),
     fechaExpedicion: fechaIsoDe(leer('fecha_expedicion')),
+    ...(Object.keys(fuentes).length > 0 ? { fuentes } : {}),
   };
 }
 

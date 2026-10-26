@@ -5,7 +5,7 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.5 |
+| Versión del documento | 0.17.6 |
 | Fecha | 26 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
@@ -847,6 +847,81 @@ existe vacío; no hay purga y `sipra_app` no tiene `DELETE` sobre estas tablas.
 `DB_URL` no es local) comprueba, con los adaptadores reales, reclamo único entre 25 intentos,
 decisión única entre dos, una fila por documento entre 20 creaciones, reserva exclusiva, `CHECK`,
 inmutabilidad de la evidencia y privilegios.
+
+### 7.16 Lectura documental local del certificado de EPS (Fase 2 EPS)
+
+Flujo: `archivo → texto nativo → QR → OCR solo si hace falta → campos → normalización →
+comparación → ValidacionEps`. Todo dentro del proceso: **sin red, sin IA externa, sin ADRES**.
+
+**Arquitectura.** El dominio solo conoce `LectorDocumentoLocalPort` (`extraerTextoNativo`,
+`renderizarPagina`, `prepararImagen`, `detectarQr`, `ejecutarOcr`). La orquestación es
+`LecturaLocalEpsService` (dominio); las reglas puras viven en `lectura-local.domain-service.ts`
+(¿alcanza el texto nativo?, clasificación de QR) y `extraccion-eps-local.domain-service.ts`
+(campos y combinación de fuentes). El extractor `ExtraccionLocalAdapter` (`EXTRACCION_LOCAL`) arma el
+resultado; los demás tipos no pasan por aquí.
+
+**Bibliotecas** (todas Apache-2.0/MIT, sin servicios externos):
+
+| Paquete | Versión | Uso |
+|---|---|---|
+| `pdfjs-dist` | 6.4.299 | Texto nativo y rasterización de PDF. Requiere Node ≥ 22.13 (en el `node:22-alpine` actual, 22.23). |
+| `@napi-rs/canvas` | 1.0.13 | Lienzo para rasterizar y preparar imágenes. Binarios precompilados (incluye `linux-x64-musl`, que es el de la imagen). |
+| `tesseract.js` | 7.0.0 | OCR (WASM) con el modelo `spa`. |
+| `@tesseract.js-data/spa` | 1.0.0 | Modelo de idioma **empaquetado** (`4.0.0_best_int`, 2,1 MB). |
+| `zxing-wasm` | ya existía | QR además del PDF417 de la cédula; ahora comparte el cargador (`zxing.cargador.ts`). |
+
+**PDF y rasterización.** pdf.js corre en un **hilo aparte** (`pdfjs.worker.js`, JavaScript plano que
+`nest build` copia a `dist`) con límite de memoria de V8; si una operación excede su tiempo el hilo se
+**termina** (cancelación real) y el siguiente pedido arranca uno limpio. Se rasteriza **una página por
+vez** (escala 2 ≈ 144 dpi), se busca QR, se hace OCR si toca y se suelta la imagen: nada se escribe a disco.
+Límites del certificado de EPS (`LIMITES_LECTURA_EPS`): 3 páginas leídas, 10 como máximo por documento
+(más: ni se abre, queda en revisión humana), 4 Mpx por página, 30 s por operación; una imagen de
+entrada con más de 24 Mpx declarados se rechaza antes de decodificarla.
+
+**Cuándo hay OCR.** Solo como respaldo: con texto nativo utilizable (≥ 40 caracteres legibles por página)
+**no hay OCR**; si falta algún campo clave y hay páginas sin texto, solo se hace OCR de esas páginas;
+un PDF escaneado o una imagen sí. Un trabajador de Tesseract reutilizado (se cierra tras 60 s sin uso),
+una lectura a la vez (`LECTURA_LOCAL_OCR_CONCURRENTES`, 1 por defecto). Si la lectura es pobre prueba
+contraste mejorado y giros de 90°, 180° y 270°. La descarga de modelos en ejecución no existe: sin el
+modelo local el OCR falla cerrado (`OCR_DATOS_IDIOMA_DIR` permite otra copia local).
+
+**QR.** Se detectan todos (QRCode, también en PDF y en imágenes) y se registran todos; ninguno se elige
+como oficial. Su contenido es **dato no confiable**: se clasifica (`url`, `texto`, `otro`) sin abrirlo ni
+resolverlo ni consultar el dominio. De una URL solo se conserva protocolo, host y ruta (sin usuario,
+parámetros ni fragmento) y señales sintácticas (`esquema_no_https`, `host_ip`, `punycode`,
+`credenciales_en_url`…); del texto, solo hash y longitud. **Un QR hallado no es autenticidad.**
+
+**Campos y fuente.** `extraerCamposEps` (reglas locales) produce entidad, nombre, documento, fecha de
+expedición, estado reportado y régimen; lo que no aparece es `null`. Cada campo guarda su fuente
+(`texto_nativo`, `ocr`, `qr`) en `datosExtraidos.fuentes`; la confianza del OCR nunca iguala la del texto
+digital, y si ambas fuentes leen valores distintos no se escoge ninguna: el campo queda sin valor y se
+registra una discrepancia `fuentes_distintas`. El «ACTIVO» impreso es `estadoReportadoCertificado`, no
+afiliación; autenticidad y afiliación siguen `no_evaluada` / `no_contrastada`.
+
+**Evidencias** (migración `1756000012000`, tipo `ocr` nuevo; creada, **no ejecutada** en base real):
+una por hecho —texto digital, OCR, cada QR, o «QR no encontrado»— con métricas, nombres de campos y
+contenido saneado; nunca el texto del certificado ni valores personales. Se registran tras el
+compare-and-set de la validación: un reintento no repite OCR (el pipeline no vuelve a ejecutar) ni
+duplica evidencia. Estado `pendiente → procesando → procesado | error`; un fallo deja `error` y el
+reintento lo reanuda. Un archivo corrupto es `ilegible` (reenvío); un OCR sin resultado útil, un límite
+o un tiempo agotado dejan el documento en revisión humana. Nada se aprueba por una falla.
+
+**Copia saneada.** El saneamiento solo renombra claves de acciones activas (`/JavaScript`, `/OpenAction`,
+`/Launch`…): no toca texto, imágenes, QR ni anotaciones `/URI`. Con fixtures (PDF digital y escaneado,
+con QR y con acción de apertura) la copia saneada rinde la misma lectura, los mismos QR y el mismo OCR:
+**se mantiene el diseño actual**; no hace falta conservar el original para leer.
+
+**Rendimiento** (equipo de desarrollo, Node 24 en Windows; `npm run lectura:benchmark`): PDF con texto
+y QR ≈ 130 ms en caliente (380 ms el primero); PDF escaneado de una página ≈ 0,5 s (0,9 s el primero);
+de tres páginas ≈ 1,5 s; PNG/JPEG ≈ 0,4 s; imagen rotada 90° ≈ 2,7 s (el peor caso: cuatro lecturas de
+OCR). Pico de memoria del proceso ≈ 390 MB con ≈ 234 MB de base de la herramienta. Se verificó además la
+lectura completa en `node:22-alpine` **sin red y sin fuentes del sistema**. Recomendación para Cloud Run:
+≥ 1 GiB por instancia si procesa EPS, concurrencia moderada y OCR de una lectura por instancia (ya
+serializado); sin cambios de infraestructura en esta fase.
+
+**Pruebas sin red.** `lectura-local-sin-red.spec.ts` lee un corpus completo en un proceso aparte con un
+bloqueo de red precargado en **cada hilo** (los de trabajo heredan los argumentos) y comprueba que no
+hay un solo intento de conexión.
 
 ---
 
@@ -2432,6 +2507,21 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.6 — 26 de octubre de 2026
+
+Fase 2 EPS · lectura documental local (sin consultas externas, sin ADRES, sin aprobación automática):
+
+- **Lectura local** del certificado de EPS: texto nativo (pdf.js en un hilo aislado), rasterización con
+  límites, QR (ZXing) y OCR (Tesseract, modelo `spa` empaquetado) solo como respaldo (§7.16).
+- **Dependencias nuevas** (`apps/api`): `pdfjs-dist`, `@napi-rs/canvas`, `tesseract.js`,
+  `@tesseract.js-data/spa`. Sin red en ejecución.
+- **Trazabilidad por fuente** en `datosExtraidos.fuentes`; discrepancias `fuentes_distintas`.
+- **Evidencias** `texto_pdf`, `ocr` y `qr`; migración `1756000012000` (no ejecutada en base real; aplicada,
+  revertida y reaplicada en PostgreSQL desechable). Estado `procesando`/`error` del procesamiento.
+- **Seguridad:** contenido de QR clasificado sin seguirlo; URLs sin parámetros; prueba de ausencia de red.
+- Herramientas: `npm run lectura:benchmark`; `test:pg` verifica también la evidencia `ocr`.
+- **Pendientes:** verificadores reales de QR y ADRES (Fase 3); bandeja visual; retención de EPS.
 
 ### 0.17.5 — 26 de octubre de 2026
 

@@ -15,7 +15,7 @@ import {
 } from '../../../domain/ports/out/repositorios.port';
 import { Documento, EstadoDocumento, TipoDocumento } from '../../../domain/entities/documento.entity';
 import { MetricasService } from '../../../infrastructure/observability/metricas.service';
-import { PipelineValidacionUseCase } from './pipeline-validacion.use-case';
+import { PipelineValidacionUseCase, ProcesamientoEnCursoError } from './pipeline-validacion.use-case';
 import { ValidacionEpsUseCase } from './validacion-eps.use-case';
 
 /**
@@ -62,12 +62,28 @@ export class ProcesarTrabajoUseCase {
    * vuelve a leer, no duplica métricas ni avisos y no pisa una decisión humana.
    */
   private async validarDocumento(documentoId: string, inicio: bigint): Promise<void> {
-    const { documento, ejecutado } = await this.pipeline.procesar(documentoId);
+    const { documento, ejecutado } = await this.procesarMarcandoEps(documentoId);
     if (ejecutado) await this.registrarResultado(documento, inicio);
     // La validación de EPS se asegura SIEMPRE: si un intento anterior falló después de
     // procesar el documento, el reintento (que ya no ejecuta capas) la completa.
     if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
       await this.validacionesEps.registrarProcesamiento(documento);
+    }
+  }
+
+  /** Para el certificado de EPS, refleja «procesando» y, si el pipeline falla, «error» (el reintento lo reanuda). */
+  private async procesarMarcandoEps(documentoId: string): ReturnType<PipelineValidacionUseCase['procesar']> {
+    const previo = await this.documentos.buscarPorId(documentoId);
+    const esEps = previo?.tipo === TipoDocumento.CERTIFICADO_EPS;
+    if (esEps) await this.validacionesEps.marcarProcesando(documentoId);
+    try {
+      return await this.pipeline.procesar(documentoId);
+    } catch (error) {
+      // Un procesamiento ya en curso en otra instancia no es un fallo de este trabajo.
+      if (esEps && !(error instanceof ProcesamientoEnCursoError)) {
+        await this.validacionesEps.marcarErrorProcesamiento(documentoId, 'PROCESAMIENTO_FALLIDO').catch(() => undefined);
+      }
+      throw error;
     }
   }
 

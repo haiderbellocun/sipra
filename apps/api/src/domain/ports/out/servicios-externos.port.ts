@@ -1,4 +1,5 @@
 import { Bandera } from '../../entities/documento.entity';
+import type { ResumenLecturaLocal } from './lector-documento-local.port';
 import { TipoDocumento } from '../../entities/documento.entity';
 
 /** Almacenamiento de documentos (Cloud Storage en GCP, disco en local). */
@@ -26,6 +27,8 @@ export interface CampoExtraido {
   confianza: number;
   /** Dónde se encontró el dato en el documento. */
   evidencia: string | null;
+  /** Cómo se leyó (lectura local): texto digital, OCR o QR. Ausente en la lectura por IA. */
+  fuente?: 'texto_nativo' | 'ocr' | 'qr' | null;
 }
 
 /** Respuesta del modelo a un criterio del manual (base de conocimiento documental). */
@@ -62,6 +65,8 @@ export interface ResultadoExtraccion {
   duracionMs?: number;
   /** El modelo no estaba en la tabla de tarifas: costo con tarifa de respaldo. */
   tarifaDesconocida?: boolean;
+  /** Solo la lectura local: qué se hizo (texto, OCR, QR) sin el contenido del documento. */
+  lecturaLocal?: ResumenLecturaLocal;
 }
 
 export interface ExtraccionIaPort {

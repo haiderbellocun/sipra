@@ -1,5 +1,6 @@
 import { QueryRunner } from 'typeorm';
 import { ValidacionEps1756000011000 } from '../src/infrastructure/persistence/postgres/migrations/1756000011000-ValidacionEps';
+import { EvidenciaEpsOcr1756000012000 } from '../src/infrastructure/persistence/postgres/migrations/1756000012000-EvidenciaEpsOcr';
 import { MIGRACIONES } from '../src/infrastructure/persistence/postgres/migrations/todas.migracion';
 import {
   EvidenciaValidacionEpsOrm, ValidacionEpsOrm,
@@ -125,5 +126,32 @@ describe('Migración de validación de EPS (sin ejecutar)', () => {
     expect(down).toMatch(/DROP TABLE IF EXISTS evidencias_validacion_eps/);
     expect(down).toMatch(/DROP TABLE IF EXISTS validaciones_eps/);
     expect(down).not.toMatch(/DROP FUNCTION/);
+  });
+});
+
+describe('Migración de evidencia OCR (sin ejecutar)', () => {
+  async function sql(metodo: 'up' | 'down'): Promise<string> {
+    const emitido: string[] = [];
+    const corredor = { query: (s: string) => { emitido.push(s.replace(/\s+/g, ' ').trim()); return Promise.resolve(); } };
+    await new EvidenciaEpsOcr1756000012000()[metodo](corredor as unknown as QueryRunner);
+    return emitido.join('\n');
+  }
+
+  it('está registrada justo después de la de validación de EPS', () => {
+    const i = MIGRACIONES.indexOf(EvidenciaEpsOcr1756000012000);
+    expect(i).toBeGreaterThan(0);
+    expect(MIGRACIONES[i - 1].name).toBe('ValidacionEps1756000011000');
+  });
+
+  it('admite el tipo ocr SOLO con fuente certificado y conserva el resto de reglas', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/tipo IN \('texto_pdf','ocr','qr','respuesta_eps','adres','revision_humana'\)/);
+    expect(up).toMatch(/tipo = 'ocr' AND fuente = 'certificado'/);
+    expect(up).toMatch(/tipo = 'revision_humana' AND fuente = 'revision_humana'/);
+  });
+
+  it('no toca datos, disparadores ni privilegios', async () => {
+    const todo = (await sql('up')) + (await sql('down'));
+    expect(todo).not.toMatch(/INSERT|UPDATE evidencias|DELETE|TRUNCATE|GRANT|REVOKE|TRIGGER|DROP TABLE/i);
   });
 });

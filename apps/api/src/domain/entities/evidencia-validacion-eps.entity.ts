@@ -12,6 +12,9 @@
  */
 export enum TipoEvidenciaEps {
   TEXTO_PDF = 'texto_pdf',
+  /** Texto obtenido por OCR local (documentos escaneados o imágenes). */
+  OCR = 'ocr',
+  /** Un QR HALLADO en el documento: no es autenticidad. */
   QR = 'qr',
   RESPUESTA_EPS = 'respuesta_eps',
   ADRES = 'adres',
@@ -61,6 +64,7 @@ export const CLAVES_PROHIBIDAS_EN_EVIDENCIA: readonly string[] = [
 
 const FUENTES_POR_TIPO: Readonly<Record<TipoEvidenciaEps, readonly FuenteEvidenciaEps[]>> = {
   [TipoEvidenciaEps.TEXTO_PDF]: [FuenteEvidenciaEps.CERTIFICADO],
+  [TipoEvidenciaEps.OCR]: [FuenteEvidenciaEps.CERTIFICADO],
   [TipoEvidenciaEps.QR]: [FuenteEvidenciaEps.CERTIFICADO, FuenteEvidenciaEps.QR_OFICIAL],
   [TipoEvidenciaEps.RESPUESTA_EPS]: [FuenteEvidenciaEps.EPS_OFICIAL, FuenteEvidenciaEps.QR_OFICIAL],
   [TipoEvidenciaEps.ADRES]: [FuenteEvidenciaEps.ADRES],

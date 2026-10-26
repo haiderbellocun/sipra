@@ -92,6 +92,8 @@ export interface DatosExtraidosEps {
   estadoReportadoCertificado: string | null;
   /** AAAA-MM-DD. */
   fechaExpedicion: string | null;
+  /** De qué fuente salió cada dato (`texto_nativo`, `ocr`, `qr`), por nombre de campo del certificado. */
+  fuentes?: Record<string, 'texto_nativo' | 'ocr' | 'qr'>;
 }
 
 /** Lo que una fuente oficial CONFIRMÓ. Vacío hasta que existan verificadores reales. */
@@ -104,10 +106,11 @@ export interface DatosVerificadosEps {
 }
 
 export interface DiscrepanciaEps {
-  campo: 'numero_documento' | 'nombre' | 'fecha_expedicion' | 'eps' | 'regimen';
+  campo: 'numero_documento' | 'nombre' | 'fecha_expedicion' | 'eps' | 'regimen' | 'estado_reportado';
   esperado: string | null;
   observado: string | null;
-  resultado: 'diferente' | 'insuficiente' | 'vencido' | 'ausente' | 'no_reconocido';
+  /** `fuentes_distintas`: el texto digital y el OCR leyeron valores diferentes; no se escogió ninguno. */
+  resultado: 'diferente' | 'insuficiente' | 'vencido' | 'ausente' | 'no_reconocido' | 'fuentes_distintas';
 }
 
 export interface DatosValidacionEps {

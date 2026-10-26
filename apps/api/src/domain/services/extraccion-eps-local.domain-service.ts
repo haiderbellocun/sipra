@@ -1,0 +1,200 @@
+import {
+  compararDocumentos, compararNombres, normalizarTexto,
+} from './normalizacion-identidad';
+
+/**
+ * Extracción estructurada del certificado de EPS a partir de TEXTO (nativo u
+ * OCR), con reglas locales. Sin IA, sin red. Lo que no se encuentra queda en
+ * `null`: no se inventa. Cada campo conserva de qué fuente salió.
+ */
+
+export type FuenteCampo = 'texto_nativo' | 'ocr' | 'qr';
+
+export interface CampoEpsLeido {
+  valor: string | null;
+  confianza: number;
+  evidencia: string | null;
+  fuente: FuenteCampo | null;
+}
+
+export type CamposEpsLeidos = Record<string, CampoEpsLeido>;
+
+export const CAMPOS_EPS = [
+  'entidad_emisora', 'nombre_afiliado', 'documento_afiliado',
+  'fecha_expedicion', 'estado_afiliacion', 'regimen',
+] as const;
+
+/** Sin estos no hay comparación de identidad: si faltan en el texto nativo, se intenta OCR en páginas sin texto. */
+export const CAMPOS_CLAVE_EPS: readonly string[] = ['nombre_afiliado', 'documento_afiliado', 'entidad_emisora', 'fecha_expedicion'];
+
+export const CONFIANZA_TEXTO_NATIVO = 0.92;
+/** Techo de la confianza de un campo leído por OCR: nunca iguala al texto digital. */
+export const CONFIANZA_MAXIMA_OCR = 0.85;
+
+const NOMBRE = "[A-ZÁÉÍÓÚÑÜ][A-Za-zÁÉÍÓÚÑÜáéíóúñü'.]*(?:\\s+[A-ZÁÉÍÓÚÑÜa-záéíóúñü][A-Za-zÁÉÍÓÚÑÜáéíóúñü'.]*){1,6}";
+const FECHA = '(\\d{1,2}[/\\-.]\\d{1,2}[/\\-.]\\d{2,4}|\\d{4}-\\d{2}-\\d{2}|\\d{1,2}\\s+de\\s+[a-záéíóú]+\\s+de(?:l)?\\s+\\d{4})';
+
+const sinValor = (): CampoEpsLeido => ({ valor: null, confianza: 0, evidencia: null, fuente: null });
+
+function limpiar(valor: string): string {
+  return valor.replace(/\s+/g, ' ').replace(/^[\s:.\-–]+|[\s:.\-–,;]+$/g, '').trim();
+}
+
+/** Corta el valor donde empieza otra etiqueta en la misma línea («… Documento: …»). */
+function hastaOtraEtiqueta(valor: string): string {
+  return valor.split(/\s{2,}|\s(?=[A-ZÁÉÍÓÚÑa-záéíóúñ]{3,}(?:\s+[a-záéíóúñ]+){0,3}\s*:)/)[0];
+}
+
+function lineasDe(texto: string): string[] {
+  return texto.split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim()).filter((l) => l.length > 0);
+}
+
+function primera(texto: string, patrones: readonly RegExp[], grupo = 1): { valor: string; evidencia: string } | null {
+  for (const patron of patrones) {
+    const m = texto.match(patron);
+    if (m?.[grupo]) return { valor: m[grupo], evidencia: m[0].slice(0, 120) };
+  }
+  return null;
+}
+
+function documentoDe(texto: string): { valor: string; evidencia: string } | null {
+  const TIPO = '(?:(?:c\\.?\\s?c\\.?|t\\.?\\s?i\\.?|c\\.?\\s?e\\.?|p\\.?\\s?a\\.?|c[ée]dula(?:\\s+de\\s+(?:ciudadan[ií]a|extranjer[ií]a))?|tarjeta\\s+de\\s+identidad|pasaporte)[\\s.:°ºno]*)?';
+  // El número puede ir precedido de «No.», «N°», «Nro.» o «número».
+  const NUM = '(?:(?:n[úu]mero|n[°º]|nro\\.?|no\\.)\\s*:?\\s*)?(\\d[\\d.,\\s]{4,16}\\d)';
+  const hallado = primera(texto, [
+    new RegExp(`identificad[oa]\\s*\\(?a?\\)?\\s*con\\s+(${TIPO}${NUM})`, 'i'),
+    new RegExp(`(?:n[úu]mero\\s+(?:de\\s+)?(?:documento|identificaci[oó]n|c[ée]dula)|documento(?:\\s+de\\s+identidad)?|identificaci[oó]n|c[ée]dula(?:\\s+de\\s+ciudadan[ií]a)?)\\s*[:\\-]?\\s*(${TIPO}${NUM})`, 'i'),
+    new RegExp(`\\b(c\\.?\\s?c\\.?\\s*[:.]?\\s*${NUM})`, 'i'),
+  ]);
+  return hallado ? { valor: limpiar(hastaOtraEtiqueta(hallado.valor)), evidencia: hallado.evidencia } : null;
+}
+
+function nombreDe(texto: string): { valor: string; evidencia: string } | null {
+  const frase = texto.match(new RegExp(
+    `que\\s+(?:el|la)?\\s*(?:se[ñn]or(?:a)?|sr\\.?a?|usuari[oa]|afiliad[oa])?\\s*\\(?a?\\)?\\s*(${NOMBRE})\\s*,?\\s*identificad[oa]`, 'i'));
+  if (frase?.[1] && !/\d/.test(frase[1])) return { valor: limpiar(frase[1]), evidencia: frase[0].slice(0, 120) };
+  const etiquetado = texto.match(new RegExp(
+    `(?:apellidos\\s+y\\s+nombres|nombres?\\s+y\\s+apellidos|nombre(?:s)?(?:\\s+completo)?(?:\\s+del\\s+(?:afiliado|usuario|cotizante|beneficiario|titular))?|afiliado|usuario|cotizante|titular)\\s*[:\\-]\\s*([^\\n:]{5,90})`, 'i'));
+  if (etiquetado?.[1]) {
+    const valor = limpiar(hastaOtraEtiqueta(etiquetado[1]));
+    if (!/\d/.test(valor) && valor.split(' ').length >= 2) return { valor, evidencia: etiquetado[0].slice(0, 120) };
+  }
+  return null;
+}
+
+function entidadDe(texto: string): { valor: string; evidencia: string } | null {
+  const etiquetada = texto.match(/(?:entidad(?:\s+promotora\s+de\s+salud)?|eps)\s*[:-]\s*([^\n:]{3,80})/i);
+  if (etiquetada?.[1]) {
+    const valor = limpiar(hastaOtraEtiqueta(etiquetada[1]));
+    if (valor.length >= 3) return { valor, evidencia: etiquetada[0].slice(0, 120) };
+  }
+  // Encabezado: la primera línea corta que nombra una EPS.
+  for (const linea of lineasDe(texto).slice(0, 15)) {
+    if (linea.length <= 90 && !linea.includes(':') && /\b(?:E\.?P\.?S\.?|entidad\s+promotora\s+de\s+salud)\b/i.test(linea)
+      && !/^certific/i.test(linea)) {
+      return { valor: limpiar(linea), evidencia: linea.slice(0, 120) };
+    }
+  }
+  const frase = texto.match(/afiliad[oa]\s+a\s+(?:la\s+)?((?:[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&]*\s+){0,5}(?:EPS|E\.P\.S\.?)(?:\s+S\.?A\.?S?\.?)?)/);
+  return frase?.[1] ? { valor: limpiar(frase[1]), evidencia: frase[0].slice(0, 120) } : null;
+}
+
+function fechaExpedicionDe(texto: string): { valor: string; evidencia: string } | null {
+  const hallada = primera(texto, [
+    new RegExp(`fecha\\s+(?:y\\s+hora\\s+)?(?:de\\s+)?(?:expedici[oó]n|impresi[oó]n|generaci[oó]n|consulta)\\s*[:\\-]?\\s*${FECHA}`, 'i'),
+    new RegExp(`(?:expedid[oa]|generad[oa]|impres[oa])\\s+(?:el|en)[^\\n\\d]{0,40}${FECHA}`, 'i'),
+  ]);
+  if (hallada) return hallada;
+  const dias = texto.match(/a\s+los\s+(\d{1,2})\s+d[ií]as\s+del\s+mes\s+de\s+([a-záéíóú]+)\s+de(?:l)?\s+(\d{4})/i);
+  return dias ? { valor: `${dias[1]} de ${dias[2]} de ${dias[3]}`, evidencia: dias[0].slice(0, 120) } : null;
+}
+
+function estadoDe(texto: string): { valor: string; evidencia: string } | null {
+  const etiquetado = texto.match(/estado(?:\s+de(?:\s+la)?\s+afiliaci[oó]n)?\s*[:-]\s*([A-Za-zÁÉÍÓÚÑáéíóúñ]{3,20})/i);
+  if (etiquetado?.[1]) return { valor: etiquetado[1], evidencia: etiquetado[0].slice(0, 120) };
+  const frase = texto.match(/(?:se\s+encuentra|figura|aparece)\s+(?:en\s+estado\s+)?(activ[oa]|inactiv[oa]|suspendid[oa]|retirad[oa]|cancelad[oa])/i)
+    ?? texto.match(/afiliad[oa]\s+(activ[oa]|inactiv[oa]|suspendid[oa])/i);
+  return frase?.[1] ? { valor: frase[1], evidencia: frase[0].slice(0, 120) } : null;
+}
+
+function regimenDe(texto: string): { valor: string; evidencia: string } | null {
+  const m = texto.match(/r[eé]gimen(?:\s+de\s+(?:salud|afiliaci[oó]n))?\s*[:-]?\s*([A-Za-zÁÉÍÓÚÑáéíóúñ][A-Za-zÁÉÍÓÚÑáéíóúñ \-–]{2,50})/i);
+  if (!m?.[1]) return null;
+  let valor = limpiar(hastaOtraEtiqueta(m[1]));
+  if (!/cotizante|beneficiario/i.test(valor)) {
+    const tipo = texto.match(/(?:tipo\s+de\s+(?:afiliado|afiliaci[oó]n)|calidad)\s*[:-]\s*(cotizante|beneficiari[oa])/i);
+    if (tipo?.[1]) valor = `${valor} - ${tipo[1]}`;
+  }
+  return { valor, evidencia: m[0].slice(0, 120) };
+}
+
+/**
+ * Lee los campos del certificado de EPS de un texto. `confianzaBase` es la
+ * confianza de la fuente (texto digital alto; OCR, derivada de la del motor).
+ */
+export function extraerCamposEps(texto: string, fuente: FuenteCampo, confianzaBase: number): CamposEpsLeidos {
+  const buscadores: Record<(typeof CAMPOS_EPS)[number], (t: string) => { valor: string; evidencia: string } | null> = {
+    entidad_emisora: entidadDe,
+    nombre_afiliado: nombreDe,
+    documento_afiliado: documentoDe,
+    fecha_expedicion: fechaExpedicionDe,
+    estado_afiliacion: estadoDe,
+    regimen: regimenDe,
+  };
+  const salida: CamposEpsLeidos = {};
+  for (const campo of CAMPOS_EPS) {
+    const hallado = buscadores[campo](texto);
+    salida[campo] = hallado && hallado.valor.length > 0
+      ? { valor: hallado.valor, confianza: Math.max(0, Math.min(1, confianzaBase)), evidencia: hallado.evidencia, fuente }
+      : sinValor();
+  }
+  return salida;
+}
+
+// ── Combinación de fuentes ──────────────────────────────────────────────────
+
+export interface DiscrepanciaFuentes {
+  campo: string;
+  /** Fuentes que leyeron un valor distinto. No se guardan los valores aquí. */
+  fuentes: FuenteCampo[];
+}
+
+function mismoValor(campo: string, a: string, b: string): boolean {
+  if (campo === 'documento_afiliado') return compararDocumentos(a, b) === 'igual';
+  if (campo === 'nombre_afiliado') return ['igual', 'compatible'].includes(compararNombres(a, b));
+  return normalizarTexto(a) === normalizarTexto(b);
+}
+
+/**
+ * Une lecturas de distintas fuentes sobre los mismos campos. Orden de
+ * prioridad: el que venga primero en `lecturas`. Si dos fuentes leen valores
+ * DISTINTOS no se escoge ninguno: el campo queda sin valor y se registra la
+ * discrepancia para que una persona decida.
+ */
+export function combinarLecturas(lecturas: readonly CamposEpsLeidos[]): {
+  campos: CamposEpsLeidos;
+  discrepancias: DiscrepanciaFuentes[];
+} {
+  const campos: CamposEpsLeidos = {};
+  const discrepancias: DiscrepanciaFuentes[] = [];
+  for (const nombre of CAMPOS_EPS) {
+    const candidatos = lecturas.map((l) => l[nombre]).filter((c): c is CampoEpsLeido => !!c && c.valor !== null);
+    if (candidatos.length === 0) { campos[nombre] = sinValor(); continue; }
+    const [primero, ...resto] = candidatos;
+    const distintos = resto.filter((c) => !mismoValor(nombre, primero.valor as string, c.valor as string));
+    if (distintos.length > 0) {
+      discrepancias.push({
+        campo: nombre,
+        fuentes: [primero, ...distintos].map((c) => c.fuente).filter((f): f is FuenteCampo => f !== null),
+      });
+      campos[nombre] = sinValor();
+    } else {
+      campos[nombre] = primero;
+    }
+  }
+  return { campos, discrepancias };
+}
+
+export function faltanCamposClave(campos: Readonly<CamposEpsLeidos>): boolean {
+  return CAMPOS_CLAVE_EPS.some((c) => !campos[c] || campos[c].valor === null);
+}

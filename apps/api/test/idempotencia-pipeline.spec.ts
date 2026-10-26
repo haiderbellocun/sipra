@@ -283,7 +283,11 @@ describe('ProcesarTrabajoUseCase · el reintento no duplica avisos, métricas ni
       duracionPipeline: { observe: jest.fn() }, documentosProcesados: { inc: jest.fn() },
       documentosAutoAprobados: { inc: jest.fn() }, costoIa: { inc: jest.fn() },
     };
-    const validacionesEps = { registrarProcesamiento: jest.fn().mockResolvedValue(null) };
+    const validacionesEps = {
+      registrarProcesamiento: jest.fn().mockResolvedValue(null),
+      marcarProcesando: jest.fn().mockResolvedValue(undefined),
+      marcarErrorProcesamiento: jest.fn().mockResolvedValue(undefined),
+    };
     const uso = new ProcesarTrabajoUseCase(
       base.pipeline,
       base.documentos,

@@ -8,7 +8,7 @@ import {
   EvidenciaEps, FuenteEvidenciaEps, TipoEvidenciaEps,
 } from '../../../domain/entities/evidencia-validacion-eps.entity';
 import {
-  DecisionEps, EstadoProcesamientoEps, ValidacionEps, ValidacionEpsYaDecididaError,
+  DecisionEps, DiscrepanciaEps, EstadoProcesamientoEps, ValidacionEps, ValidacionEpsYaDecididaError,
 } from '../../../domain/entities/validacion-eps.entity';
 import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, DOCUMENTO_REPOSITORY, DocumentoRepositoryPort,
@@ -17,6 +17,7 @@ import {
 import {
   VALIDACION_EPS_REPOSITORY, ValidacionEpsRepositoryPort,
 } from '../../../domain/ports/out/validacion-eps.port';
+import { ResumenLecturaLocal } from '../../../domain/ports/out/lector-documento-local.port';
 import {
   CampoLeido, compararCertificadoEps, construirDatosExtraidosEps,
 } from '../../../domain/services/comparacion-eps.domain-service';
@@ -96,7 +97,9 @@ export class ValidacionEpsUseCase {
     // Otro proceso ya la procesó, o una persona ya la decidió: nada que hacer.
     if (validacion.estadoProcesamiento === EstadoProcesamientoEps.PROCESADO || validacion.estaDecidida) return validacion;
 
-    const campos = ((datos.extraccion as { campos?: Record<string, CampoLeido> } | null)?.campos ?? {});
+    const lectura = datos.extraccion as { campos?: Record<string, CampoLeido>; lecturaLocal?: ResumenLecturaLocal } | null;
+    const campos = lectura?.campos ?? {};
+    const resumen = lectura?.lecturaLocal ?? null;
     const extraidos = construirDatosExtraidosEps(campos);
     const comparacion = compararCertificadoEps(
       extraidos,
@@ -110,7 +113,7 @@ export class ValidacionEpsUseCase {
       {
         datosExtraidos: extraidos,
         coincidencia: comparacion.coincidencia,
-        discrepancias: comparacion.discrepancias,
+        discrepancias: [...comparacion.discrepancias, ...this.discrepanciasDeFuentes(resumen)],
         vigencia: comparacion.vigencia,
         hayBanderaCritica,
       },
@@ -122,23 +125,8 @@ export class ValidacionEpsUseCase {
       return (await this.validaciones.buscarPorId(validacion.id)) ?? validacion;
     }
 
-    const leidos = Object.entries(campos).filter(([, c]) => c.valor !== null).map(([nombre]) => nombre);
-    await this.validaciones.agregarEvidencia(EvidenciaEps.crear({
-      id: randomUUID(),
-      validacionEpsId: validacion.id,
-      tipo: TipoEvidenciaEps.TEXTO_PDF,
-      fuente: FuenteEvidenciaEps.CERTIFICADO,
-      metodo: 'extraccion_local_texto_pdf',
-      resultado: leidos.length > 0 ? 'leido' : 'sin_lectura',
-      fechaVerificacion: ahora,
-      hashEvidencia: datos.hashSha256,
-      origen: null,
-      // Solo QUÉ campos se leyeron, no sus valores: el contenido del certificado no se duplica aquí.
-      datosObtenidos: { camposLeidos: leidos, camposEsperados: Object.keys(campos).length, procesamiento: 'local' },
-      errorCodigo: null,
-      verificadoPor: null,
-      creadoEn: ahora,
-    }).instantanea());
+    const evidencias = this.evidenciasDeLectura(validacion.id, datos.hashSha256, campos, resumen, ahora);
+    for (const evidencia of evidencias) await this.validaciones.agregarEvidencia(evidencia.instantanea());
 
     await this.auditar(AccionAuditada.VALIDACION_EPS_PROCESADA, validacion.id, {
       documentoId: datos.id,
@@ -146,11 +134,118 @@ export class ValidacionEpsUseCase {
       vigencia: comparacion.vigencia,
       discrepancias: comparacion.discrepancias.length,
       ruta: validacion.ruta,
+      ocr: resumen?.ocr.ejecutado ?? false,
+      qrHallados: resumen?.qr.hallazgos.length ?? 0,
     });
-    await this.auditar(AccionAuditada.EVIDENCIA_EPS_REGISTRADA, validacion.id, {
-      tipo: TipoEvidenciaEps.TEXTO_PDF, fuente: FuenteEvidenciaEps.CERTIFICADO,
-    });
+    for (const evidencia of evidencias) {
+      const e = evidencia.instantanea();
+      await this.auditar(AccionAuditada.EVIDENCIA_EPS_REGISTRADA, validacion.id, { tipo: e.tipo, fuente: e.fuente });
+    }
     return (await this.validaciones.buscarPorId(validacion.id)) ?? validacion;
+  }
+
+  // ── Estado de procesamiento ──────────────────────────────────────────────
+
+  /** Pasa la validación a «procesando» al empezar el trabajo (no pisa una procesada ni una decidida). */
+  async marcarProcesando(documentoId: string, ahora: Date = new Date()): Promise<void> {
+    const documento = await this.documentos.buscarPorId(documentoId);
+    if (!documento || documento.tipo !== TipoDocumento.CERTIFICADO_EPS) return;
+    const validacion = await this.obtenerOCrear(documento, ahora);
+    if (!validacion || validacion.estaDecidida || validacion.estadoProcesamiento === EstadoProcesamientoEps.PROCESADO) return;
+    const versionLeida = validacion.version;
+    validacion.iniciarProcesamiento(ahora);
+    await this.validaciones.guardarSiVersion(validacion.instantanea(), versionLeida);
+  }
+
+  /** Deja constancia de que el procesamiento falló (sin detalle del documento); un reintento lo reanuda. */
+  async marcarErrorProcesamiento(documentoId: string, codigo: string, ahora: Date = new Date()): Promise<void> {
+    const validacion = await this.validaciones.buscarPorDocumento(documentoId);
+    if (!validacion || validacion.estaDecidida || validacion.estadoProcesamiento === EstadoProcesamientoEps.PROCESADO) return;
+    const versionLeida = validacion.version;
+    validacion.marcarError(codigo, ahora);
+    await this.validaciones.guardarSiVersion(validacion.instantanea(), versionLeida);
+  }
+
+  // ── Evidencia de la lectura local ────────────────────────────────────────
+
+  /**
+   * Una evidencia por hecho observado: texto digital, OCR y cada QR hallado. Solo
+   * llevan nombres de campos, métricas y el contenido SANEADO de los QR; nunca el
+   * texto del certificado ni valores personales. Un QR hallado NO es autenticidad.
+   */
+  private evidenciasDeLectura(
+    validacionId: string, hash: string, campos: Record<string, CampoLeido>,
+    resumen: ResumenLecturaLocal | null, ahora: Date,
+  ): EvidenciaEps[] {
+    const base = {
+      validacionEpsId: validacionId, fuente: FuenteEvidenciaEps.CERTIFICADO, fechaVerificacion: ahora,
+      hashEvidencia: hash, errorCodigo: null, verificadoPor: null, creadoEn: ahora,
+    };
+    const leidosPor = (fuente: string): string[] =>
+      Object.entries(campos).filter(([, c]) => c.valor !== null && c.fuente === fuente).map(([n]) => n);
+    const salida: EvidenciaEps[] = [];
+
+    if (!resumen) {
+      const leidos = Object.entries(campos).filter(([, c]) => c.valor !== null).map(([n]) => n);
+      salida.push(EvidenciaEps.crear({
+        ...base, id: randomUUID(), tipo: TipoEvidenciaEps.TEXTO_PDF, metodo: 'extraccion_local_texto_pdf',
+        resultado: leidos.length > 0 ? 'leido' : 'sin_lectura', origen: null,
+        datosObtenidos: { camposLeidos: leidos, camposEsperados: Object.keys(campos).length, procesamiento: 'local' },
+      }));
+      return salida;
+    }
+
+    if (resumen.textoNativo) {
+      const t = resumen.textoNativo;
+      salida.push(EvidenciaEps.crear({
+        ...base, id: randomUUID(), tipo: TipoEvidenciaEps.TEXTO_PDF, metodo: 'texto_nativo_pdfjs',
+        resultado: t.utilizable ? 'leido' : 'sin_texto', origen: null,
+        datosObtenidos: {
+          paginas: t.paginas, paginasLeidas: t.paginasLeidas, paginasConTexto: t.paginasConTexto, caracteres: t.caracteres,
+          camposLeidos: leidosPor('texto_nativo'), procesamiento: 'local',
+        },
+      }));
+    }
+    if (resumen.ocr.ejecutado) {
+      salida.push(EvidenciaEps.crear({
+        ...base, id: randomUUID(), tipo: TipoEvidenciaEps.OCR, metodo: 'ocr_local_tesseract_spa',
+        resultado: leidosPor('ocr').length > 0 ? 'leido' : 'sin_lectura', origen: null,
+        datosObtenidos: {
+          paginas: resumen.ocr.paginas, confianzaMedia: resumen.ocr.confianzaMedia, giros: resumen.ocr.giros,
+          camposLeidos: leidosPor('ocr'), procesamiento: 'local',
+        },
+      }));
+    }
+    for (const q of resumen.qr.hallazgos) {
+      salida.push(EvidenciaEps.crear({
+        ...base, id: randomUUID(), tipo: TipoEvidenciaEps.QR, metodo: 'qr_local_zxing', resultado: 'detectado',
+        // Solo protocolo, host y ruta (sin usuario, parámetros ni fragmento) y solo si cabe en la columna.
+        origen: q.origenSanitizado && q.origenSanitizado.length <= 300 ? q.origenSanitizado : null,
+        datosObtenidos: {
+          pagina: q.pagina, formato: q.formato, tipoContenido: q.tipo, longitud: q.longitud, hashContenido: q.hash,
+          host: q.host, tieneParametros: q.tieneParametros, senales: q.senales, posicion: q.posicion,
+          verificado: false,
+        },
+      }));
+    }
+    if (resumen.qr.paginasEscaneadas > 0 && resumen.qr.hallazgos.length === 0) {
+      salida.push(EvidenciaEps.crear({
+        ...base, id: randomUUID(), tipo: TipoEvidenciaEps.QR, metodo: 'qr_local_zxing', resultado: 'no_encontrado', origen: null,
+        datosObtenidos: { paginasEscaneadas: resumen.qr.paginasEscaneadas },
+      }));
+    }
+    return salida;
+  }
+
+  /** Campos que el texto digital y el OCR leyeron distinto: se reportan, no se resuelven. */
+  private discrepanciasDeFuentes(resumen: ResumenLecturaLocal | null): DiscrepanciaEps[] {
+    const campo: Record<string, DiscrepanciaEps['campo']> = {
+      documento_afiliado: 'numero_documento', nombre_afiliado: 'nombre', fecha_expedicion: 'fecha_expedicion',
+      entidad_emisora: 'eps', regimen: 'regimen', estado_afiliacion: 'estado_reportado',
+    };
+    return (resumen?.discrepanciasFuentes ?? [])
+      .filter((d) => campo[d.campo])
+      .map((d) => ({ campo: campo[d.campo], esperado: null, observado: null, resultado: 'fuentes_distintas' as const }));
   }
 
   // ── Consulta ─────────────────────────────────────────────────────────────
