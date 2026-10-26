@@ -1,0 +1,13 @@
+{
+  "name": "SIPRA · Prácticas y empleo CUN",
+  "short_name": "SIPRA",
+  "lang": "es-CO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F14",
+  "theme_color": "#0B0F14",
+  "icons": [
+    { "src": "assets/marca/icono-app-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/marca/icono-app-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

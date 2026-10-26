@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="es-CO" data-tema="corporativo-sobrio" data-modo="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SIPRA PRÁCTICAS — prototipo navegable</title>
+<meta name="description" content="Recorrido de la plataforma de prácticas de la CUN con datos capturados del sistema en ejecución.">
+<meta name="author" content="Dirección de Extensión · CUN">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23123C6E'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='17' font-weight='700' text-anchor='middle' fill='%23fff'%3ES%3C/text%3E%3C/svg%3E">
+<script>
+  const lite = (navigator.deviceMemory ?? 8) <= 4 || (navigator.hardwareConcurrency ?? 8) <= 4
+            || navigator.connection?.saveData === true
+            || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.documentElement.classList.toggle('lite', lite);
+</script>
+</head>
+<body>
+<script type="application/json" id="datos">
+{"_meta":{"titulo":"SIPRA PRÁCTICAS","fecha_corte":"2026-09-15","fuente":"Capturado de la API de SIPRA en ejecución (node dist/main.js) contra PostgreSQL con datos sintéticos","salud":{"estado":"ok","ambiente":"dev","base":"ok","version":"0.1.0"},"modo":{"modo":"abierto","ambiente":"dev","permiteSelectorDePerfil":true}},"perfiles":[{"rol":"estudiante","id":"00000000-0000-4000-8000-000000000012","nombre":"Andrés Felipe Mora Castaño","correo":"andres.mora@estudiante.cun.edu.co","descripcion":"Carga documentos, consulta el estado de su práctica y accede a la bolsa cuando se habilita"},{"rol":"tutor","id":"00000000-0000-4000-8000-000000000002","nombre":"Hernán Darío Salcedo Rojas","correo":"tutor.negocios@cun.edu.co","descripcion":"Bandeja de estudiantes priorizada por señal de riesgo; aprueba el plan de mejoramiento"},{"rol":"coordinador","id":"00000000-0000-4000-8000-000000000003","nombre":"Patricia Elena Cárdenas Nieto","correo":"coordinacion.ingenierias@cun.edu.co","descripcion":"Supervisa los expedientes de su escuela y genera reportes"},{"rol":"administrador","id":"00000000-0000-4000-8000-000000000001","nombre":"Marcela Ovalle Pineda","correo":"admin.practicas@cun.edu.co","descripcion":"Habilita empresas, parametriza, audita y genera reportes regulatorios"},{"rol":"empresa","id":"00000000-0000-4000-8000-000000000021","nombre":"Camila Restrepo Duarte","correo":"camila.restrepo@logisticasandinas.com.co","descripcion":"Consulta sus practicantes, publica vacantes y revisa postulantes"},{"rol":"extension","id":"00000000-0000-4000-8000-000000000004","nombre":"Ricardo Alberto Peláez Mora","correo":"extension.bolsa@cun.edu.co","descripcion":"Opera la bolsa de empleo y sus reportes al Servicio Público de Empleo"}],"matrizAcceso":[{"rol":"estudiante","practicas":{"estado":200,"n":1},"empresas":{"estado":200,"n":3},"tablero":{"estado":403,"n":null},"vacantes":{"estado":200,"n":1},"reporteSpe":{"estado":403,"n":null}},{"rol":"tutor","practicas":{"estado":200,"n":2},"empresas":{"estado":200,"n":3},"tablero":{"estado":200,"n":null},"vacantes":{"estado":200,"n":1},"reporteSpe":{"estado":403,"n":null}},{"rol":"coordinador","practicas":{"estado":200,"n":1},"empresas":{"estado":200,"n":3},"tablero":{"estado":200,"n":null},"vacantes":{"estado":200,"n":1},"reporteSpe":{"estado":403,"n":null}},{"rol":"administrador","practicas":{"estado":200,"n":3},"empresas":{"estado":200,"n":3},"tablero":{"estado":200,"n":null},"vacantes":{"estado":200,"n":1},"reporteSpe":{"estado":200,"n":null}},{"rol":"empresa","practicas":{"estado":200,"n":2},"empresas":{"estado":200,"n":1},"tablero":{"estado":403,"n":null},"vacantes":{"estado":200,"n":1},"reporteSpe":{"estado":403,"n":null}},{"rol":"extension","practicas":{"estado":200,"n":3},"empresas":{"estado":200,"n":3},"tablero":{"estado":200,"n":null},"vacantes":{"estado":200,"n":1},"reporteSpe":{"estado":200,"n":null}}],"etiquetasRuta":{"practicas":"Prácticas","empresas":"Empresas","tablero":"Cumplimiento","vacantes":"Bolsa","reporteSpe":"Reporte SPE"},"porRol":{"estudiante":{"practicas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","estudianteNombre":"Andrés Felipe Mora Castaño","programaId":"SIS-TGO","escuelaId":"ESC-ING","ciclo":"tecnologo","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"en_validacion","tutorId":null,"empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Practicante de desarrollo","fechaInicio":"2026-09-21T00:00:00.000Z","fechaFin":"2026-12-20T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"al_dia","disparadoresSenal":[],"transicionesPosibles":["documentacion","activa","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.713Z"}],"texto":null},"empresas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000033","razonSocial":"Inversiones Meridiano S.A.S.","nit":"900777001-7","estado":"en_verificacion","semaforo":"amarillo","solicitanteNombre":"Ana María Gutiérrez Peña","solicitanteCorreo":"anamaria.gutierrez.contacto@gmail.com","solicitadaEn":"2026-09-15T15:19:19.691Z"},{"id":"00000000-0000-4000-8000-000000000032","razonSocial":"Tecnología y Servicios del Caribe Ltda","nit":"830045123-2","estado":"en_verificacion","semaforo":"verde","solicitanteNombre":"Jorge Enrique Pardo Silva","solicitanteCorreo":"jorge.pardo@tecnocaribe.com.co","solicitadaEn":"2026-09-15T15:19:19.690Z"},{"id":"00000000-0000-4000-8000-000000000031","razonSocial":"Soluciones Logísticas Andinas S.A.S.","nit":"901458772-2","estado":"habilitada","semaforo":"verde","solicitanteNombre":"Camila Restrepo Duarte","solicitanteCorreo":"camila.restrepo@logisticasandinas.com.co","solicitadaEn":"2026-09-15T15:19:19.687Z"}],"texto":null},"tablero":{"estado":403,"datos":{"message":"Su perfil no tiene acceso a esta operación","error":"Forbidden","statusCode":403},"texto":null},"vacantes":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000051","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","marco":"practica","titulo":"Practicante de operaciones logísticas","descripcion":"Apoyo a la coordinación de despachos y control de inventario en el centro de distribución de Bogotá, con acompañamiento de un jefe de área asignado.","funciones":"Registro y verificación de guías; conciliación de inventario; apoyo en la programación de rutas.","requisitos":"Estudiante activo de programas administrativos o logísticos con matrícula vigente en la asignatura de práctica. Manejo de hojas de cálculo.","codigoCno":"4321","codigoCiiu":"5210","divipolaMunicipio":"11001","nivelEducativo":"universitaria","vacantesDisponibles":2,"estado":"publicada","publicadaEn":"2026-09-15T15:19:19.724Z","vigenteHasta":"2027-03-15T15:19:19.724Z"}],"texto":null},"reporteSpe":{"estado":403,"datos":{"message":"Su perfil no tiene acceso a esta operación","error":"Forbidden","statusCode":403},"texto":null}},"tutor":{"practicas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","estudianteNombre":"Valentina Ochoa Ruiz","programaId":"COM-TEC","escuelaId":"ESC-COM","ciclo":"tecnico","periodoAcademico":"2026-2","modalidad":"social","estado":"inscrita","tutorId":"00000000-0000-4000-8000-000000000002","empresaId":null,"empresaRazonSocial":null,"cargo":null,"fechaInicio":"2026-10-05T00:00:00.000Z","fechaFin":"2027-01-03T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"al_dia","disparadoresSenal":[],"transicionesPosibles":["documentacion","finalizada","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.718Z"},{"id":"00000000-0000-4000-8000-000000000041","estudianteId":"00000000-0000-4000-8000-000000000011","estudianteNombre":"Laura Sofía Ramírez Ortiz","programaId":"ADM-PRO","escuelaId":"ESC-NEG","ciclo":"profesional","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"activa","tutorId":"00000000-0000-4000-8000-000000000002","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Auxiliar de operaciones logísticas","fechaInicio":"2026-08-06T00:00:00.000Z","fechaFin":"2026-11-04T00:00:00.000Z","horasRegistradas":null,"arlVerificada":true,"senal":"en_riesgo","disparadoresSenal":["empresa sin responder"],"transicionesPosibles":["finalizada","suspendida"],"ultimaActividad":"2026-09-15T15:19:19.703Z"}],"texto":null},"empresas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000033","razonSocial":"Inversiones Meridiano S.A.S.","nit":"900777001-7","estado":"en_verificacion","semaforo":"amarillo","solicitanteNombre":"Ana María Gutiérrez Peña","solicitanteCorreo":"anamaria.gutierrez.contacto@gmail.com","solicitadaEn":"2026-09-15T15:19:19.691Z"},{"id":"00000000-0000-4000-8000-000000000032","razonSocial":"Tecnología y Servicios del Caribe Ltda","nit":"830045123-2","estado":"en_verificacion","semaforo":"verde","solicitanteNombre":"Jorge Enrique Pardo Silva","solicitanteCorreo":"jorge.pardo@tecnocaribe.com.co","solicitadaEn":"2026-09-15T15:19:19.690Z"},{"id":"00000000-0000-4000-8000-000000000031","razonSocial":"Soluciones Logísticas Andinas S.A.S.","nit":"901458772-2","estado":"habilitada","semaforo":"verde","solicitanteNombre":"Camila Restrepo Duarte","solicitanteCorreo":"camila.restrepo@logisticasandinas.com.co","solicitadaEn":"2026-09-15T15:19:19.687Z"}],"texto":null},"tablero":{"estado":200,"datos":{"resumen":{"cumplida":0,"vencida":1,"critica":0,"alerta":0,"vigente":2},"filas":[{"practicaId":"00000000-0000-4000-8000-000000000041","estudianteId":"00000000-0000-4000-8000-000000000011","escuelaId":"ESC-NEG","obligacionId":"d53eedfe-eb8b-47ab-bf4b-7dce6673b874","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-08-06T00:00:00.000Z","diasRestantes":-41,"semaforo":"vencida"},{"practicaId":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","escuelaId":"ESC-COM","obligacionId":"163f3d46-1e58-4e2e-9b81-850e0b38afff","tipo":"afiliacion_arl","norma":"Decreto 055 de 2015","responsable":"cun","efecto":"bloquea_activa","estado":"pendiente","fechaLimite":"2026-10-04T00:00:00.000Z","diasRestantes":18,"semaforo":"vigente"},{"practicaId":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","escuelaId":"ESC-COM","obligacionId":"94c0372b-aa44-4545-99ee-284739a425c5","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-10-05T00:00:00.000Z","diasRestantes":19,"semaforo":"vigente"}],"practicasBloqueadas":0},"texto":null},"vacantes":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000051","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","marco":"practica","titulo":"Practicante de operaciones logísticas","descripcion":"Apoyo a la coordinación de despachos y control de inventario en el centro de distribución de Bogotá, con acompañamiento de un jefe de área asignado.","funciones":"Registro y verificación de guías; conciliación de inventario; apoyo en la programación de rutas.","requisitos":"Estudiante activo de programas administrativos o logísticos con matrícula vigente en la asignatura de práctica. Manejo de hojas de cálculo.","codigoCno":"4321","codigoCiiu":"5210","divipolaMunicipio":"11001","nivelEducativo":"universitaria","vacantesDisponibles":2,"estado":"publicada","publicadaEn":"2026-09-15T15:19:19.724Z","vigenteHasta":"2027-03-15T15:19:19.724Z"}],"texto":null},"reporteSpe":{"estado":403,"datos":{"message":"Su perfil no tiene acceso a esta operación","error":"Forbidden","statusCode":403},"texto":null}},"coordinador":{"practicas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","estudianteNombre":"Andrés Felipe Mora Castaño","programaId":"SIS-TGO","escuelaId":"ESC-ING","ciclo":"tecnologo","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"en_validacion","tutorId":null,"empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Practicante de desarrollo","fechaInicio":"2026-09-21T00:00:00.000Z","fechaFin":"2026-12-20T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"en_riesgo","disparadoresSenal":["empresa sin responder","menos de 10 días para un vencimiento"],"transicionesPosibles":["documentacion","activa","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.713Z"}],"texto":null},"empresas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000033","razonSocial":"Inversiones Meridiano S.A.S.","nit":"900777001-7","estado":"en_verificacion","semaforo":"amarillo","solicitanteNombre":"Ana María Gutiérrez Peña","solicitanteCorreo":"anamaria.gutierrez.contacto@gmail.com","solicitadaEn":"2026-09-15T15:19:19.691Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación válido","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"El solicitante usa un dominio genérico (gmail.com)","resultado":"advertencia"},{"codigo":"RUES","detalle":"RUES: matrícula cancelada","resultado":"advertencia"},{"codigo":"REPRESENTANTE_DISCREPANTE","detalle":"El representante legal declarado no coincide con el RUES","resultado":"advertencia"}]},{"id":"00000000-0000-4000-8000-000000000032","razonSocial":"Tecnología y Servicios del Caribe Ltda","nit":"830045123-2","estado":"en_verificacion","semaforo":"verde","solicitanteNombre":"Jorge Enrique Pardo Silva","solicitanteCorreo":"jorge.pardo@tecnocaribe.com.co","solicitadaEn":"2026-09-15T15:19:19.690Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación válido","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"Dominio corporativo: tecnocaribe.com.co","resultado":"ok"},{"codigo":"RUES","detalle":"RUES: matrícula activa","resultado":"ok"}]},{"id":"00000000-0000-4000-8000-000000000031","razonSocial":"Soluciones Logísticas Andinas S.A.S.","nit":"901458772-2","estado":"habilitada","semaforo":"verde","solicitanteNombre":"Camila Restrepo Duarte","solicitanteCorreo":"camila.restrepo@logisticasandinas.com.co","solicitadaEn":"2026-09-15T15:19:19.687Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación 2 para el NIT 901458772","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"Dominio corporativo: logisticasandinas.com.co","resultado":"ok"},{"codigo":"RUES","detalle":"RUES: SOLUCIONES LOGÍSTICAS ANDINAS S.A.S. · matrícula activa","resultado":"ok"}]}],"texto":null},"tablero":{"estado":200,"datos":{"resumen":{"cumplida":0,"vencida":0,"critica":0,"alerta":2,"vigente":0},"filas":[{"practicaId":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","escuelaId":"ESC-ING","obligacionId":"5ff8a305-a1ae-477d-8dda-05a9dee532e9","tipo":"afiliacion_arl","norma":"Decreto 055 de 2015","responsable":"cun","efecto":"bloquea_activa","estado":"pendiente","fechaLimite":"2026-09-20T00:00:00.000Z","diasRestantes":4,"semaforo":"alerta"},{"practicaId":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","escuelaId":"ESC-ING","obligacionId":"5d473eee-8918-4b7c-a5bf-ee2fdbe78b31","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-09-21T00:00:00.000Z","diasRestantes":5,"semaforo":"alerta"}],"practicasBloqueadas":1},"texto":null},"vacantes":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000051","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","marco":"practica","titulo":"Practicante de operaciones logísticas","descripcion":"Apoyo a la coordinación de despachos y control de inventario en el centro de distribución de Bogotá, con acompañamiento de un jefe de área asignado.","funciones":"Registro y verificación de guías; conciliación de inventario; apoyo en la programación de rutas.","requisitos":"Estudiante activo de programas administrativos o logísticos con matrícula vigente en la asignatura de práctica. Manejo de hojas de cálculo.","codigoCno":"4321","codigoCiiu":"5210","divipolaMunicipio":"11001","nivelEducativo":"universitaria","vacantesDisponibles":2,"estado":"publicada","publicadaEn":"2026-09-15T15:19:19.724Z","vigenteHasta":"2027-03-15T15:19:19.724Z"}],"texto":null},"reporteSpe":{"estado":403,"datos":{"message":"Su perfil no tiene acceso a esta operación","error":"Forbidden","statusCode":403},"texto":null}},"administrador":{"practicas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","estudianteNombre":"Valentina Ochoa Ruiz","programaId":"COM-TEC","escuelaId":"ESC-COM","ciclo":"tecnico","periodoAcademico":"2026-2","modalidad":"social","estado":"inscrita","tutorId":"00000000-0000-4000-8000-000000000002","empresaId":null,"empresaRazonSocial":null,"cargo":null,"fechaInicio":"2026-10-05T00:00:00.000Z","fechaFin":"2027-01-03T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"al_dia","disparadoresSenal":[],"transicionesPosibles":["documentacion","finalizada","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.718Z"},{"id":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","estudianteNombre":"Andrés Felipe Mora Castaño","programaId":"SIS-TGO","escuelaId":"ESC-ING","ciclo":"tecnologo","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"en_validacion","tutorId":null,"empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Practicante de desarrollo","fechaInicio":"2026-09-21T00:00:00.000Z","fechaFin":"2026-12-20T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"en_riesgo","disparadoresSenal":["empresa sin responder","menos de 10 días para un vencimiento"],"transicionesPosibles":["documentacion","activa","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.713Z"},{"id":"00000000-0000-4000-8000-000000000041","estudianteId":"00000000-0000-4000-8000-000000000011","estudianteNombre":"Laura Sofía Ramírez Ortiz","programaId":"ADM-PRO","escuelaId":"ESC-NEG","ciclo":"profesional","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"activa","tutorId":"00000000-0000-4000-8000-000000000002","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Auxiliar de operaciones logísticas","fechaInicio":"2026-08-06T00:00:00.000Z","fechaFin":"2026-11-04T00:00:00.000Z","horasRegistradas":null,"arlVerificada":true,"senal":"en_riesgo","disparadoresSenal":["empresa sin responder"],"transicionesPosibles":["finalizada","suspendida"],"ultimaActividad":"2026-09-15T15:19:19.703Z"}],"texto":null},"empresas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000033","razonSocial":"Inversiones Meridiano S.A.S.","nit":"900777001-7","estado":"en_verificacion","semaforo":"amarillo","solicitanteNombre":"Ana María Gutiérrez Peña","solicitanteCorreo":"anamaria.gutierrez.contacto@gmail.com","solicitadaEn":"2026-09-15T15:19:19.691Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación válido","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"El solicitante usa un dominio genérico (gmail.com)","resultado":"advertencia"},{"codigo":"RUES","detalle":"RUES: matrícula cancelada","resultado":"advertencia"},{"codigo":"REPRESENTANTE_DISCREPANTE","detalle":"El representante legal declarado no coincide con el RUES","resultado":"advertencia"}]},{"id":"00000000-0000-4000-8000-000000000032","razonSocial":"Tecnología y Servicios del Caribe Ltda","nit":"830045123-2","estado":"en_verificacion","semaforo":"verde","solicitanteNombre":"Jorge Enrique Pardo Silva","solicitanteCorreo":"jorge.pardo@tecnocaribe.com.co","solicitadaEn":"2026-09-15T15:19:19.690Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación válido","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"Dominio corporativo: tecnocaribe.com.co","resultado":"ok"},{"codigo":"RUES","detalle":"RUES: matrícula activa","resultado":"ok"}]},{"id":"00000000-0000-4000-8000-000000000031","razonSocial":"Soluciones Logísticas Andinas S.A.S.","nit":"901458772-2","estado":"habilitada","semaforo":"verde","solicitanteNombre":"Camila Restrepo Duarte","solicitanteCorreo":"camila.restrepo@logisticasandinas.com.co","solicitadaEn":"2026-09-15T15:19:19.687Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación 2 para el NIT 901458772","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"Dominio corporativo: logisticasandinas.com.co","resultado":"ok"},{"codigo":"RUES","detalle":"RUES: SOLUCIONES LOGÍSTICAS ANDINAS S.A.S. · matrícula activa","resultado":"ok"}]}],"texto":null},"tablero":{"estado":200,"datos":{"resumen":{"cumplida":0,"vencida":1,"critica":0,"alerta":2,"vigente":2},"filas":[{"practicaId":"00000000-0000-4000-8000-000000000041","estudianteId":"00000000-0000-4000-8000-000000000011","escuelaId":"ESC-NEG","obligacionId":"d53eedfe-eb8b-47ab-bf4b-7dce6673b874","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-08-06T00:00:00.000Z","diasRestantes":-41,"semaforo":"vencida"},{"practicaId":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","escuelaId":"ESC-ING","obligacionId":"5ff8a305-a1ae-477d-8dda-05a9dee532e9","tipo":"afiliacion_arl","norma":"Decreto 055 de 2015","responsable":"cun","efecto":"bloquea_activa","estado":"pendiente","fechaLimite":"2026-09-20T00:00:00.000Z","diasRestantes":4,"semaforo":"alerta"},{"practicaId":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","escuelaId":"ESC-ING","obligacionId":"5d473eee-8918-4b7c-a5bf-ee2fdbe78b31","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-09-21T00:00:00.000Z","diasRestantes":5,"semaforo":"alerta"},{"practicaId":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","escuelaId":"ESC-COM","obligacionId":"163f3d46-1e58-4e2e-9b81-850e0b38afff","tipo":"afiliacion_arl","norma":"Decreto 055 de 2015","responsable":"cun","efecto":"bloquea_activa","estado":"pendiente","fechaLimite":"2026-10-04T00:00:00.000Z","diasRestantes":18,"semaforo":"vigente"},{"practicaId":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","escuelaId":"ESC-COM","obligacionId":"94c0372b-aa44-4545-99ee-284739a425c5","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-10-05T00:00:00.000Z","diasRestantes":19,"semaforo":"vigente"}],"practicasBloqueadas":1},"texto":null},"vacantes":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000051","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","marco":"practica","titulo":"Practicante de operaciones logísticas","descripcion":"Apoyo a la coordinación de despachos y control de inventario en el centro de distribución de Bogotá, con acompañamiento de un jefe de área asignado.","funciones":"Registro y verificación de guías; conciliación de inventario; apoyo en la programación de rutas.","requisitos":"Estudiante activo de programas administrativos o logísticos con matrícula vigente en la asignatura de práctica. Manejo de hojas de cálculo.","codigoCno":"4321","codigoCiiu":"5210","divipolaMunicipio":"11001","nivelEducativo":"universitaria","vacantesDisponibles":2,"estado":"publicada","publicadaEn":"2026-09-15T15:19:19.724Z","vigenteHasta":"2027-03-15T15:19:19.724Z"}],"texto":null},"reporteSpe":{"estado":200,"datos":null,"texto":"# BORRADOR_SIN_ANEXO_CONFIRMADO\n# La estructura de este archivo no ha sido conciliada contra el anexo técnico vigente del Servicio Público de Empleo. No radicar.\nIDENTIFICADOR_VACANTE|$$|NIT_EMPRESA|$$|RAZON_SOCIAL|$$|CARGO|$$|DESCRIPCION|$$|FUNCIONES|$$|REQUISITOS|$$|CODIGO_CNO|$$|CODIGO_CIIU|$$|CODIGO_DIVIPOLA|$$|NIVEL_EDUCATIVO|$$|NUMERO_VACANTES|$$|SALARIO_MINIMO|$$|SALARIO_MAXIMO|$$|FECHA_PUBLICACION|$$|FECHA_VENCIMIENTO\n"}},"empresa":{"practicas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","estudianteNombre":"Andrés Felipe Mora Castaño","programaId":"SIS-TGO","escuelaId":"ESC-ING","ciclo":"tecnologo","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"en_validacion","tutorId":null,"empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Practicante de desarrollo","fechaInicio":"2026-09-21T00:00:00.000Z","fechaFin":"2026-12-20T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"al_dia","disparadoresSenal":[],"transicionesPosibles":["documentacion","activa","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.713Z"},{"id":"00000000-0000-4000-8000-000000000041","estudianteId":"00000000-0000-4000-8000-000000000011","estudianteNombre":"Laura Sofía Ramírez Ortiz","programaId":"ADM-PRO","escuelaId":"ESC-NEG","ciclo":"profesional","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"activa","tutorId":"00000000-0000-4000-8000-000000000002","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Auxiliar de operaciones logísticas","fechaInicio":"2026-08-06T00:00:00.000Z","fechaFin":"2026-11-04T00:00:00.000Z","horasRegistradas":null,"arlVerificada":true,"senal":"al_dia","disparadoresSenal":[],"transicionesPosibles":["finalizada","suspendida"],"ultimaActividad":"2026-09-15T15:19:19.703Z"}],"texto":null},"empresas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000031","razonSocial":"Soluciones Logísticas Andinas S.A.S.","nit":"901458772-2","estado":"habilitada","semaforo":"verde","solicitanteNombre":"Camila Restrepo Duarte","solicitanteCorreo":"camila.restrepo@logisticasandinas.com.co","solicitadaEn":"2026-09-15T15:19:19.687Z"}],"texto":null},"tablero":{"estado":403,"datos":{"message":"Su perfil no tiene acceso a esta operación","error":"Forbidden","statusCode":403},"texto":null},"vacantes":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000051","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","marco":"practica","titulo":"Practicante de operaciones logísticas","descripcion":"Apoyo a la coordinación de despachos y control de inventario en el centro de distribución de Bogotá, con acompañamiento de un jefe de área asignado.","funciones":"Registro y verificación de guías; conciliación de inventario; apoyo en la programación de rutas.","requisitos":"Estudiante activo de programas administrativos o logísticos con matrícula vigente en la asignatura de práctica. Manejo de hojas de cálculo.","codigoCno":"4321","codigoCiiu":"5210","divipolaMunicipio":"11001","nivelEducativo":"universitaria","vacantesDisponibles":2,"estado":"publicada","publicadaEn":"2026-09-15T15:19:19.724Z","vigenteHasta":"2027-03-15T15:19:19.724Z"}],"texto":null},"reporteSpe":{"estado":403,"datos":{"message":"Su perfil no tiene acceso a esta operación","error":"Forbidden","statusCode":403},"texto":null}},"extension":{"practicas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","estudianteNombre":"Valentina Ochoa Ruiz","programaId":"COM-TEC","escuelaId":"ESC-COM","ciclo":"tecnico","periodoAcademico":"2026-2","modalidad":"social","estado":"inscrita","tutorId":"00000000-0000-4000-8000-000000000002","empresaId":null,"empresaRazonSocial":null,"cargo":null,"fechaInicio":"2026-10-05T00:00:00.000Z","fechaFin":"2027-01-03T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"al_dia","disparadoresSenal":[],"transicionesPosibles":["documentacion","finalizada","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.718Z"},{"id":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","estudianteNombre":"Andrés Felipe Mora Castaño","programaId":"SIS-TGO","escuelaId":"ESC-ING","ciclo":"tecnologo","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"en_validacion","tutorId":null,"empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Practicante de desarrollo","fechaInicio":"2026-09-21T00:00:00.000Z","fechaFin":"2026-12-20T00:00:00.000Z","horasRegistradas":null,"arlVerificada":false,"senal":"en_riesgo","disparadoresSenal":["empresa sin responder","menos de 10 días para un vencimiento"],"transicionesPosibles":["documentacion","activa","cancelada"],"ultimaActividad":"2026-09-15T15:19:19.713Z"},{"id":"00000000-0000-4000-8000-000000000041","estudianteId":"00000000-0000-4000-8000-000000000011","estudianteNombre":"Laura Sofía Ramírez Ortiz","programaId":"ADM-PRO","escuelaId":"ESC-NEG","ciclo":"profesional","periodoAcademico":"2026-2","modalidad":"pasantia","estado":"activa","tutorId":"00000000-0000-4000-8000-000000000002","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","cargo":"Auxiliar de operaciones logísticas","fechaInicio":"2026-08-06T00:00:00.000Z","fechaFin":"2026-11-04T00:00:00.000Z","horasRegistradas":null,"arlVerificada":true,"senal":"en_riesgo","disparadoresSenal":["empresa sin responder"],"transicionesPosibles":["finalizada","suspendida"],"ultimaActividad":"2026-09-15T15:19:19.703Z"}],"texto":null},"empresas":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000033","razonSocial":"Inversiones Meridiano S.A.S.","nit":"900777001-7","estado":"en_verificacion","semaforo":"amarillo","solicitanteNombre":"Ana María Gutiérrez Peña","solicitanteCorreo":"anamaria.gutierrez.contacto@gmail.com","solicitadaEn":"2026-09-15T15:19:19.691Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación válido","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"El solicitante usa un dominio genérico (gmail.com)","resultado":"advertencia"},{"codigo":"RUES","detalle":"RUES: matrícula cancelada","resultado":"advertencia"},{"codigo":"REPRESENTANTE_DISCREPANTE","detalle":"El representante legal declarado no coincide con el RUES","resultado":"advertencia"}]},{"id":"00000000-0000-4000-8000-000000000032","razonSocial":"Tecnología y Servicios del Caribe Ltda","nit":"830045123-2","estado":"en_verificacion","semaforo":"verde","solicitanteNombre":"Jorge Enrique Pardo Silva","solicitanteCorreo":"jorge.pardo@tecnocaribe.com.co","solicitadaEn":"2026-09-15T15:19:19.690Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación válido","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"Dominio corporativo: tecnocaribe.com.co","resultado":"ok"},{"codigo":"RUES","detalle":"RUES: matrícula activa","resultado":"ok"}]},{"id":"00000000-0000-4000-8000-000000000031","razonSocial":"Soluciones Logísticas Andinas S.A.S.","nit":"901458772-2","estado":"habilitada","semaforo":"verde","solicitanteNombre":"Camila Restrepo Duarte","solicitanteCorreo":"camila.restrepo@logisticasandinas.com.co","solicitadaEn":"2026-09-15T15:19:19.687Z","senales":[{"codigo":"NIT_DV","detalle":"Dígito de verificación 2 para el NIT 901458772","resultado":"ok"},{"codigo":"DOMINIO_CORPORATIVO","detalle":"Dominio corporativo: logisticasandinas.com.co","resultado":"ok"},{"codigo":"RUES","detalle":"RUES: SOLUCIONES LOGÍSTICAS ANDINAS S.A.S. · matrícula activa","resultado":"ok"}]}],"texto":null},"tablero":{"estado":200,"datos":{"resumen":{"cumplida":0,"vencida":1,"critica":0,"alerta":2,"vigente":2},"filas":[{"practicaId":"00000000-0000-4000-8000-000000000041","estudianteId":"00000000-0000-4000-8000-000000000011","escuelaId":"ESC-NEG","obligacionId":"d53eedfe-eb8b-47ab-bf4b-7dce6673b874","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-08-06T00:00:00.000Z","diasRestantes":-41,"semaforo":"vencida"},{"practicaId":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","escuelaId":"ESC-ING","obligacionId":"5ff8a305-a1ae-477d-8dda-05a9dee532e9","tipo":"afiliacion_arl","norma":"Decreto 055 de 2015","responsable":"cun","efecto":"bloquea_activa","estado":"pendiente","fechaLimite":"2026-09-20T00:00:00.000Z","diasRestantes":4,"semaforo":"alerta"},{"practicaId":"00000000-0000-4000-8000-000000000042","estudianteId":"00000000-0000-4000-8000-000000000012","escuelaId":"ESC-ING","obligacionId":"5d473eee-8918-4b7c-a5bf-ee2fdbe78b31","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-09-21T00:00:00.000Z","diasRestantes":5,"semaforo":"alerta"},{"practicaId":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","escuelaId":"ESC-COM","obligacionId":"163f3d46-1e58-4e2e-9b81-850e0b38afff","tipo":"afiliacion_arl","norma":"Decreto 055 de 2015","responsable":"cun","efecto":"bloquea_activa","estado":"pendiente","fechaLimite":"2026-10-04T00:00:00.000Z","diasRestantes":18,"semaforo":"vigente"},{"practicaId":"00000000-0000-4000-8000-000000000043","estudianteId":"00000000-0000-4000-8000-000000000013","escuelaId":"ESC-COM","obligacionId":"94c0372b-aa44-4545-99ee-284739a425c5","tipo":"reporte_plaza_practica","norma":"Ley 1780 de 2016, art. 17","responsable":"cun","efecto":"alerta","estado":"pendiente","fechaLimite":"2026-10-05T00:00:00.000Z","diasRestantes":19,"semaforo":"vigente"}],"practicasBloqueadas":1},"texto":null},"vacantes":{"estado":200,"datos":[{"id":"00000000-0000-4000-8000-000000000051","empresaId":"00000000-0000-4000-8000-000000000031","empresaRazonSocial":"Soluciones Logísticas Andinas S.A.S.","marco":"practica","titulo":"Practicante de operaciones logísticas","descripcion":"Apoyo a la coordinación de despachos y control de inventario en el centro de distribución de Bogotá, con acompañamiento de un jefe de área asignado.","funciones":"Registro y verificación de guías; conciliación de inventario; apoyo en la programación de rutas.","requisitos":"Estudiante activo de programas administrativos o logísticos con matrícula vigente en la asignatura de práctica. Manejo de hojas de cálculo.","codigoCno":"4321","codigoCiiu":"5210","divipolaMunicipio":"11001","nivelEducativo":"universitaria","vacantesDisponibles":2,"estado":"publicada","publicadaEn":"2026-09-15T15:19:19.724Z","vigenteHasta":"2027-03-15T15:19:19.724Z"}],"texto":null},"reporteSpe":{"estado":200,"datos":null,"texto":"# BORRADOR_SIN_ANEXO_CONFIRMADO\n# La estructura de este archivo no ha sido conciliada contra el anexo técnico vigente del Servicio Público de Empleo. No radicar.\nIDENTIFICADOR_VACANTE|$$|NIT_EMPRESA|$$|RAZON_SOCIAL|$$|CARGO|$$|DESCRIPCION|$$|FUNCIONES|$$|REQUISITOS|$$|CODIGO_CNO|$$|CODIGO_CIIU|$$|CODIGO_DIVIPOLA|$$|NIVEL_EDUCATIVO|$$|NUMERO_VACANTES|$$|SALARIO_MINIMO|$$|SALARIO_MAXIMO|$$|FECHA_PUBLICACION|$$|FECHA_VENCIMIENTO\n"}}},"evidencia":{"compuertaArlApi":{"estado":400,"datos":{"message":"No se puede activar: la obligación de afiliación a ARL (Decreto 055 de 2015) no está cumplida.","error":"Bad Request","statusCode":400}},"extensionMentida":{"estado":201,"datos":{"id":"3c1d8318-16bd-457c-80ad-f014d87295a5","practicaId":"00000000-0000-4000-8000-000000000042","tipo":"cedula","version":1,"estado":"recibido","nombreOriginal":"cedula.jpg","tamanoBytes":125,"puntaje":null,"banda":null,"motivoDevolucion":null,"cargadoEn":"2026-09-15T15:19:37.422Z"}},"documentos":[{"id":"3c1d8318-16bd-457c-80ad-f014d87295a5","practicaId":"00000000-0000-4000-8000-000000000042","tipo":"cedula","version":1,"estado":"en_revision","nombreOriginal":"cedula.jpg","tamanoBytes":125,"puntaje":null,"banda":null,"motivoDevolucion":null,"cargadoEn":"2026-09-15T15:19:37.422Z"},{"id":"88eaa462-1d33-41dd-bf2a-434bdd8c155a","practicaId":"00000000-0000-4000-8000-000000000042","tipo":"certificado_arl","version":1,"estado":"ilegible","nombreOriginal":"certificado-arl.pdf","tamanoBytes":125,"puntaje":null,"banda":null,"motivoDevolucion":"No fue posible leer el documento con certeza. Vuelva a capturarlo con buena luz, sobre una superficie plana y sin sombras, procurando que todo el texto quede enfocado.","cargadoEn":"2026-09-15T15:19:36.835Z"}]},"modalidades":{"orden":["pre_postulacion","formalizacion","inicio","cierre"],"modalidades":[{"modalidad":"monitoria","etiqueta":"Monitoría","descripcion":"Acompañamiento académico dentro de la institución.","responsableArl":"cun","duracionMin":null,"duracionMax":null,"condiciones":[],"pendienteRatificar":false,"documentos":{"pre_postulacion":["cedula","certificado_eps"],"formalizacion":["acta_inicio"],"inicio":[],"cierre":["planilla_horas","certificado_practica"]}},{"modalidad":"social","etiqueta":"Social o de proyección social","descripcion":"Práctica con impacto comunitario, articulada por la institución.","responsableArl":"segun_cobertura","duracionMin":null,"duracionMax":null,"condiciones":["La cobertura de ARL depende de si la práctica está articulada y de si el tercero cubre."],"pendienteRatificar":false,"documentos":{"pre_postulacion":["cedula","certificado_eps"],"formalizacion":["acta_inicio"],"inicio":[],"cierre":["planilla_horas","certificado_practica"]}},{"modalidad":"investigacion","etiqueta":"Investigación, semillero o técnica investigativa","descripcion":"Vinculación a un semillero o proyecto de investigación.","responsableArl":"segun_cobertura","duracionMin":null,"duracionMax":null,"condiciones":["La CUN afilia cuando la práctica es articulada."],"pendienteRatificar":false,"documentos":{"pre_postulacion":["cedula","certificado_eps"],"formalizacion":["acta_inicio"],"inicio":[],"cierre":["planilla_horas","certificado_practica"]}},{"modalidad":"pasantia","etiqueta":"Pasantía","descripcion":"Práctica en una organización receptora externa.","responsableArl":"empresa","duracionMin":1,"duracionMax":6,"condiciones":["La empresa afilia, salvo cobertura de la CUN aprobada para esa organización."],"pendienteRatificar":false,"documentos":{"pre_postulacion":["cedula","certificado_eps"],"formalizacion":["acta_inicio"],"inicio":["certificado_arl"],"cierre":["planilla_horas","certificado_practica"]}},{"modalidad":"cunbre_naciente","etiqueta":"CUNBRE Naciente","descripcion":"Emprendimiento propio en etapa temprana, como persona natural.","responsableArl":"segun_cobertura","duracionMin":3,"duracionMax":null,"condiciones":["El emprendimiento debe acreditar al menos tres meses de funcionamiento."],"pendienteRatificar":false,"documentos":{"pre_postulacion":["cedula","certificado_eps","rut_natural"],"formalizacion":["acta_inicio"],"inicio":[],"cierre":["planilla_horas","certificado_practica"]}},{"modalidad":"cunbre_consolidado","etiqueta":"CUNBRE Consolidado","descripcion":"Emprendimiento propio ya constituido como persona jurídica.","responsableArl":"segun_cobertura","duracionMin":3,"duracionMax":null,"condiciones":["El emprendimiento debe acreditar al menos tres meses de funcionamiento."],"pendienteRatificar":false,"documentos":{"pre_postulacion":["cedula","certificado_eps","rut_juridico","camara_comercio"],"formalizacion":["acta_inicio"],"inicio":[],"cierre":["planilla_horas","certificado_practica"]}},{"modalidad":"contrato_aprendizaje","etiqueta":"Contrato de aprendizaje","descripcion":"Vinculación mediante contrato de aprendizaje con una empresa.","responsableArl":"empresa","duracionMin":null,"duracionMax":6,"condiciones":["La empresa afilia a riesgos laborales."],"pendienteRatificar":true,"documentos":{"pre_postulacion":["cedula","certificado_eps"],"formalizacion":[],"inicio":["certificado_arl"],"cierre":["planilla_horas","certificado_practica"]}},{"modalidad":"validacion_experiencia","etiqueta":"Validación de experiencia laboral","descripcion":"Reconocimiento de una relación laboral vigente afín al programa.","responsableArl":"empresa","duracionMin":null,"duracionMax":null,"condiciones":["La relación laboral debe estar vigente y las funciones ser afines al programa."],"pendienteRatificar":true,"documentos":{"pre_postulacion":["cedula","certificado_eps","soporte_relacion_laboral"],"formalizacion":[],"inicio":[],"cierre":["certificado_practica"]}},{"modalidad":"combinacion_funciones","etiqueta":"Combinación de funciones","descripcion":"Funciones afines dentro del empleo actual del estudiante.","responsableArl":"empresa","duracionMin":null,"duracionMax":null,"condiciones":["Se requiere autorización del empleador sobre las funciones afines."],"pendienteRatificar":true,"documentos":{"pre_postulacion":["cedula","certificado_eps","autorizacion_funciones"],"formalizacion":[],"inicio":[],"cierre":["certificado_practica"]}}]},"parametros":[{"clave":"pipeline.umbral_verde","etiqueta":"Puntaje mínimo para aprobación automática","descripcion":"Desde este puntaje el documento se aprueba sin intervención humana. Subirlo manda más documentos a revisión; bajarlo aprueba más rápido y con menos certeza. Es la perilla que se calibra durante el piloto contra documentos reales.","tipo":"entero","naturaleza":"operativo","unidad":"puntos","minimo":0,"maximo":100,"valor":85,"valorPorDefecto":85,"personalizado":false},{"clave":"pipeline.umbral_amarillo","etiqueta":"Puntaje mínimo para revisión humana","descripcion":"Por debajo de este puntaje el documento se devuelve. Entre este umbral y el de aprobación queda en manos de una persona. Nunca hay rechazo automático.","tipo":"entero","naturaleza":"operativo","unidad":"puntos","minimo":0,"maximo":100,"valor":60,"valorPorDefecto":60,"personalizado":false},{"clave":"documentos.similitud_maxima","etiqueta":"Distancia máxima para considerar dos imágenes iguales","descripcion":"Distancia entre huellas perceptuales por debajo de la cual dos cargas se tratan como la misma imagen. Más alto detecta más reenvíos disfrazados, con más falsos positivos.","tipo":"entero","naturaleza":"operativo","unidad":"bits","minimo":0,"maximo":128,"valor":16,"valorPorDefecto":16,"personalizado":false},{"clave":"documentos.tamano_maximo_mb","etiqueta":"Tamaño máximo de un documento","descripcion":"Un teléfono moderno produce fotos de varios megabytes; un límite muy bajo devuelve cargas legítimas.","tipo":"entero","naturaleza":"operativo","unidad":"MB","minimo":1,"maximo":50,"valor":10,"valorPorDefecto":10,"personalizado":false},{"clave":"acompanamiento.dias_sin_actividad","etiqueta":"Días sin actividad antes de señalar la práctica","descripcion":"Silencio prolongado en un expediente es la señal más temprana de que algo se atascó.","tipo":"entero","naturaleza":"operativo","unidad":"días","minimo":1,"maximo":90,"valor":15,"valorPorDefecto":15,"personalizado":false},{"clave":"acompanamiento.dias_vencimiento_riesgo","etiqueta":"Días antes de un vencimiento para marcar riesgo","descripcion":"Cuánta anticipación quiere la Dirección frente a una obligación por vencer.","tipo":"entero","naturaleza":"operativo","unidad":"días","minimo":1,"maximo":60,"valor":10,"valorPorDefecto":10,"personalizado":false},{"clave":"plan_mejoramiento.dias_plazo","etiqueta":"Plazo de entrega del plan de mejoramiento","descripcion":"Ampliarlo de dos a cuatro semanas reduce a la mitad la carga diaria del tutor sin costo alguno. Es una decisión de operación, y por eso se cambia aquí y no en un despliegue.","tipo":"entero","naturaleza":"operativo","unidad":"días","minimo":7,"maximo":60,"valor":14,"valorPorDefecto":14,"personalizado":false},{"clave":"auditoria.consultas_por_hora","etiqueta":"Consultas por hora que disparan alerta de uso anómalo","descripcion":"Un funcionario legítimo consulta decenas de expedientes al día; quien está extrayendo información consulta cientos en una hora.","tipo":"entero","naturaleza":"operativo","unidad":"consultas/hora","minimo":1,"maximo":1000,"valor":40,"valorPorDefecto":40,"personalizado":false},{"clave":"arl.exige_afiliacion_previa","etiqueta":"La afiliación a ARL debe ser anterior al inicio","descripcion":"Una práctica no puede activarse sin afiliación a riesgos laborales vigente desde antes del primer día. La regla vive en el dominio y como restricción del motor de base de datos: ninguna configuración la omite.","tipo":"booleano","naturaleza":"normativo","norma":"el Decreto 055 de 2015","valor":true,"valorPorDefecto":true,"personalizado":false},{"clave":"vacantes.vigencia_maxima_meses","etiqueta":"Vigencia máxima de una vacante publicada","descripcion":"Una vacante no puede permanecer publicada más allá de este plazo.","tipo":"entero","naturaleza":"normativo","unidad":"meses","norma":"la Resolución 2605 de 2014","minimo":6,"maximo":6,"valor":6,"valorPorDefecto":6,"personalizado":false}]}
+</script>
+<style>
+:root{
+  --bg:#FBFBFD; --surface:#FFFFFF; --surface-2:#F4F4F7; --border:#DFDFE6;
+  --text:#1A1A22; --text-muted:#5C5C6B; --brand:#123C6E; --brand-contrast:#FFFFFF;
+  --ok:#0F7B5A; --warn:#8A6100; --danger:#B3261E; --info:#1A5FB4;
+}
+:root{
+  color-scheme: light dark; accent-color: var(--brand);
+  --fs-xs:clamp(.72rem,.71rem + .04vw,.75rem);
+  --fs-sm:clamp(.83rem,.81rem + .12vw,.90rem);
+  --fs-base:clamp(1rem,.96rem + .18vw,1.06rem);
+  --fs-lg:clamp(1.15rem,1.09rem + .3vw,1.33rem);
+  --fs-xl:clamp(1.35rem,1.25rem + .5vw,1.65rem);
+  --fs-2xl:clamp(1.6rem,1.42rem + .85vw,2.1rem);
+  --fs-h1:clamp(1.5rem,1.1rem + 1.8vw,2.4rem);
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --sp-7:clamp(32px,26px + 1.8vw,48px);
+  --dur-2:150ms; --dur-3:200ms; --dur-5:300ms;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+  --font:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-mono:ui-monospace,'Cascadia Mono','SFMono-Regular',Consolas,monospace;
+  --sh-sm:0 1px 1px oklch(30% .04 250/.055), 0 2px 2px oklch(30% .04 250/.045);
+  --sh-md:0 1px 1px oklch(30% .04 250/.05), 0 2px 3px oklch(30% .04 250/.045), 0 5px 8px oklch(30% .04 250/.035);
+  --sh-lg:0 2px 3px oklch(30% .04 250/.045), 0 6px 10px oklch(30% .04 250/.04), 0 14px 24px oklch(30% .04 250/.03);
+  --lateral:264px;
+}
+:root[data-tema="corporativo-sobrio"]{
+  --bg:light-dark(oklch(98.5% .003 250), oklch(16.5% .014 250));
+  --surface:light-dark(oklch(100% 0 0), oklch(20.5% .015 250));
+  --surface-2:light-dark(oklch(96.5% .006 250), oklch(24.5% .016 250));
+  --border:light-dark(oklch(91% .008 250), oklch(32% .017 250));
+  --text:light-dark(oklch(24% .02 250), oklch(93% .008 250));
+  --text-muted:light-dark(oklch(49% .016 250), oklch(70% .014 250));
+  --brand:light-dark(oklch(38% .098 254), oklch(72% .13 254));
+  --brand-contrast:light-dark(oklch(99% 0 0), oklch(17% .02 250));
+  --ok:light-dark(oklch(50% .12 160), oklch(74% .15 155));
+  --warn:light-dark(oklch(53% .115 72), oklch(80% .14 82));
+  --danger:light-dark(oklch(51% .19 25), oklch(70% .17 22));
+  --info:light-dark(oklch(50% .13 245), oklch(74% .12 235));
+}
+:root[data-modo="claro"]{color-scheme:light} :root[data-modo="oscuro"]{color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box} *{min-width:0}
+/* display:flex de los componentes gana sobre el hidden del navegador */
+[hidden]{display:none!important}
+html,body{overflow-x:clip}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
+  font-size:var(--fs-base);line-height:1.55;overflow-wrap:anywhere}
+h1,h2,h3{text-wrap:balance;line-height:1.18;letter-spacing:-.02em;margin:0 0 var(--sp-2)}
+p{margin:0 0 var(--sp-3);text-wrap:pretty}
+svg{display:block;max-width:100%}
+:where(a,button,[role=button],select,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--brand);outline-offset:2px;
+  box-shadow:0 0 0 2px var(--bg),0 0 0 5px var(--brand);border-radius:inherit}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;border:0}
+.sprite{display:none}
+
+/* ══ Cinta de contexto ══ */
+.cinta{background:var(--brand);color:var(--brand-contrast);padding:var(--sp-2) var(--sp-4);
+  font-size:var(--fs-xs);display:flex;gap:var(--sp-3);align-items:center;justify-content:center;
+  flex-wrap:wrap;text-align:center}
+.cinta strong{font-weight:650}
+
+/* ══ Ingreso ══ */
+.ingreso{min-height:100dvh;display:grid;place-items:center;padding:var(--sp-6) var(--sp-4)}
+.ingreso-panel{width:min(880px,100%)}
+.marca{text-align:center;margin-bottom:var(--sp-7)}
+.marca h1{font-size:var(--fs-h1);margin-bottom:var(--sp-2)}
+.marca .sub{color:var(--text-muted);max-width:56ch;margin:0 auto}
+.perfiles{display:grid;gap:var(--sp-3);
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,248px),1fr))}
+.perfil{text-align:left;padding:var(--sp-4);border-radius:var(--r-md);border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;display:grid;gap:var(--sp-1);font:inherit;color:inherit;
+  min-height:44px;box-shadow:var(--sh-sm)}
+.perfil .rol{font-weight:660;font-size:var(--fs-base)}
+.perfil .nom{font-size:var(--fs-sm);color:var(--text-muted)}
+.perfil .desc{font-size:var(--fs-xs);color:var(--text-muted);line-height:1.45;margin-top:var(--sp-1)}
+
+/* ══ Armazón ══ */
+.app{display:grid;min-height:100dvh;grid-template-columns:1fr}
+@media (width >= 1024px){ .app{grid-template-columns:var(--lateral) 1fr} }
+.lateral{display:none;background:var(--surface);border-right:1px solid var(--border);
+  padding:var(--sp-4);flex-direction:column;gap:var(--sp-5);position:sticky;top:0;height:100dvh}
+@media (width >= 1024px){ .lateral{display:flex} }
+.logo{display:flex;gap:var(--sp-3);align-items:center;font-weight:680;letter-spacing:-.02em}
+.logo span{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;
+  background:var(--brand);color:var(--brand-contrast);font-size:.9rem;flex:none}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;gap:var(--sp-3);align-items:center;padding:var(--sp-2) var(--sp-3);
+  border-radius:var(--r-sm);text-decoration:none;color:var(--text-muted);font-size:var(--fs-sm);
+  min-height:44px}
+.nav a:hover{background:var(--surface-2);color:var(--text)}
+.nav a[aria-current=page]{background:color-mix(in oklab,var(--brand) 12%,transparent);
+  color:var(--brand);font-weight:600}
+.nav a svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7}
+.nav a[data-sin]{opacity:.55}
+.actor{margin-top:auto;border-top:1px solid var(--border);padding-top:var(--sp-4);font-size:var(--fs-sm)}
+.actor .quien{font-weight:600}
+.actor .rol{color:var(--text-muted);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.07em}
+
+.contenido{display:flex;flex-direction:column;min-width:0}
+.appbar{position:sticky;top:0;z-index:15;background:color-mix(in oklab,var(--surface) 92%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--border);
+  padding:var(--sp-3) var(--sp-4);display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap}
+.appbar h2{margin:0;font-size:var(--fs-lg)}
+.appbar .der{margin-left:auto;display:flex;gap:var(--sp-2);flex-wrap:wrap}
+main{padding:var(--sp-5) var(--sp-4) var(--sp-7);max-width:78rem;width:100%}
+@media (width >= 1024px){ main{padding-inline:var(--sp-6)} }
+
+/* ══ Barra inferior (móvil) ══ */
+.barra-inf{position:sticky;bottom:0;z-index:20;display:flex;background:var(--surface-2);
+  border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom,0)}
+@media (width >= 1024px){ .barra-inf{display:none} }
+.barra-inf a{flex:1;display:grid;place-items:center;gap:2px;min-height:56px;text-decoration:none;
+  color:var(--text-muted);font-size:11px;line-height:14px;font-weight:500;padding:var(--sp-1)}
+.barra-inf svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+.barra-inf a[aria-current=page]{color:var(--brand)}
+
+/* ══ Piezas ══ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+  box-shadow:var(--sh-sm);padding:var(--sp-4)}
+.rejilla{display:grid;gap:var(--sp-4);grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr))}
+.stat{display:grid;gap:2px}
+.stat .cifra{font-size:clamp(1.6rem,4.5vw,2.1rem);line-height:1.05;font-variant-numeric:tabular-nums;
+  letter-spacing:-.025em;font-weight:600}
+.stat .et{font-size:var(--fs-sm);color:var(--text-muted)}
+.et-sec{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);
+  margin:0 0 var(--sp-3)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+  font-size:var(--fs-xs);font-weight:600;border:1px solid transparent;white-space:nowrap}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.c-ok{color:var(--ok);background:color-mix(in oklab,var(--ok) 12%,transparent)}
+.c-warn{color:var(--warn);background:color-mix(in oklab,var(--warn) 14%,transparent)}
+.c-danger{color:var(--danger);background:color-mix(in oklab,var(--danger) 12%,transparent)}
+.c-info{color:var(--info);background:color-mix(in oklab,var(--info) 12%,transparent)}
+.c-mudo{color:var(--text-muted);background:var(--surface-2)}
+.tabla-scroll{overflow-x:auto;overscroll-behavior:contain}
+table.datos{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.tabla-scroll>table{min-width:max-content}
+table.datos th,table.datos td{padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--border);
+  text-align:left;vertical-align:top}
+table.datos thead th{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-muted);font-weight:600;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:var(--font-mono);font-size:.86em}
+.fila-toque{cursor:pointer}
+.fila-toque:hover{background:var(--surface-2)}
+.vacio{padding:var(--sp-6);text-align:center;color:var(--text-muted);border:1px dashed var(--border);
+  border-radius:var(--r-md);background:var(--surface-2)}
+.aviso{border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-4);
+  background:var(--surface-2);font-size:var(--fs-sm)}
+.aviso h3{font-size:var(--fs-base);margin-bottom:var(--sp-2)}
+.aviso-danger{background:color-mix(in oklab,var(--danger) 8%,var(--surface));
+  border-color:color-mix(in oklab,var(--danger) 30%,var(--border))}
+.aviso-warn{background:color-mix(in oklab,var(--warn) 9%,var(--surface));
+  border-color:color-mix(in oklab,var(--warn) 32%,var(--border))}
+.aviso-ok{background:color-mix(in oklab,var(--ok) 8%,var(--surface));
+  border-color:color-mix(in oklab,var(--ok) 28%,var(--border))}
+.btn{display:inline-flex;align-items:center;gap:var(--sp-2);min-height:44px;padding:0 var(--sp-4);
+  border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);
+  font:inherit;font-size:var(--fs-sm);cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn-primario{background:var(--brand);color:var(--brand-contrast);border-color:transparent;font-weight:600}
+.btn-primario:hover{filter:brightness(1.12)}
+pre.salida{margin:0;padding:var(--sp-3);background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-sm);overflow-x:auto;font-family:var(--font-mono);font-size:var(--fs-xs);
+  line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.linea{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--sp-2) var(--sp-4);
+  font-size:var(--fs-sm);margin:0}
+.linea dt{color:var(--text-muted)} .linea dd{margin:0}
+.sep{height:1px;background:var(--border);border:0;margin:var(--sp-5) 0}
+.matriz td{text-align:center}
+.matriz td:first-child,.matriz th:first-child{text-align:left;font-weight:600}
+.cod{font-family:var(--font-mono);font-size:var(--fs-xs);font-weight:700;padding:2px 8px;
+  border-radius:var(--r-sm)}
+.cod-200{color:var(--ok);background:color-mix(in oklab,var(--ok) 13%,transparent)}
+.cod-403{color:var(--danger);background:color-mix(in oklab,var(--danger) 12%,transparent)}
+footer.sello{border-top:1px solid var(--border);margin-top:var(--sp-7);padding:var(--sp-5) 0;
+  color:var(--text-muted);font-size:var(--fs-sm)}
+
+@media (prefers-reduced-motion: no-preference){
+  .perfil,.card{transition:translate var(--dur-3) var(--ease-out),box-shadow var(--dur-3) var(--ease-out)}
+  .perfil:hover{translate:0 -2px;box-shadow:var(--sh-md);border-color:var(--brand)}
+  ::view-transition-old(root),::view-transition-new(root){animation-duration:var(--dur-5)}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+@media print{
+  .cinta,.lateral,.barra-inf,.appbar .der,.btn{display:none!important}
+  body{background:#fff}
+  [data-vista]{display:block!important}
+}
+</style>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-practicas" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z" stroke-linejoin="round"/><path d="M8.5 10.5h7M8.5 14h4.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-cumplimiento" viewBox="0 0 24 24"><path d="M12 3.5 4.5 6.5v5.2c0 4.3 3.1 7.4 7.5 8.8 4.4-1.4 7.5-4.5 7.5-8.8V6.5z" stroke-linejoin="round"/><path d="m9 12 2.2 2.2L15.5 10" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-empresas" viewBox="0 0 24 24"><path d="M4 20V7l7-3v16M11 20h9V10l-9-3" stroke-linejoin="round"/><path d="M14.5 12.5h2.5M14.5 16h2.5M7 10.5v0M7 14v0" stroke-linecap="round"/></symbol>
+  <symbol id="i-bolsa" viewBox="0 0 24 24"><path d="M3.5 8.5h17V19h-17z" stroke-linejoin="round"/><path d="M9 8.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v2.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-reportes" viewBox="0 0 24 24"><path d="M6 20V11m6 9V5m6 15v-6" stroke-linecap="round"/></symbol>
+  <symbol id="i-evidencia" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-modalidades" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h9" stroke-linecap="round"/></symbol>
+  <symbol id="i-parametros" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2m0 12v2M4 12h2m12 0h2M6.7 6.7l1.4 1.4m7.8 7.8l1.4 1.4m0-10.6l-1.4 1.4M8.1 15.9l-1.4 1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-atras" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<!-- ════════ INGRESO ════════ -->
+<section id="pant-ingreso" data-pantalla="ingreso">
+  <div class="cinta">
+    <span><strong>Prototipo</strong> · datos capturados del sistema en ejecución, no es el ambiente productivo</span>
+  </div>
+  <div class="ingreso">
+    <div class="ingreso-panel">
+      <div class="marca">
+        <h1>SIPRA PRÁCTICAS</h1>
+        <p class="sub">Sistema Integrado de Prácticas y Relacionamiento Académico-Empresarial · Corporación Unificada Nacional de Educación Superior</p>
+        <p class="sub" style="margin-top:var(--sp-3)"><span class="chip c-warn" id="cinta-modo">modo abierto</span></p>
+      </div>
+      <div class="card" style="padding:var(--sp-5)">
+        <h2 style="font-size:var(--fs-lg)">Elija un perfil para entrar</h2>
+        <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:var(--sp-4)">
+          El ingreso de pruebas no pide contraseña. Cada perfil ve exactamente lo que le corresponde,
+          porque el alcance lo aplica el servidor y no la interfaz: lo que cambia al elegir uno u otro
+          son respuestas reales de la API, incluidos los rechazos.
+        </p>
+        <div class="perfiles" id="lista-perfiles"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ APLICACIÓN ════════ -->
+<section id="pant-app" data-pantalla="app" hidden>
+<div class="cinta">
+  <span><strong>Prototipo</strong> · lo que ve cada perfil son respuestas reales capturadas de la API</span>
+</div>
+<div class="app">
+  <aside class="lateral">
+    <div class="logo"><span>S</span> SIPRA PRÁCTICAS</div>
+    <nav class="nav" id="nav-lateral" aria-label="Secciones"></nav>
+    <div class="actor">
+      <div class="quien" id="actor-nombre"></div>
+      <div class="rol" id="actor-rol"></div>
+      <button class="btn" style="margin-top:var(--sp-3);width:100%;justify-content:center" id="btn-salir">Cambiar de perfil</button>
+    </div>
+  </aside>
+
+  <div class="contenido">
+    <header class="appbar">
+      <button class="btn" id="btn-atras" hidden aria-label="Volver"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7"><use href="#i-atras"/></svg></button>
+      <h2 id="titulo-vista">Inicio</h2>
+      <div class="der">
+        <button class="btn" id="btn-modo" aria-pressed="false">Modo: auto</button>
+        <button class="btn" id="btn-salir-2">Cambiar perfil</button>
+      </div>
+    </header>
+    <main id="lienzo"></main>
+    <nav class="barra-inf" id="nav-inferior" aria-label="Secciones"></nav>
+  </div>
+</div>
+</section>
+<script>
+"use strict";
+const DATOS = JSON.parse(document.getElementById('datos').textContent);
+const $  = (s, c = document) => c.querySelector(s);
+const $$ = (s, c = document) => [...c.querySelectorAll(s)];
+const on = (raiz, ev, sel, fn) => raiz.addEventListener(ev, e => {
+  const t = e.target.closest(sel); if (t && raiz.contains(t)) fn(e, t);
+});
+
+/* ══ Formato es-CO ══ */
+const nf = new Intl.NumberFormat('es-CO');
+const df = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeZone: 'America/Bogota' });
+const pesos = new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 });
+const fecha = v => v ? df.format(new Date(v)) : '—';
+const cop   = v => (v === null || v === undefined) ? '—' : pesos.format(v);
+/* textContent en todo: los datos se muestran, nunca se ejecutan */
+const t = (etiqueta, texto, clase) => {
+  const el = document.createElement(etiqueta);
+  if (clase) el.className = clase;
+  if (texto !== undefined && texto !== null) el.textContent = String(texto);
+  return el;
+};
+const frag = (...hijos) => { const f = document.createDocumentFragment(); f.append(...hijos.filter(Boolean)); return f; };
+
+const TITULO = { estudiante:'Estudiante', tutor:'Tutor académico', coordinador:'Coordinador de escuela',
+  administrador:'Administrador institucional', empresa:'Empresa habilitada', extension:'Dirección de Extensión' };
+const HUMANO = { en_validacion:'En validación', inscrita:'Inscrita', activa:'Activa', finalizada:'Finalizada',
+  detenida:'Detenida', cancelada:'Cancelada', habilitada:'Habilitada', en_verificacion:'En verificación',
+  rechazada:'Rechazada', recibido:'Recibido', en_revision:'En revisión', ilegible:'Ilegible',
+  auto_aprobado:'Aprobado', devuelto:'Devuelto', aprobado:'Aprobado', pendiente:'Pendiente',
+  cumplida:'Cumplida', vencida:'Vencida', publicada:'Publicada', practica:'Práctica', laboral:'Laboral',
+  cedula:'Cédula', certificado_arl:'Certificado de ARL', carta_aceptacion:'Carta de aceptación',
+  certificado_eps:'Certificado de EPS', acta_inicio:'Acta de inicio',
+  rut_natural:'RUT persona natural', rut_juridico:'RUT persona jurídica',
+  camara_comercio:'Cámara de Comercio', soporte_relacion_laboral:'Soporte laboral',
+  autorizacion_funciones:'Autorización de funciones',
+  certificado_practica:'Certificado de práctica', planilla_aportes:'Planilla de aportes',
+  certificacion_laboral:'Certificación laboral', certificado_existencia:'Certificado de existencia',
+  tecnico:'Técnico', tecnologo:'Tecnólogo', profesional:'Profesional',
+  empresarial:'Empresarial', vinculacion_formativa:'Vinculación formativa',
+  homologacion_experiencia:'Homologación por experiencia', emprendimiento:'Emprendimiento',
+  cun:'CUN', empresa:'Empresa', estudiante:'Estudiante', bloquea_activa:'Bloquea la activación',
+  convenio_practica:'Convenio de práctica', planilla_horas:'Planilla de horas',
+  afiliacion_arl:'Afiliación a ARL', convenio_marco:'Convenio marco', poliza:'Póliza',
+  seguimiento:'Seguimiento', informe_final:'Informe final', en_riesgo:'En riesgo', al_dia:'Al día' };
+const humano = v => {
+  if (HUMANO[v]) return HUMANO[v];
+  if (!v) return '—';
+  const x = String(v).replace(/_/g, ' ');
+  return x.charAt(0).toUpperCase() + x.slice(1);
+};
+const CLASE_SEMAFORO = { vencida:'c-danger', critica:'c-danger', rojo:'c-danger', alerta:'c-warn',
+  amarillo:'c-warn', proximo:'c-info', vigente:'c-ok', cumplida:'c-ok', verde:'c-ok', al_dia:'c-ok',
+  en_riesgo:'c-warn', activa:'c-ok', habilitada:'c-ok', ilegible:'c-warn', en_revision:'c-warn',
+  auto_aprobado:'c-ok', aprobado:'c-ok', devuelto:'c-danger', recibido:'c-info' };
+const chip = v => t('span', humano(v), 'chip ' + (CLASE_SEMAFORO[v] ?? 'c-mudo'));
+
+/* ══ Secciones y qué rol alcanza cada una ══ */
+const SECCIONES = [
+  { id:'inicio',       nom:'Inicio',        icono:'i-inicio',        clave:null },
+  { id:'practicas',    nom:'Prácticas',     icono:'i-practicas',     clave:'practicas' },
+  { id:'cumplimiento', nom:'Cumplimiento',  icono:'i-cumplimiento',  clave:'tablero' },
+  { id:'empresas',     nom:'Empresas',      icono:'i-empresas',      clave:'empresas' },
+  { id:'bolsa',        nom:'Bolsa',         icono:'i-bolsa',         clave:'vacantes' },
+  { id:'reportes',     nom:'Reportes',      icono:'i-reportes',      clave:'reporteSpe' },
+  { id:'modalidades',  nom:'Modalidades',   icono:'i-modalidades',   clave:null },
+  { id:'parametros',   nom:'Parámetros',    icono:'i-parametros',    clave:null, soloAdmin:true },
+  { id:'evidencia',    nom:'Evidencia',     icono:'i-evidencia',     clave:null },
+];
+let actor = null, vista = 'inicio', practicaAbierta = null;
+const datosDe = clave => actor ? DATOS.porRol[actor.rol]?.[clave] : null;
+const alcanza = clave => !clave || datosDe(clave)?.estado === 200;
+
+/* ══ Ingreso ══ */
+function pintarPerfiles() {
+  const cont = $('#lista-perfiles');
+  cont.replaceChildren(...DATOS.perfiles.map(p => {
+    const b = t('button', null, 'perfil');
+    b.type = 'button'; b.dataset.rol = p.rol;
+    b.append(t('span', TITULO[p.rol] ?? p.rol, 'rol'), t('span', p.nombre, 'nom'), t('span', p.descripcion, 'desc'));
+    return b;
+  }));
+  $('#cinta-modo').textContent = `ambiente ${DATOS._meta.modo.ambiente} · autenticación ${DATOS._meta.modo.modo}`;
+}
+
+function entrar(rol) {
+  actor = DATOS.perfiles.find(p => p.rol === rol);
+  vista = 'inicio'; practicaAbierta = null;
+  $('#pant-ingreso').hidden = true; $('#pant-app').hidden = false;
+  $('#actor-nombre').textContent = actor.nombre;
+  $('#actor-rol').textContent = TITULO[actor.rol] ?? actor.rol;
+  pintarNav(); render();
+  window.scrollTo(0, 0);
+}
+function salir() {
+  actor = null; $('#pant-app').hidden = true; $('#pant-ingreso').hidden = false;
+  window.scrollTo(0, 0);
+}
+
+function pintarNav() {
+  const enlaces = SECCIONES.map(s => {
+    const a = document.createElement('a');
+    a.href = '#' + s.id; a.dataset.id = s.id;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', '#' + s.icono); svg.append(use); svg.setAttribute('aria-hidden', 'true');
+    a.append(svg, t('span', s.nom));
+    const vetada = s.soloAdmin && actor.rol !== 'administrador';
+    if (!alcanza(s.clave) || vetada) {
+      a.dataset.sin = '1';
+      a.title = 'Este perfil no tiene acceso a esta sección';
+    }
+    return a;
+  });
+  $('#nav-lateral').replaceChildren(...enlaces.map(a => a.cloneNode(true)));
+  $('#nav-inferior').replaceChildren(...enlaces.slice(0, 5).map(a => a.cloneNode(true)));
+}
+
+/* ══ Enrutado ══ */
+function ir(id, practica) {
+  const pintar = () => {
+    vista = id; practicaAbierta = practica ?? null;
+    render(); window.scrollTo(0, 0);
+  };
+  document.startViewTransition ? document.startViewTransition(pintar) : pintar();
+}
+function render() {
+  const sec = SECCIONES.find(s => s.id === vista) ?? SECCIONES[0];
+  $('#titulo-vista').textContent = practicaAbierta ? 'Expediente de la práctica' : sec.nom;
+  $('#btn-atras').hidden = !practicaAbierta;
+  $$('#nav-lateral a, #nav-inferior a').forEach(a =>
+    a.setAttribute('aria-current', a.dataset.id === vista ? 'page' : 'false'));
+  const lienzo = $('#lienzo');
+  if (practicaAbierta) return lienzo.replaceChildren(vistaExpediente(practicaAbierta));
+  if (!alcanza(sec.clave)) return lienzo.replaceChildren(sinAcceso(sec));
+  if (sec.soloAdmin && actor.rol !== 'administrador') {
+    return lienzo.replaceChildren(soloAdministrador(sec));
+  }
+  lienzo.replaceChildren(({ inicio:vistaInicio, practicas:vistaPracticas, cumplimiento:vistaCumplimiento,
+    empresas:vistaEmpresas, bolsa:vistaBolsa, reportes:vistaReportes,
+    modalidades:vistaModalidades, parametros:vistaParametros, evidencia:vistaEvidencia })[sec.id]());
+}
+
+function sinAcceso(sec) {
+  const d = datosDe(sec.clave);
+  const c = t('div', null, 'aviso aviso-danger');
+  c.append(t('h3', 'Este perfil no tiene acceso a ' + sec.nom.toLowerCase()));
+  c.append(t('p', `El servidor respondió ${d?.estado ?? 403} al pedir esta sección con la sesión de ${TITULO[actor.rol]}. No es la interfaz la que oculta el contenido: la petición se rechaza antes de llegar a los datos, así que cambiar el navegador o la URL no abre nada.`));
+  const pre = t('pre', JSON.stringify(d?.datos ?? { statusCode: d?.estado }, null, 2), 'salida');
+  c.append(pre);
+  return c;
+}
+</script>
+<script>
+"use strict";
+/* ══════════ Inicio ══════════ */
+function vistaInicio() {
+  const f = document.createDocumentFragment();
+  const practicas = datosDe('practicas')?.datos ?? [];
+  const empresas  = datosDe('empresas')?.datos ?? [];
+  const vacantes  = datosDe('vacantes')?.datos ?? [];
+  const tablero   = datosDe('tablero');
+
+  const enc = t('div');
+  enc.append(t('h1', `Buen día, ${actor.nombre.split(' ')[0]}`, null));
+  enc.style.marginBottom = 'var(--sp-5)';
+  const baj = t('p', actor.descripcion);
+  baj.style.color = 'var(--text-muted)'; baj.style.maxWidth = '62ch';
+  enc.append(baj);
+  f.append(enc);
+
+  const tarjetas = [
+    { et:'Prácticas a su cargo', n:practicas.length },
+    { et:'Empresas visibles',    n:empresas.length },
+    { et:'Vacantes publicadas',  n:vacantes.length },
+  ];
+  if (tablero?.estado === 200) {
+    const r = tablero.datos.resumen ?? {};
+    tarjetas.push({ et:'Obligaciones en alerta', n:(r.alerta ?? 0) + (r.critica ?? 0) + (r.vencida ?? 0) });
+  }
+  const rej = t('div', null, 'rejilla');
+  rej.append(...tarjetas.map(x => {
+    const c = t('div', null, 'card');
+    const s = t('div', null, 'stat');
+    s.append(t('div', nf.format(x.n), 'cifra'), t('div', x.et, 'et'));
+    c.append(s); return c;
+  }));
+  f.append(rej);
+
+  const bloqueadas = SECCIONES.filter(s => s.clave && !alcanza(s.clave));
+  if (bloqueadas.length) {
+    const a = t('div', null, 'aviso');
+    a.style.marginTop = 'var(--sp-5)';
+    a.append(t('h3', 'Lo que este perfil no alcanza'));
+    a.append(t('p', `Con la sesión de ${TITULO[actor.rol]} el servidor rechaza ${bloqueadas.map(s => s.nom.toLowerCase()).join(' y ')}. Aparecen atenuadas en el menú y responden 403 si se piden directamente.`));
+    f.append(a);
+  }
+
+  if (practicas.length) {
+    const s = t('section'); s.style.marginTop = 'var(--sp-6)';
+    s.append(t('p', 'Prácticas', 'et-sec'));
+    s.append(tablaPracticas(practicas));
+    f.append(s);
+  }
+  return f;
+}
+
+/* ══════════ Prácticas ══════════ */
+function tablaPracticas(practicas) {
+  const cont = t('div', null, 'card');
+  cont.style.padding = '0';
+  const wrap = t('div', null, 'tabla-scroll');
+  const tb = t('table', null, 'datos');
+  const thead = t('thead'); const trh = t('tr');
+  ['Estudiante', 'Empresa', 'Periodo', 'Estado', 'ARL', 'Señal'].forEach(h => trh.append(t('th', h)));
+  thead.append(trh); tb.append(thead);
+  const tbody = t('tbody');
+  practicas.forEach(p => {
+    const tr = t('tr', null, 'fila-toque');
+    tr.dataset.practica = p.id; tr.tabIndex = 0;
+    tr.append(t('td', p.estudianteNombre), t('td', p.empresaRazonSocial ?? '—'), t('td', p.periodoAcademico));
+    const td1 = t('td'); td1.append(chip(p.estado)); tr.append(td1);
+    const td2 = t('td');
+    td2.append(t('span', p.arlVerificada ? 'Verificada' : 'Sin verificar',
+      'chip ' + (p.arlVerificada ? 'c-ok' : 'c-danger')));
+    tr.append(td2);
+    const td3 = t('td'); td3.append(chip(p.senal)); tr.append(td3);
+    tbody.append(tr);
+  });
+  tb.append(tbody); wrap.append(tb); cont.append(wrap);
+  return cont;
+}
+function vistaPracticas() {
+  const practicas = datosDe('practicas')?.datos ?? [];
+  const f = document.createDocumentFragment();
+  const p = t('p', `El alcance lo decide el servidor: con esta sesión son visibles ${practicas.length === 1 ? '1 práctica' : practicas.length + ' prácticas'}.`);
+  p.style.color = 'var(--text-muted)';
+  f.append(p);
+  if (!practicas.length) { f.append(t('div', 'No hay prácticas visibles para este perfil.', 'vacio')); return f; }
+  f.append(tablaPracticas(practicas));
+  const n = t('p', 'Toque una fila para abrir el expediente.');
+  n.style.cssText = 'color:var(--text-muted);font-size:var(--fs-sm);margin-top:var(--sp-3)';
+  f.append(n);
+  return f;
+}
+
+/* ══════════ Expediente ══════════ */
+function vistaExpediente(id) {
+  const p = (datosDe('practicas')?.datos ?? []).find(x => x.id === id);
+  const f = document.createDocumentFragment();
+  if (!p) { f.append(t('div', 'Práctica no visible para este perfil.', 'vacio')); return f; }
+
+  const enc = t('div'); enc.style.marginBottom = 'var(--sp-5)';
+  enc.append(t('h1', p.estudianteNombre));
+  const sub = t('p', `${p.cargo ?? 'Sin cargo registrado'} · ${p.empresaRazonSocial ?? 'sin empresa'} · periodo ${p.periodoAcademico}`);
+  sub.style.color = 'var(--text-muted)'; enc.append(sub);
+  const chips = t('div'); chips.style.cssText = 'display:flex;gap:var(--sp-2);flex-wrap:wrap';
+  chips.append(chip(p.estado), chip(p.senal));
+  enc.append(chips); f.append(enc);
+
+  /* Compuerta ARL: el hecho central del expediente */
+  const gate = t('div', null, 'aviso ' + (p.arlVerificada ? 'aviso-ok' : 'aviso-danger'));
+  gate.append(t('h3', p.arlVerificada ? 'Afiliación a ARL verificada' : 'La práctica no puede activarse'));
+  gate.append(t('p', p.arlVerificada
+    ? 'La afiliación está registrada con fecha anterior al inicio, que es lo que exige el Decreto 055 de 2015.'
+    : 'No hay afiliación a ARL verificada. El Decreto 055 de 2015 exige que la afiliación sea anterior al primer día de práctica, así que el sistema impide activarla. La regla vive en el dominio y además como restricción del motor de base de datos: no hay rol, configuración ni consulta directa que la evada.'));
+  const ev = DATOS.evidencia.compuertaArlApi;
+  if (!p.arlVerificada && ev) {
+    const d = t('details'); d.style.marginTop = 'var(--sp-2)';
+    d.append(t('summary', 'Ver la respuesta real del servidor al intentar activarla'));
+    const pre = t('pre', `PATCH /api/v1/practicas/${p.id}/estado  →  ${ev.estado}\n\n` +
+      JSON.stringify(ev.datos, null, 2), 'salida');
+    pre.style.marginTop = 'var(--sp-2)'; d.append(pre); gate.append(d);
+  }
+  f.append(gate);
+
+  const rej = t('div', null, 'rejilla'); rej.style.marginTop = 'var(--sp-5)';
+  const ficha = t('div', null, 'card');
+  ficha.append(t('p', 'Ficha', 'et-sec'));
+  const dl = t('dl', null, 'linea');
+  [['Programa', p.programaId], ['Escuela', p.escuelaId], ['Ciclo', humano(p.ciclo)],
+   ['Modalidad', humano(p.modalidad)], ['Inicio', fecha(p.fechaInicio)], ['Fin', fecha(p.fechaFin)],
+   ['Horas registradas', p.horasRegistradas === null ? '—' : nf.format(p.horasRegistradas)]
+  ].forEach(([k, v]) => { dl.append(t('dt', k), t('dd', v ?? '—')); });
+  ficha.append(dl); rej.append(ficha);
+
+  if (Array.isArray(p.disparadoresSenal) && p.disparadoresSenal.length) {
+    const c = t('div', null, 'card');
+    c.append(t('p', 'Por qué está señalada', 'et-sec'));
+    const ul = t('ul'); ul.style.cssText = 'margin:0;padding-left:1.1rem;font-size:var(--fs-sm)';
+    p.disparadoresSenal.forEach(x => ul.append(t('li', x)));
+    c.append(ul); rej.append(c);
+  }
+  f.append(rej);
+
+  /* Documentos con el veredicto del pipeline */
+  const docs = DATOS.evidencia.documentos ?? [];
+  const s = t('section'); s.style.marginTop = 'var(--sp-6)';
+  s.append(t('p', 'Documentos y validación', 'et-sec'));
+  if (!docs.length) { s.append(t('div', 'Sin documentos cargados.', 'vacio')); }
+  else {
+    const cont = t('div', null, 'card'); cont.style.padding = '0';
+    const wrap = t('div', null, 'tabla-scroll'); const tb = t('table', null, 'datos');
+    const thead = t('thead'); const trh = t('tr');
+    ['Documento', 'Versión', 'Estado', 'Puntaje', 'Qué dice el sistema'].forEach(h => trh.append(t('th', h)));
+    thead.append(trh); tb.append(thead);
+    const tbody = t('tbody');
+    docs.forEach(d => {
+      const tr = t('tr');
+      tr.append(t('td', humano(d.tipo)), t('td', 'v' + d.version));
+      const tdE = t('td'); tdE.append(chip(d.estado)); tr.append(tdE);
+      tr.append(t('td', d.puntaje === null || d.puntaje === undefined ? '—' : nf.format(d.puntaje), 'num'));
+      const tdM = t('td', d.motivoDevolucion ?? (d.estado === 'en_revision'
+        ? 'Queda para revisión humana. El sistema no rechaza por su cuenta.' : '—'));
+      tdM.style.maxWidth = '38ch'; tdM.style.whiteSpace = 'normal';
+      tr.append(tdM); tbody.append(tr);
+    });
+    tb.append(tbody); wrap.append(tb); cont.append(wrap); s.append(cont);
+    const n = t('p', 'Ningún documento se rechaza de forma automática: el sistema aprueba, deja en revisión o pide recaptura cuando no puede leerlo con certeza.');
+    n.style.cssText = 'color:var(--text-muted);font-size:var(--fs-sm);margin-top:var(--sp-3)';
+    s.append(n);
+  }
+  f.append(s);
+  return f;
+}
+</script>
+<script>
+"use strict";
+/* ══════════ Cumplimiento ══════════ */
+function vistaCumplimiento() {
+  const d = datosDe('tablero').datos;
+  const f = document.createDocumentFragment();
+  const r = d.resumen ?? {};
+  const orden = [['vencida','Vencidas'],['critica','Críticas'],['alerta','En alerta'],
+                 ['vigente','Vigentes'],['cumplida','Cumplidas']];
+  const rej = t('div', null, 'rejilla');
+  rej.append(...orden.map(([k, et]) => {
+    const c = t('div', null, 'card');
+    const s = t('div', null, 'stat');
+    const cifra = t('div', nf.format(r[k] ?? 0), 'cifra');
+    if ((r[k] ?? 0) > 0 && CLASE_SEMAFORO[k]) cifra.style.color =
+      k === 'vencida' || k === 'critica' ? 'var(--danger)' : k === 'alerta' ? 'var(--warn)' : 'var(--ok)';
+    s.append(cifra, t('div', et, 'et')); c.append(s); return c;
+  }));
+  f.append(rej);
+
+  const filas = d.filas ?? [];
+  const s = t('section'); s.style.marginTop = 'var(--sp-6)';
+  s.append(t('p', 'Obligaciones normativas derivadas', 'et-sec'));
+  if (!filas.length) { s.append(t('div', 'Sin obligaciones pendientes.', 'vacio')); f.append(s); return f; }
+  const cont = t('div', null, 'card'); cont.style.padding = '0';
+  const wrap = t('div', null, 'tabla-scroll'); const tb = t('table', null, 'datos');
+  const thead = t('thead'); const trh = t('tr');
+  ['Obligación', 'Norma', 'Responsable', 'Efecto', 'Vence', 'Días', 'Semáforo'].forEach(h => trh.append(t('th', h)));
+  thead.append(trh); tb.append(thead);
+  const tbody = t('tbody');
+  filas.forEach(x => {
+    const tr = t('tr');
+    tr.append(t('td', humano(x.tipo)), t('td', x.norma), t('td', (x.responsable ?? '').toUpperCase()));
+    tr.append(t('td', x.efecto === 'bloquea_activa' ? 'Bloquea la activación' : humano(x.efecto)));
+    tr.append(t('td', fecha(x.fechaLimite)), t('td', x.diasRestantes ?? '—', 'num'));
+    const td = t('td'); td.append(chip(x.semaforo)); tr.append(td);
+    tbody.append(tr);
+  });
+  tb.append(tbody); wrap.append(tb); cont.append(wrap); s.append(cont);
+  const n = t('p', 'Las obligaciones no se escriben a mano: el sistema las deriva de la modalidad, las fechas y la norma aplicable, y de ahí sale la evidencia de cumplimiento.');
+  n.style.cssText = 'color:var(--text-muted);font-size:var(--fs-sm);margin-top:var(--sp-3)';
+  s.append(n); f.append(s);
+  return f;
+}
+
+/* ══════════ Empresas ══════════ */
+function vistaEmpresas() {
+  const empresas = datosDe('empresas').datos ?? [];
+  const f = document.createDocumentFragment();
+  if (!empresas.length) { f.append(t('div', 'Sin empresas visibles.', 'vacio')); return f; }
+  const rej = t('div', null, 'rejilla');
+  empresas.forEach(e => {
+    const c = t('div', null, 'card');
+    const cab = t('div'); cab.style.cssText = 'display:flex;gap:var(--sp-2);align-items:start;justify-content:space-between';
+    const izq = t('div');
+    izq.append(t('h3', e.razonSocial, null));
+    const nit = t('p', 'NIT ' + e.nit, 'mono');
+    nit.style.cssText = 'color:var(--text-muted);margin:0';
+    izq.append(nit);
+    cab.append(izq, chip(e.estado)); c.append(cab);
+    if (Array.isArray(e.senales) && e.senales.length) {
+      const ul = t('ul');
+      ul.style.cssText = 'margin:var(--sp-3) 0 0;padding:0;list-style:none;display:grid;gap:var(--sp-2);font-size:var(--fs-sm)';
+      e.senales.forEach(sn => {
+        const li = t('li');
+        li.style.cssText = 'display:flex;gap:var(--sp-2);align-items:baseline';
+        li.append(t('span', sn.resultado === 'ok' ? 'Cumple' : sn.resultado === 'alerta' ? 'Revisar' : 'Falla',
+          'chip ' + (sn.resultado === 'ok' ? 'c-ok' : sn.resultado === 'alerta' ? 'c-warn' : 'c-danger')));
+        li.append(t('span', sn.detalle));
+        ul.append(li);
+      });
+      c.append(ul);
+    }
+    rej.append(c);
+  });
+  f.append(rej);
+  const n = t('p', 'La verificación no depende de que alguien revise a ojo: el dígito de verificación del NIT se recalcula, el dominio del solicitante se contrasta y cada señal queda registrada.');
+  n.style.cssText = 'color:var(--text-muted);font-size:var(--fs-sm);margin-top:var(--sp-4)';
+  f.append(n);
+  return f;
+}
+
+/* ══════════ Bolsa ══════════ */
+function vistaBolsa() {
+  const vacantes = datosDe('vacantes').datos ?? [];
+  const f = document.createDocumentFragment();
+  if (!vacantes.length) { f.append(t('div', 'Sin vacantes publicadas.', 'vacio')); return f; }
+  vacantes.forEach(v => {
+    const c = t('div', null, 'card'); c.style.marginBottom = 'var(--sp-4)';
+    const cab = t('div'); cab.style.cssText = 'display:flex;gap:var(--sp-2);justify-content:space-between;align-items:start;flex-wrap:wrap';
+    const izq = t('div');
+    izq.append(t('h3', v.titulo));
+    const sub = t('p', v.empresaRazonSocial); sub.style.cssText = 'color:var(--text-muted);margin:0';
+    izq.append(sub);
+    const der = t('div'); der.style.cssText = 'display:flex;gap:var(--sp-2);flex-wrap:wrap';
+    der.append(t('span', 'Marco: ' + humano(v.marco), 'chip ' + (v.marco === 'laboral' ? 'c-info' : 'c-mudo')), chip(v.estado));
+    cab.append(izq, der); c.append(cab);
+    if (v.descripcion) { const p = t('p', v.descripcion); p.style.marginTop = 'var(--sp-3)'; c.append(p); }
+    const dl = t('dl', null, 'linea');
+    [['Vacantes', v.numeroVacantes], ['Salario', v.salarioMinimo ? cop(v.salarioMinimo) : '—'],
+     ['CNO', v.codigoCno], ['CIIU', v.codigoCiiu], ['Municipio (DIVIPOLA)', v.codigoDivipola],
+     ['Nivel educativo', humano(v.nivelEducativo)]
+    ].forEach(([k, val]) => { if (val !== undefined && val !== null) { dl.append(t('dt', k), t('dd', String(val))); } });
+    c.append(dl);
+    const nota = t('p', v.marco === 'laboral'
+      ? 'Marco laboral: esta vacante sí entra en el reporte al Servicio Público de Empleo.'
+      : 'Marco práctica: no constituye intermediación laboral, así que no se reporta al Servicio Público de Empleo.');
+    nota.style.cssText = 'font-size:var(--fs-sm);color:var(--text-muted);margin:var(--sp-3) 0 0';
+    c.append(nota);
+    f.append(c);
+  });
+  return f;
+}
+
+/* ══════════ Reportes ══════════ */
+function vistaReportes() {
+  const d = datosDe('reporteSpe');
+  const f = document.createDocumentFragment();
+  const a = t('div', null, 'aviso aviso-warn');
+  a.append(t('h3', 'El reporte se genera, pero sale marcado como borrador'));
+  a.append(t('p', 'La estructura del archivo todavía no se ha conciliado contra el anexo técnico vigente del Servicio Público de Empleo, y tres catálogos oficiales del DANE están incompletos. Mientras eso siga así, el sistema emite el archivo con su advertencia y bloquea la generación en preproducción y producción. Prefiere no radicar antes que radicar algo que no cuadre.'));
+  f.append(a);
+  const texto = typeof d.texto === 'string' ? d.texto : (typeof d.datos === 'string' ? d.datos : JSON.stringify(d.datos, null, 2));
+  const s = t('section'); s.style.marginTop = 'var(--sp-5)';
+  s.append(t('p', 'Archivo generado', 'et-sec'));
+  s.append(t('pre', texto, 'salida'));
+  f.append(s);
+  return f;
+}
+</script>
+<script>
+"use strict";
+const ETIQUETA_ETAPA = {
+  pre_postulacion: 'Antes de postular',
+  formalizacion: 'Al formalizar',
+  inicio: 'Al iniciar',
+  cierre: 'Al cerrar',
+};
+const ETIQUETA_ARL = { cun: 'CUN', empresa: 'Empresa', segun_cobertura: 'Según convenio' };
+const CLASE_ARL = { cun: 'c-info', empresa: 'c-mudo', segun_cobertura: 'c-warn' };
+
+function soloAdministrador(sec) {
+  const c = t('div', null, 'aviso aviso-danger');
+  c.append(t('h3', 'Solo el administrador institucional abre ' + sec.nom.toLowerCase()));
+  c.append(t('p', `Con la sesión de ${TITULO[actor.rol]} el servidor responde 403 al pedir esta sección. Mover un umbral de operación cambia el comportamiento de la plataforma para todos, así que la puerta es estrecha a propósito.`));
+  return c;
+}
+
+/* ══════════ Modalidades: la matriz documental por etapa ══════════ */
+function vistaModalidades() {
+  const f = document.createDocumentFragment();
+  const { orden, modalidades } = DATOS.modalidades;
+
+  const intro = t('p', 'Cada modalidad exige documentos distintos, y los exige en momentos distintos. Pedirlo todo de entrada bloquearía al estudiante con papeles que a esa altura no pueden existir.');
+  intro.style.cssText = 'color:var(--text-muted);max-width:66ch';
+  f.append(intro);
+
+  const cont = t('div', null, 'card'); cont.style.cssText = 'padding:0;margin-top:var(--sp-5)';
+  const wrap = t('div', null, 'tabla-scroll'); const tb = t('table', null, 'datos');
+  const thead = t('thead'); const trh = t('tr');
+  trh.append(t('th', 'Modalidad'));
+  orden.forEach((e) => trh.append(t('th', ETIQUETA_ETAPA[e])));
+  trh.append(t('th', 'Afilia ARL'), t('th', 'Duración'));
+  thead.append(trh); tb.append(thead);
+
+  const tbody = t('tbody');
+  modalidades.forEach((m) => {
+    const tr = t('tr');
+    const tdN = t('td');
+    tdN.append(t('div', m.etiqueta, null));
+    if (m.pendienteRatificar) {
+      const p = t('div', 'matriz por ratificar');
+      p.style.cssText = 'font-size:var(--fs-xs);color:var(--warn);margin-top:2px';
+      tdN.append(p);
+    }
+    tdN.style.fontWeight = '600';
+    tdN.style.minWidth = '15rem';
+    tr.append(tdN);
+
+    orden.forEach((e) => {
+      const td = t('td');
+      const tipos = m.documentos[e] ?? [];
+      if (!tipos.length) {
+        const g = t('span', '—'); g.style.color = 'var(--text-muted)'; td.append(g);
+      } else {
+        const ul = t('div');
+        ul.style.cssText = 'display:grid;gap:3px;font-size:var(--fs-xs)';
+        tipos.forEach((x) => ul.append(t('span', humano(x))));
+        td.append(ul);
+      }
+      tr.append(td);
+    });
+
+    const tdA = t('td');
+    tdA.append(t('span', ETIQUETA_ARL[m.responsableArl], 'chip ' + CLASE_ARL[m.responsableArl]));
+    tr.append(tdA);
+
+    const rango = m.duracionMin === null && m.duracionMax === null ? '—'
+      : m.duracionMin !== null && m.duracionMax !== null ? `${m.duracionMin}–${m.duracionMax} meses`
+      : m.duracionMin !== null ? `mín. ${m.duracionMin} meses` : `máx. ${m.duracionMax} meses`;
+    tr.append(t('td', rango, 'num'));
+    tbody.append(tr);
+  });
+  tb.append(tbody); wrap.append(tb); cont.append(wrap); f.append(cont);
+
+  const avisos = t('div', null, 'rejilla'); avisos.style.marginTop = 'var(--sp-5)';
+
+  const a1 = t('div', null, 'aviso');
+  a1.append(t('h3', 'Quién afilia no lo decide la modalidad sola'));
+  a1.append(t('p', 'La cobertura se resuelve por el convenio registrado con cada organización y su vigencia. Nunca por el nombre de la empresa: dos organizaciones distintas pueden llamarse parecido, y una coincidencia de texto no es un acuerdo.'));
+  avisos.append(a1);
+
+  const a2 = t('div', null, 'aviso');
+  a2.append(t('h3', 'Lo que la fuente no fija, no se inventa'));
+  a2.append(t('p', 'Tres modalidades remiten a una matriz externa que Operaciones aún no ratifica. El sistema lo declara en vez de suponer requisitos: un requisito supuesto bloquea a un estudiante real.'));
+  avisos.append(a2);
+  f.append(avisos);
+  return f;
+}
+
+/* ══════════ Parámetros: operar sin desplegar ══════════ */
+function vistaParametros() {
+  const f = document.createDocumentFragment();
+  const lista = DATOS.parametros;
+
+  const intro = t('p', 'Estos valores los mueve la Dirección y surten efecto de inmediato, sin un despliegue de por medio. Cada cambio exige un motivo escrito y queda en la auditoría inmutable.');
+  intro.style.cssText = 'color:var(--text-muted);max-width:66ch';
+  f.append(intro);
+
+  const grupos = [
+    ['operativo', 'Los mueve la Dirección', lista.filter((p) => p.naturaleza === 'operativo')],
+    ['normativo', 'Los fija la norma', lista.filter((p) => p.naturaleza === 'normativo')],
+  ];
+
+  grupos.forEach(([clase, titulo, items]) => {
+    const s = t('section'); s.style.marginTop = 'var(--sp-6)';
+    s.append(t('p', titulo, 'et-sec'));
+    const rej = t('div', null, 'rejilla');
+    items.forEach((p) => {
+      const c = t('div', null, 'card');
+      const cab = t('div');
+      cab.style.cssText = 'display:flex;gap:var(--sp-3);justify-content:space-between;align-items:baseline';
+      cab.append(t('h3', p.etiqueta));
+      const valor = t('span', String(p.valor === true ? 'Sí' : p.valor === false ? 'No' : p.valor)
+        + (p.unidad ? ' ' + p.unidad : ''));
+      valor.style.cssText = 'font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap;'
+        + (clase === 'normativo' ? 'color:var(--text-muted)' : 'color:var(--brand)');
+      cab.append(valor);
+      c.append(cab);
+      c.append(t('p', p.descripcion));
+
+      const pie = t('div');
+      pie.style.cssText = 'display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center';
+      if (clase === 'normativo') {
+        pie.append(t('span', 'No editable', 'chip c-mudo'));
+        pie.append(t('span', p.norma, null));
+      } else {
+        if (p.minimo !== undefined && p.maximo !== undefined) {
+          pie.append(t('span', `entre ${p.minimo} y ${p.maximo}`, 'chip c-mudo'));
+        }
+        pie.append(t('span', p.personalizado ? 'Cambiado' : 'Valor de fábrica',
+          'chip ' + (p.personalizado ? 'c-info' : 'c-ok')));
+      }
+      pie.style.fontSize = 'var(--fs-xs)';
+      pie.style.color = 'var(--text-muted)';
+      c.append(pie);
+      rej.append(c);
+    });
+    s.append(rej);
+    f.append(s);
+  });
+
+  const a = t('div', null, 'aviso aviso-warn'); a.style.marginTop = 'var(--sp-6)';
+  a.append(t('h3', 'Por qué la norma no aparece como un campo editable'));
+  a.append(t('p', 'La compuerta de ARL y la vigencia de una vacante se muestran con la norma que las fija, y el sistema se niega a cambiarlas. Dejar que una pantalla de administración las relajara convertiría el incumplimiento en un descuido de dos clics.'));
+  f.append(a);
+  return f;
+}
+</script>
+<script>
+"use strict";
+/* ══════════ Evidencia técnica ══════════ */
+function vistaEvidencia() {
+  const f = document.createDocumentFragment();
+  const intro = t('p', 'Todo lo que se ve en este prototipo salió de la plataforma corriendo contra PostgreSQL. Aquí están las respuestas crudas, sin retocar, de lo que hace el sistema cuando se le pide algo que no debe conceder.');
+  intro.style.cssText = 'color:var(--text-muted);max-width:64ch';
+  f.append(intro);
+
+  /* ── Matriz de acceso: el momento firma ── */
+  const s1 = t('section'); s1.style.marginTop = 'var(--sp-5)';
+  s1.append(t('p', 'Quién alcanza qué, según el servidor', 'et-sec'));
+  const cont = t('div', null, 'card'); cont.style.padding = '0';
+  const wrap = t('div', null, 'tabla-scroll'); const tb = t('table', null, 'datos matriz');
+  const thead = t('thead'); const trh = t('tr');
+  trh.append(t('th', 'Perfil'));
+  Object.entries(DATOS.etiquetasRuta).forEach(([, et]) => trh.append(t('th', et)));
+  thead.append(trh); tb.append(thead);
+  const tbody = t('tbody');
+  DATOS.matrizAcceso.forEach(fila => {
+    const tr = t('tr');
+    tr.append(t('td', TITULO[fila.rol] ?? fila.rol));
+    Object.keys(DATOS.etiquetasRuta).forEach(k => {
+      const td = t('td');
+      const cel = fila[k];
+      const b = t('span', String(cel.estado), 'cod cod-' + cel.estado);
+      td.append(b);
+      if (cel.estado === 200 && cel.n !== null) {
+        const n = t('div', cel.n === 1 ? '1 registro' : cel.n + ' registros');
+        n.style.cssText = 'font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px';
+        td.append(n);
+      }
+      tr.append(td);
+    });
+    tbody.append(tr);
+  });
+  tb.append(tbody); wrap.append(tb); cont.append(wrap); s1.append(cont);
+  const n1 = t('p', 'Cada celda es el código HTTP que devolvió la API al pedir esa sección con la sesión de ese perfil. Los 403 no son una decisión de la interfaz: la petición se rechaza en el servidor.');
+  n1.style.cssText = 'color:var(--text-muted);font-size:var(--fs-sm);margin-top:var(--sp-3)';
+  s1.append(n1);
+  f.append(s1);
+
+  /* ── Pruebas de las reglas duras ── */
+  const pruebas = [
+    { titulo:'La práctica no se activa sin ARL previa',
+      norma:'Decreto 055 de 2015',
+      cuerpo:'Se pidió activar una práctica cuyo estudiante no tiene afiliación verificada. La regla vive en el dominio y además como restricción del motor: probada por la API y probada por consulta directa a la base, saltándose la aplicación entera.',
+      llamada:'PATCH /api/v1/practicas/{id}/estado  → ' + DATOS.evidencia.compuertaArlApi.estado,
+      salida: JSON.stringify(DATOS.evidencia.compuertaArlApi.datos, null, 2) },
+    { titulo:'La auditoría no admite correcciones',
+      norma:'Trazabilidad institucional',
+      cuerpo:'La tabla de auditoría rechaza modificaciones y borrados incluso ejecutados como superusuario de la base de datos. No hay forma de reescribir lo que quedó registrado.',
+      llamada:'UPDATE auditoria SET accion = …;   /  DELETE FROM auditoria;',
+      salida:'ERROR:  La tabla auditoria es inmutable: no admite UPDATE\nERROR:  La tabla auditoria es inmutable: no admite DELETE' },
+    { titulo:'Renombrar la extensión no engaña al sistema',
+      norma:'Verificación por firma binaria',
+      cuerpo:'Se cargó un PDF con el nombre de una imagen, declarado como cédula. El sistema verifica el tipo real por los primeros bytes del archivo, no por la extensión, y el documento quedó para revisión humana en vez de pasar como bueno.',
+      llamada:'POST /api/v1/documentos/practica/{id}   archivo: cedula.jpg (contenido PDF)  → ' + DATOS.evidencia.extensionMentida.estado,
+      salida: (() => { const d = DATOS.evidencia.documentos.find(x => x.tipo === 'cedula');
+        return d ? `estado: ${d.estado}\nmotivo: ${d.motivoDevolucion ?? 'queda para revisión humana'}` : '—'; })() },
+    { titulo:'Un documento ilegible pide recaptura, no se rechaza',
+      norma:'Debido proceso',
+      cuerpo:'Cuando el sistema no puede leer un documento con certeza no lo da por falso ni por bueno: lo declara ilegible y le explica al estudiante cómo volver a capturarlo. Rechazar sin certeza sería sancionar a alguien por una foto mala.',
+      llamada:'POST /api/v1/documentos/practica/{id}   tipo: certificado_arl',
+      salida: (() => { const d = DATOS.evidencia.documentos.find(x => x.tipo === 'certificado_arl');
+        return d ? `estado: ${d.estado}\nmotivo: ${d.motivoDevolucion ?? '—'}` : '—'; })() },
+  ];
+  const s2 = t('section'); s2.style.marginTop = 'var(--sp-6)';
+  s2.append(t('p', 'Reglas que el sistema hace cumplir', 'et-sec'));
+  pruebas.forEach(p => {
+    const c = t('div', null, 'card'); c.style.marginBottom = 'var(--sp-4)';
+    const cab = t('div'); cab.style.cssText = 'display:flex;gap:var(--sp-3);justify-content:space-between;align-items:start;flex-wrap:wrap';
+    cab.append(t('h3', p.titulo), t('span', p.norma, 'chip c-mudo'));
+    c.append(cab);
+    c.append(t('p', p.cuerpo));
+    const d = t('details');
+    d.append(t('summary', 'Ver la respuesta del sistema'));
+    const llam = t('p', p.llamada, 'mono');
+    llam.style.cssText = 'color:var(--text-muted);margin:var(--sp-2) 0 var(--sp-2);font-size:var(--fs-xs)';
+    d.append(llam);
+    d.append(t('pre', p.salida, 'salida'));
+    c.append(d);
+    s2.append(c);
+  });
+  f.append(s2);
+
+  /* ── Estado del servicio ── */
+  const s3 = t('section'); s3.style.marginTop = 'var(--sp-6)';
+  s3.append(t('p', 'Estado del servicio en el momento de la captura', 'et-sec'));
+  const c3 = t('div', null, 'card');
+  const dl = t('dl', null, 'linea');
+  const sal = DATOS._meta.salud, mod = DATOS._meta.modo;
+  [['Servicio', humano(sal.estado)], ['Base de datos', sal.base === 'ok' ? 'Responde' : sal.base],
+   ['Ambiente', sal.ambiente], ['Versión', sal.version],
+   ['Autenticación', mod.modo + (mod.permiteSelectorDePerfil ? ' (selector de perfil)' : '')],
+   ['Fecha de captura', fecha(DATOS._meta.fecha_corte)]
+  ].forEach(([k, v]) => dl.append(t('dt', k), t('dd', String(v))));
+  c3.append(dl); s3.append(c3);
+  f.append(s3);
+
+  const pie = t('footer', null, 'sello');
+  pie.append(t('p', DATOS._meta.fuente));
+  pie.append(t('p', 'Los datos personales que aparecen son sintéticos: ninguna persona real figura en este prototipo.'));
+  f.append(pie);
+  return f;
+}
+
+/* ══════════ Arranque ══════════ */
+pintarPerfiles();
+on(document, 'click', '.perfil', (e, b) => entrar(b.dataset.rol));
+on(document, 'click', '#btn-salir', salir);
+on(document, 'click', '#btn-salir-2', salir);
+on(document, 'click', '#btn-atras', () => ir('practicas'));
+on(document, 'click', '.nav a, .barra-inf a', (e, a) => { e.preventDefault(); ir(a.dataset.id); });
+on(document, 'click', '[data-practica]', (e, tr) => ir('practicas', tr.dataset.practica));
+on(document, 'keydown', '[data-practica]', (e, tr) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ir('practicas', tr.dataset.practica); }
+});
+const MODOS = ['auto', 'claro', 'oscuro'];
+on(document, 'click', '#btn-modo', () => {
+  const i = (MODOS.indexOf(document.documentElement.dataset.modo || 'auto') + 1) % MODOS.length;
+  document.documentElement.dataset.modo = MODOS[i];
+  const b = $('#btn-modo');
+  b.textContent = 'Modo: ' + MODOS[i];
+  b.setAttribute('aria-pressed', String(MODOS[i] !== 'auto'));
+});
+</script>
+</body>
+</html>

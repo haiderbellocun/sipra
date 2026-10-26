@@ -1,0 +1,131 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# SIPRA PRÁCTICAS — construcción y despliegue en Google Cloud
+#
+# Se autentica por federación de identidades: no hay ninguna clave guardada en
+# el repositorio ni en los secretos de GitHub. Google confía en este flujo
+# porque viene de este repositorio, y la confianza se revoca quitando el
+# vínculo en la nube, no persiguiendo un archivo.
+#
+# Los valores de abajo no son secretos: identifican al proyecto, no dan acceso.
+# ═══════════════════════════════════════════════════════════════════════════
+name: SIPRA · desplegar en Google Cloud
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sipra-desplegar-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PROYECTO: cun-it-fab-contenido-practicas
+  NUMERO_PROYECTO: PENDIENTE
+  REGION: us-central1
+  AMBIENTE: dev
+  CONEXION_SQL: PENDIENTE
+  BUCKET: PENDIENTE
+  REGISTRO: us-central1-docker.pkg.dev
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: package-lock.json }
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Un despliegue no arranca si el código no está sano. La prueba de
+      # aislamiento entre empresas es bloqueante: si una empresa alcanza un
+      # solo registro de otra, no se despliega.
+      - name: Lint
+        run: npm run lint
+      - name: Pruebas
+        run: npm test
+      - name: Aislamiento entre empresas
+        run: npm run test:aislamiento
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROYECTO }}
+          workload_identity_provider: projects/${{ env.NUMERO_PROYECTO }}/locations/global/workloadIdentityPools/github/providers/github
+          service_account: sipra-despliegue@${{ env.PROYECTO }}.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Autorizar el registro de imágenes
+        run: gcloud auth configure-docker ${{ env.REGISTRO }} --quiet
+
+      - name: Construir y publicar la imagen de la API
+        run: |
+          IMAGEN="${REGISTRO}/${PROYECTO}/sipra/api:${GITHUB_SHA::12}"
+          docker build -f apps/api/Dockerfile -t "$IMAGEN" .
+          docker push "$IMAGEN"
+          echo "IMAGEN_API=$IMAGEN" >> "$GITHUB_ENV"
+
+      - name: Desplegar la API en Cloud Run
+        run: |
+          gcloud run deploy "sipra-api-${AMBIENTE}" \
+            --image="$IMAGEN_API" --region="$REGION" \
+            --service-account="sipra-app-${AMBIENTE}@${PROYECTO}.iam.gserviceaccount.com" \
+            --add-cloudsql-instances="$CONEXION_SQL" \
+            --set-env-vars="NODE_ENV=production,SIPRA_AMBIENTE=${AMBIENTE},AUTH_MODO=abierto,API_PREFIJO=api,API_VERSION=1,COLA_DRIVER=en_proceso,STORAGE_DRIVER=gcs,GCS_BUCKET=${BUCKET},IA_DRIVER=simulado,SINU_DRIVER=simulado,CORREO_DRIVER=consola,LOG_NIVEL=info,DB_SOCKET_PATH=/cloudsql/${CONEXION_SQL},DB_USER=sipra,DB_NAME=sipra_${AMBIENTE},GCP_PROYECTO=${PROYECTO},GCP_REGION=${REGION}" \
+            --set-secrets="JWT_SECRETO=sipra-${AMBIENTE}-jwt:latest,DB_PASSWORD=sipra-${AMBIENTE}-db-pass:latest" \
+            --allow-unauthenticated --port=8080 --memory=1Gi --cpu=1 \
+            --min-instances=0 --max-instances=4 --timeout=120 --quiet
+          echo "URL_API=$(gcloud run services describe sipra-api-${AMBIENTE} --region=$REGION --format='value(status.url)')" >> "$GITHUB_ENV"
+
+      # El esquema lo gobiernan las migraciones de TypeORM, nunca `synchronize`.
+      # Se aplican como paso propio, antes de publicar el frontend.
+      - name: Aplicar migraciones, catálogos y semillas
+        run: |
+          curl -sSL "https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.1/cloud-sql-proxy.linux.amd64" -o /tmp/proxy
+          chmod +x /tmp/proxy
+          /tmp/proxy --unix-socket /tmp/cloudsql "$CONEXION_SQL" &
+          for i in $(seq 1 30); do [ -S "/tmp/cloudsql/$CONEXION_SQL/.s.PGSQL.5432" ] && break; sleep 1; done
+          export DB_SOCKET_PATH="/tmp/cloudsql/$CONEXION_SQL" DB_USER=sipra DB_NAME="sipra_${AMBIENTE}"
+          export DB_PASSWORD="$(gcloud secrets versions access latest --secret=sipra-${AMBIENTE}-db-pass)"
+          export JWT_SECRETO="$(gcloud secrets versions access latest --secret=sipra-${AMBIENTE}-jwt)"
+          export NODE_ENV=production SIPRA_AMBIENTE="${AMBIENTE}" AUTH_MODO=abierto
+          export STORAGE_DRIVER=local IA_DRIVER=simulado SINU_DRIVER=simulado CORREO_DRIVER=consola
+          npm run build --workspace=@sipra/api
+          npm run migration:run
+          npm run catalogos:cargar
+          npm run seed || echo "Las semillas ya estaban aplicadas; se continúa."
+
+      - name: Construir y publicar la imagen del frontend
+        run: |
+          IMAGEN="${REGISTRO}/${PROYECTO}/sipra/web:${GITHUB_SHA::12}"
+          docker build -f apps/web/Dockerfile -t "$IMAGEN" .
+          docker push "$IMAGEN"
+          echo "IMAGEN_WEB=$IMAGEN" >> "$GITHUB_ENV"
+
+      - name: Desplegar el frontend en Cloud Run
+        run: |
+          gcloud run deploy "sipra-web-${AMBIENTE}" \
+            --image="$IMAGEN_WEB" --region="$REGION" \
+            --set-env-vars="API_URL=${URL_API}" \
+            --allow-unauthenticated --port=8080 --memory=256Mi --cpu=1 \
+            --min-instances=0 --max-instances=4 --quiet
+          echo "URL_WEB=$(gcloud run services describe sipra-web-${AMBIENTE} --region=$REGION --format='value(status.url)')" >> "$GITHUB_ENV"
+
+      - name: Comprobar que la plataforma responde
+        run: |
+          echo "Frontend: $URL_WEB"
+          echo "API:      $URL_API"
+          for ruta in /api/v1/salud /api/v1/auth/modo /api/v1/auth/perfiles; do
+            code=$(curl -sS -o /tmp/c -w '%{http_code}' --max-time 60 "${URL_WEB}${ruta}")
+            echo "── GET ${ruta} → ${code}"; head -c 400 /tmp/c; echo
+            [ "$code" = "200" ] || { echo "::error::${ruta} respondió ${code}"; exit 1; }
+          done
+          echo "::notice title=SIPRA desplegado::${URL_WEB}"

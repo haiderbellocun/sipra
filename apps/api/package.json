@@ -1,0 +1,109 @@
+{
+  "name": "@sipra/api",
+  "version": "0.1.0",
+  "description": "SIPRA PRÁCTICAS — API (NestJS + Fastify, arquitectura hexagonal)",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "dist/crear-aplicacion.js",
+  "exports": {
+    ".": "./dist/crear-aplicacion.js",
+    "./datasource": "./dist/infrastructure/persistence/postgres/opciones-datasource.js",
+    "./catalogos": "./dist/infrastructure/persistence/postgres/catalogos/cargar-catalogos.js",
+    "./semillas": "./dist/infrastructure/persistence/postgres/seeds/ejecutar-semillas.js"
+  },
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings 0",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:aislamiento": "jest --testPathPatterns=aislamiento --runInBand",
+    "typeorm": "typeorm-ts-node-commonjs -d src/infrastructure/persistence/postgres/data-source.ts",
+    "migration:generate": "npm run typeorm -- migration:generate",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "seed": "ts-node -r tsconfig-paths/register src/infrastructure/persistence/postgres/seeds/ejecutar-semillas.ts",
+    "catalogos:cargar": "ts-node -r tsconfig-paths/register src/infrastructure/persistence/postgres/catalogos/cargar-catalogos.ts",
+    "catalogos:estado": "ts-node -r tsconfig-paths/register src/infrastructure/persistence/postgres/catalogos/estado-catalogos.ts",
+    "ia:evaluar": "ts-node -r tsconfig-paths/register herramientas/evaluar-lectura.ts"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/multipart": "^9.0.3",
+    "@fastify/static": "^10.1.2",
+    "@google-cloud/storage": "^7.16.0",
+    "@google-cloud/tasks": "^7.0.0",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.1.6",
+    "@nestjs/schedule": "^6.0.0",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/terminus": "^11.0.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "cache-manager": "^6.4.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
+    "nestjs-pino": "^4.4.0",
+    "pdfkit": "^0.15.2",
+    "pg": "^8.16.3",
+    "pino-http": "^10.5.0",
+    "pino-pretty": "^13.1.1",
+    "prom-client": "^15.1.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.27",
+    "zxing-wasm": "^3.1.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.8",
+    "@nestjs/testing": "^11.1.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.18.6",
+    "@types/pdfkit": "^0.17.6",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": ".",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.json"
+        }
+      ]
+    },
+    "collectCoverageFrom": [
+      "src/**/*.(t|j)s"
+    ],
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@dominio/(.*)$": "<rootDir>/src/domain/$1",
+      "^@aplicacion/(.*)$": "<rootDir>/src/application/$1",
+      "^@infraestructura/(.*)$": "<rootDir>/src/infrastructure/$1"
+    }
+  }
+}

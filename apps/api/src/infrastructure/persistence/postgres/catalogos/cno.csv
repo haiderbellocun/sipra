@@ -1,0 +1,117 @@
+codigo,denominacion,jerarquia,gran_grupo
+0,Ocupaciones militares,gran_grupo,0
+1,Directores y gerentes,gran_grupo,1
+2,Profesionales científicos e intelectuales,gran_grupo,2
+3,Técnicos y profesionales de nivel medio,gran_grupo,3
+4,Personal de apoyo administrativo,gran_grupo,4
+5,Trabajadores de los servicios y vendedores de comercios y mercados,gran_grupo,5
+6,"Agricultores y trabajadores calificados agropecuarios, forestales y pesqueros",gran_grupo,6
+7,Oficiales operarios artesanos y oficios relacionados,gran_grupo,7
+8,Operadores de instalaciones y máquinas y ensambladores,gran_grupo,8
+9,Ocupaciones elementales,gran_grupo,9
+1112,Directores generales y gerentes generales de entidades públicas,ocupacion,1
+1120,Directores y gerentes generales,ocupacion,1
+1211,Directores financieros,ocupacion,1
+1212,Directores de recursos humanos,ocupacion,1
+1213,Directores de políticas y planificación,ocupacion,1
+1219,Directores de administración y servicios no clasificados en otros grupos,ocupacion,1
+1221,Directores de ventas y comercialización,ocupacion,1
+1223,Directores de investigación y desarrollo,ocupacion,1
+1330,Directores de servicios de tecnología de la información y las comunicaciones,ocupacion,1
+1420,Directores y gerentes de comercios al por mayor y al por menor,ocupacion,1
+2141,Ingenieros industriales y de producción,ocupacion,2
+2142,Ingenieros civiles,ocupacion,2
+2144,Ingenieros mecánicos,ocupacion,2
+2149,Ingenieros no clasificados en otros grupos,ocupacion,2
+2151,Ingenieros electricistas,ocupacion,2
+2152,Ingenieros electrónicos,ocupacion,2
+2153,Ingenieros de telecomunicaciones,ocupacion,2
+2161,Arquitectos,ocupacion,2
+2166,Diseñadores gráficos y multimedia,ocupacion,2
+2411,Contadores,ocupacion,2
+2412,Asesores financieros y en inversiones,ocupacion,2
+2413,Analistas financieros,ocupacion,2
+2421,Analistas de gestión y organización,ocupacion,2
+2422,Profesionales en políticas de administración,ocupacion,2
+2423,Profesionales de la gestión de recursos humanos,ocupacion,2
+2424,Profesionales de la formación del personal,ocupacion,2
+2431,Profesionales de la publicidad y la comercialización,ocupacion,2
+2432,Profesionales de relaciones públicas,ocupacion,2
+2433,Profesionales de ventas técnicas y médicas,ocupacion,2
+2511,Analistas de sistemas,ocupacion,2
+2512,Desarrolladores de software,ocupacion,2
+2513,Desarrolladores web y multimedia,ocupacion,2
+2514,Programadores de aplicaciones,ocupacion,2
+2519,"Desarrolladores y analistas de software y multimedia no clasificados en otros grupos",ocupacion,2
+2521,Diseñadores y administradores de bases de datos,ocupacion,2
+2522,Administradores de sistemas,ocupacion,2
+2523,Profesionales en redes de computadores,ocupacion,2
+2611,Abogados,ocupacion,2
+2634,Psicólogos,ocupacion,2
+2635,Profesionales del trabajo social,ocupacion,2
+2641,Autores y otros escritores,ocupacion,2
+2642,Periodistas,ocupacion,2
+3112,Técnicos en ingeniería civil,ocupacion,3
+3113,Técnicos en ingeniería eléctrica,ocupacion,3
+3114,Técnicos en ingeniería electrónica,ocupacion,3
+3115,Técnicos en ingeniería mecánica,ocupacion,3
+3118,Delineantes y dibujantes técnicos,ocupacion,3
+3119,Técnicos en ciencias físicas y en ingeniería no clasificados en otros grupos,ocupacion,3
+3311,Agentes de bolsa cambio y otros servicios financieros,ocupacion,3
+3313,Auxiliares contables,ocupacion,3
+3314,Técnicos en estadística y matemáticas,ocupacion,3
+3315,Tasadores y evaluadores de daños,ocupacion,3
+3321,Agentes de seguros,ocupacion,3
+3322,Representantes comerciales,ocupacion,3
+3323,Agentes de compras,ocupacion,3
+3324,Agentes de compras y consignatarios,ocupacion,3
+3331,Agentes de servicios de despacho de mercancías,ocupacion,3
+3333,Agentes de empleo y contratistas de mano de obra,ocupacion,3
+3341,Supervisores de oficina,ocupacion,3
+3342,Secretarios jurídicos,ocupacion,3
+3343,Secretarios administrativos y ejecutivos,ocupacion,3
+3344,Secretarios médicos,ocupacion,3
+3351,Agentes de aduanas e inspectores de fronteras,ocupacion,3
+3359,Agentes de la administración pública para la aplicación de la ley,ocupacion,3
+3411,Profesionales de nivel medio del derecho y servicios legales,ocupacion,3
+3412,Trabajadores y asistentes sociales de nivel medio,ocupacion,3
+3431,Fotógrafos,ocupacion,3
+3432,Diseñadores y decoradores de interiores,ocupacion,3
+3433,Técnicos en galerías de arte museos y bibliotecas,ocupacion,3
+3511,Técnicos en operaciones de tecnología de la información,ocupacion,3
+3512,Técnicos en asistencia al usuario de tecnología de la información,ocupacion,3
+3513,Técnicos en redes y sistemas de computadores,ocupacion,3
+3514,Técnicos de la web,ocupacion,3
+3521,Técnicos de radiodifusión y grabación audiovisual,ocupacion,3
+3522,Técnicos de ingeniería de telecomunicaciones,ocupacion,3
+4110,Oficinistas generales,ocupacion,4
+4120,Secretarios generales,ocupacion,4
+4131,Operadores de máquinas de procesamiento de texto,ocupacion,4
+4132,Grabadores de datos,ocupacion,4
+4211,Cajeros de bancos y afines,ocupacion,4
+4214,Prestamistas y cobradores de deudas,ocupacion,4
+4221,Empleados de agencias de viajes,ocupacion,4
+4222,Empleados de centros de llamadas,ocupacion,4
+4223,Telefonistas,ocupacion,4
+4224,Recepcionistas de hoteles,ocupacion,4
+4226,Recepcionistas en general,ocupacion,4
+4227,Entrevistadores de encuestas y de investigaciones de mercados,ocupacion,4
+4229,Empleados de servicios de información no clasificados en otros grupos,ocupacion,4
+4311,Empleados de contabilidad y cálculo de costos,ocupacion,4
+4312,Empleados de servicios estadísticos financieros y de seguros,ocupacion,4
+4313,Empleados encargados de las nóminas,ocupacion,4
+4321,Empleados de control de abastecimientos e inventario,ocupacion,4
+4322,Empleados de servicios de apoyo a la producción,ocupacion,4
+4323,Empleados de servicios de transporte,ocupacion,4
+4411,Empleados de bibliotecas,ocupacion,4
+4415,Empleados de servicios de archivo y copia de documentos,ocupacion,4
+4419,Personal de apoyo administrativo no clasificado en otros grupos,ocupacion,4
+5223,Vendedores de tiendas y almacenes,ocupacion,5
+5242,Demostradores de tiendas,ocupacion,5
+5244,Vendedores por teléfono,ocupacion,5
+5311,Cuidadores de niños,ocupacion,5
+5414,Guardias de seguridad,ocupacion,5
+7412,Mecánicos y ajustadores electricistas,ocupacion,7
+8322,Conductores de automóviles taxis y camionetas,ocupacion,8
+9329,Peones de la industria manufacturera no clasificados en otros grupos,ocupacion,9
+9333,Peones de carga,ocupacion,9

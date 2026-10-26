@@ -1,0 +1,112 @@
+codigo,descripcion,seccion,jerarquia
+A,"Agricultura, ganadería, caza, silvicultura y pesca",A,seccion
+B,Explotación de minas y canteras,B,seccion
+C,Industrias manufactureras,C,seccion
+D,"Suministro de electricidad, gas, vapor y aire acondicionado",D,seccion
+E,"Distribución de agua; evacuación y tratamiento de aguas residuales, gestión de desechos y actividades de saneamiento ambiental",E,seccion
+F,Construcción,F,seccion
+G,"Comercio al por mayor y al por menor; reparación de vehículos automotores y motocicletas",G,seccion
+H,Transporte y almacenamiento,H,seccion
+I,Alojamiento y servicios de comida,I,seccion
+J,Información y comunicaciones,J,seccion
+K,Actividades financieras y de seguros,K,seccion
+L,Actividades inmobiliarias,L,seccion
+M,"Actividades profesionales, científicas y técnicas",M,seccion
+N,Actividades de servicios administrativos y de apoyo,N,seccion
+O,"Administración pública y defensa; planes de seguridad social de afiliación obligatoria",O,seccion
+P,Educación,P,seccion
+Q,Actividades de atención de la salud humana y de asistencia social,Q,seccion
+R,"Actividades artísticas, de entretenimiento y recreación",R,seccion
+S,Otras actividades de servicios,S,seccion
+T,"Actividades de los hogares individuales en calidad de empleadores; actividades no diferenciadas de los hogares individuales como productores de bienes y servicios para uso propio",T,seccion
+U,Actividades de organizaciones y entidades extraterritoriales,U,seccion
+0111,"Cultivo de cereales (excepto arroz), legumbres y semillas oleaginosas",A,clase
+0122,Cultivo de plátano y banano,A,clase
+0123,Cultivo de café,A,clase
+0141,Cría de ganado bovino y bufalino,A,clase
+1011,Procesamiento y conservación de carne y productos cárnicos,C,clase
+1081,Elaboración de productos de panadería,C,clase
+1311,Preparación e hilatura de fibras textiles,C,clase
+1410,Confección de prendas de vestir excepto prendas de piel,C,clase
+2211,Fabricación de llantas y neumáticos de caucho,C,clase
+4111,Construcción de edificios residenciales,F,clase
+4112,Construcción de edificios no residenciales,F,clase
+4210,Construcción de carreteras y vías de ferrocarril,F,clase
+4290,Construcción de otras obras de ingeniería civil,F,clase
+4511,Comercio de vehículos automotores nuevos,G,clase
+4620,Comercio al por mayor de materias primas agropecuarias,G,clase
+4631,Comercio al por mayor de productos alimenticios,G,clase
+4645,Comercio al por mayor de productos farmacéuticos y odontológicos,G,clase
+4652,"Comercio al por mayor de equipo, partes y piezas electrónicos y de telecomunicaciones",G,clase
+4659,Comercio al por mayor de otros tipos de maquinaria y equipo,G,clase
+4711,"Comercio al por menor en establecimientos no especializados con surtido compuesto principalmente por alimentos, bebidas o tabaco",G,clase
+4719,Comercio al por menor en establecimientos no especializados,G,clase
+4741,Comercio al por menor de computadores y equipos de telecomunicaciones,G,clase
+4771,Comercio al por menor de prendas de vestir y sus accesorios,G,clase
+4911,Transporte férreo de pasajeros,H,clase
+4921,Transporte de pasajeros,H,clase
+4923,Transporte de carga por carretera,H,clase
+5210,Almacenamiento y depósito,H,clase
+5224,Manipulación de carga,H,clase
+5229,Otras actividades complementarias al transporte,H,clase
+5320,Actividades de mensajería,H,clase
+5511,Alojamiento en hoteles,I,clase
+5611,Expendio a la mesa de comidas preparadas,I,clase
+5811,Edición de libros,J,clase
+5911,"Actividades de producción de películas cinematográficas, videos y programas de televisión",J,clase
+6010,Actividades de programación y transmisión en el servicio de radiodifusión sonora,J,clase
+6020,Actividades de programación y transmisión de televisión,J,clase
+6110,Actividades de telecomunicaciones alámbricas,J,clase
+6120,Actividades de telecomunicaciones inalámbricas,J,clase
+6190,Otras actividades de telecomunicaciones,J,clase
+6201,Actividades de desarrollo de sistemas informáticos,J,clase
+6202,Actividades de consultoría informática y actividades de administración de instalaciones informáticas,J,clase
+6209,Otras actividades de tecnologías de información y actividades de servicios informáticos,J,clase
+6311,Procesamiento de datos y alojamiento (hosting),J,clase
+6399,Otras actividades de servicio de información,J,clase
+6412,Bancos comerciales,K,clase
+6424,Actividades de las cooperativas financieras,K,clase
+6492,Actividades financieras de fondos de empleados,K,clase
+6511,Seguros generales,K,clase
+6810,Actividades inmobiliarias realizadas con bienes propios o arrendados,L,clase
+6820,Actividades inmobiliarias realizadas a cambio de una retribución o por contrata,L,clase
+6910,Actividades jurídicas,M,clase
+6920,"Actividades de contabilidad, teneduría de libros, auditoría financiera y asesoría tributaria",M,clase
+7010,Actividades de administración empresarial,M,clase
+7020,Actividades de consultoría de gestión,M,clase
+7110,"Actividades de arquitectura e ingeniería y otras actividades conexas de consultoría técnica",M,clase
+7120,Ensayos y análisis técnicos,M,clase
+7210,Investigaciones y desarrollo experimental en el campo de las ciencias naturales y la ingeniería,M,clase
+7310,Publicidad,M,clase
+7320,Estudios de mercado y realización de encuestas de opinión pública,M,clase
+7410,Actividades especializadas de diseño,M,clase
+7420,Actividades de fotografía,M,clase
+7710,Alquiler y arrendamiento de vehículos automotores,N,clase
+7810,Actividades de agencias de empleo,N,clase
+7820,Actividades de agencias de empleo temporal,N,clase
+7830,Otras actividades de suministro de recurso humano,N,clase
+8010,Actividades de seguridad privada,N,clase
+8121,Limpieza general interior de edificios,N,clase
+8211,Actividades combinadas de servicios administrativos de oficina,N,clase
+8220,Actividades de centros de llamadas (call center),N,clase
+8299,Otras actividades de servicio de apoyo a las empresas,N,clase
+8411,Actividades legislativas de la administración pública,O,clase
+8412,Actividades ejecutivas de la administración pública,O,clase
+8511,Educación de la primera infancia,P,clase
+8521,Educación básica primaria,P,clase
+8522,Educación básica secundaria,P,clase
+8530,Establecimientos que combinan diferentes niveles de educación,P,clase
+8541,Educación técnica profesional,P,clase
+8542,Educación tecnológica,P,clase
+8543,Educación de universidades,P,clase
+8544,Educación de instituciones universitarias,P,clase
+8551,Formación académica no formal,P,clase
+8560,Actividades de apoyo a la educación,P,clase
+8610,Actividades de hospitales y clínicas con internación,Q,clase
+8621,Actividades de la práctica médica sin internación,Q,clase
+8899,Otras actividades de asistencia social sin alojamiento,Q,clase
+9001,Creación literaria,R,clase
+9319,Otras actividades deportivas,R,clase
+9411,Actividades de asociaciones empresariales y de empleadores,S,clase
+9499,Actividades de otras asociaciones,S,clase
+9602,Peluquería y otros tratamientos de belleza,S,clase

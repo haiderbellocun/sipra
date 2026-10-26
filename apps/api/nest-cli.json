@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "plugins": [
+      "@nestjs/swagger"
+    ],
+    "tsConfigPath": "tsconfig.build.json",
+    "assets": [
+      {
+        "include": "infrastructure/persistence/postgres/catalogos/*.csv",
+        "outDir": "dist"
+      },
+      {
+        "include": "infrastructure/persistence/postgres/catalogos/*.json",
+        "outDir": "dist"
+      }
+    ],
+    "watchAssets": true
+  }
+}

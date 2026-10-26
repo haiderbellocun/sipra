@@ -1,0 +1,185 @@
+# Integración continua de SIPRA PRÁCTICAS (repositorio independiente).
+# GitHub Flow: main siempre desplegable; todo cambio entra por Pull Request
+# con revisión y con estos checks en verde.
+name: SIPRA · integración continua
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: sipra-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad:
+    name: Lint, pruebas y compilación
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Pruebas unitarias y de dominio
+        run: npm test
+
+      - name: Compilar API y frontend
+        run: npm run build
+
+  aislamiento:
+    name: Aislamiento entre empresas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+
+      # Condición de despliegue: si una empresa alcanza un solo registro de
+      # otra, la construcción falla. No es un check informativo.
+      - name: Prueba de aislamiento
+        run: npm run test:aislamiento
+
+  migraciones:
+    name: Migraciones contra PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: sipra
+          POSTGRES_PASSWORD: sipra_ci
+          POSTGRES_DB: sipra_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sipra"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: sipra
+      DB_PASSWORD: sipra_ci
+      DB_NAME: sipra_ci
+      JWT_SECRETO: secreto-de-integracion-continua-de-32-caracteres
+      SIPRA_AMBIENTE: dev
+      AUTH_MODO: abierto
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+
+      - name: Ejecutar migraciones
+        run: npm run migration:run
+
+      - name: Cargar catálogos oficiales
+        run: npm run catalogos:cargar
+
+      - name: Cargar semillas sintéticas
+        run: npm run seed
+
+      # El ingestor debe negarse a declarar completo lo que no lo está.
+      - name: Verificar que un catálogo no pueda declararse completo sin serlo
+        run: |
+          set -e
+          cd apps/api/src/infrastructure/persistence/postgres/catalogos
+          cp manifiesto.json manifiesto.json.bak
+          python3 - <<'PY'
+          import json
+          d = json.load(open('manifiesto.json'))
+          for c in d['catalogos']:
+              if c['nombre'] == 'divipola_municipio':
+                  c['estado'] = 'completo'
+          json.dump(d, open('manifiesto.json', 'w'), ensure_ascii=False, indent=2)
+          PY
+          cd - > /dev/null
+          if npm run catalogos:cargar > /dev/null 2>&1; then
+            echo "FALLO: se aceptó declarar completo un catálogo parcial"
+            mv apps/api/src/infrastructure/persistence/postgres/catalogos/manifiesto.json.bak \
+               apps/api/src/infrastructure/persistence/postgres/catalogos/manifiesto.json
+            exit 1
+          fi
+          mv apps/api/src/infrastructure/persistence/postgres/catalogos/manifiesto.json.bak \
+             apps/api/src/infrastructure/persistence/postgres/catalogos/manifiesto.json
+          echo "El ingestor rechaza declarar completitud sin demostrarla."
+
+
+      # Las garantías del motor se verifican, no se asumen. La protección es un
+      # disparador por fila: con la tabla vacía (las semillas no escriben
+      # auditoría) un UPDATE o DELETE «pasa» con 0 filas sin probar nada. Por eso
+      # se inserta una fila de prueba y se exige que el rechazo venga del
+      # disparador, no de otro error.
+      - name: Verificar que la auditoría sea inmutable
+        env: { PGPASSWORD: sipra_ci }
+        run: |
+          set -e
+          consulta() { psql -h localhost -U sipra -d sipra_ci -v ON_ERROR_STOP=1 -qtA -c "$1"; }
+          consulta "INSERT INTO auditoria (accion, entidad, justificacion) VALUES ('CI_PRUEBA_INMUTABILIDAD', 'ci', 'fila de prueba')"
+          filas=$(consulta "SELECT count(*) FROM auditoria")
+          if [ "$filas" -lt 1 ]; then
+            echo "FALLO: la tabla auditoria no tiene filas; la verificación no probaría nada"; exit 1
+          fi
+          for sentencia in "UPDATE auditoria SET justificacion = 'alterado'" "DELETE FROM auditoria"; do
+            if salida=$(consulta "$sentencia" 2>&1); then
+              echo "FALLO: la tabla auditoria admitió «$sentencia»"; exit 1
+            fi
+            case "$salida" in
+              *"auditoria es inmutable"*) ;;
+              *) echo "FALLO: «$sentencia» falló por otra razón y no por el disparador: $salida"; exit 1 ;;
+            esac
+          done
+          echo "La auditoría rechaza UPDATE y DELETE sobre $filas fila(s)."
+
+      # Misma exigencia: el INSERT debe fallar por la restricción de la compuerta
+      # ARL, no por cualquier otro error (una clave foránea rota también fallaría).
+      - name: Verificar la compuerta ARL en la base
+        env: { PGPASSWORD: sipra_ci }
+        run: |
+          set -e
+          sentencia="INSERT INTO practicas (id,estudiante_id,programa_id,escuela_id,ciclo,periodo_academico,modalidad,estado,fecha_inicio,arl_verificada,ultima_actividad)
+             VALUES (gen_random_uuid(),'00000000-0000-4000-8000-000000000011','ADM-PRO','ESC-NEG','profesional','2026-2','pasantia','activa',now(),false,now())"
+          if salida=$(psql -h localhost -U sipra -d sipra_ci -v ON_ERROR_STOP=1 -qtA -c "$sentencia" 2>&1); then
+            echo "FALLO: se creó una práctica activa sin afiliación a ARL"; exit 1
+          fi
+          case "$salida" in
+            *ck_practicas_compuerta_arl*) echo "La base rechaza una práctica activa sin afiliación a ARL." ;;
+            *) echo "FALLO: el INSERT falló por otra razón y no por la compuerta ARL: $salida"; exit 1 ;;
+          esac
+
+  secretos:
+    name: Escaneo de secretos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Buscar credenciales en el árbol
+        run: |
+          set -e
+          patrones='sk-ant-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35}|-----BEGIN (RSA |EC )?PRIVATE KEY-----|"type": "service_account"'
+          if grep -rInE "$patrones" . \
+               --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+               --exclude=ci.yml; then
+            echo "FALLO: se encontraron posibles credenciales versionadas"; exit 1
+          fi
+          if git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.(dev|qa|pre|prod|local|production)$'; then
+            echo "FALLO: hay archivos .env versionados"; exit 1
+          fi
+          echo "Sin credenciales ni archivos .env en el repositorio."

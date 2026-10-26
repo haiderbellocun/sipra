@@ -1,0 +1,22 @@
+node_modules
+node_modules/
+**/node_modules
+dist/
+.angular/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+/tmp/
+*.tsbuildinfo
+.nx/
+
+# Almacenamiento local de documentos (driver STORAGE_DRIVER=local)
+.almacen/
+out-tsc/
+
+
+# Netlify (ambiente puente): estado local de la CLI, no es código
+.netlify/

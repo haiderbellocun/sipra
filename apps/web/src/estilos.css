@@ -1,0 +1,362 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIPRA — sistema de diseño (paquete de diseño oscuro v1.0)
+   Fondo carbón, verde esmeralda y objetos ilustrados. Los tokens del paquete
+   (SIPRA-Tokens.json) se exponen con los nombres estables que ya usan los
+   componentes: --bg, --superficie, --marca, --ok, --r-md… El tema oscuro es
+   el diseño aprobado y el predeterminado; el claro deriva la misma paleta
+   para quien lo prefiera.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: "SipraSans"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("assets/fuentes/SipraSans-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SipraSans"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("assets/fuentes/SipraSans-Bold.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: dark;
+
+  /* ── Color (oscuro = diseño aprobado) ─────────────────────────────────── */
+  --bg:           #0B0F14;
+  --superficie:   #18232B;
+  --superficie-2: #203039;
+  --borde:        #415A63;
+  --texto:        #F5F7F6;
+  --texto-tenue:  #B6C5BE;
+
+  --marca:           #32D69B;   /* verde esmeralda: acciones y validación */
+  --marca-contraste: #0B0F14;
+  --marca-hover:     #69E3B8;
+  --acento:          #0A6E5A;   /* verde bosque: fondos de énfasis */
+
+  --ok:      #32D69B;
+  --aviso:   #F6C76B;
+  --peligro: #FF8E98;
+  --info:    #72C8FF;
+
+  --hero: linear-gradient(120deg, #142A25, #0A3B31);
+  --sombra-tinta: 0 0% 0%;
+
+  /* ── Tipografía (DejaVu Sans incluida en el paquete) ──────────────────── */
+  --fuente: "SipraSans", system-ui, "Segoe UI", Arial, sans-serif;
+  --fuente-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --fs-xs:   .8125rem;   /* 13 px: solo apoyos; el texto funcional no baja de 14 */
+  --fs-sm:   .875rem;    /* 14/20 etiquetas */
+  --fs-base: 1rem;       /* 16/24 cuerpo */
+  --fs-lg:   1.125rem;
+  --fs-xl:   1.5rem;     /* 24/32 sección */
+  --fs-2xl:  clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem);
+  --fs-h1:   clamp(1.875rem, 1.3rem + 2.2vw, 2.5rem); /* 40/48 título */
+
+  /* ── Espacio, forma, movimiento ────────────────────────────────────────── */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --sp-7: clamp(32px, 26px + 1.8vw, 48px);
+
+  --r-sm: 12px; --r-md: 18px; --r-lg: 20px;
+
+  --dur-2: 150ms; --dur-3: 200ms; --dur-5: 300ms;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+
+  --lateral: 264px;
+}
+:root[data-modo="claro"] {
+  color-scheme: light;
+  --bg:           #F2F6F4;
+  --superficie:   #FFFFFF;
+  --superficie-2: #E7EFEB;
+  --borde:        #C7D5CF;
+  --texto:        #0B0F14;
+  --texto-tenue:  #4B625C;
+  --marca:           #0A6E5A;
+  --marca-contraste: #FFFFFF;
+  --marca-hover:     #0C8A70;
+  --acento:          #32D69B;
+  --ok:      #0A7A58;
+  --aviso:   #8A5B00;
+  --peligro: #B42836;
+  --info:    #0B5E9E;
+  --hero: linear-gradient(120deg, #DDF3EA, #BFE9D8);
+  --sombra-tinta: 160 20% 15%;
+}
+:root {
+  --marca-suave:   color-mix(in oklab, var(--marca) 14%, transparent);
+  --ok-suave:      color-mix(in oklab, var(--ok) 14%, transparent);
+  --aviso-suave:   color-mix(in oklab, var(--aviso) 16%, transparent);
+  --peligro-suave: color-mix(in oklab, var(--peligro) 14%, transparent);
+  --info-suave:    color-mix(in oklab, var(--info) 14%, transparent);
+  --sh-sm: 0 1px 2px hsl(var(--sombra-tinta) / .18);
+  --sh-md: 0 2px 4px hsl(var(--sombra-tinta) / .18), 0 8px 20px hsl(var(--sombra-tinta) / .14);
+  --sh-lg: 0 4px 8px hsl(var(--sombra-tinta) / .2), 0 18px 40px hsl(var(--sombra-tinta) / .18);
+  accent-color: var(--marca);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+* { min-width: 0; }
+[hidden] { display: none !important; }
+html, body { overflow-x: clip; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--texto);
+  font-family: var(--fuente);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { text-wrap: balance; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 var(--sp-2); font-weight: 700; }
+h1 { font-size: var(--fs-xl); }
+h2 { font-size: var(--fs-lg); }
+h3 { font-size: var(--fs-base); }
+p  { margin: 0 0 var(--sp-3); text-wrap: pretty; }
+a  { color: var(--marca); text-decoration: none; }
+a:hover { text-decoration: underline; }
+svg { display: block; max-width: 100%; }
+img { max-width: 100%; height: auto; }
+code { font-family: var(--fuente-mono); font-size: .9em; }
+
+/* Foco visible de 3 px (ficha 10). */
+:where(a, button, [role=button], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 3px;
+  border-radius: inherit;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* ── Superficies ───────────────────────────────────────────────────────── */
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--r-md);
+  padding: var(--sp-5);
+}
+.tarjeta.compacto { padding: var(--sp-3); }
+.tarjeta > h2:first-child, .tarjeta > h3:first-child { margin-bottom: var(--sp-3); }
+@media (width < 600px) { .tarjeta { padding: var(--sp-4); } }
+
+.rejilla { display: grid; gap: var(--sp-4); }
+.rejilla--auto { grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); }
+
+.et-sec {
+  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .08em;
+  color: var(--marca); margin: 0 0 var(--sp-3); font-weight: 700;
+}
+
+/* Vacíos y errores (ficha 12): mensaje útil, ilustración opcional y una acción. */
+.vacio {
+  padding: var(--sp-6) var(--sp-5); text-align: center; color: var(--texto-tenue);
+  border: 1px dashed var(--borde); border-radius: var(--r-md); background: var(--superficie-2);
+  display: grid; gap: var(--sp-2); justify-items: center;
+}
+.vacio img { width: min(100%, 300px); border-radius: var(--r-sm); margin-bottom: var(--sp-2); }
+.vacio strong { color: var(--texto); font-size: var(--fs-lg); }
+.tarjeta.vacio, .tarjeta > .vacio { border-style: dashed; }
+.hero {
+  background: var(--hero); border-radius: var(--r-lg); padding: var(--sp-6);
+  display: grid; gap: var(--sp-5); grid-template-columns: 1.25fr 1fr; align-items: center;
+}
+.hero img { border-radius: var(--r-md); justify-self: end; max-width: 420px; width: 100%; }
+@media (width < 900px) { .hero { grid-template-columns: 1fr; } .hero img { justify-self: center; max-width: 360px; } }
+
+.sep { height: 1px; background: var(--borde); border: 0; margin: var(--sp-5) 0; }
+
+/* ── Cifras ────────────────────────────────────────────────────────────── */
+.cifra .n, .stat .cifra {
+  font-size: clamp(1.75rem, 4.5vw, 2.25rem); line-height: 1.05; font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.cifra .t, .stat .et { font-size: var(--fs-sm); color: var(--texto-tenue); }
+.stat { display: grid; gap: 2px; }
+
+/* ── Botones (ficha 10: 44 px mínimos, radio 12) ───────────────────────── */
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  min-height: 44px; padding: 0 var(--sp-5);
+  border-radius: var(--r-sm); border: 1px solid var(--borde);
+  background: transparent; color: var(--texto);
+  font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer;
+  transition: background var(--dur-2), border-color var(--dur-2), transform 60ms;
+}
+.boton:hover:not(:disabled) { background: var(--superficie-2); text-decoration: none; }
+.boton:active:not(:disabled) { transform: translateY(1px); }
+.boton:disabled { background: var(--borde); color: var(--texto); border-color: var(--borde); opacity: .75; cursor: not-allowed; }
+.boton.compacto { min-height: 36px; padding: 0 var(--sp-3); font-size: var(--fs-sm); }
+.boton--primario {
+  background: var(--marca); color: var(--marca-contraste); border-color: transparent;
+}
+.boton--primario:hover:not(:disabled) { background: var(--marca-hover); }
+.boton--secundario { border-color: var(--marca); }
+.boton--peligro {
+  color: var(--peligro);
+  border-color: color-mix(in oklab, var(--peligro) 50%, var(--borde));
+}
+.boton--peligro:hover:not(:disabled) { background: var(--peligro-suave); }
+.acciones { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+
+/* ── Etiquetas de estado (ficha 11: color + punto + texto) ─────────────── */
+.etiqueta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 12px; border-radius: 30px;
+  font-size: var(--fs-sm); font-weight: 700; white-space: nowrap;
+  background: var(--superficie-2); color: var(--marca);
+  border: 1px solid transparent;
+}
+.etiqueta::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.etiqueta--ok      { color: var(--ok);          background: var(--ok-suave); }
+.etiqueta--aviso   { color: var(--aviso);       background: var(--aviso-suave); }
+.etiqueta--peligro { color: var(--peligro);     background: var(--peligro-suave); }
+.etiqueta--info    { color: var(--info);        background: var(--info-suave); }
+.etiqueta--neutra  { color: var(--texto-tenue); background: var(--superficie-2); }
+
+/* ── Tablas ────────────────────────────────────────────────────────────── */
+.tabla-envoltura { overflow-x: auto; overscroll-behavior: contain; }
+.tabla-envoltura > .tabla { min-width: max-content; }
+.tabla { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.tabla th, .tabla td {
+  padding: var(--sp-3) var(--sp-3); border-bottom: 1px solid var(--borde);
+  text-align: left; vertical-align: top;
+}
+.tabla thead th {
+  font-size: var(--fs-sm); color: var(--texto-tenue); font-weight: 400; white-space: nowrap;
+}
+.tabla tbody tr:hover { background: var(--superficie-2); }
+.tabla td.num, .tabla th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── Formularios (ficha 10: etiqueta visible, radio 12, error en texto) ── */
+.campo { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.campo > label, .campo > .et-campo { font-size: var(--fs-sm); font-weight: 700; color: var(--texto); }
+.campo input, .campo select, .campo textarea {
+  font: inherit; font-size: var(--fs-base);
+  color: var(--texto); background: var(--bg);
+  border: 1px solid var(--borde); border-radius: var(--r-sm);
+  min-height: 44px; padding: var(--sp-2) var(--sp-4); width: 100%;
+}
+.campo input::placeholder, .campo textarea::placeholder { color: var(--texto-tenue); }
+.campo input:hover, .campo select:hover, .campo textarea:hover { border-color: color-mix(in oklab, var(--borde) 40%, var(--texto-tenue)); }
+.campo input[aria-invalid="true"], .campo textarea[aria-invalid="true"] { border-color: var(--peligro); }
+.campo textarea { min-height: 112px; resize: vertical; }
+.campo input[type="file"] { padding: var(--sp-2) var(--sp-3); }
+.campo input[type="checkbox"], .campo input[type="radio"] { width: 20px; height: 20px; min-height: 0; }
+.pista { font-size: var(--fs-sm); color: var(--texto-tenue); }
+
+/* ── Avisos ────────────────────────────────────────────────────────────── */
+.aviso {
+  border: 1px solid var(--borde); border-radius: var(--r-sm);
+  padding: var(--sp-3) var(--sp-4); background: var(--superficie-2); font-size: var(--fs-sm);
+}
+.aviso h3 { font-size: var(--fs-base); margin-bottom: var(--sp-1); }
+.aviso--error { background: color-mix(in oklab, var(--peligro) 12%, var(--superficie)); border-color: color-mix(in oklab, var(--peligro) 45%, var(--borde)); color: var(--texto); }
+.aviso--ok    { background: color-mix(in oklab, var(--ok) 12%, var(--superficie));      border-color: color-mix(in oklab, var(--ok) 40%, var(--borde)); }
+.aviso--info  { background: color-mix(in oklab, var(--info) 12%, var(--superficie));    border-color: color-mix(in oklab, var(--info) 40%, var(--borde)); }
+.aviso--aviso { background: color-mix(in oklab, var(--aviso) 12%, var(--superficie));   border-color: color-mix(in oklab, var(--aviso) 45%, var(--borde)); }
+
+/* ── Detalle clave/valor ───────────────────────────────────────────────── */
+.linea {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-sm); margin: 0;
+}
+.linea dt { color: var(--texto-tenue); }
+.linea dd { margin: 0; }
+
+/* ── Avatar por iniciales (ficha 09) ───────────────────────────────────── */
+.avatar {
+  width: 44px; height: 44px; border: 1px solid var(--marca); border-radius: 50%;
+  display: grid; place-items: center; color: var(--marca); font-weight: 700; flex: none;
+}
+
+/* ── Utilidades ────────────────────────────────────────────────────────── */
+.mono { font-family: var(--fuente-mono); font-size: .86em; }
+.tenue { color: var(--texto-tenue); }
+.num { font-variant-numeric: tabular-nums; }
+pre.salida {
+  margin: 0; padding: var(--sp-3); background: var(--bg); border: 1px solid var(--borde);
+  border-radius: var(--r-sm); overflow-x: auto; font-family: var(--fuente-mono);
+  font-size: var(--fs-xs); line-height: 1.55; white-space: pre-wrap;
+}
+
+/* ── Movimiento ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--dur-5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media print {
+  :root { color-scheme: light; }
+  body { background: #fff; color: #000; }
+  .boton, .acciones { display: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Movimiento y respuesta (0.15): entrada escalonada, transiciones entre
+   vistas, tacto, carga y foco. Todo se apaga con prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes aparecer { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+@keyframes crecer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes girar { to { rotate: 360deg; } }
+@keyframes revelar-tema { from { clip-path: circle(0 at var(--tema-x, 50%) var(--tema-y, 50%)); } to { clip-path: circle(var(--tema-r, 150vmax) at var(--tema-x, 50%) var(--tema-y, 50%)); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Tarjetas y bloques entran al montarse; dentro de .escalonado lo hacen en cascada. */
+  .tarjeta, .aviso, .vacio { animation: aparecer var(--dur-5) var(--ease-out) both; }
+  .escalonado > * { animation: aparecer var(--dur-5) var(--ease-out) both; }
+  .escalonado > :nth-child(1)  { animation-delay: 0ms; }
+  .escalonado > :nth-child(2)  { animation-delay: 40ms; }
+  .escalonado > :nth-child(3)  { animation-delay: 80ms; }
+  .escalonado > :nth-child(4)  { animation-delay: 120ms; }
+  .escalonado > :nth-child(5)  { animation-delay: 160ms; }
+  .escalonado > :nth-child(6)  { animation-delay: 200ms; }
+  .escalonado > :nth-child(7)  { animation-delay: 240ms; }
+  .escalonado > :nth-child(8)  { animation-delay: 280ms; }
+  .escalonado > :nth-child(9)  { animation-delay: 320ms; }
+  .escalonado > :nth-child(10) { animation-delay: 360ms; }
+  .escalonado > :nth-child(n+11) { animation-delay: 400ms; }
+
+  /* Tacto: los botones responden al pasar y al presionar. */
+  .boton { transition: background var(--dur-2), border-color var(--dur-2), box-shadow var(--dur-2), transform var(--dur-2) var(--ease-out); }
+  .boton:hover:not(:disabled) { transform: translateY(-1px); }
+  .boton--primario:hover:not(:disabled) { box-shadow: 0 6px 18px color-mix(in oklab, var(--marca) 35%, transparent); }
+  .boton:active:not(:disabled) { transform: translateY(0) scale(.98); }
+  .fila, .tabla tbody tr { transition: background var(--dur-2), translate var(--dur-2) var(--ease-out); }
+  .fila:hover { translate: 2px 0; }
+  .etiqueta, .campo input, .campo select, .campo textarea { transition: border-color var(--dur-2), background var(--dur-2), color var(--dur-2); }
+  summary, details > * { transition: opacity var(--dur-3); }
+
+  /* Transición entre vistas: lo nuevo sube y aparece; lo viejo se va. El marco no se mueve. */
+  ::view-transition-old(root) { animation: 120ms ease-out both desvanecer; }
+  ::view-transition-new(root) { animation: 260ms var(--ease-out) both aparecer; }
+  ::view-transition-group(lateral), ::view-transition-group(appbar), ::view-transition-group(barra-inf), ::view-transition-group(cinta) { animation-duration: 0s; }
+  ::view-transition-old(lateral), ::view-transition-old(appbar), ::view-transition-old(barra-inf), ::view-transition-old(cinta) { animation: none; opacity: 0; }
+  ::view-transition-new(lateral), ::view-transition-new(appbar), ::view-transition-new(barra-inf), ::view-transition-new(cinta) { animation: none; }
+  /* Cambio de tema: revelado circular desde el botón. */
+  html[data-transicion="tema"]::view-transition-old(root) { animation: none; }
+  html[data-transicion="tema"]::view-transition-new(root) { animation: 480ms ease-in-out both revelar-tema; }
+  html[data-transicion="tema"]::view-transition-old(lateral), html[data-transicion="tema"]::view-transition-old(appbar),
+  html[data-transicion="tema"]::view-transition-old(barra-inf), html[data-transicion="tema"]::view-transition-old(cinta) { opacity: 1; }
+  html[data-transicion="tema"]::view-transition-new(lateral), html[data-transicion="tema"]::view-transition-new(appbar),
+  html[data-transicion="tema"]::view-transition-new(barra-inf), html[data-transicion="tema"]::view-transition-new(cinta) { animation: 480ms ease-in-out both revelar-tema; }
+}
+@keyframes desvanecer { to { opacity: 0; } }
+
+/* Botón ocupado: indicador giratorio y texto atenuado; funciona también sin movimiento. */
+.boton.cargando { position: relative; color: transparent !important; pointer-events: none; }
+.boton.cargando::after {
+  content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid color-mix(in oklab, var(--marca-contraste) 35%, transparent); border-top-color: var(--marca-contraste);
+  animation: girar .8s linear infinite;
+}
+.boton.cargando:not(.boton--primario)::after { border-color: color-mix(in oklab, var(--texto) 30%, transparent); border-top-color: var(--texto); }
+
+/* Validación mientras se escribe: el error va en texto y en el borde. */
+.error-campo { font-size: var(--fs-sm); color: var(--peligro); animation: aparecer var(--dur-3) var(--ease-out) both; }
+.campo input[aria-invalid="true"]:focus-visible, .campo textarea[aria-invalid="true"]:focus-visible { outline-color: var(--peligro); }

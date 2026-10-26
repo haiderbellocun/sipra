@@ -1,0 +1,29 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# SIPRA PRÁCTICAS — construir UNA imagen desde el repositorio completo
+#
+# `gcloud builds submit --tag` solo sirve cuando hay un único `Dockerfile` en
+# la raíz del contexto. Aquí hay dos —API y frontend— y ambos necesitan el
+# contexto completo del monorepo, porque el `npm ci` de cada imagen lee el
+# `package-lock.json` de la raíz. Por eso se invoca `docker build -f`.
+#
+#   gcloud builds submit --config infra/gcp/nube-imagen.yaml \
+#     --substitutions=_DOCKERFILE=apps/api/Dockerfile,_IMAGEN=<ruta:etiqueta>
+# ═══════════════════════════════════════════════════════════════════════════
+substitutions:
+  _DOCKERFILE: apps/api/Dockerfile
+  _IMAGEN: imagen-sin-nombre
+
+options:
+  # Sin bucket de registros propio: la cuenta de servicio por defecto no
+  # siempre puede escribir en uno, y Cloud Logging basta para leer la salida.
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - "${_IMAGEN}"
+
+steps:
+  - id: construir
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "${_DOCKERFILE}", "-t", "${_IMAGEN}", "."]
+
+timeout: 1800s

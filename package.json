@@ -1,0 +1,34 @@
+{
+  "name": "sipra-practicas",
+  "version": "0.1.0",
+  "description": "SIPRA PRÁCTICAS — Sistema Integrado de Prácticas y Relacionamiento Académico-Empresarial (CUN)",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:api dev:web",
+    "dev:api": "npm run start:dev --workspace=@sipra/api",
+    "dev:web": "npm run start --workspace=@sipra/web",
+    "build": "npm run build --workspace=@sipra/api && npm run build --workspace=@sipra/web",
+    "test": "npm run test --workspace=@sipra/api",
+    "test:aislamiento": "npm run test:aislamiento --workspace=@sipra/api",
+    "lint": "npm run lint --workspace=@sipra/api && npm run lint --workspace=@sipra/web",
+    "migration:run": "npm run migration:run --workspace=@sipra/api",
+    "seed": "npm run seed --workspace=@sipra/api",
+    "infra:up": "docker compose -f infra/docker/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker/docker-compose.yml down",
+    "catalogos:cargar": "npm run catalogos:cargar --workspace=@sipra/api",
+    "catalogos:estado": "npm run catalogos:estado --workspace=@sipra/api",
+    "ia:evaluar": "npm run ia:evaluar --workspace=@sipra/api --"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}

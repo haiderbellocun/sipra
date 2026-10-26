@@ -1,0 +1,19 @@
+# Recolección de métricas de SIPRA PRÁCTICAS.
+# En GCP el equivalente es Cloud Monitoring con el sidecar de managed Prometheus.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    proyecto: sipra-practicas
+
+scrape_configs:
+  - job_name: sipra-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:3000"]
+        labels:
+          servicio: api
+          ambiente: dev
+
+rule_files:
+  - /etc/prometheus/alertas.yml

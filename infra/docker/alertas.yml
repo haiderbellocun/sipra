@@ -1,0 +1,57 @@
+# Reglas de alerta alineadas con el dashboard estándar de la Fábrica de Software CUN.
+groups:
+  - name: sipra-señales-de-oro
+    rules:
+      - alert: TasaDeErroresAlta
+        expr: |
+          sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m])) > 0.01
+        for: 5m
+        labels: { severidad: critica }
+        annotations:
+          summary: "Más del 1 % de las peticiones devuelven 5xx"
+
+      - alert: LatenciaP95Alta
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route)) > 0.5
+        for: 10m
+        labels: { severidad: alta }
+        annotations:
+          summary: "Latencia P95 por encima de 500 ms en {{ $labels.route }}"
+
+  - name: sipra-negocio
+    rules:
+      - alert: TasaAutoAprobacionBaja
+        expr: |
+          sum(rate(sipra_documentos_auto_aprobados_total[1h]))
+          / sum(rate(sipra_documentos_procesados_total[1h])) < 0.6
+        for: 30m
+        labels: { severidad: alta }
+        annotations:
+          summary: "La aprobación automática cayó por debajo del 60 %"
+          description: >
+            El objetivo del pipeline es escalar a revisión humana entre el 10 % y el 15 %
+            de los documentos. Por debajo del 60 % de auto-aprobación el cuello de botella
+            del tutor reaparece: revisar la calibración de umbrales antes de escalar.
+
+      - alert: ObligacionesArlVencidas
+        expr: sipra_obligaciones_vencidas{tipo="afiliacion_arl"} > 0
+        for: 1m
+        labels: { severidad: critica }
+        annotations:
+          summary: "Hay afiliaciones a ARL vencidas (Decreto 055 de 2015)"
+
+      - alert: AccesosFueraDeAlcance
+        expr: increase(sipra_accesos_fuera_de_alcance_total[15m]) > 5
+        for: 1m
+        labels: { severidad: alta }
+        annotations:
+          summary: "Intentos repetidos de acceso fuera de alcance por {{ $labels.rol }}"
+
+      - alert: CostoIaSobreTope
+        expr: increase(sipra_ia_costo_usd_total[24h]) > 50
+        for: 5m
+        labels: { severidad: media }
+        annotations:
+          summary: "El consumo diario de la API de IA superó el tope configurado"

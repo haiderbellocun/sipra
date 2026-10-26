@@ -1,0 +1,19 @@
+# Lo que no debe viajar al contexto de construcción. Sin esto se suben cientos
+# de megabytes de dependencias que la propia imagen vuelve a instalar.
+.git
+.gitignore
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.angular/
+coverage/
+.almacen/
+**/.almacen/
+*.log
+.env
+.env.*
+!.env.example
+docs/prototipo/
+permisos.sh
+red-privada.sh

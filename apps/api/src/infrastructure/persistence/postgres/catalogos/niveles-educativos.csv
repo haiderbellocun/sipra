@@ -1,0 +1,12 @@
+codigo,nombre,orden
+ninguno,Ninguno,0
+basica_primaria,Básica primaria,1
+basica_secundaria,Básica secundaria,2
+media,Media académica o técnica,3
+tecnica_laboral,Técnica laboral por competencias,4
+tecnica_profesional,Técnica profesional,5
+tecnologica,Tecnológica,6
+universitaria,Universitaria,7
+especializacion,Especialización,8
+maestria,Maestría,9
+doctorado,Doctorado,10

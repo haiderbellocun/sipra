@@ -1,0 +1,87 @@
+{
+  "_nota": [
+    "Manifiesto de catálogos oficiales de SIPRA PRÁCTICAS.",
+    "",
+    "Cada catálogo declara su procedencia y su estado real. El estado NO es",
+    "decorativo: el módulo de reportes regulatorios (M9) consulta la tabla",
+    "cat_estado y se niega a emitir archivos para la Unidad del SPE en los",
+    "ambientes pre y prod mientras un catálogo requerido siga en 'parcial'.",
+    "",
+    "Un reporte regulatorio construido sobre un catálogo incompleto es peor",
+    "que no tener reporte: se radica, queda en firme y luego hay que corregirlo",
+    "ante la entidad.",
+    "",
+    "En los catálogos jerárquicos, 'filas_esperadas' es un objeto con el conteo esperado por nivel, y 'columna_jerarquia' indica qué columna del CSV lo lleva."
+  ],
+  "catalogos": [
+    {
+      "nombre": "divipola_departamento",
+      "archivo": "divipola-departamentos.csv",
+      "tabla": "cat_departamento",
+      "estado": "completo",
+      "filas_esperadas": 33,
+      "fuente": "DANE — División Político-Administrativa de Colombia (DIVIPOLA)",
+      "url_oficial": "https://geoportal.dane.gov.co/servicios/descarga-y-metadatos/divipola-division-politico-administrativa-de-colombia/",
+      "justificacion_estado": "Los 32 departamentos más Bogotá D.C. Su codificación de dos dígitos es estable desde la Constitución de 1991 y es verificable de forma independiente."
+    },
+    {
+      "nombre": "divipola_municipio",
+      "archivo": "divipola-municipios.csv",
+      "tabla": "cat_divipola",
+      "estado": "parcial",
+      "filas_esperadas": 1122,
+      "fuente": "DANE — División Político-Administrativa de Colombia (DIVIPOLA)",
+      "url_oficial": "https://geoportal.dane.gov.co/servicios/descarga-y-metadatos/divipola-division-politico-administrativa-de-colombia/",
+      "justificacion_estado": "Contiene las capitales departamentales y los municipios de mayor concentración de practicantes. Faltan los municipios restantes hasta completar 1.122. Debe reemplazarse por el archivo oficial del DANE antes de emitir reportes en preproducción."
+    },
+    {
+      "nombre": "ciiu",
+      "archivo": "ciiu.csv",
+      "tabla": "cat_ciiu",
+      "estado": "parcial",
+      "filas_esperadas": {
+        "seccion": 21,
+        "clase": 525
+      },
+      "fuente": "DANE — CIIU Rev. 4 adaptada para Colombia (A.C.)",
+      "url_oficial": "https://www.dane.gov.co/index.php/sistema-estadistico-nacional-sen/normas-y-estandares/nomenclaturas-y-clasificaciones/clasificaciones/clasificacion-industrial-internacional-uniforme-de-todas-las-actividades-economicas-ciiu",
+      "justificacion_estado": "Las 21 secciones están completas. Las clases de cuatro dígitos cubren las actividades económicas frecuentes en el registro de empresas de práctica; faltan las restantes hasta las 525 de la nomenclatura completa.",
+      "columna_jerarquia": "jerarquia"
+    },
+    {
+      "nombre": "cno",
+      "archivo": "cno.csv",
+      "tabla": "cat_cno",
+      "estado": "parcial",
+      "filas_esperadas": {
+        "gran_grupo": 10,
+        "ocupacion": 436
+      },
+      "fuente": "Ministerio del Trabajo y SENA — CNO, alineada con CIUO-08 A.C.",
+      "url_oficial": "https://www.sena.edu.co/es-co/trabajo/Paginas/clasificacionNacionalOcupaciones.aspx",
+      "justificacion_estado": "Los 10 grandes grupos están completos. Las ocupaciones cubren los perfiles habituales de práctica y de vacante; faltan las restantes hasta los 436 grupos primarios de CIUO-08.",
+      "columna_jerarquia": "jerarquia"
+    },
+    {
+      "nombre": "nivel_educativo",
+      "archivo": "niveles-educativos.csv",
+      "tabla": "cat_nivel_educativo",
+      "estado": "completo",
+      "filas_esperadas": 11,
+      "fuente": "Lista tasada del Servicio Público de Empleo",
+      "url_oficial": "https://unidad.serviciodeempleo.gov.co/",
+      "justificacion_estado": "Lista cerrada y estable. No admite valores fuera de ella."
+    }
+  ],
+  "instrucciones_reemplazo": [
+    "Para cargar un catálogo oficial completo:",
+    "  1. Descargue el archivo de la url_oficial y expórtelo a CSV con las",
+    "     mismas columnas del archivo que reemplaza.",
+    "  2. Sustituya el CSV en esta carpeta.",
+    "  3. Cambie 'estado' a 'completo' y ajuste 'filas_esperadas'.",
+    "  4. Ejecute: npm run catalogos:cargar",
+    "     El ingestor rechaza la carga si el conteo real no coincide con",
+    "     filas_esperadas cuando el estado declarado es 'completo'.",
+    "  5. Verifique con: npm run catalogos:estado"
+  ]
+}

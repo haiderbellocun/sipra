@@ -1,0 +1,140 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# SIPRA PRÁCTICAS — despliegue en Google Cloud
+#
+# Un solo archivo para los cuatro ambientes. La sustitución _AMBIENTE decide
+# el proyecto, el bucket, la instancia de Cloud SQL y los secretos.
+#
+#   gcloud builds submit --config infra/gcp/cloudbuild.yaml \
+#     --substitutions=_AMBIENTE=qa,_REGION=us-central1
+# ═══════════════════════════════════════════════════════════════════════════
+substitutions:
+  _AMBIENTE: dev            # dev | qa | pre | prod
+  # Lectura documental asistida. `simulado` no exige secretos; con `openai`
+  # debe existir el secreto sipra-<ambiente>-openai (mismo nombre que usa
+  # desplegar.sh) y con `anthropic`, sipra-<ambiente>-anthropic.
+  _IA_DRIVER: simulado      # simulado | openai | anthropic
+  _OPENAI_MODELO: gpt-6-luna
+  _REGION: us-central1
+  _SERVICIO_API: sipra-api
+  _REPO_ARTEFACTOS: sipra
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+images:
+  - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ARTEFACTOS}/api:${SHORT_SHA}"
+
+steps:
+  # ── Calidad: sin pruebas verdes no hay imagen ────────────────────────────
+  - id: dependencias
+    name: node:22
+    entrypoint: npm
+    args: ["ci"]
+
+  - id: lint
+    name: node:22
+    entrypoint: npm
+    args: ["run", "lint"]
+    waitFor: ["dependencias"]
+
+  - id: pruebas
+    name: node:22
+    entrypoint: npm
+    args: ["test"]
+    waitFor: ["dependencias"]
+
+  # Condición de despliegue: si una empresa alcanza un registro de otra, falla.
+  - id: aislamiento
+    name: node:22
+    entrypoint: npm
+    args: ["run", "test:aislamiento"]
+    waitFor: ["dependencias"]
+
+  # ── Construcción ─────────────────────────────────────────────────────────
+  - id: imagen-api
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - "-f"
+      - apps/api/Dockerfile
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ARTEFACTOS}/api:${SHORT_SHA}"
+      - "-t"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ARTEFACTOS}/api:${_AMBIENTE}"
+      - "."
+    waitFor: ["lint", "pruebas", "aislamiento"]
+
+  - id: publicar-imagen
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "--all-tags", "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ARTEFACTOS}/api"]
+    waitFor: ["imagen-api"]
+
+  - id: frontend
+    name: node:22
+    entrypoint: npm
+    args: ["run", "build", "--workspace=@sipra/web"]
+    waitFor: ["dependencias"]
+
+  # ── Migraciones antes del despliegue ─────────────────────────────────────
+  # Se ejecutan como Cloud Run Job para usar el conector de Cloud SQL y los
+  # secretos, sin abrir la base a la red.
+  - id: migraciones
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        gcloud run jobs deploy sipra-migraciones-${_AMBIENTE} \
+          --region=${_REGION} \
+          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ARTEFACTOS}/api:${SHORT_SHA} \
+          --command=node --args=dist/migrar.js \
+          --set-cloudsql-instances=${PROJECT_ID}:${_REGION}:sipra-${_AMBIENTE} \
+          --set-env-vars=SIPRA_AMBIENTE=${_AMBIENTE},NODE_ENV=production,DB_SOCKET_PATH=/cloudsql/${PROJECT_ID}:${_REGION}:sipra-${_AMBIENTE} \
+          --set-secrets=DB_PASSWORD=sipra-db-password-${_AMBIENTE}:latest,JWT_SECRETO=sipra-jwt-${_AMBIENTE}:latest \
+          --service-account=sipra-api-${_AMBIENTE}@${PROJECT_ID}.iam.gserviceaccount.com
+        gcloud run jobs execute sipra-migraciones-${_AMBIENTE} --region=${_REGION} --wait
+    waitFor: ["publicar-imagen"]
+
+  # ── Despliegue de la API ─────────────────────────────────────────────────
+  - id: desplegar-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        SECRETOS="DB_PASSWORD=sipra-db-password-${_AMBIENTE}:latest,JWT_SECRETO=sipra-jwt-${_AMBIENTE}:latest,OIDC_CLIENT_SECRET=sipra-oidc-secret-${_AMBIENTE}:latest"
+        case "${_IA_DRIVER}" in
+          openai)    SECRETOS="$$SECRETOS,OPENAI_API_KEY=sipra-${_AMBIENTE}-openai:latest" ;;
+          anthropic) SECRETOS="$$SECRETOS,ANTHROPIC_API_KEY=sipra-${_AMBIENTE}-anthropic:latest" ;;
+        esac
+        gcloud run deploy ${_SERVICIO_API}-${_AMBIENTE} \
+          --region=${_REGION} \
+          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ARTEFACTOS}/api:${SHORT_SHA} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --ingress=internal-and-cloud-load-balancing \
+          --service-account=sipra-api-${_AMBIENTE}@${PROJECT_ID}.iam.gserviceaccount.com \
+          --set-cloudsql-instances=${PROJECT_ID}:${_REGION}:sipra-${_AMBIENTE} \
+          --min-instances=$( [ "${_AMBIENTE}" = "prod" ] && echo 1 || echo 0 ) \
+          --max-instances=$( [ "${_AMBIENTE}" = "prod" ] && echo 60 || echo 10 ) \
+          --cpu=2 --memory=1Gi --concurrency=60 --timeout=120s \
+          --set-env-vars=NODE_ENV=production,SIPRA_AMBIENTE=${_AMBIENTE},DB_SOCKET_PATH=/cloudsql/${PROJECT_ID}:${_REGION}:sipra-${_AMBIENTE},STORAGE_DRIVER=gcs,GCS_BUCKET=sipra-${_AMBIENTE}-documentos,IA_DRIVER=${_IA_DRIVER},OPENAI_MODELO=${_OPENAI_MODELO},OPENAI_ESFUERZO=low,AUTH_MODO=$( [ "${_AMBIENTE}" = "dev" ] || [ "${_AMBIENTE}" = "qa" ] && echo abierto || echo oidc ) \
+          --set-secrets=$$SECRETOS
+    waitFor: ["migraciones"]
+
+  # ── Publicación del frontend ─────────────────────────────────────────────
+  - id: desplegar-web
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        # Los artefactos con hash son inmutables; el index nunca se cachea.
+        gsutil -m rsync -r -d apps/web/dist/browser gs://sipra-${_AMBIENTE}-web
+        gsutil -m setmeta -h "Cache-Control:public,max-age=31536000,immutable" \
+          "gs://sipra-${_AMBIENTE}-web/**/*.js" "gs://sipra-${_AMBIENTE}-web/**/*.css" || true
+        gsutil setmeta -h "Cache-Control:no-store" gs://sipra-${_AMBIENTE}-web/index.html
+    waitFor: ["frontend", "desplegar-api"]
+
+timeout: 2400s
