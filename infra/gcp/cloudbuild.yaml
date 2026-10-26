@@ -119,7 +119,7 @@ steps:
           --min-instances=$( [ "${_AMBIENTE}" = "prod" ] && echo 1 || echo 0 ) \
           --max-instances=$( [ "${_AMBIENTE}" = "prod" ] && echo 60 || echo 10 ) \
           --cpu=2 --memory=1Gi --concurrency=60 --timeout=120s \
-          --set-env-vars=NODE_ENV=production,SIPRA_AMBIENTE=${_AMBIENTE},DB_SOCKET_PATH=/cloudsql/${PROJECT_ID}:${_REGION}:sipra-${_AMBIENTE},STORAGE_DRIVER=gcs,GCS_BUCKET=sipra-${_AMBIENTE}-documentos,IA_DRIVER=${_IA_DRIVER},OPENAI_MODELO=${_OPENAI_MODELO},OPENAI_ESFUERZO=low,AUTH_MODO=$( [ "${_AMBIENTE}" = "dev" ] || [ "${_AMBIENTE}" = "qa" ] && echo abierto || echo oidc ) \
+          --set-env-vars=NODE_ENV=production,SIPRA_AMBIENTE=${_AMBIENTE},DB_SOCKET_PATH=/cloudsql/${PROJECT_ID}:${_REGION}:sipra-${_AMBIENTE},STORAGE_DRIVER=gcs,GCS_BUCKET=sipra-${_AMBIENTE}-documentos,IA_DRIVER=${_IA_DRIVER},OPENAI_MODELO=${_OPENAI_MODELO},OPENAI_ESFUERZO=low,AUTH_MODO=$( [ "${_AMBIENTE}" = "dev" ] && echo abierto || echo oidc ),AUTH_ABIERTO_CONFIRMADO=$( [ "${_AMBIENTE}" = "dev" ] && echo true || echo false ) \
           --set-secrets=$$SECRETOS
     waitFor: ["migraciones"]
 

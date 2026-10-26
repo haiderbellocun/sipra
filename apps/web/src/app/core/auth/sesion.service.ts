@@ -6,6 +6,7 @@ import { entorno } from '../../../environments/environment';
 import { ModoAutenticacion, PerfilDisponible, Rol, Sesion } from '../models/modelos';
 
 const CLAVE_SESION = 'sipra.sesion';
+const CLAVE_STATE = 'sipra.oidc.state';
 
 /**
  * Estado de sesión con signals.
@@ -59,13 +60,50 @@ export class SesionService {
 
   /** Ingreso institucional: redirige a Google Workspace. */
   async ingresarConWorkspace(): Promise<void> {
-    const { url, nonce } = await firstValueFrom(
-      this.http.get<{ url: string; state: string; nonce: string }>(
-        `${entorno.apiBase}/auth/oidc/inicio`,
-      ),
+    const { url, state } = await firstValueFrom(
+      this.http.get<{ url: string; state: string }>(`${entorno.apiBase}/auth/oidc/inicio`),
     );
-    sessionStorage.setItem('sipra.nonce', nonce);
+    // El `state` completo queda en este navegador; al regresar se compara antes de nada.
+    sessionStorage.setItem(CLAVE_STATE, state);
     window.location.href = url;
+  }
+
+  /**
+   * Cierra el ingreso institucional: exige que el `state` recibido sea idéntico al
+   * guardado al salir, lo envía con el código al servidor y establece la sesión.
+   * El `state` temporal se elimina siempre, haya funcionado o no.
+   */
+  async completarIngresoOidc(code: string, state: string): Promise<Sesion> {
+    try {
+      const guardado = this.leerStateTemporal();
+      if (!guardado || !code || !state || guardado !== state) {
+        throw new Error('state no coincide');
+      }
+      const sesion = await firstValueFrom(
+        this.http.post<Sesion>(`${entorno.apiBase}/auth/oidc/callback`, { code, state }),
+      );
+      this.establecer(sesion);
+      return sesion;
+    } finally {
+      this.descartarStateTemporal();
+    }
+  }
+
+  /** Limpia el valor temporal cuando el ingreso institucional se abandona o falla. */
+  descartarStateTemporal(): void {
+    try {
+      sessionStorage.removeItem(CLAVE_STATE);
+    } catch {
+      /* sin sessionStorage no hay nada que limpiar */
+    }
+  }
+
+  private leerStateTemporal(): string | null {
+    try {
+      return sessionStorage.getItem(CLAVE_STATE);
+    } catch {
+      return null;
+    }
   }
 
   salir(): void {

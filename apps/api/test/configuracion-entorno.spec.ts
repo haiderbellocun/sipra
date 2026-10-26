@@ -1,5 +1,5 @@
 import {
-  Ambiente, ModoAutenticacion, VariablesEntorno, validarEntorno,
+  Ambiente, ModoAutenticacion, VariablesEntorno, ingresoAbiertoPermitido, validarEntorno,
 } from '../src/infrastructure/config/configuracion';
 
 /**
@@ -9,8 +9,14 @@ import {
  * conocido, URL base cifrada (salvo hacia la propia máquina) y llave presente.
  */
 
-/** Lo mínimo que exige la validación: secreto de firma y conexión a la base. */
+/**
+ * Lo mínimo que exige la validación: ambiente y modo declarados (no tienen valor
+ * por defecto), secreto de firma y conexión a la base.
+ */
 const BASE: Record<string, unknown> = {
+  SIPRA_AMBIENTE: 'dev',
+  AUTH_MODO: 'abierto',
+  AUTH_ABIERTO_CONFIRMADO: 'true',
   JWT_SECRETO: 'secreto-de-pruebas-con-al-menos-treinta-y-dos-caracteres',
   DB_HOST: 'localhost',
   DB_USER: 'sipra',
@@ -48,6 +54,65 @@ describe('validarEntorno · entorno mínimo', () => {
   it('el ingreso abierto está prohibido en preproducción y producción', () => {
     expect(() => entorno({ SIPRA_AMBIENTE: 'prod' })).toThrow(/AUTH_MODO=abierto está prohibido/);
     expect(() => entorno({ SIPRA_AMBIENTE: 'pre' })).toThrow(/AUTH_MODO=abierto está prohibido/);
+  });
+});
+
+describe('validarEntorno · ingreso abierto solo en desarrollo local', () => {
+  /** Entorno sin las tres llaves del ingreso abierto, para armarlas caso por caso. */
+  const LLAVES = ['SIPRA_AMBIENTE', 'AUTH_MODO', 'AUTH_ABIERTO_CONFIRMADO'];
+  const SIN_LLAVES = Object.fromEntries(Object.entries(BASE).filter(([clave]) => !LLAVES.includes(clave)));
+  const arrancar = (extra: Record<string, unknown>): VariablesEntorno =>
+    validarEntorno({ ...SIN_LLAVES, ...extra });
+
+  it('dev + abierto + confirmación → permitido', () => {
+    const config = arrancar({ SIPRA_AMBIENTE: 'dev', AUTH_MODO: 'abierto', AUTH_ABIERTO_CONFIRMADO: 'true' });
+    expect(config.AUTH_MODO).toBe(ModoAutenticacion.ABIERTO);
+    expect(ingresoAbiertoPermitido(config)).toBe(true);
+  });
+
+  it('dev + abierto sin confirmación → falla', () => {
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'dev', AUTH_MODO: 'abierto' }))
+      .toThrow(/AUTH_ABIERTO_CONFIRMADO=true/);
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'dev', AUTH_MODO: 'abierto', AUTH_ABIERTO_CONFIRMADO: 'false' }))
+      .toThrow(/AUTH_ABIERTO_CONFIRMADO=true/);
+  });
+
+  it.each(['qa', 'pre', 'prod'])('%s + abierto + confirmación → falla', (ambiente) => {
+    expect(() => arrancar({ SIPRA_AMBIENTE: ambiente, AUTH_MODO: 'abierto', AUTH_ABIERTO_CONFIRMADO: 'true' }))
+      .toThrow(/AUTH_MODO=abierto está prohibido/);
+  });
+
+  it('pre y prod + abierto sin confirmación → falla', () => {
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'pre', AUTH_MODO: 'abierto' })).toThrow(/prohibido/);
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'prod', AUTH_MODO: 'abierto' })).toThrow(/prohibido/);
+  });
+
+  it('AUTH_MODO ausente → falla, sin caer a abierto', () => {
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'dev', AUTH_ABIERTO_CONFIRMADO: 'true' })).toThrow(/AUTH_MODO/);
+  });
+
+  it('SIPRA_AMBIENTE ausente → falla, sin caer a dev', () => {
+    expect(() => arrancar({ AUTH_MODO: 'abierto', AUTH_ABIERTO_CONFIRMADO: 'true' })).toThrow(/SIPRA_AMBIENTE/);
+  });
+
+  it('valores desconocidos → fallan', () => {
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'local', AUTH_MODO: 'oidc' })).toThrow(/SIPRA_AMBIENTE/);
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'dev', AUTH_MODO: 'libre' })).toThrow(/AUTH_MODO/);
+  });
+
+  it('la confirmación sola no habilita nada: con oidc no hay ingreso abierto', () => {
+    const config = arrancar({
+      SIPRA_AMBIENTE: 'dev', AUTH_MODO: 'oidc', AUTH_ABIERTO_CONFIRMADO: 'true',
+      OIDC_CLIENT_ID: 'id', OIDC_CLIENT_SECRET: 'secreto', OIDC_REDIRECT_URI: 'http://localhost:4200/ingreso/callback',
+    });
+    expect(ingresoAbiertoPermitido(config)).toBe(false);
+  });
+
+  it('oidc exige credenciales y una URL de retorno absoluta', () => {
+    expect(() => arrancar({ SIPRA_AMBIENTE: 'qa', AUTH_MODO: 'oidc' })).toThrow(/OIDC_CLIENT_ID/);
+    expect(() => arrancar({
+      SIPRA_AMBIENTE: 'qa', AUTH_MODO: 'oidc', OIDC_CLIENT_ID: 'id', OIDC_CLIENT_SECRET: 's', OIDC_REDIRECT_URI: '/ingreso/callback',
+    })).toThrow(/OIDC_REDIRECT_URI/);
   });
 });
 

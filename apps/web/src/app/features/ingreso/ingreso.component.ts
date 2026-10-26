@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SesionService } from '@core/auth/sesion.service';
 import { ModoAutenticacion, PerfilDisponible } from '@core/models/modelos';
 
 /**
  * Pantalla de ingreso.
  *
- * El SERVIDOR decide qué se muestra. Cuando `AUTH_MODO=abierto` (dev y qa)
- * aparece el selector de perfil sin contraseña; cuando el ambiente es `pre` o
- * `prod` la configuración prohíbe ese modo y aquí solo queda el ingreso
+ * El SERVIDOR decide qué se muestra. Cuando el ingreso abierto está habilitado (solo dev local)
+ * aparece el selector de perfil sin contraseña; en cualquier otro ambiente
+ * la configuración prohíbe ese modo y aquí solo queda el ingreso
  * institucional con Google Workspace. No hay una bandera del cliente que
  * pueda cambiarlo.
  */
@@ -146,6 +146,7 @@ import { ModoAutenticacion, PerfilDisponible } from '@core/models/modelos';
 export class IngresoComponent implements OnInit {
   private readonly sesion = inject(SesionService);
   private readonly router = inject(Router);
+  private readonly ruta = inject(ActivatedRoute);
 
   readonly modo = signal<ModoAutenticacion | null>(null);
   readonly perfiles = signal<PerfilDisponible[]>([]);
@@ -166,6 +167,10 @@ export class IngresoComponent implements OnInit {
   };
 
   async ngOnInit(): Promise<void> {
+    // Solo se reconoce una marca fija; nada de la URL se muestra.
+    if (this.ruta.snapshot.queryParamMap.get('error') === 'oidc') {
+      this.error.set('No fue posible completar el ingreso institucional. Intente de nuevo.');
+    }
     try {
       const modo = await this.sesion.cargarModo();
       this.modo.set(modo);

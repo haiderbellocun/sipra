@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, Get, HttpCode, Post, Query,
+  BadRequestException, Body, Controller, Get, HttpCode, Post,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
@@ -11,11 +11,12 @@ import {
   ListarPerfilesDisponiblesUseCase,
 } from '../../application/use-cases/auth/listar-perfiles.use-case';
 import {
-  IngresoAbiertoDto, PerfilDisponibleDto, SesionDto,
+  IngresoAbiertoDto, InicioOidcDto, OidcCallbackDto, PerfilDisponibleDto, SesionDto,
 } from '../../application/dtos/auth.dto';
 import { Actor } from '../../application/use-cases/practicas/gestionar-practica.use-case';
 import { AccionAuditada } from '../../domain/entities/auditoria.entity';
 import { Usuario } from '../../domain/entities/usuario.entity';
+import { ingresoAbiertoPermitido } from '../config/configuracion';
 import { ActorActual } from '../auth/actor.decorator';
 import { OidcService } from '../auth/oidc.service';
 import { Publico } from '../auth/roles.decorator';
@@ -40,15 +41,14 @@ export class AuthController {
   @ApiOperation({
     summary: 'Modo de autenticación del ambiente',
     description:
-      'Permite al frontend decidir si muestra el selector de perfil (dev/qa) o el botón de ' +
-      'ingreso con Google Workspace (pre/prod).',
+      'Permite al frontend decidir si muestra el selector de perfil (solo dev local) o el botón de ' +
+      'ingreso con Google Workspace (cualquier otro ambiente).',
   })
   modo(): { modo: string; ambiente: string; permiteSelectorDePerfil: boolean } {
-    const modo = this.config.get<string>('AUTH_MODO') ?? 'abierto';
     return {
-      modo,
-      ambiente: this.config.get<string>('SIPRA_AMBIENTE') ?? 'dev',
-      permiteSelectorDePerfil: modo === 'abierto',
+      modo: this.config.getOrThrow<string>('AUTH_MODO'),
+      ambiente: this.config.getOrThrow<string>('SIPRA_AMBIENTE'),
+      permiteSelectorDePerfil: ingresoAbiertoPermitido(this.valoresAbierto()),
     };
   }
 
@@ -57,7 +57,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Perfiles disponibles para ingresar sin contraseña',
     description:
-      'Solo responde cuando AUTH_MODO=abierto. En preproducción y producción la ' +
+      'Solo responde con AUTH_MODO=abierto, AUTH_ABIERTO_CONFIRMADO=true y SIPRA_AMBIENTE=dev. En el resto la ' +
       'configuración prohíbe ese modo y el arranque falla antes de exponer esta ruta.',
   })
   @ApiResponse({ status: 200, type: [PerfilDisponibleDto] })
@@ -84,8 +84,9 @@ export class AuthController {
 
   @Publico()
   @Get('oidc/inicio')
-  @ApiOperation({ summary: 'URL de autorización de Google Workspace' })
-  iniciarOidc(): { url: string; state: string; nonce: string } {
+  @ApiOperation({ summary: 'URL de autorización de Google Workspace y `state` firmado' })
+  @ApiResponse({ status: 200, type: InicioOidcDto })
+  iniciarOidc(): InicioOidcDto {
     if (!this.oidc.habilitado) {
       throw new BadRequestException('El ingreso institucional no está activo en este ambiente');
     }
@@ -93,17 +94,20 @@ export class AuthController {
   }
 
   @Publico()
-  @Get('oidc/callback')
-  @ApiOperation({ summary: 'Retorno de Google Workspace: canjea el código por una sesión' })
+  @Post('oidc/callback')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Completa el ingreso institucional',
+    description:
+      'El proveedor regresa al frontend (/ingreso/callback); este lo reenvía aquí por POST con ' +
+      'el código y el `state`. Se verifica el `state`, se canjea el código y se exige el nonce.',
+  })
   @ApiResponse({ status: 200, type: SesionDto })
-  async callbackOidc(
-    @Query('code') codigo: string,
-    @Query('nonce') nonce: string,
-  ): Promise<SesionDto> {
+  async callbackOidc(@Body() dto: OidcCallbackDto): Promise<SesionDto> {
     if (!this.oidc.habilitado) {
       throw new BadRequestException('El ingreso institucional no está activo en este ambiente');
     }
-    const identidad = await this.oidc.intercambiarCodigo(codigo, nonce);
+    const identidad = await this.oidc.intercambiarCodigo(dto.code, dto.state);
 
     // El perfil institucional se resuelve contra la base, no contra el token.
     const usuario = await this.usuarios.buscarPorCorreo(identidad.correo);
@@ -125,11 +129,19 @@ export class AuthController {
   }
 
   private exigirModoAbierto(): void {
-    if (this.config.get<string>('AUTH_MODO') !== 'abierto') {
+    if (!ingresoAbiertoPermitido(this.valoresAbierto())) {
       throw new BadRequestException(
         'El ingreso por selección de perfil está deshabilitado en este ambiente',
       );
     }
+  }
+
+  private valoresAbierto(): Record<string, unknown> {
+    return {
+      AUTH_MODO: this.config.get('AUTH_MODO'),
+      AUTH_ABIERTO_CONFIRMADO: this.config.get('AUTH_ABIERTO_CONFIRMADO'),
+      SIPRA_AMBIENTE: this.config.get('SIPRA_AMBIENTE'),
+    };
   }
 
   private async emitirSesion(usuario: Usuario, modo: 'abierto' | 'oidc'): Promise<SesionDto> {

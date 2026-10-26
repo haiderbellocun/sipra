@@ -1,12 +1,28 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Rol } from '../../domain/value-objects/rol.vo';
+
+export class OidcCallbackDto {
+  @ApiProperty({ description: 'Código de autorización que el proveedor entregó al frontend.' })
+  @IsString() @IsNotEmpty() @MaxLength(2048)
+  code!: string;
+
+  @ApiProperty({ description: 'El `state` completo que emitió GET /auth/oidc/inicio.' })
+  @IsString() @IsNotEmpty() @MaxLength(1024)
+  state!: string;
+}
+
+export class InicioOidcDto {
+  @ApiProperty() url!: string;
+  @ApiProperty({ description: 'Valor firmado que el frontend conserva y compara al regresar.' })
+  state!: string;
+}
 
 export class IngresoAbiertoDto {
   @ApiProperty({
     enum: Rol,
     description:
-      'Perfil con el que se ingresa. Solo disponible cuando AUTH_MODO=abierto (ambientes dev y qa).',
+      'Perfil con el que se ingresa. Solo disponible con AUTH_MODO=abierto, AUTH_ABIERTO_CONFIRMADO=true y SIPRA_AMBIENTE=dev.',
   })
   @IsEnum(Rol)
   rol!: Rol;

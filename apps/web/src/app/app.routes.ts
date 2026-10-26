@@ -13,6 +13,12 @@ export const rutas: Routes = [
       import('./features/ingreso/ingreso.component').then((m) => m.IngresoComponent),
   },
   {
+    path: 'ingreso/callback',
+    title: 'Ingreso · SIPRA PRÁCTICAS',
+    loadComponent: () =>
+      import('./features/ingreso/callback.component').then((m) => m.IngresoCallbackComponent),
+  },
+  {
     path: '',
     canActivate: [sesionGuard],
     loadComponent: () => import('./layout/shell.component').then((m) => m.ShellComponent),

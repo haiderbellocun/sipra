@@ -61,9 +61,12 @@ Estas no son convenciones: si se rompen, el lint o la base fallan.
 Cuatro proyectos separados de Google Cloud: `dev`, `qa`, `pre`, `prod`.
 
 `AUTH_MODO=abierto` habilita el ingreso por selección de perfil **sin
-contraseña**, decisión deliberada del ambiente de pruebas. La validación de
-`infrastructure/config/configuracion.ts` **rechaza el arranque** con ese modo en
-`pre` y `prod`. No relajar esa validación.
+contraseña**, solo para desarrollo local: exige a la vez `SIPRA_AMBIENTE=dev`,
+`AUTH_MODO=abierto` y `AUTH_ABIERTO_CONFIRMADO=true`. `AUTH_MODO` y
+`SIPRA_AMBIENTE` no tienen valor por defecto. La validación de
+`infrastructure/config/configuracion.ts` **rechaza el arranque** en cualquier
+otro caso (`qa`, `pre`, `prod`, confirmación o variable ausente). No relajar
+esa validación.
 
 El flujo abierto y el OIDC emiten el mismo token: activar Google Workspace no
 debe exigir tocar lógica de negocio.

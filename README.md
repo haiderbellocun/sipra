@@ -140,7 +140,8 @@ punto, está en la sección 14 del documento técnico.
 
 Cuatro **proyectos separados** de Google Cloud: `dev`, `qa`, `pre` y `prod`.
 
-En `dev` y `qa` el ingreso es por selección de perfil, sin contraseña. En `pre`
+El ingreso por selección de perfil, sin contraseña, existe solo en desarrollo local
+(`dev` con `AUTH_ABIERTO_CONFIRMADO=true`). En `qa`, `pre`
 y `prod` la validación de configuración **rechaza el arranque** con
 `AUTH_MODO=abierto`: allí solo hay ingreso institucional con Google Workspace.
 Activarlo no exige cambiar lógica de negocio.

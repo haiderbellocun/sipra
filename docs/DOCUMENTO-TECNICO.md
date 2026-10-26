@@ -5,8 +5,8 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.1 |
-| Fecha | 14 de octubre de 2026 |
+| Versión del documento | 0.17.2 |
+| Fecha | 26 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
 | Repositorio | `ironfuentes-netizen/sipra-practicas` (repositorio privado independiente desde el 14 de octubre de 2026; antes vivió como carpeta `sipra/` del repositorio `Productoacademico`, rama `claude/sipra-practicas-setup-l0zasi`) |
@@ -867,19 +867,36 @@ expedientes en una hora. **No bloquea: notifica.**
 
 ### 9.1 La decisión
 
-En el ambiente de pruebas el ingreso se hace **eligiendo un perfil, sin
-contraseña**. Es una decisión deliberada para poder probar el sistema completo
-sin fricción.
+En **desarrollo local** el ingreso puede hacerse **eligiendo un perfil, sin
+contraseña**, para probar el sistema completo sin fricción. Desde 0.17.2 es el
+**único** ambiente donde existe: `qa`, `pre` y `prod` solo admiten el ingreso
+institucional (si `qa` aún no tiene credenciales OIDC, no arranca con
+autenticación funcional antes que abrirse).
 
-El riesgo de esa decisión es que el modo abierto viaje a producción por
-descuido. **El diseño lo impide.**
+El riesgo de ese modo es que viaje a otro ambiente por descuido, o que se active
+por una variable omitida. **El diseño lo impide.**
+
+El modo abierto exige **las tres condiciones a la vez**:
+
+```
+SIPRA_AMBIENTE=dev
+AUTH_MODO=abierto
+AUTH_ABIERTO_CONFIRMADO=true
+```
+
+`SIPRA_AMBIENTE` y `AUTH_MODO` **no tienen valor por defecto**: si falta
+cualquiera de las dos, el arranque falla. No hay ningún respaldo implícito a
+`dev` ni a `abierto`. `ingresoAbiertoPermitido()` aplica la misma regla en el
+arranque y en `AuthController` (`perfiles`, `ingresar` y `GET /auth/modo`).
 
 ### 9.2 Cómo se impide
 
 `infrastructure/config/configuracion.ts` valida el entorno al arranque y
 **rechaza el arranque** si:
 
-- `AUTH_MODO=abierto` en los ambientes `pre` o `prod`;
+- `AUTH_MODO=abierto` en cualquier ambiente distinto de `dev`, o en `dev` sin
+  `AUTH_ABIERTO_CONFIRMADO=true`;
+- `AUTH_MODO` o `SIPRA_AMBIENTE` sin declarar;
 - `STORAGE_DRIVER` no es `gcs` en `pre` o `prod`;
 - la conexión a la base no va por TLS ni por el socket de Cloud SQL;
 - el `JWT_SECRETO` conserva el valor de la plantilla;
@@ -904,11 +921,64 @@ que pueda cambiarlo.
 
 Implementado en `OidcService`, sin dependencias adicionales: verificación RS256
 con `node:crypto` contra las claves publicadas por Google. Valida emisor,
-audiencia, vencimiento, `nonce`, correo verificado y **dominio institucional**.
-El perfil se resuelve contra la base, no contra el token: una cuenta de
-Workspace sin perfil activo en SIPRA no entra.
+audiencia, vencimiento, `nonce` (obligatorio), correo verificado y **dominio
+institucional**. El perfil se resuelve contra la base, no contra el token: una
+cuenta de Workspace sin perfil activo en SIPRA no entra.
 
-El retiro de un usuario del directorio revoca su acceso automáticamente.
+El retiro de un usuario del directorio revoca su acceso automáticamente **en el
+siguiente ingreso**: la sesión ya emitida vive hasta su vencimiento (ver §9.7).
+
+#### Flujo (0.17.2)
+
+```
+SPA /ingreso ── GET /auth/oidc/inicio ──▶ API: {url, state firmado}
+SPA guarda el state completo en sessionStorage ── redirige a Google
+Google ── GET /ingreso/callback?code&state ──▶ SPA (IngresoCallbackComponent)
+SPA: compara state recibido == guardado · borra code/state de la URL
+SPA ── POST /auth/oidc/callback {code, state} ──▶ API
+API: verifica firma y vigencia del state · canjea el código · exige el nonce
+API ──▶ SPA: SesionDto · establecer() · borra el state temporal · /inicio
+```
+
+`OIDC_REDIRECT_URI` apunta al **frontend** (`/ingreso/callback`) y debe estar
+registrada tal cual en el cliente OAuth.
+
+### 9.5 El `state` firmado
+
+`state = base64url(carga) . base64url(HMAC-SHA256)`, con la carga
+`{ csrf, nonce, exp }`: `csrf` y `nonce` son aleatorios **independientes** de
+256 bits cada uno y `exp` vence a los 10 minutos. La clave del HMAC se deriva de
+`JWT_SECRETO` con una etiqueta propia; la carga no contiene secretos ni datos
+personales. El servidor no guarda nada (sin Redis ni tabla).
+
+El cliente conserva el `state` completo y lo compara al regresar; el servidor
+verifica firma y vigencia, recupera el `nonce` y exige que el `id_token` lo
+traiga idéntico (comparación en tiempo constante). El `code` y el `state`
+viajan por POST, así que no quedan en la URL de la API ni en sus registros.
+
+**Límite aceptado:** el `state` firmado puede reutilizarse dentro de sus 10
+minutos por quien posea a la vez el `state` y un `code` válido. El uso único
+estricto (invalidar el `state` al consumirlo, con Redis) queda como **mejora
+futura**, fuera de P0-A.
+
+### 9.6 Qué está probado y qué no
+
+- **Implementado y probado con simulaciones:** `oidc-service.spec.ts` (state,
+  nonce, `id_token`, canje), `auth-controller.spec.ts` (callback, usuarios,
+  DTO, matriz del ingreso abierto) y `configuracion-entorno.spec.ts`. Google se
+  simula con `fetch` y un par de claves RSA generado en la prueba.
+- **Validado contra un proveedor OIDC real: pendiente.** Requiere
+  `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` y el URI de retorno registrado.
+- **Frontend:** verificado con compilación, tipos, lint y revisión estática.
+  **Deuda técnica:** no existe infraestructura de pruebas del frontend (la
+  comparación del `state` en el cliente no tiene prueba automatizada); será un
+  bloque propio.
+
+### 9.7 Sesión: pendientes conocidos (fuera de P0-A)
+
+El JWT (HS256, `JWT_EXPIRACION`, 8 h por defecto) se guarda en `localStorage`;
+no hay cierre de sesión en el servidor, lista de revocación ni consulta del
+estado del usuario en cada petición, y el cliente no lee `exp`.
 
 ---
 
@@ -2219,6 +2289,27 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.2 — 26 de octubre de 2026
+
+Fase 3 · P0-A, autenticación (rama `fase3/p0-a-autenticacion`):
+
+- **OIDC de extremo a extremo.** El callback devolvía JSON al navegador y el SPA
+  nunca recibía la sesión. Ahora Google regresa al frontend
+  (`/ingreso/callback`, `IngresoCallbackComponent`), que reenvía `code` y
+  `state` por `POST /auth/oidc/callback`; el SPA usa `establecer()`.
+- **`state` firmado** con `csrf` y `nonce` independientes y vencimiento (§9.5);
+  el cliente lo compara y el servidor lo verifica. **`nonce` obligatorio**: antes
+  la comprobación se omitía porque Google no devuelve `nonce` en la URL.
+- **Modo abierto solo en `dev` y con tres llaves** (§9.1). `AUTH_MODO` y
+  `SIPRA_AMBIENTE` pierden su valor por defecto; nueva variable
+  `AUTH_ABIERTO_CONFIRMADO`. `qa` deja de admitirlo. `cloudbuild.yaml`,
+  `desplegar.sh`, `desplegar.yml`, `ci.yml`, `aprovisionar-ambiente.sh` y
+  `.env.example` se ajustaron.
+- Pruebas: `oidc-service.spec.ts` y `auth-controller.spec.ts` nuevos; la matriz
+  del modo abierto en `configuracion-entorno.spec.ts`.
+- **Pendiente:** validación contra Google real (§9.6); uso único del `state`
+  con Redis (§9.5); pruebas del frontend; sesión (§9.7).
 
 ### 0.17.1 — 14 de octubre de 2026
 
