@@ -59,7 +59,8 @@ export class NotificacionWorkspaceAdapter implements NotificacionPort {
       }
 
       const { id } = (await respuesta.json()) as { id?: string };
-      this.log.log(`Correo enviado a ${mensaje.destinatario} (${mensaje.plantilla ?? 'sin plantilla'})`);
+      // Sin el destinatario: el correo es un dato personal y no hace falta en el registro operativo.
+      this.log.log(`Correo enviado (${mensaje.plantilla ?? 'sin plantilla'}, referencia ${id ?? 'sin referencia'})`);
       return { enviado: true, referencia: id ?? null };
     } catch (error) {
       // Un fallo de correo no puede tumbar el pipeline: el documento ya se

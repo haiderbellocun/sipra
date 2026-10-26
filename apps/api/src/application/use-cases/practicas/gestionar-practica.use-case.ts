@@ -23,6 +23,7 @@ import {
 } from '../../../domain/services/obligaciones.domain-service';
 import { Permiso, Rol } from '../../../domain/value-objects/rol.vo';
 import { ActualizarVacanteDto, CrearPracticaDto, PracticaRespuestaDto } from '../../dtos/practica.dto';
+import { proyectarPracticaPara } from './proyeccion-practica';
 import { AvanceDocumentalDomainService } from '../../../domain/services/avance-documental.domain-service';
 import { EQUIVALENCIA_SGP } from '../../../domain/entities/practica.entity';
 
@@ -362,7 +363,7 @@ export class GestionarPracticaUseCase {
     // interna de riesgo ni las observaciones de acompañamiento.
     const esInterno = [Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.EXTENSION].includes(actor.rol);
 
-    return {
+    const completa: PracticaRespuestaDto = {
       id: datos.id,
       estudianteId: datos.estudianteId,
       estudianteNombre: estudiante?.nombre ?? '—',
@@ -406,6 +407,8 @@ export class GestionarPracticaUseCase {
       ),
       ultimaActividad: datos.ultimaActividad.toISOString(),
     };
+    // Minimización por rol: cada perfil recibe solo lo que su función requiere.
+    return proyectarPracticaPara(actor.rol, completa);
   }
 
   private async registrarAuditoria(

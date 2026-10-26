@@ -36,6 +36,7 @@ function armar(devueltos: DatosDocumento[] = []) {
     {} as never, {} as never,
     { buscarPorCodigo: async () => periodo } as never,
     { numero: async () => 8 } as never,
+    { exigirParaCargar: async () => undefined } as never,
   );
 }
 

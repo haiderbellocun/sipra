@@ -2,6 +2,7 @@ import {
   Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn,
   PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
+import { ConsentimientoOrm, PoliticaConsentimientoOrm } from './consentimiento.orm-entity';
 
 /**
  * Entidades de persistencia (TypeORM). Viven en infraestructura y NO se filtran
@@ -308,6 +309,7 @@ export class PqrsOrm {
 }
 
 export const ENTIDADES_ORM = [
+  ConsentimientoOrm, PoliticaConsentimientoOrm,
   UsuarioOrm, EmpresaOrm, PracticaOrm, DocumentoOrm,
   ObligacionOrm, VacanteOrm, PostulacionOrm, AuditoriaOrm, ParametroOrm, PeriodoOrm, CartaOrm,
   BitacoraOrm, SolicitudArlOrm, PqrsOrm,

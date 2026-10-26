@@ -55,6 +55,7 @@ describe('Política de acceso documental (dominio)', () => {
 
 interface Montaje {
   casoDeUso: GestionarDocumentoUseCase;
+  consentimientos: { exigirParaCargar: jest.Mock };
   auditoria: { registrar: jest.Mock };
   almacen: { leer: jest.Mock; enlaceFirmado: jest.Mock; guardar: jest.Mock };
   documentos: { buscarPorId: jest.Mock; listarPorPractica: jest.Mock; guardar: jest.Mock };
@@ -77,12 +78,13 @@ function montar(practica: Practica = practicaDe(), usuarios: ReturnType<typeof u
     enlaceFirmado: jest.fn().mockResolvedValue('/api/v1/documentos/descarga?x=1'),
     guardar: jest.fn(),
   };
+  const consentimientos = { exigirParaCargar: jest.fn().mockResolvedValue(undefined) };
   const casoDeUso = new GestionarDocumentoUseCase(
     documentos as never, practicas as never, usuariosRepo as never, auditoria as never,
     almacen as never, {} as never, {} as never, {} as never, {} as never, {} as never,
-    {} as never, {} as never,
+    {} as never, {} as never, consentimientos as never,
   );
-  return { casoDeUso, auditoria, almacen, documentos };
+  return { casoDeUso, consentimientos, auditoria, almacen, documentos };
 }
 
 const dueno = (rol: Rol, extra = {}) => actorDe(rol, extra);
@@ -203,7 +205,24 @@ describe('Documentos · cargar', () => {
     expect(documentos.guardar).not.toHaveBeenCalled();
   });
 
-  it('estudiante ajeno a la práctica → 404 (no llega a cargar)', async () => {
+  it('la compuerta de consentimiento se consulta con el estudiante dueño de la práctica', async () => {
+    const { casoDeUso, consentimientos } = montar();
+    await casoDeUso.cargar('practica-1', TipoDocumento.CEDULA, archivo, null, 10_000, dueno(Rol.TUTOR, { id: 't', escuelas: [ESC_A] }))
+      .catch(() => undefined);
+    expect(consentimientos.exigirParaCargar).toHaveBeenCalledWith('estudiante-1', 'practica-1');
+  });
+
+  it('si la compuerta rechaza (consentimiento exigido y ausente), no se guarda nada', async () => {
+    const { casoDeUso, consentimientos, almacen, documentos } = montar();
+    consentimientos.exigirParaCargar.mockRejectedValue(new ForbiddenException('Debe aceptar la política'));
+    await expect(
+      casoDeUso.cargar('practica-1', TipoDocumento.CEDULA, archivo, null, 10_000, dueno(Rol.ESTUDIANTE, { id: 'estudiante-1' })),
+    ).rejects.toThrow(/Debe aceptar la política/);
+    expect(almacen.guardar).not.toHaveBeenCalled();
+    expect(documentos.guardar).not.toHaveBeenCalled();
+  });
+
+  it('estudiante ajeno a la práctica → 404 (no llega a cargar ni a la compuerta)', async () => {
     const { casoDeUso, almacen } = montar();
     await expect(
       casoDeUso.cargar('practica-1', TipoDocumento.CEDULA, archivo, null, 10_000, dueno(Rol.ESTUDIANTE, { id: 'otro' })),

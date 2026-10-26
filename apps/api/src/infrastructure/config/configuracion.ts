@@ -64,6 +64,13 @@ export class VariablesEntorno {
    */
   @IsBoolean() AUTH_ABIERTO_CONFIRMADO = false;
 
+  /**
+   * Si es true, la carga de documentos exige que el estudiante haya aceptado la
+   * política de tratamiento de datos vigente. Apagado de fábrica: se enciende solo
+   * cuando Jurídica valide el texto y el proceso institucional.
+   */
+  @IsBoolean() CONSENTIMIENTO_BLOQUEA_CARGUE = false;
+
   @IsString() @MinLength(32, {
     message: 'JWT_SECRETO debe tener al menos 32 caracteres y ser distinto en cada ambiente',
   })
@@ -149,6 +156,7 @@ export class VariablesEntorno {
 
 const BOOLEANOS = new Set([
   'DB_SSL', 'METRICAS_HABILITADAS', 'SPE_ANEXO_CONFIRMADO', 'AUTH_ABIERTO_CONFIRMADO',
+  'CONSENTIMIENTO_BLOQUEA_CARGUE',
 ]);
 const ENTEROS = new Set([
   'PORT', 'DB_PORT', 'REDIS_PORT', 'REDIS_TTL_SEGUNDOS',

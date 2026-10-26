@@ -5,7 +5,7 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.3 |
+| Versión del documento | 0.17.4 |
 | Fecha | 26 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
@@ -361,7 +361,7 @@ al SPE. El resto es operación interna.
 | Radicar solicitud de ARL | ✓ | — | ✓ | ✓ | ✓ | — | — |
 | Decidir solicitud de ARL | — | ✓ | ✓ | ✓ | ✓ | — | — |
 | Remitir certificado de ARL | — | — | ✓ | ✓ | ✓ | — | — |
-| Ver puntaje y banderas internas | — | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| Ver puntaje y banderas internas | — | ✓ | ✓ | — | ✓ | — | — |
 | Cambiar el estado de la práctica | — | ✓ | ✓ | — | ✓ | — | — |
 | Registrar afiliación a ARL | — | — | ✓ | ✓ | ✓ | — | — |
 | Asignar tutor / sincronizar docentes | — | — | ✓ (área) | — | ✓ | — | — |
@@ -508,6 +508,54 @@ proceso programado (`TareasProgramadasService.purgarPorRetencion`).
 
 Ningún dato personal real entra en desarrollo: las semillas son sintéticas y
 así queda declarado en el propio archivo.
+
+**Minimización por rol (0.17.4).** La respuesta de una práctica no devuelve todo lo
+que tiene la entidad: `application/use-cases/practicas/proyeccion-practica.ts`
+recorta por perfil y los campos reservados llegan como `null` o neutros, de modo que
+el contrato no cambia.
+
+| Perfil | Recibe | No recibe |
+|---|---|---|
+| Estudiante, docente, coordinación, administración | El expediente completo | — |
+| Auxiliar | Estudiante, programa, modalidad, periodo, fechas, empresa, jefe inmediato, estado, docente asignado, número FUR, afiliación a ARL | Nota, remuneración, horario, funciones, horas, avance documental |
+| Empresa | Lo de su relación con el practicante (cargo, área, horario, remuneración, jefe inmediato, fechas, ARL) | Nota, docente, número FUR, regional, asignatura, avance documental, estado SGP, señales |
+| Extensión | Empresa, cargo, área, ciudad, jefe inmediato, fechas | Nota, docente, remuneración, horario, funciones, horas, número FUR, avance documental, señales |
+
+La propia empresa recibe de su ficha solo razón social, NIT, estado y fecha de
+solicitud; el semáforo de pre-verificación y los datos del solicitante son internos.
+Los registros operativos no llevan correos: el envío y el fallo de una notificación
+registran la plantilla o una huella del destinatario (la auditoría inmutable sí
+conserva a quién se avisó, como evidencia).
+
+### 6.7 Consentimiento de tratamiento de datos
+
+Base técnica **versionada y trazable** (migración `1756000010000`, sin ejecutar en
+ningún ambiente hasta que el propietario la corra). **El sistema no contiene texto
+jurídico**: la política la publica el responsable institucional.
+
+- `politicas_consentimiento`: tipo, versión, título, finalidad, contenido (o
+  referencia), `texto_sha256`, vigencia, `activa`, quién la publicó. `(tipo, versión)`
+  único y **a lo sumo una activa por tipo** (índice único parcial). Una versión
+  publicada **no se edita ni se elimina** (disparador): cambiar el texto es publicar
+  otra versión, que retira la anterior en la misma transacción.
+- `consentimientos`: evento por aceptación o revocación — persona, práctica (opcional),
+  tipo, finalidad, política (versión), `aceptado`, canal, `registrado_por`, IP, agente,
+  fecha. **Solo inserción**: reutiliza el disparador de la auditoría
+  (`auditoria_es_inmutable`) y `sipra_app` no tiene UPDATE ni DELETE. Revocar es otro
+  evento; el historial no se borra.
+- API: `GET /consentimientos/politica-vigente?tipo=`, `POST /consentimientos`,
+  `GET /consentimientos/mios`, `GET /consentimientos/usuarios/:id` (administración y
+  Área de Prácticas, consulta puntual) y `POST /consentimientos/politicas`
+  (administración). La persona sale **siempre de la sesión**; un `usuarioId` en el cuerpo
+  da 400. Aceptar exige la versión vigente (409); revocar se admite sobre cualquier
+  versión publicada. Un evento idéntico al último no se duplica.
+- Aceptar la política de tratamiento cumple la obligación `AUTORIZACION_TRATAMIENTO`
+  (la de la práctica indicada, o la de todas las del estudiante). Revocar no la reabre.
+- Se audita `consentimiento_aceptado`, `consentimiento_revocado` y
+  `politica_consentimiento_publicada`, nunca con el texto de la política.
+- **`CONSENTIMIENTO_BLOQUEA_CARGUE=false` de fábrica:** el consentimiento se registra y
+  la obligación se cumple, pero **no bloquea** la carga de documentos. Encendida, la
+  carga exige tener aceptada la política vigente (general o de la práctica).
 
 ---
 
@@ -2331,6 +2379,26 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.4 — 26 de octubre de 2026
+
+Fase 3 · P0-B2, consentimiento versionado y minimización de datos:
+
+- **Consentimiento** (§6.7): políticas versionadas y eventos append-only, migración
+  `1756000010000` (creada, **no ejecutada**), endpoints, auditoría y cumplimiento de la
+  obligación `AUTORIZACION_TRATAMIENTO`. Compuerta de carga detrás de
+  `CONSENTIMIENTO_BLOQUEA_CARGUE=false`. Sin texto jurídico.
+- **Minimización** (§6.6): proyección por rol de la práctica (auxiliar, empresa,
+  extensión) y de la ficha de empresa para la propia empresa. DT §5: extensión y
+  auxiliar dejan de figurar con «puntaje y banderas internas» (el auxiliar nunca las
+  recibió; extensión sí, hasta ahora).
+- **Registros:** sin correos en los registros operativos de notificaciones y del token
+  de servicio.
+- El expediente, la lista de prácticas y la ficha de empresa del frontend toleran los
+  campos reservados (sin «0 %» ni «sin docente» engañosos).
+- **Pendientes:** texto aprobado por Jurídica; pantalla de aceptación; activar el
+  bloqueo; ejecutar la migración; el driver `consola` de correo escribe mensajes
+  completos en el registro (solo debe usarse en desarrollo).
 
 ### 0.17.3 — 26 de octubre de 2026
 

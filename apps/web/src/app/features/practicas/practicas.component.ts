@@ -182,12 +182,14 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
                   <td class="compacto">{{ p.periodoAcademico }}</td>
                   <td>{{ p.modalidad | etiqueta }}</td>
                   <td>{{ p.empresaRazonSocial ?? '—' }}</td>
-                  <td>{{ p.tutorNombre ?? 'Sin asignación' }}</td>
+                  <td>{{ p.tutorNombre ?? (veDocente() ? 'Sin asignación' : '—') }}</td>
                   <td class="compacto"><sipra-estado [valor]="p.estado" /><div class="pista">{{ p.estadoSgp }}</div></td>
                   <td class="compacto num">
-                    <span class="barra"><span [style.width.%]="p.avance.porcentajeCargado"></span></span>{{ p.avance.porcentajeCargado }} %
-                    <br>
-                    <span class="barra ok"><span [style.width.%]="p.avance.porcentajeAprobado"></span></span>{{ p.avance.porcentajeAprobado }} %
+                    @if (veAvance()) {
+                      <span class="barra"><span [style.width.%]="p.avance.porcentajeCargado"></span></span>{{ p.avance.porcentajeCargado }} %
+                      <br>
+                      <span class="barra ok"><span [style.width.%]="p.avance.porcentajeAprobado"></span></span>{{ p.avance.porcentajeAprobado }} %
+                    } @else { — }
                   </td>
                   @if (sesion.esInterno()) { <td class="compacto"><sipra-estado [valor]="p.senal" /></td> }
                   <td class="compacto pista">{{ p.ultimaActividad | date: 'd MMM y' }}</td>
@@ -202,6 +204,9 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 })
 export class PracticasComponent implements OnInit {
   readonly sesion = inject(SesionService);
+  /** El avance documental y el docente solo se muestran a quien los recibe del servidor. */
+  readonly veAvance = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly veDocente = computed(() => !['empresa', 'extension'].includes(this.sesion.rol() ?? ''));
   private readonly api = inject(ApiService);
 
   readonly practicas = signal<Practica[]>([]);

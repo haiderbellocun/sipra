@@ -49,9 +49,10 @@ export class EmpresaRespuestaDto {
   @ApiProperty() razonSocial!: string;
   @ApiProperty() nit!: string;
   @ApiProperty({ enum: EstadoEmpresa }) estado!: EstadoEmpresa;
-  @ApiProperty({ enum: ['verde', 'amarillo', 'rojo'] }) semaforo!: 'verde' | 'amarillo' | 'rojo';
-  @ApiProperty() solicitanteNombre!: string;
-  @ApiProperty() solicitanteCorreo!: string;
+  @ApiPropertyOptional({ enum: ['verde', 'amarillo', 'rojo'], description: 'Solo roles internos.' })
+  semaforo?: 'verde' | 'amarillo' | 'rojo';
+  @ApiPropertyOptional({ description: 'Solo roles internos.' }) solicitanteNombre?: string;
+  @ApiPropertyOptional({ description: 'Solo roles internos.' }) solicitanteCorreo?: string;
   @ApiProperty() solicitadaEn!: string;
   @ApiPropertyOptional({ description: 'Señales de pre-verificación. Solo roles internos.' })
   senales?: unknown[];

@@ -220,3 +220,15 @@ describe('documentacionApiHabilitada · Swagger solo en desarrollo', () => {
     }
   });
 });
+
+describe('validarEntorno · compuerta de consentimiento', () => {
+  it('CONSENTIMIENTO_BLOQUEA_CARGUE está apagada de fábrica', () => {
+    expect(entorno().CONSENTIMIENTO_BLOQUEA_CARGUE).toBe(false);
+  });
+
+  it('se enciende solo con un true explícito y se convierte a booleano', () => {
+    expect(entorno({ CONSENTIMIENTO_BLOQUEA_CARGUE: 'true' }).CONSENTIMIENTO_BLOQUEA_CARGUE).toBe(true);
+    expect(entorno({ CONSENTIMIENTO_BLOQUEA_CARGUE: 'false' }).CONSENTIMIENTO_BLOQUEA_CARGUE).toBe(false);
+    expect(entorno({ CONSENTIMIENTO_BLOQUEA_CARGUE: 'quizás' }).CONSENTIMIENTO_BLOQUEA_CARGUE).toBe(false);
+  });
+});

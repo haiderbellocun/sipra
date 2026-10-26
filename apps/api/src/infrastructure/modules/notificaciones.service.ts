@@ -1,3 +1,4 @@
+import { huellaCorreo } from '../auth/oidc.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AccionAuditada } from '../../domain/entities/auditoria.entity';
 import {
@@ -48,7 +49,7 @@ export class NotificacionesService {
 
     if (!resultado.enviado) {
       this.log.warn(
-        `No se pudo notificar "${evento}" a ${destinatario.correo}: ${resultado.motivo ?? 'sin detalle'}`,
+        `No se pudo notificar "${evento}" al destinatario ${huellaCorreo(destinatario.correo)}: ${resultado.motivo ?? 'sin detalle'}`,
       );
     }
 

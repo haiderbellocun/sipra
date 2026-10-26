@@ -42,6 +42,7 @@ import { Practica } from '../../../domain/entities/practica.entity';
 import { PipelineValidacionUseCase } from './pipeline-validacion.use-case';
 import { BitacoraUseCase } from '../practicas/bitacora.use-case';
 import { ParametrosUseCase } from '../administracion/parametros.use-case';
+import { ConsentimientoUseCase } from '../consentimientos/consentimiento.use-case';
 import { TipoVentana } from '../../../domain/entities/periodo.entity';
 
 /** Minimización: la imagen del documento de identidad se purga a los 30 días. */
@@ -75,6 +76,7 @@ export class GestionarDocumentoUseCase {
     private readonly bitacora: BitacoraUseCase,
     @Inject(PERIODO_REPOSITORY) private readonly periodos: PeriodoRepositoryPort,
     private readonly parametros: ParametrosUseCase,
+    private readonly consentimientos: ConsentimientoUseCase,
   ) {}
 
   async cargar(
@@ -97,6 +99,9 @@ export class GestionarDocumentoUseCase {
     ) {
       throw new NotFoundException('Expediente no encontrado');
     }
+
+    // Sin efecto mientras CONSENTIMIENTO_BLOQUEA_CARGUE sea false (valor de fábrica).
+    await this.consentimientos.exigirParaCargar(practica.estudianteId, practica.id);
 
     if (archivo.contenido.length > tamanoMaximoBytes) {
       throw new BadRequestException(

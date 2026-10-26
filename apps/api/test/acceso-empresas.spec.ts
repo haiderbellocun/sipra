@@ -71,3 +71,22 @@ describe('Empresas · detalle (autorización por objeto)', () => {
     expect(detalle).toMatchObject({ id: 'empresa-b', solicitanteCorreo: 'solicitante@empresa.example' });
   });
 });
+
+describe('Empresas · minimización de la respuesta', () => {
+  it('la propia empresa recibe razón social, NIT y estado; no el semáforo ni los datos del solicitante', async () => {
+    const [propia] = await casoDeUso().listar(undefined, actorDe(Rol.EMPRESA, { empresaId: 'empresa-a' }));
+    expect(Object.keys(propia).sort()).toEqual(['estado', 'id', 'nit', 'razonSocial', 'solicitadaEn']);
+    const detalle = await casoDeUso().obtener('empresa-a', actorDe(Rol.EMPRESA, { empresaId: 'empresa-a' }));
+    expect(Object.keys(detalle).sort()).toEqual(['estado', 'id', 'nit', 'razonSocial', 'solicitadaEn']);
+    expect(JSON.stringify(detalle)).not.toContain('Solicitante Reservado');
+    expect(JSON.stringify(detalle)).not.toContain('solicitante@empresa.example');
+  });
+
+  it.each([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION])('%s sí recibe semáforo, solicitante y señales', async (rol) => {
+    const [primera] = await casoDeUso().listar(undefined, actorDe(rol));
+    expect(primera).toMatchObject({
+      semaforo: expect.any(String), solicitanteNombre: 'Solicitante Reservado', solicitanteCorreo: 'solicitante@empresa.example',
+    });
+    expect(primera).toHaveProperty('senales');
+  });
+});

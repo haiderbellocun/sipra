@@ -35,6 +35,9 @@ export enum AccionAuditada {
   PERIODO_ACTUALIZADO = 'periodo_actualizado',
   PQRS_RADICADA = 'pqrs_radicada',
   PQRS_RESPONDIDA = 'pqrs_respondida',
+  CONSENTIMIENTO_ACEPTADO = 'consentimiento_aceptado',
+  CONSENTIMIENTO_REVOCADO = 'consentimiento_revocado',
+  POLITICA_CONSENTIMIENTO_PUBLICADA = 'politica_consentimiento_publicada',
 }
 
 export interface RegistroAuditoria {

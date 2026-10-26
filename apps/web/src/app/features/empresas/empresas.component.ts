@@ -80,10 +80,10 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
               <span class="razon">{{ empresa.razonSocial }}</span>
               <span class="mono pista">NIT {{ empresa.nit }}</span>
               <sipra-estado [valor]="empresa.estado" />
-              <sipra-estado [valor]="empresa.semaforo" />
+              @if (empresa.semaforo) { <sipra-estado [valor]="empresa.semaforo" /> }
             </div>
             <div class="pista">
-              Solicitó {{ empresa.solicitanteNombre }} ({{ empresa.solicitanteCorreo }}) ·
+              @if (empresa.solicitanteNombre) { Solicitó {{ empresa.solicitanteNombre }} ({{ empresa.solicitanteCorreo }}) · }
               {{ empresa.solicitadaEn | date: 'd MMM y' }}
             </div>
 

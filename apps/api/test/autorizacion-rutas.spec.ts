@@ -142,6 +142,17 @@ describe('Política de acceso · rutas sensibles', () => {
     }
   });
 
+  it('consentimientos: política, aceptación e historial propio para cualquier sesión; consulta ajena y publicación restringidas', () => {
+    const r = (clave: string) => RUTAS.find((x) => x.clave === clave);
+    for (const clave of [
+      'ConsentimientosController.politicaVigente', 'ConsentimientosController.registrar', 'ConsentimientosController.mios',
+    ]) {
+      expect(r(clave)?.autenticado).toBe(true);
+    }
+    expect(ordenados(rolesDe('ConsentimientosController.deUsuario'))).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR].sort());
+    expect(rolesDe('ConsentimientosController.publicarPolitica')).toEqual([Rol.ADMINISTRADOR]);
+  });
+
   it('administración: parámetros, diagnóstico, auditoría y cola, solo administrador', () => {
     for (const clave of [
       'AdministracionController.diagnostico', 'AdministracionController.listar',

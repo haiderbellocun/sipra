@@ -160,7 +160,7 @@ export class GestionarEmpresaUseCase {
       actor.rol === Rol.EMPRESA
         ? empresas.filter((e) => e.id === actor.empresaId)
         : empresas;
-    return visibles.map((e) => this.aRespuesta(e, esInterno));
+    return visibles.map((e) => this.aRespuesta(e, esInterno, actor.rol === Rol.EMPRESA));
   }
 
   async obtener(id: string, actor: Actor): Promise<EmpresaRespuestaDto> {
@@ -171,7 +171,7 @@ export class GestionarEmpresaUseCase {
       throw new NotFoundException('Empresa no encontrada');
     }
     const esInterno = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION].includes(actor.rol);
-    return this.aRespuesta(empresa, esInterno);
+    return this.aRespuesta(empresa, esInterno, actor.rol === Rol.EMPRESA);
   }
 
   /** La decisión es humana y exige justificación. La IA no habilita empresas. */
@@ -217,8 +217,21 @@ export class GestionarEmpresaUseCase {
     }
   }
 
-  private aRespuesta(empresa: Empresa, esInterno: boolean): EmpresaRespuestaDto {
+  /**
+   * Minimización: la propia empresa ve su razón social, NIT y estado; no el semáforo de
+   * pre-verificación (señal interna) ni los datos del solicitante.
+   */
+  private aRespuesta(empresa: Empresa, esInterno: boolean, esPropia = false): EmpresaRespuestaDto {
     const datos = empresa.instantanea();
+    if (esPropia) {
+      return {
+        id: datos.id,
+        razonSocial: datos.razonSocial,
+        nit: `${datos.nitNumero}-${datos.nitDv}`,
+        estado: datos.estado,
+        solicitadaEn: datos.solicitadaEn.toISOString(),
+      };
+    }
     return {
       id: datos.id,
       razonSocial: datos.razonSocial,

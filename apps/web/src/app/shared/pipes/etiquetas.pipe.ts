@@ -100,6 +100,8 @@ const ETIQUETAS: Record<string, string> = {
   decision_solicitud_arl: 'Decisión sobre solicitud de ARL', certificado_arl_enviado: 'Certificado de ARL remitido',
   usuario_creado: 'Usuario creado', usuario_actualizado: 'Usuario actualizado',
   sincronizacion_docentes: 'Sincronización de docentes', periodo_actualizado: 'Periodo actualizado',
+  consentimiento_aceptado: 'Consentimiento aceptado', consentimiento_revocado: 'Consentimiento revocado',
+  politica_consentimiento_publicada: 'Política de consentimiento publicada',
 };
 
 /** Traduce los códigos de la API a lenguaje comprensible en la interfaz. */

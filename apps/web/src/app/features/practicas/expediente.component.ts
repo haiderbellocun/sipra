@@ -88,7 +88,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
           <p class="et-sec" style="margin-bottom:2px">FUR n.º {{ p.numeroFur ?? '—' }} · {{ p.periodoAcademico }} · {{ p.estadoSgp }}</p>
           <h1>{{ p.estudianteNombre }}</h1>
           <div class="pista">{{ p.modalidad | etiqueta }} · {{ p.ciclo | etiqueta }} · {{ p.programaId }}
-            @if (p.tutorNombre) { · docente {{ p.tutorNombre }} } @else { · <span style="color:var(--aviso)">sin docente asignado</span> }</div>
+            @if (p.tutorNombre) { · docente {{ p.tutorNombre }} } @else if (veDocente()) { · <span style="color:var(--aviso)">sin docente asignado</span> }</div>
         </div>
         <div class="chips">
           <sipra-estado [valor]="p.estado" />
@@ -99,10 +99,12 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
 
 
       <div class="progreso">
+        @if (veAvance()) {
         <div class="tarjeta compacto pct"><div class="t pista">Documentos cargados</div><div class="n">{{ p.avance.porcentajeCargado }} %</div>
           <div class="barra"><span [style.width.%]="p.avance.porcentajeCargado"></span></div><div class="pista">{{ p.avance.cargados }} de {{ p.avance.exigidos }}</div></div>
         <div class="tarjeta compacto pct ok"><div class="t pista">Documentos aprobados</div><div class="n">{{ p.avance.porcentajeAprobado }} %</div>
           <div class="barra"><span [style.width.%]="p.avance.porcentajeAprobado"></span></div><div class="pista">{{ p.avance.aprobados }} de {{ p.avance.exigidos }}</div></div>
+        }
         <div class="tarjeta compacto"><div class="pista">Afiliación a ARL</div>
           <div style="margin-top:var(--sp-1)"><span class="etiqueta" [class.etiqueta--ok]="p.arlVerificada" [class.etiqueta--peligro]="!p.arlVerificada">{{ p.arlVerificada ? 'verificada' : 'sin afiliación' }}</span></div>
           @if (!p.arlVerificada && solicitaArl()) { <a routerLink="/arl" class="pista">Solicitar la ARL a la CUN →</a> }</div>
@@ -403,6 +405,9 @@ export class ExpedienteComponent implements OnInit {
   readonly puedeAdministrar = computed(() => ['administrador', 'coordinador'].includes(this.sesion.rol() ?? ''));
   readonly puedeDecidir = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeCargar = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? '') && !this.terminal());
+  /** El avance documental y el docente solo se muestran a quien los recibe del servidor. */
+  readonly veAvance = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly veDocente = computed(() => !['empresa', 'extension'].includes(this.sesion.rol() ?? ''));
   readonly puedeVerBitacora = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeEscribir = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeCalificar = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));

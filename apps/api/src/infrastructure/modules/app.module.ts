@@ -107,6 +107,14 @@ import { ReportesSgpController } from '../controllers/reportes-sgp.controller';
 import { PeriodosController } from '../controllers/periodos.controller';
 import { CatalogoController } from '../controllers/catalogo.controller';
 import { PqrsController } from '../controllers/pqrs.controller';
+import { ConsentimientosController } from '../controllers/consentimientos.controller';
+import { ConsentimientoUseCase } from '../../application/use-cases/consentimientos/consentimiento.use-case';
+import {
+  CONSENTIMIENTO_REPOSITORY, POLITICA_CONSENTIMIENTO_REPOSITORY,
+} from '../../domain/ports/out/consentimiento.port';
+import {
+  ConsentimientoRepositoryAdapter, PoliticaConsentimientoRepositoryAdapter,
+} from '../adapters/persistence/postgres/consentimiento.adapter';
 import { CostosIaController } from '../controllers/costos-ia.controller';
 import { CostosIaUseCase } from '../../application/use-cases/administracion/costos-ia.use-case';
 import { PqrsUseCase } from '../../application/use-cases/administracion/pqrs.use-case';
@@ -182,7 +190,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     EmpresasController, CumplimientoController, BolsaController, SaludController,
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
-    PeriodosController, CatalogoController, PqrsController, CostosIaController,
+    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -203,6 +211,8 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: BITACORA_REPOSITORY, useClass: BitacoraRepositoryAdapter },
     { provide: SOLICITUD_ARL_REPOSITORY, useClass: SolicitudArlRepositoryAdapter },
     { provide: PQRS_REPOSITORY, useClass: PqrsRepositoryAdapter },
+    { provide: POLITICA_CONSENTIMIENTO_REPOSITORY, useClass: PoliticaConsentimientoRepositoryAdapter },
+    { provide: CONSENTIMIENTO_REPOSITORY, useClass: ConsentimientoRepositoryAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
 
@@ -279,6 +289,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     ReportesSgpUseCase,
     GestionarPeriodosUseCase,
     PqrsUseCase,
+    ConsentimientoUseCase,
     PipelineValidacionUseCase,
     ProcesarTrabajoUseCase,
     GestionarDocumentoUseCase,

@@ -252,7 +252,8 @@ export class OidcService {
     if (!audienciaEsperada || carga.aud !== audienciaEsperada) return null;
     if (carga.email_verified === false) return null;
     if (carga.email !== correoEsperado) {
-      this.log.warn(`Token de servicio con identidad inesperada: ${carga.email ?? 'sin correo'}`);
+      // Solo el dominio: basta para diagnosticar un proyecto equivocado sin registrar la dirección.
+      this.log.warn(`Token de servicio con identidad inesperada (dominio ${carga.email?.split('@')[1] ?? 'desconocido'})`);
       return null;
     }
     return { correo: carga.email };

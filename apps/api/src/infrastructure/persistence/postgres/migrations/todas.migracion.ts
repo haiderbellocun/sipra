@@ -11,6 +11,7 @@ import { FormularioUnicoRegistro1756000006000 } from './1756000006000-Formulario
 import { BitacoraYCierre1756000007000 } from './1756000007000-BitacoraYCierre';
 import { SolicitudesArl1756000008000 } from './1756000008000-SolicitudesArl';
 import { CronogramaYPqrs1756000009000 } from './1756000009000-CronogramaYPqrs';
+import { ConsentimientoVersionado1756000010000 } from './1756000010000-ConsentimientoVersionado';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -31,4 +32,5 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   BitacoraYCierre1756000007000,
   SolicitudesArl1756000008000,
   CronogramaYPqrs1756000009000,
+  ConsentimientoVersionado1756000010000,
 ];
