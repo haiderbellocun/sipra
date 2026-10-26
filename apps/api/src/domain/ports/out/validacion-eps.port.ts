@@ -24,5 +24,9 @@ export interface ValidacionEpsRepositoryPort {
   /** Solo inserta: las evidencias son append-only. */
   agregarEvidencia(datos: DatosEvidenciaEps): Promise<EvidenciaEps>;
   listarEvidencias(validacionEpsId: string): Promise<EvidenciaEps[]>;
+  /** ¿Ya existe evidencia ADRES con este hash (en cualquier validación)? Evita adjuntar el mismo archivo dos veces. */
+  buscarEvidenciaAdresPorHash(hash: string): Promise<{ validacionEpsId: string } | null>;
+  /** Casos con contraste ADRES abierto, los más antiguos primero. */
+  listarParaAdres(limite: number): Promise<ValidacionEps[]>;
 }
 export const VALIDACION_EPS_REPOSITORY = Symbol('VALIDACION_EPS_REPOSITORY');

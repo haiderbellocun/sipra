@@ -112,6 +112,8 @@ export const RUES = Symbol('RUES');
 /** Lectura de matrícula académica. SINU es la fuente única de verdad; no se escribe. */
 export interface MatriculaSinu {
   documentoEstudiante: string;
+  /** Tipo de documento (CC, TI, CE, PA) cuando SINU lo entrega: es la fuente prioritaria para la consulta ADRES. */
+  tipoDocumento?: string | null;
   nombreEstudiante: string;
   correoInstitucional: string;
   programaId: string;

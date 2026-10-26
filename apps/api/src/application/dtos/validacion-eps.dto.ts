@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsIn, IsOptional } from 'class-validator';
 import {
   AfiliacionEps, AutenticidadEps, CoincidenciaEps, DecisionEps, EstadoProcesamientoEps, RutaValidacionEps,
 } from '../../domain/entities/validacion-eps.entity';
@@ -58,6 +59,14 @@ export class ValidacionEpsOperacionDto {
   verificadoEn!: string | null;
   @ApiProperty({ nullable: true, description: 'Código del último intento que no concluyó (portal caído, sin QR…).' })
   verificacionError!: string | null;
+  @ApiProperty({ nullable: true, enum: ['verificador_oficial', 'adres_bdua'], description: 'Quién estableció la afiliación.' })
+  afiliacionFuente!: string | null;
+  @ApiProperty({ description: 'Estado de la consulta ADRES asistida y su comparación triple.' })
+  adres!: {
+    estado: string; tipoDocumento: string | null; origenTipoDocumento: string | null; consultadoEn: string | null;
+    cargadaEn: string | null; fuenteActualizadaEn: string | null; error: string | null; recomendacion: string | null;
+    comparacion: ComparacionTripleDto[]; datos: Record<string, unknown> | null;
+  };
   @ApiProperty({ nullable: true }) asignadoA!: string | null;
   @ApiProperty({ nullable: true }) reservaHasta!: string | null;
   @ApiProperty() version!: number;
@@ -75,4 +84,68 @@ export class EvidenciaEpsDto {
   @ApiProperty() datosObtenidos!: Record<string, unknown>;
   @ApiProperty({ nullable: true }) errorCodigo!: string | null;
   @ApiProperty({ nullable: true }) verificadoPor!: string | null;
+}
+
+// ── Consulta ADRES asistida ─────────────────────────────────────────────────
+
+export class PrepararConsultaAdresDto {
+  @ApiProperty({
+    required: false,
+    enum: ['CC', 'TI', 'CE', 'PA'],
+    description: 'Solo cuando SIPRA no conoce el tipo de documento: lo confirma la persona. Nunca se infiere del número.',
+  })
+  @IsOptional()
+  @IsIn(['CC', 'TI', 'CE', 'PA'])
+  tipoDocumento?: string;
+}
+
+/** Lo que el frontend necesita para que la persona haga la consulta en el portal oficial. */
+export class ConsultaAdresPreparadaDto {
+  @ApiProperty({ enum: ['preparada', 'requiere_tipo_documento'] }) estado!: 'preparada' | 'requiere_tipo_documento';
+  @ApiProperty({ required: false, description: 'Identificador de UN SOLO USO de la consulta; se devuelve al cargar el resultado.' })
+  consultaId?: string;
+  @ApiProperty({ required: false }) tipoDocumento?: string;
+  @ApiProperty({ required: false, description: 'Solo se devuelve a quien opera el caso; no viaja en ninguna URL.' })
+  numeroDocumento?: string;
+  @ApiProperty({ required: false, description: 'Portal OFICIAL de ADRES (enlace público; SIPRA no construye ninguna otra URL).' })
+  portalUrl?: string;
+  @ApiProperty({ required: false }) venceEn?: string;
+  @ApiProperty({ required: false, type: [String] }) instrucciones?: string[];
+  @ApiProperty({ required: false, type: [String], description: 'Tipos de documento entre los que la persona puede confirmar.' })
+  opciones?: string[];
+  @ApiProperty({ required: false, nullable: true, description: 'Lo que dice el certificado, solo como sugerencia: no es una fuente válida.' })
+  sugerencia?: string | null;
+}
+
+export class ComparacionTripleDto {
+  @ApiProperty() campo!: string;
+  @ApiProperty({ nullable: true }) sipra!: string | null;
+  @ApiProperty({ nullable: true }) certificado!: string | null;
+  @ApiProperty({ nullable: true }) adres!: string | null;
+  @ApiProperty({ enum: ['coincide', 'diferente', 'no_disponible'] }) resultado!: string;
+  @ApiProperty({ type: [String] }) conflictos!: string[];
+  @ApiProperty() critico!: boolean;
+}
+
+export class ResultadoAdresDto {
+  @ApiProperty() validacionId!: string;
+  @ApiProperty() estadoAdres!: string;
+  @ApiProperty() afiliacion!: string;
+  @ApiProperty({ nullable: true }) recomendacion!: string | null;
+  @ApiProperty({ nullable: true }) error!: string | null;
+  @ApiProperty({ description: 'true si el mismo archivo ya estaba cargado en este caso: no se registró nada nuevo.' }) duplicada!: boolean;
+  @ApiProperty({ type: [ComparacionTripleDto] }) comparacion!: ComparacionTripleDto[];
+}
+
+export class FilaBandejaAdresDto {
+  @ApiProperty() validacionId!: string;
+  @ApiProperty() documentoId!: string;
+  @ApiProperty({ description: 'Reducido: nombre y documento enmascarado.' }) estudiante!: { nombre: string; documentoEnmascarado: string };
+  @ApiProperty({ enum: ['qr_oficial', 'sin_verificar'] }) metodoValidacion!: string;
+  @ApiProperty() afiliacion!: string;
+  @ApiProperty() estadoAdres!: string;
+  @ApiProperty({ nullable: true }) recomendacion!: string | null;
+  @ApiProperty({ nullable: true }) responsable!: string | null;
+  @ApiProperty({ nullable: true }) reservaHasta!: string | null;
+  @ApiProperty() actualizadaEn!: string;
 }

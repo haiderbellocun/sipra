@@ -44,6 +44,12 @@ export const rutas: Routes = [
         loadComponent: () => import('./features/arl/arl.component').then((m) => m.ArlComponent),
       },
       {
+        path: 'eps',
+        title: 'Validación de EPS · SIPRA PRÁCTICAS',
+        canActivate: [rolGuard('auxiliar', 'coordinador', 'administrador')],
+        loadComponent: () => import('./features/eps/eps.component').then((m) => m.EpsComponent),
+      },
+      {
         path: 'ayuda',
         title: 'Centro de ayuda · SIPRA PRÁCTICAS',
         loadComponent: () => import('./features/ayuda/ayuda.component').then((m) => m.AyudaComponent),

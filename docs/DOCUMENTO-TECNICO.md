@@ -5,7 +5,7 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.7 |
+| Versión del documento | 0.17.8 |
 | Fecha | 26 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
@@ -360,7 +360,7 @@ al SPE. El resto es operación interna.
 | Editar la vacante (no modalidad ni fechas) | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | Cargar documentos | ✓ | ✓ | ✓ | — | ✓ | — | — |
 | Decidir sobre documentos | — | ✓ | ✓ | solo `certificado_eps` | ✓ | — | — |
-| Operar la validación de EPS (evidencia, reserva) | resultado reducido | — | ✓ | ✓ | ✓ | — | — |
+| Operar la validación de EPS (evidencia, reserva, consulta ADRES asistida) | resultado reducido | — | ✓ | ✓ | ✓ | — | — |
 | Aprobar el plan de mejoramiento | — | ✓ | ✓ | — | — | — | — |
 | Escribir en la bitácora | mensaje, «Evalúa tu proceso» | todos los tipos | mensaje, plazo, calificación | — | mensaje, plazo, calificación | — | — |
 | Calificar y cerrar | — | ✓ (asignado) | ✓ | — | ✓ | — | — |
@@ -1011,6 +1011,142 @@ redirección permitida y prohibida, timeout, respuesta enorme, HTML/JSON cambiad
 (localhost, 127.0.0.1, 169.254.169.254, metadata, 10/8, 172.16/12, 192.168/16, ::1, enlace local, DNS a
 IP privada, redirección a privada), y QR (`javascript:`, `data:`, `file:`, `ftp:`, usuario:clave, puerto,
 host parecido).
+
+### 7.18 Consulta ADRES asistida y evidencia de afiliación (Fase 4 EPS)
+
+**Regla de oro.** Una PERSONA consulta el portal oficial de ADRES y resuelve ella misma la verificación
+(CAPTCHA); SIPRA no automatiza el portal, **no resuelve ni evade CAPTCHA**, no usa endpoints privados, no
+usa Playwright/Selenium/Puppeteer contra ADRES, no guarda cookies ni sesiones y no hace consultas masivas.
+El resultado de ADRES/BDUA es evidencia **independiente** para contrastar la **afiliación**; no es el
+certificado de EPS (ADRES no lo expide) y no prueba su autenticidad.
+
+**Revisión de la fuente pública (26 de octubre de 2026).** Solo se leyeron páginas públicas oficiales de
+ADRES (resultados de búsqueda; la lectura directa de la página falló con «Socket is closed»). Lo que ADRES
+publica: el servicio «Consulte su EPS (Afiliación en la BDUA)»
+(`https://www.adres.gov.co/tramites/ciudadania/consulta-afiliacion`) pide **tipo y número de documento**,
+muestra **EPS actual, régimen, estado (vigente / no vigente) y fecha de afiliación**, es gratuito y está
+disponible 24 horas; el resultado se puede **imprimir o guardar como PDF desde el navegador**; los datos se
+**actualizan mensualmente** (carga de la BDUA); **ADRES no expide el certificado de afiliación** (genera un
+reporte informativo) y avisa que conviene habilitar las ventanas emergentes. La consulta individual para
+entidades (BDEX/BDUA) exige usuario y contraseña institucional: **no se usa**. *No se pudo confirmar en esas
+fuentes la presencia del CAPTCHA (lo indica el área funcional) ni la apariencia exacta del PDF impreso*: por
+eso el lector es por etiquetas con tolerancia a PDF de tablas y **falla cerrado** (no determinable) ante
+cualquier estructura que no reconozca. Un cambio del portal solo puede producir «no determinable», nunca una
+afiliación inventada.
+
+**Flujo.**
+
+```
+afiliación no contrastada → ADRES «pendiente» → la persona TOMA el caso (reserva)
+→ SIPRA prepara la consulta (tipo + número + identificador de un solo uso) → la persona abre ADRES,
+  resuelve el CAPTCHA y guarda el PDF → lo carga en SIPRA → lectura local (texto nativo; OCR de respaldo)
+→ contraste triple → recomendación → una persona decide
+```
+
+**Estado ADRES** (propio, separado de autenticidad, coincidencia, afiliación y decisión):
+`no_requerido · pendiente · en_consulta · evidencia_recibida · procesado · error · no_determinable`. Pasa a
+`pendiente` solo cuando el certificado se procesó y la afiliación sigue sin contrastar; vuelve a
+`no_requerido` si una fuente oficial la establece.
+
+**Tipo de documento.** El modelo de usuarios, la solicitud de ARL y SINU **no guardan el tipo** (se agregó
+`MatriculaSinu.tipoDocumento` opcional, fuente prioritaria si SINU lo entrega). Orden: SINU > (dato
+institucional y solicitud ARL: aún no existen) > **confirmación humana** (queda quién la dio). **Nunca se
+infiere del número** ni se toma del certificado (solo se muestra como sugerencia). Sin tipo, la consulta
+queda pendiente de información (`requiere_tipo_documento`). Catálogo: CC, TI, CE, PA.
+
+**Preparar** (`POST validaciones-eps/:id/adres/preparar`): exige tener el caso reservado; devuelve tipo,
+número (solo a quien opera; jamás en una URL), el enlace público del portal oficial (`ADRES_PORTAL_URL`
+solo se acepta si es https de `adres.gov.co`) y un identificador de **un solo uso, 30 min, ligado a la
+validación y a la persona** (anti-reutilización: una evidencia no puede adjuntarse a otro estudiante
+cambiando un id). El servidor nunca llama a ADRES; el frontend abre el portal con un enlace
+`target=_blank rel=noopener`.
+
+**Cargar** (`POST …/adres/resultado`, multipart): PDF (se valida por contenido, ≤ 5 MB), hash SHA-256; se
+guarda la **copia saneada** en almacenamiento privado (`evidencias/adres/{validacionId}/…`, sin URL
+permanente); el identificador de la consulta se consume. **Duplicados:** el mismo archivo en el mismo caso no
+se registra otra vez (reintento idempotente); el mismo archivo en otro caso → 409. Opcional: fecha de la
+consulta declarada.
+
+**Lectura local** (`LecturaLocalAdresService`, misma infraestructura de la Fase 2, sin IA externa): tipo y
+número de documento, nombre, EPS, régimen, estado, fecha de afiliación, fecha de consulta y fecha de corte.
+`consultadoEn` (cuándo se consultó) y `fuenteActualizadaEn` (hasta cuándo estaba actualizada la BDUA) se
+guardan por separado: consultado hoy no es actualizado hoy.
+
+**Contraste triple** (SIPRA/SINU · certificado · ADRES) por campo — documento, tipo, nombre, EPS (clave
+canónica o alias aprobado), régimen y estado — con `coincide/diferente/no_disponible`, los pares en conflicto
+y `critico` (documento, tipo, nombre y EPS). Un resultado solo queda **atado** al estudiante si el documento
+es igual y el tipo y el nombre no se contradicen; si no, queda `no_determinable` y **no toca la afiliación**.
+
+**Afiliación y autenticidad.** ADRES puede actualizar **solo** el eje de afiliación: vigente/activo → `activa`;
+no vigente, retirado, suspendido, fallecido… → `inactiva`; lo demás o la ausencia de estado →
+`no_determinable` (nunca se infiere por ausencia). La fuente queda en `afiliacion_fuente = adres_bdua`. La
+**autenticidad no cambia**: «ADRES activa + autenticidad no verificable» sigue siendo no verificable.
+
+**Recomendación determinística** (nunca aprueba): discrepancia crítica (p. ej. EPS del certificado ≠ EPS de
+ADRES) > revisión/rechazo (ADRES inactiva o certificado inválido) > **candidato** (autenticidad verificada +
+coincidencia + ADRES activa + vigencia + sin banderas críticas; solo etiqueta) > revisión documental (ADRES activa
+sin autenticidad verificada) > información insuficiente. **Frescura:** se registra `consultadoEn` para definir
+más adelante «válido N días»; hoy no hay política y **no hay autoaprobación efectiva**.
+
+**Persistencia.** Migración `1756000014000` (creada, **no ejecutada** en base real; validada en PostgreSQL
+desechable): columnas del estado ADRES, tipo de documento con su origen, evidencia (hash, quién, cuándo),
+comparación y recomendación, con `CHECK` que impiden consulta sin identificador, evidencia sin hash o sin
+persona, tipo «confirmado» sin persona y **afiliación sin fuente**; además la autenticidad sigue exigiendo un
+verificador (ADRES no la establece). Evidencia `adres` (fuente `adres`, método `pdf_importado_adres_bdua`)
+con hash, quién aportó y campos no identificantes; **no** se guardan CAPTCHA, cookies, tokens ni sesión.
+Auditoría: `consulta_adres_preparada`, `evidencia_adres_cargada`, `evidencia_adres_procesada`,
+`comparacion_adres_realizada`, por identificadores.
+
+**Permisos y reserva.** Auxiliar, coordinación y administración, solo sobre `certificado_eps` y con el caso
+reservado por quien opera; otro funcionario no procesa a la vez el mismo caso y, vencida la reserva, puede
+tomarlo. Docente, estudiante, empresa y extensión no operan ADRES. El actor sale de la sesión; la identidad
+consultada sale de la validación, no del llamador.
+
+**Interfaz mínima** (`/eps`, no es la Mesa EPS de la Fase 5): bandeja con el estudiante reducido (documento
+enmascarado), método, afiliación, estado ADRES y responsable; acciones «Tomar», «Consultar ADRES» (solo con el
+caso tomado), «Cargar resultado» y la tabla de comparación.
+
+**Limitaciones conocidas.** El PDF de ADRES lo aporta una persona: SIPRA verifica que se presente como de
+ADRES/BDUA, que el documento corresponda y deja hash, autor y fecha, pero **no puede probar que el archivo no
+fue alterado**; por eso la recomendación nunca aprueba y la decisión sigue siendo humana.
+
+### 7.19 Spike: extensión de Chrome para la consulta ADRES (estudio, no implementación)
+
+**Decisión: VIABLE CON RIESGOS — no se recomienda construirla ahora.** El flujo manual (consultar, guardar PDF,
+subir) es la ruta base y **la extensión nunca es obligatoria**.
+
+**Qué haría.** Recibir de SIPRA (tipo, número, identificador de consulta firmado), abrir el portal oficial,
+**rellenar los dos campos normales y detenerse antes del CAPTCHA**; la persona lo resuelve; después facilitaría
+la captura (preferible: abrir «Guardar como PDF», que es lo que ya soporta SIPRA; alternativa: leer solo
+etiquetas permitidas del resultado visible).
+
+**Prohibido** (no se estudia ni se haría): tocar, leer o automatizar el CAPTCHA o su iframe; inyectar
+respuestas; llamar endpoints internos; interceptar tokens; copiar cookies o `sessionStorage`; ocultar la
+automatización; evadir restricciones; transmitir HTML completo.
+
+**Manifest V3 y permisos mínimos.** Sin `background` persistente (service worker). `permissions`:
+`activeTab` y `scripting` (el script solo se inyecta por un gesto explícito de la persona). `host_permissions`:
+únicamente el host del portal de consulta (**por confirmar por una persona**: la ayuda de ADRES menciona
+ventanas emergentes, lo que puede implicar otro origen o un iframe; eso ampliaría permisos y complica el
+script). `externally_connectable`: solo el origen de SIPRA. Sin `cookies`, `webRequest`, `tabs` amplios ni
+`<all_urls>`. Sin código remoto (política de Chrome).
+
+**Seguridad de los mensajes SIPRA ↔ extensión.** El mensaje lleva tipo, número y un identificador de consulta
+**firmado** (HMAC con clave de servidor), de **un solo uso**, con **expiración corta**, ligado a la validación y
+a la persona: justo lo que hoy implementa la consulta preparada (el servidor acepta el resultado solo si el
+identificador coincide con la consulta vigente de esa validación y de esa persona; se consume al cargar). La
+extensión no guarda secretos ni cookies, y lo que devuelva (datos estructurados + hash + identificador) se trataría
+como cualquier otro resultado aportado por una persona: contrastado, sin aprobar nada.
+
+**Riesgos.** El DOM del portal cambia sin aviso (mantenimiento continuo y roturas silenciosas); las condiciones
+de uso de ADRES para automatización asistida no están confirmadas; políticas de la Chrome Web Store (propósito
+único, permisos mínimos, política de privacidad, sin código remoto) y distribución interna (política
+empresarial / listado privado); revisión de seguridad por manejar datos personales en tránsito; el beneficio es
+pequeño (ahorra teclear dos campos; **no ayuda con el CAPTCHA**, que es lo que más pesa).
+
+**Para reconsiderarla.** (1) Un piloto de la Fase 5 que muestre que el tecleo o el cambio de ventana es un
+cuello de botella real; (2) confirmación por escrito de ADRES sobre este uso; (3) que una persona verifique el
+flujo y el DOM reales del portal. No se publica nada ni se usa la Chrome Web Store.
 
 ---
 
@@ -2596,6 +2732,20 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.8 — 26 de octubre de 2026
+
+Fase 4 EPS · consulta ADRES asistida y evidencia de afiliación (sin automatizar CAPTCHA, sin endpoints privados):
+
+- **Consulta ADRES asistida** (§7.18): preparar (identificador de un solo uso), abrir el portal oficial en el
+  navegador de la persona, cargar el resultado como PDF, lectura local, contraste triple, recomendación.
+- **Estado ADRES** propio en `ValidacionEps` y **fuente de la afiliación** (`verificador_oficial` / `adres_bdua`).
+- Migración `1756000014000` (no ejecutada en base real), evidencia `adres`, auditoría y rutas
+  `validaciones-eps/adres/bandeja`, `:id/adres/preparar`, `:id/adres/resultado`, `:id/adres/procesar`.
+- **Interfaz mínima** `/eps` (bandeja, consultar, cargar resultado, comparación).
+- **Spike de la extensión de Chrome** (§7.19): VIABLE CON RIESGOS, no recomendada por ahora.
+- **Pendientes (Fase 5):** Mesa EPS completa, política de frescura de ADRES, política de retención de EPS,
+  verificadores oficiales de EPS cuando existan, pruebas con resultados reales anonimizados.
 
 ### 0.17.7 — 26 de octubre de 2026
 

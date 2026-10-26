@@ -2,6 +2,7 @@ import { QueryRunner } from 'typeorm';
 import { ValidacionEps1756000011000 } from '../src/infrastructure/persistence/postgres/migrations/1756000011000-ValidacionEps';
 import { EvidenciaEpsOcr1756000012000 } from '../src/infrastructure/persistence/postgres/migrations/1756000012000-EvidenciaEpsOcr';
 import { VerificacionEps1756000013000 } from '../src/infrastructure/persistence/postgres/migrations/1756000013000-VerificacionEps';
+import { ConsultaAdres1756000014000 } from '../src/infrastructure/persistence/postgres/migrations/1756000014000-ConsultaAdres';
 import { MIGRACIONES } from '../src/infrastructure/persistence/postgres/migrations/todas.migracion';
 import {
   EvidenciaValidacionEpsOrm, ValidacionEpsOrm,
@@ -189,5 +190,68 @@ describe('Migración de verificación oficial (sin ejecutar)', () => {
     const down = await sql('down');
     expect(down).toMatch(/DROP CONSTRAINT IF EXISTS ck_veps_requiere_verificador/);
     expect(down).toMatch(/DROP COLUMN IF EXISTS verificador_codigo/);
+  });
+});
+
+describe('Migración de consulta ADRES asistida (sin ejecutar)', () => {
+  async function sql(metodo: 'up' | 'down'): Promise<string> {
+    const emitido: string[] = [];
+    const corredor = { query: (s: string) => { emitido.push(s.replace(/\s+/g, ' ').trim()); return Promise.resolve(); } };
+    await new ConsultaAdres1756000014000()[metodo](corredor as unknown as QueryRunner);
+    return emitido.join('\n');
+  }
+
+  it('está registrada justo después de la de verificación oficial', () => {
+    const i = MIGRACIONES.indexOf(ConsultaAdres1756000014000);
+    expect(i).toBeGreaterThan(0);
+    expect(MIGRACIONES[i - 1].name).toBe('VerificacionEps1756000013000');
+  });
+
+  it('agrega el estado ADRES con valores cerrados y por defecto «no_requerido»', async () => {
+    const up = await sql('up');
+    expect(up).toContain("adres_estado varchar(20) NOT NULL DEFAULT 'no_requerido'");
+    expect(up).toMatch(/ck_veps_adres_estado CHECK \(adres_estado IN \('no_requerido','pendiente','en_consulta','evidencia_recibida','procesado','error','no_determinable'\)\)/);
+    expect(up).toMatch(/ck_veps_adres_recomendacion/);
+  });
+
+  it('el tipo de documento es de un catálogo y «confirmación humana» exige quién la dio', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/ck_veps_tipo_documento CHECK \(tipo_documento IS NULL OR tipo_documento IN \('CC','TI','CE','PA'\)\)/);
+    expect(up).toMatch(/ck_veps_tipo_confirmacion CHECK \( tipo_documento_origen IS DISTINCT FROM 'confirmacion_humana' OR tipo_documento_confirmado_por IS NOT NULL\)/);
+  });
+
+  it('una consulta en curso exige su identificador y quién la preparó; la evidencia exige hash, quién y cuándo', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/ck_veps_adres_consulta CHECK \( adres_estado <> 'en_consulta' OR \(adres_consulta_id IS NOT NULL AND adres_consulta_vence_en IS NOT NULL AND adres_preparada_por IS NOT NULL AND tipo_documento IS NOT NULL\)\)/);
+    expect(up).toMatch(/ck_veps_adres_evidencia CHECK \( adres_estado NOT IN \('evidencia_recibida','procesado'\) OR \(adres_evidencia_hash IS NOT NULL AND adres_cargada_por IS NOT NULL AND adres_cargada_en IS NOT NULL\)\)/);
+  });
+
+  it('la afiliación establecida exige una FUENTE: verificador oficial o ADRES procesado', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/afiliacion NOT IN \('activa','inactiva'\) OR afiliacion_fuente IS NOT NULL/);
+    expect(up).toMatch(/afiliacion_fuente IS DISTINCT FROM 'adres_bdua' OR adres_estado = 'procesado'/);
+    expect(up).toMatch(/afiliacion_fuente IS DISTINCT FROM 'verificador_oficial' OR \(verificador_codigo IS NOT NULL AND verificado_en IS NOT NULL\)/);
+    // La autenticidad sigue exigiendo un verificador: ADRES no la establece.
+    expect(up).toMatch(/autenticidad NOT IN \('verificada','invalida'\) OR \(verificador_codigo IS NOT NULL AND verificado_en IS NOT NULL\)/);
+  });
+
+  it('conserva la fuente de la afiliación ya establecida y marca lo pendiente; no guarda CAPTCHA, cookies ni sesiones', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/UPDATE validaciones_eps SET afiliacion_fuente = 'verificador_oficial'/);
+    expect(up).toMatch(/UPDATE validaciones_eps SET adres_estado = 'pendiente'/);
+    expect(up.toLowerCase()).not.toMatch(/captcha|cookie|token|sesion|session/);
+    expect(up).not.toMatch(/DELETE FROM|TRUNCATE|DROP TABLE|GRANT|REVOKE/i);
+  });
+
+  it('indexa la bandeja y la búsqueda de evidencia por hash', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/ix_veps_adres ON validaciones_eps \(adres_estado, actualizada_en\) WHERE adres_estado <> 'no_requerido'/);
+    expect(up).toMatch(/ix_evidencias_eps_hash ON evidencias_validacion_eps \(hash_evidencia\) WHERE tipo = 'adres'/);
+  });
+
+  it('down restaura la restricción anterior y quita lo agregado', async () => {
+    const down = await sql('down');
+    expect(down).toMatch(/ADD CONSTRAINT ck_veps_requiere_verificador CHECK \( \(autenticidad NOT IN \('verificada','invalida'\) AND afiliacion NOT IN \('activa','inactiva'\)\)/);
+    expect(down).toMatch(/DROP COLUMN IF EXISTS afiliacion_fuente/);
   });
 });

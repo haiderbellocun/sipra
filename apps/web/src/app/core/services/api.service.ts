@@ -9,6 +9,7 @@ import {
   UsuarioAdministrativo, VacanteEditable, Vacante, VistaEstudianteSinu,
   CategoriaAyuda, PreguntaFrecuente, Pqrs, RadicarPqrs,
   ComparativaModeloIa, ConfiguracionIa, EstimacionIa, ResumenGastoIa, TarifaIa,
+  ConsultaAdresPreparada, FilaBandejaAdres, ResultadoAdres,
 } from '../models/modelos';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
@@ -24,6 +25,32 @@ const aParams = (valores: Record<string, string | number | boolean | null | unde
 export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly base = entorno.apiBase;
+
+  // ── Validación de EPS · consulta ADRES asistida ────────────────────────
+  // La persona consulta el portal oficial y resuelve ella misma la verificación; la API nunca llama a ADRES.
+  bandejaAdres(): Observable<FilaBandejaAdres[]> {
+    return this.http.get<FilaBandejaAdres[]>(`${this.base}/validaciones-eps/adres/bandeja`);
+  }
+
+  tomarCasoEps(id: string): Observable<unknown> {
+    return this.http.post(`${this.base}/validaciones-eps/${id}/reserva`, {});
+  }
+
+  liberarCasoEps(id: string): Observable<unknown> {
+    return this.http.delete(`${this.base}/validaciones-eps/${id}/reserva`);
+  }
+
+  prepararAdres(id: string, tipoDocumento?: string): Observable<ConsultaAdresPreparada> {
+    return this.http.post<ConsultaAdresPreparada>(`${this.base}/validaciones-eps/${id}/adres/preparar`, tipoDocumento ? { tipoDocumento } : {});
+  }
+
+  cargarResultadoAdres(id: string, formulario: FormData): Observable<ResultadoAdres> {
+    return this.http.post<ResultadoAdres>(`${this.base}/validaciones-eps/${id}/adres/resultado`, formulario);
+  }
+
+  procesarResultadoAdres(id: string): Observable<ResultadoAdres> {
+    return this.http.post<ResultadoAdres>(`${this.base}/validaciones-eps/${id}/adres/procesar`, {});
+  }
 
   // ── Prácticas ──────────────────────────────────────────────────────────
   listarPracticas(filtro: FiltroPracticas = {}): Observable<Practica[]> {

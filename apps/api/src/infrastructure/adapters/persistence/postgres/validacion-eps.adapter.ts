@@ -10,6 +10,9 @@ import {
 } from '../../../../domain/entities/validacion-eps.entity';
 import { ValidacionEpsRepositoryPort } from '../../../../domain/ports/out/validacion-eps.port';
 import {
+  ComparacionTripleCampo, DatosAdres, EstadoAdres, OrigenTipoDocumento, RecomendacionEps,
+} from '../../../../domain/entities/adres';
+import {
   EvidenciaValidacionEpsOrm, ValidacionEpsOrm,
 } from '../../../persistence/postgres/entities/validacion-eps.orm-entity';
 
@@ -36,6 +39,27 @@ const ValidacionEpsMapper = {
       verificacionIniciadaEn: orm.verificacion_iniciada_en,
       verificadoEn: orm.verificado_en,
       verificacionError: orm.verificacion_error,
+      afiliacionFuente: orm.afiliacion_fuente as 'verificador_oficial' | 'adres_bdua' | null,
+      adres: {
+        estado: orm.adres_estado as EstadoAdres,
+        consultaId: orm.adres_consulta_id,
+        consultaVenceEn: orm.adres_consulta_vence_en,
+        preparadaPor: orm.adres_preparada_por,
+        preparadaEn: orm.adres_preparada_en,
+        tipoDocumento: orm.tipo_documento,
+        tipoDocumentoOrigen: orm.tipo_documento_origen as OrigenTipoDocumento | null,
+        tipoDocumentoConfirmadoPor: orm.tipo_documento_confirmado_por,
+        consultadoEn: orm.adres_consultado_en,
+        fuenteActualizadaEn: orm.adres_fuente_actualizada_en,
+        evidenciaHash: orm.adres_evidencia_hash,
+        cargadaPor: orm.adres_cargada_por,
+        cargadaEn: orm.adres_cargada_en,
+        referenciaArchivo: orm.adres_referencia_archivo,
+        error: orm.adres_error,
+        datos: orm.adres_datos as unknown as DatosAdres | null,
+        comparacion: (orm.adres_comparacion ?? []) as unknown as ComparacionTripleCampo[],
+        recomendacion: orm.adres_recomendacion as RecomendacionEps | null,
+      },
       asignadoA: orm.asignado_a,
       reservadoEn: orm.reservado_en,
       reservaHasta: orm.reserva_hasta,
@@ -78,6 +102,25 @@ const ValidacionEpsMapper = {
       verificacion_iniciada_en: d.verificacionIniciadaEn,
       verificado_en: d.verificadoEn,
       verificacion_error: d.verificacionError,
+      afiliacion_fuente: d.afiliacionFuente,
+      adres_estado: d.adres.estado,
+      adres_consulta_id: d.adres.consultaId,
+      adres_consulta_vence_en: d.adres.consultaVenceEn,
+      adres_preparada_por: d.adres.preparadaPor,
+      adres_preparada_en: d.adres.preparadaEn,
+      tipo_documento: d.adres.tipoDocumento,
+      tipo_documento_origen: d.adres.tipoDocumentoOrigen,
+      tipo_documento_confirmado_por: d.adres.tipoDocumentoConfirmadoPor,
+      adres_consultado_en: d.adres.consultadoEn,
+      adres_fuente_actualizada_en: d.adres.fuenteActualizadaEn,
+      adres_evidencia_hash: d.adres.evidenciaHash,
+      adres_cargada_por: d.adres.cargadaPor,
+      adres_cargada_en: d.adres.cargadaEn,
+      adres_referencia_archivo: d.adres.referenciaArchivo,
+      adres_error: d.adres.error,
+      adres_datos: d.adres.datos as unknown as Record<string, unknown> | null,
+      adres_comparacion: d.adres.comparacion as unknown as Record<string, unknown>[],
+      adres_recomendacion: d.adres.recomendacion,
       asignado_a: d.asignadoA,
       reservado_en: d.reservadoEn,
       reserva_hasta: d.reservaHasta,
@@ -206,6 +249,24 @@ export class ValidacionEpsRepositoryAdapter implements ValidacionEpsRepositoryPo
     await this.evidencias.insert(EvidenciaMapper.aOrm(datos) as never);
     const orm = await this.evidencias.findOneOrFail({ where: { id: datos.id } });
     return EvidenciaMapper.aDominio(orm);
+  }
+
+  async buscarEvidenciaAdresPorHash(hash: string): Promise<{ validacionEpsId: string } | null> {
+    const fila = await this.evidencias.findOne({ where: { tipo: TipoEvidenciaEps.ADRES, hash_evidencia: hash } });
+    return fila ? { validacionEpsId: fila.validacion_eps_id } : null;
+  }
+
+  async listarParaAdres(limite: number): Promise<ValidacionEps[]> {
+    const filas = await this.repo
+      .createQueryBuilder('v')
+      .where('v.adres_estado IN (:...estados)', {
+        estados: [EstadoAdres.PENDIENTE, EstadoAdres.EN_CONSULTA, EstadoAdres.EVIDENCIA_RECIBIDA, EstadoAdres.ERROR, EstadoAdres.NO_DETERMINABLE],
+      })
+      .andWhere('v.decision IN (:...decisiones)', { decisiones: [DecisionEps.PENDIENTE, DecisionEps.CANDIDATO_AUTOAPROBACION] })
+      .orderBy('v.actualizada_en', 'ASC')
+      .limit(limite)
+      .getMany();
+    return filas.map((f) => ValidacionEpsMapper.aDominio(f));
   }
 
   async listarEvidencias(validacionEpsId: string): Promise<EvidenciaEps[]> {

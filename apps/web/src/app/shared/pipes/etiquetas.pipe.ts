@@ -107,6 +107,8 @@ const ETIQUETAS: Record<string, string> = {
   validacion_eps_liberada: 'Validación de EPS liberada', decision_eps: 'Decisión sobre la EPS',
   verificacion_eps_iniciada: 'Verificación oficial de EPS iniciada', verificacion_eps_completada: 'Verificación oficial de EPS completada',
   verificacion_eps_fallida: 'Verificación oficial de EPS sin resultado',
+  consulta_adres_preparada: 'Consulta ADRES preparada', evidencia_adres_cargada: 'Resultado ADRES cargado',
+  evidencia_adres_procesada: 'Resultado ADRES procesado', comparacion_adres_realizada: 'Comparación con ADRES realizada',
 };
 
 /** Traduce los códigos de la API a lenguaje comprensible en la interfaz. */

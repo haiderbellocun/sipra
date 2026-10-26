@@ -47,6 +47,10 @@ export enum AccionAuditada {
   VERIFICACION_EPS_INICIADA = 'verificacion_eps_iniciada',
   VERIFICACION_EPS_COMPLETADA = 'verificacion_eps_completada',
   VERIFICACION_EPS_FALLIDA = 'verificacion_eps_fallida',
+  CONSULTA_ADRES_PREPARADA = 'consulta_adres_preparada',
+  EVIDENCIA_ADRES_CARGADA = 'evidencia_adres_cargada',
+  EVIDENCIA_ADRES_PROCESADA = 'evidencia_adres_procesada',
+  COMPARACION_ADRES_REALIZADA = 'comparacion_adres_realizada',
 }
 
 export interface RegistroAuditoria {

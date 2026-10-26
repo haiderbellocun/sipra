@@ -112,6 +112,7 @@ import { ValidacionesEpsController } from '../controllers/validaciones-eps.contr
 import { ValidacionEpsUseCase } from '../../application/use-cases/documentos/validacion-eps.use-case';
 import { VALIDACION_EPS_REPOSITORY } from '../../domain/ports/out/validacion-eps.port';
 import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
+import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/consulta-adres.use-case';
 import { ADAPTADORES_RESPUESTA_EPS, VERIFICADOR_CERTIFICADO_EPS } from '../../domain/ports/out/verificador-certificado-eps.port';
 import {
   REGISTRO_VERIFICADORES_EPS, RegistroVerificadoresEps, VERIFICADORES_EPS_OFICIALES,
@@ -316,6 +317,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: ClienteHttpSeguro, useFactory: () => new ClienteHttpSeguro() },
     { provide: VERIFICADOR_CERTIFICADO_EPS, useClass: VerificadorEpsHttpAdapter },
     VerificacionEpsUseCase,
+    ConsultaAdresUseCase,
     PipelineValidacionUseCase,
     ProcesarTrabajoUseCase,
     GestionarDocumentoUseCase,

@@ -22,6 +22,10 @@
  * llena ni purga nada.
  */
 
+import {
+  ComparacionTripleCampo, DatosAdres, EstadoAdres, EstadoAdresValidacion, OrigenTipoDocumento, RecomendacionEps, adresInicial,
+} from './adres';
+
 export enum EstadoProcesamientoEps {
   PENDIENTE = 'pendiente',
   PROCESANDO = 'procesando',
@@ -162,6 +166,13 @@ export interface DatosValidacionEps {
   decididoEn: Date | null;
   /** POLÍTICA DE RETENCIÓN EPS PENDIENTE DE DEFINICIÓN INSTITUCIONAL: siempre nulo por ahora. */
   retencionHasta: Date | null;
+  /**
+   * Quién estableció la afiliación (activa/inactiva): un verificador oficial del certificado o una
+   * consulta ADRES aportada por una persona. Nulo mientras la afiliación no está contrastada.
+   */
+  afiliacionFuente: 'verificador_oficial' | 'adres_bdua' | null;
+  /** Consulta ADRES asistida: estado propio, separado de autenticidad, coincidencia, afiliación y decisión. */
+  adres: EstadoAdresValidacion;
   /** Versión optimista: cada escritura la incrementa y exige la que se leyó. */
   version: number;
   creadaEn: Date;
@@ -223,6 +234,17 @@ export function evaluarCandidatoAutoaprobacion(entrada: EntradaCandidatura): {
   return { candidato: faltantes.length === 0, faltantes };
 }
 
+function copiarAdres(a: EstadoAdresValidacion): EstadoAdresValidacion {
+  return { ...a, datos: a.datos ? { ...a.datos } : null, comparacion: a.comparacion.map((c) => ({ ...c, conflictos: [...c.conflictos] })) };
+}
+
+export class ConsultaAdresInvalidaError extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'ConsultaAdresInvalidaError';
+  }
+}
+
 export class ValidacionEps {
   private constructor(private datos: DatosValidacionEps) {}
 
@@ -232,6 +254,7 @@ export class ValidacionEps {
       discrepancias: [...datos.discrepancias],
       datosExtraidos: datos.datosExtraidos ? { ...datos.datosExtraidos } : null,
       datosVerificados: datos.datosVerificados ? { ...datos.datosVerificados } : null,
+      adres: copiarAdres(datos.adres),
     });
   }
 
@@ -266,6 +289,8 @@ export class ValidacionEps {
       decididoPor: null,
       decididoEn: null,
       retencionHasta: null,
+      afiliacionFuente: null,
+      adres: adresInicial(),
       version: 1,
       creadaEn: entrada.ahora,
       actualizadaEn: entrada.ahora,
@@ -292,6 +317,7 @@ export class ValidacionEps {
       discrepancias: [...this.datos.discrepancias],
       datosExtraidos: this.datos.datosExtraidos ? { ...this.datos.datosExtraidos } : null,
       datosVerificados: this.datos.datosVerificados ? { ...this.datos.datosVerificados } : null,
+      adres: copiarAdres(this.datos.adres),
     };
   }
 
@@ -399,7 +425,10 @@ export class ValidacionEps {
     this.datos.verificacionIniciadaEn = null;
     this.datos.verificacionError = null;
     this.datos.autenticidad = r.autenticidad;
-    if (r.afiliacion !== undefined) this.datos.afiliacion = r.afiliacion;
+    if (r.afiliacion !== undefined) {
+      this.datos.afiliacion = r.afiliacion;
+      if (r.afiliacion === AfiliacionEps.ACTIVA || r.afiliacion === AfiliacionEps.INACTIVA) this.datos.afiliacionFuente = 'verificador_oficial';
+    }
     this.datos.ruta = r.ruta;
     this.datos.datosVerificados = r.datosVerificados ? { ...r.datosVerificados } : null;
     if (r.coincidencia !== undefined) this.datos.coincidencia = r.coincidencia;
@@ -422,6 +451,101 @@ export class ValidacionEps {
     if (autenticidad !== undefined) this.datos.autenticidad = autenticidad;
     this.datos.actualizadaEn = ahora;
     this.recalcularCandidatura();
+  }
+
+  // ── Consulta ADRES asistida ───────────────────────────────────────────────
+
+  get adresEstado(): EstadoAdres { return this.datos.adres.estado; }
+
+  adresInstantanea(): EstadoAdresValidacion { return copiarAdres(this.datos.adres); }
+
+  /** ¿La consulta preparada sigue vigente y es de esta persona? (un solo uso, vida corta). */
+  consultaAdresVigente(consultaId: string, actorId: string, ahora: Date): boolean {
+    const a = this.datos.adres;
+    return a.estado === EstadoAdres.EN_CONSULTA && a.consultaId !== null && a.consultaId === consultaId
+      && a.preparadaPor === actorId && a.consultaVenceEn !== null && a.consultaVenceEn.getTime() > ahora.getTime();
+  }
+
+  /** SIPRA prepara la consulta; no llama a ADRES. Emite un identificador de un solo uso. */
+  prepararConsultaAdres(p: {
+    consultaId: string; actorId: string; ahora: Date; venceEn: Date; tipoDocumento: string;
+    origenTipoDocumento: OrigenTipoDocumento; confirmadoPor: string | null;
+  }): void {
+    this.exigirNoDecidida();
+    const a = this.datos.adres;
+    if (![EstadoAdres.PENDIENTE, EstadoAdres.EN_CONSULTA, EstadoAdres.ERROR, EstadoAdres.NO_DETERMINABLE].includes(a.estado)) {
+      throw new ConsultaAdresInvalidaError('Esta validación no necesita una consulta ADRES en su estado actual');
+    }
+    a.estado = EstadoAdres.EN_CONSULTA;
+    a.consultaId = p.consultaId;
+    a.consultaVenceEn = p.venceEn;
+    a.preparadaPor = p.actorId;
+    a.preparadaEn = p.ahora;
+    a.tipoDocumento = p.tipoDocumento;
+    a.tipoDocumentoOrigen = p.origenTipoDocumento;
+    a.tipoDocumentoConfirmadoPor = p.confirmadoPor;
+    a.error = null;
+    this.datos.actualizadaEn = p.ahora;
+  }
+
+  /** La persona aportó el resultado (PDF). El identificador de la consulta se consume: no se reutiliza. */
+  recibirEvidenciaAdres(p: { hash: string; referenciaArchivo: string; actorId: string; ahora: Date; consultadoEn: Date | null }): void {
+    this.exigirNoDecidida();
+    const a = this.datos.adres;
+    if (a.estado !== EstadoAdres.EN_CONSULTA) throw new ConsultaAdresInvalidaError('No hay una consulta ADRES en curso');
+    a.estado = EstadoAdres.EVIDENCIA_RECIBIDA;
+    a.evidenciaHash = p.hash;
+    a.referenciaArchivo = p.referenciaArchivo;
+    a.cargadaPor = p.actorId;
+    a.cargadaEn = p.ahora;
+    a.consultadoEn = p.consultadoEn;
+    a.consultaId = null;
+    a.consultaVenceEn = null;
+    a.error = null;
+    this.datos.actualizadaEn = p.ahora;
+  }
+
+  /**
+   * Incorpora lo que dice ADRES. SOLO el eje de afiliación puede cambiar (y solo si el resultado
+   * quedó atado al estudiante). La autenticidad del certificado NO se toca: ADRES no lo expide.
+   */
+  registrarResultadoAdres(r: {
+    estado: EstadoAdres.PROCESADO | EstadoAdres.NO_DETERMINABLE; error: string | null; datos: DatosAdres;
+    comparacion: ComparacionTripleCampo[]; afiliacion: AfiliacionEps | null; recomendacion: RecomendacionEps;
+    consultadoEn: Date | null; fuenteActualizadaEn: Date | null;
+  }, ahora: Date): void {
+    this.exigirNoDecidida();
+    const a = this.datos.adres;
+    if (a.estado !== EstadoAdres.EVIDENCIA_RECIBIDA && a.estado !== EstadoAdres.ERROR) {
+      throw new ConsultaAdresInvalidaError('No hay un resultado ADRES por procesar');
+    }
+    a.estado = r.estado;
+    a.error = r.error;
+    a.datos = { ...r.datos };
+    a.comparacion = r.comparacion.map((c) => ({ ...c, conflictos: [...c.conflictos] }));
+    a.recomendacion = r.recomendacion;
+    if (r.consultadoEn) a.consultadoEn = r.consultadoEn;
+    a.fuenteActualizadaEn = r.fuenteActualizadaEn;
+    if (r.afiliacion === AfiliacionEps.ACTIVA || r.afiliacion === AfiliacionEps.INACTIVA) {
+      this.datos.afiliacion = r.afiliacion;
+      this.datos.afiliacionFuente = 'adres_bdua';
+    } else if (r.afiliacion === AfiliacionEps.NO_DETERMINABLE && this.datos.afiliacionFuente === null) {
+      this.datos.afiliacion = AfiliacionEps.NO_DETERMINABLE;
+    }
+    this.datos.actualizadaEn = ahora;
+    this.recalcularCandidatura();
+  }
+
+  /** El resultado no se pudo leer: queda en error y se puede volver a procesar o cargar otro. */
+  marcarErrorAdres(codigo: string, ahora: Date): void {
+    this.exigirNoDecidida();
+    const a = this.datos.adres;
+    if (a.estado !== EstadoAdres.EVIDENCIA_RECIBIDA && a.estado !== EstadoAdres.ERROR) {
+      throw new ConsultaAdresInvalidaError('No hay un resultado ADRES por procesar');
+    }
+    a.estado = EstadoAdres.ERROR;
+    a.error = codigo.slice(0, 40);
+    this.datos.actualizadaEn = ahora;
   }
 
   marcarError(codigo: string, ahora: Date): void {
@@ -499,5 +623,16 @@ export class ValidacionEps {
       hayBanderaCritica: this.datos.hayBanderaCritica,
     });
     this.datos.decision = candidato ? DecisionEps.CANDIDATO_AUTOAPROBACION : DecisionEps.PENDIENTE;
+    this.evaluarNecesidadAdres();
+  }
+
+  /** ¿Falta contrastar la afiliación con ADRES? Solo alterna entre «no requerido» y «pendiente». */
+  private evaluarNecesidadAdres(): void {
+    const a = this.datos.adres;
+    const necesita = this.datos.estadoProcesamiento === EstadoProcesamientoEps.PROCESADO && !this.estaDecidida
+      && this.datos.afiliacionFuente === null
+      && [AfiliacionEps.NO_CONTRASTADA, AfiliacionEps.NO_DETERMINABLE].includes(this.datos.afiliacion);
+    if (necesita && a.estado === EstadoAdres.NO_REQUERIDO) a.estado = EstadoAdres.PENDIENTE;
+    if (!necesita && a.estado === EstadoAdres.PENDIENTE) a.estado = EstadoAdres.NO_REQUERIDO;
   }
 }

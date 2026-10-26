@@ -178,6 +178,38 @@ async function main(): Promise<void> {
     await ds.query("UPDATE validaciones_eps SET autenticidad = 'verificada', verificador_codigo = 'v', verificado_en = now() WHERE id = $1", [idV]);
     comprobar('autenticidad verificada CON verificador y fecha se acepta', true);
     await ds.query("UPDATE validaciones_eps SET autenticidad = 'no_evaluada', verificador_codigo = NULL, verificado_en = NULL WHERE id = $1", [idV]);
+    // ── Consulta ADRES asistida ──
+    await rechaza('estado ADRES fuera del catálogo', () =>
+      ds.query("UPDATE validaciones_eps SET adres_estado = 'automatico' WHERE id = $1", [idV]), /ck_veps_adres_estado/);
+    await rechaza('consulta en curso sin identificador ni quién la preparó', () =>
+      ds.query("UPDATE validaciones_eps SET adres_estado = 'en_consulta' WHERE id = $1", [idV]), /ck_veps_adres_consulta/);
+    await rechaza('evidencia ADRES recibida sin hash ni quién la cargó', () =>
+      ds.query("UPDATE validaciones_eps SET adres_estado = 'evidencia_recibida' WHERE id = $1", [idV]), /ck_veps_adres_evidencia/);
+    await rechaza('tipo de documento fuera del catálogo', () =>
+      ds.query("UPDATE validaciones_eps SET tipo_documento = 'XX' WHERE id = $1", [idV]), /ck_veps_tipo_documento/);
+    await rechaza('tipo de documento «confirmado» sin persona', () =>
+      ds.query("UPDATE validaciones_eps SET tipo_documento = 'CC', tipo_documento_origen = 'confirmacion_humana' WHERE id = $1", [idV]), /ck_veps_tipo_confirmacion/);
+    await rechaza('recomendación fuera del catálogo', () =>
+      ds.query("UPDATE validaciones_eps SET adres_recomendacion = 'aprobar' WHERE id = $1", [idV]), /ck_veps_adres_recomendacion/);
+    await rechaza('afiliación activa sin fuente', () =>
+      ds.query("UPDATE validaciones_eps SET afiliacion = 'activa' WHERE id = $1", [idV]), /ck_veps_requiere_verificador/);
+    await rechaza('fuente ADRES sin consulta procesada', () =>
+      ds.query("UPDATE validaciones_eps SET afiliacion = 'activa', afiliacion_fuente = 'adres_bdua' WHERE id = $1", [idV]), /ck_veps_requiere_verificador/);
+    await rechaza('fuente «verificador oficial» sin verificador', () =>
+      ds.query("UPDATE validaciones_eps SET afiliacion = 'activa', afiliacion_fuente = 'verificador_oficial' WHERE id = $1", [idV]), /ck_veps_requiere_verificador/);
+    await rechaza('ADRES no puede establecer la AUTENTICIDAD del certificado', () =>
+      ds.query("UPDATE validaciones_eps SET autenticidad = 'verificada', adres_estado = 'procesado', adres_evidencia_hash = $2, adres_cargada_por = $3, adres_cargada_en = now() WHERE id = $1",
+        [idV, 'd'.repeat(64), funcionario]), /ck_veps_requiere_verificador/);
+    await ds.query(
+      `UPDATE validaciones_eps SET adres_estado = 'procesado', adres_evidencia_hash = $2, adres_cargada_por = $3, adres_cargada_en = now(),
+         tipo_documento = 'CC', tipo_documento_origen = 'confirmacion_humana', tipo_documento_confirmado_por = $3,
+         afiliacion = 'activa', afiliacion_fuente = 'adres_bdua' WHERE id = $1`,
+      [idV, 'd'.repeat(64), funcionario]);
+    comprobar('afiliación activa por ADRES con consulta procesada, hash y persona: se acepta', true);
+    await ds.query(
+      `UPDATE validaciones_eps SET adres_estado = 'pendiente', adres_evidencia_hash = NULL, adres_cargada_por = NULL, adres_cargada_en = NULL,
+         tipo_documento = NULL, tipo_documento_origen = NULL, tipo_documento_confirmado_por = NULL,
+         afiliacion = 'no_contrastada', afiliacion_fuente = NULL WHERE id = $1`, [idV]);
     await rechaza('eje con valor fuera del catálogo', () =>
       ds.query("UPDATE validaciones_eps SET afiliacion = 'vigente' WHERE id = $1", [idV]), /ck_veps_afiliacion/);
     await rechaza('segunda validación para el mismo documento', () =>

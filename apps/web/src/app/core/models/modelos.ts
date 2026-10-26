@@ -515,3 +515,31 @@ export interface LecturaAsistida {
   resumen: string | null; hallazgos: HallazgoLectura[]; tokensEntrada: number; tokensSalida: number; costoUsd: number;
   leidoEn: string | null; campos: Record<string, CampoLectura>;
 }
+
+// ── Validación de EPS · consulta ADRES asistida ─────────────────────────────
+
+export type EstadoAdres =
+  | 'no_requerido' | 'pendiente' | 'en_consulta' | 'evidencia_recibida' | 'procesado' | 'error' | 'no_determinable';
+
+export interface ComparacionTriple {
+  campo: string; sipra: string | null; certificado: string | null; adres: string | null;
+  resultado: 'coincide' | 'diferente' | 'no_disponible'; conflictos: string[]; critico: boolean;
+}
+
+export interface FilaBandejaAdres {
+  validacionId: string; documentoId: string;
+  estudiante: { nombre: string; documentoEnmascarado: string };
+  metodoValidacion: 'qr_oficial' | 'sin_verificar'; afiliacion: string; estadoAdres: EstadoAdres;
+  recomendacion: string | null; responsable: string | null; reservaHasta: string | null; actualizadaEn: string;
+}
+
+export interface ConsultaAdresPreparada {
+  estado: 'preparada' | 'requiere_tipo_documento';
+  consultaId?: string; tipoDocumento?: string; numeroDocumento?: string; portalUrl?: string; venceEn?: string;
+  instrucciones?: string[]; opciones?: string[]; sugerencia?: string | null;
+}
+
+export interface ResultadoAdres {
+  validacionId: string; estadoAdres: EstadoAdres; afiliacion: string; recomendacion: string | null; error: string | null;
+  duplicada: boolean; comparacion: ComparacionTriple[];
+}

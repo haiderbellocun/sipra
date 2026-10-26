@@ -52,6 +52,16 @@ export class ValidacionesEnMemoria implements ValidacionEpsRepositoryPort {
     this.evidencias.push(datos);
     return Promise.resolve(EvidenciaEps.desde(datos));
   }
+  buscarEvidenciaAdresPorHash(hash: string) {
+    const e = this.evidencias.find((x) => String(x.tipo) === 'adres' && x.hashEvidencia === hash);
+    return Promise.resolve(e ? { validacionEpsId: e.validacionEpsId } : null);
+  }
+  listarParaAdres(limite: number) {
+    const abiertos = ['pendiente', 'en_consulta', 'evidencia_recibida', 'error', 'no_determinable'];
+    return Promise.resolve([...this.filas.values()]
+      .filter((f) => abiertos.includes(f.adres.estado) && ['pendiente', 'candidato_autoaprobacion'].includes(f.decision))
+      .slice(0, limite).map((f) => ValidacionEps.desde({ ...f })));
+  }
   listarEvidencias(id: string) {
     return Promise.resolve(this.evidencias.filter((e) => e.validacionEpsId === id).map((e) => EvidenciaEps.desde(e)));
   }

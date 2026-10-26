@@ -23,6 +23,26 @@ export class ValidacionEpsOrm {
   @Column({ type: 'timestamptz', nullable: true }) verificacion_iniciada_en!: Date | null;
   @Column({ type: 'timestamptz', nullable: true }) verificado_en!: Date | null;
   @Column({ type: 'varchar', length: 40, nullable: true }) verificacion_error!: string | null;
+  @Column({ type: 'varchar', length: 20, nullable: true }) afiliacion_fuente!: string | null;
+  // ── Consulta ADRES asistida ──
+  @Column({ type: 'varchar', length: 20 }) adres_estado!: string;
+  @Column({ type: 'uuid', nullable: true }) adres_consulta_id!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) adres_consulta_vence_en!: Date | null;
+  @Column({ type: 'uuid', nullable: true }) adres_preparada_por!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) adres_preparada_en!: Date | null;
+  @Column({ type: 'varchar', length: 4, nullable: true }) tipo_documento!: string | null;
+  @Column({ type: 'varchar', length: 25, nullable: true }) tipo_documento_origen!: string | null;
+  @Column({ type: 'uuid', nullable: true }) tipo_documento_confirmado_por!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) adres_consultado_en!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) adres_fuente_actualizada_en!: Date | null;
+  @Column({ type: 'char', length: 64, nullable: true }) adres_evidencia_hash!: string | null;
+  @Column({ type: 'uuid', nullable: true }) adres_cargada_por!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) adres_cargada_en!: Date | null;
+  @Column({ type: 'varchar', length: 300, nullable: true }) adres_referencia_archivo!: string | null;
+  @Column({ type: 'varchar', length: 40, nullable: true }) adres_error!: string | null;
+  @Column({ type: 'jsonb', nullable: true }) adres_datos!: Record<string, unknown> | null;
+  @Column({ type: 'jsonb' }) adres_comparacion!: Record<string, unknown>[];
+  @Column({ type: 'varchar', length: 40, nullable: true }) adres_recomendacion!: string | null;
   @Column({ type: 'uuid', nullable: true }) asignado_a!: string | null;
   @Column({ type: 'timestamptz', nullable: true }) reservado_en!: Date | null;
   @Column({ type: 'timestamptz', nullable: true }) reserva_hasta!: Date | null;
