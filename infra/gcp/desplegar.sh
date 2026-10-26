@@ -199,7 +199,7 @@ gcloud run jobs deploy "sipra-migraciones-$AMBIENTE" \
   --region="$REGION" --image="$REGISTRO/api:$ETIQUETA_API" \
   --command=node --args=dist/migrar.js \
   "${RED_ARGS[@]}" --service-account="$SA" \
-  --set-env-vars="NODE_ENV=production,SIPRA_AMBIENTE=$AMBIENTE,$DB_ENV,DB_USER=sipra,DB_NAME=sipra_$AMBIENTE,AUTH_MODO=abierto,STORAGE_DRIVER=local,IA_DRIVER=simulado,SINU_DRIVER=simulado,CORREO_DRIVER=consola" \
+  --set-env-vars="NODE_ENV=production,SIPRA_AMBIENTE=$AMBIENTE,$DB_ENV,DB_USER=sipra,DB_NAME=sipra_$AMBIENTE,AUTH_MODO=abierto,AUTH_ABIERTO_CONFIRMADO=true,STORAGE_DRIVER=local,IA_DRIVER=simulado,SINU_DRIVER=simulado,CORREO_DRIVER=consola" \
   --set-secrets="DB_PASSWORD=sipra-$AMBIENTE-db-pass:latest,JWT_SECRETO=sipra-$AMBIENTE-jwt:latest" \
   --max-retries=0 --task-timeout=15m --quiet
 gcloud run jobs execute "sipra-migraciones-$AMBIENTE" --region="$REGION" --wait --quiet
@@ -214,7 +214,7 @@ azul "Desplegando la API"
 gcloud run deploy "sipra-api-$AMBIENTE" \
   --image="$REGISTRO/api:$ETIQUETA_API" --region="$REGION" --service-account="$SA" \
   "${RED_ARGS[@]}" \
-  --set-env-vars="NODE_ENV=production,SIPRA_AMBIENTE=$AMBIENTE,AUTH_MODO=abierto,API_PREFIJO=api,API_VERSION=1,COLA_DRIVER=en_proceso,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,$IA_ENV,SINU_DRIVER=simulado,CORREO_DRIVER=consola,LOG_NIVEL=info,$DB_ENV,DB_USER=sipra,DB_NAME=sipra_$AMBIENTE,GCP_PROYECTO=$PROYECTO,GCP_REGION=$REGION" \
+  --set-env-vars="NODE_ENV=production,SIPRA_AMBIENTE=$AMBIENTE,AUTH_MODO=abierto,AUTH_ABIERTO_CONFIRMADO=true,API_PREFIJO=api,API_VERSION=1,COLA_DRIVER=en_proceso,STORAGE_DRIVER=gcs,GCS_BUCKET=$BUCKET,$IA_ENV,SINU_DRIVER=simulado,CORREO_DRIVER=consola,LOG_NIVEL=info,$DB_ENV,DB_USER=sipra,DB_NAME=sipra_$AMBIENTE,GCP_PROYECTO=$PROYECTO,GCP_REGION=$REGION" \
   --set-secrets="JWT_SECRETO=sipra-$AMBIENTE-jwt:latest,DB_PASSWORD=sipra-$AMBIENTE-db-pass:latest$IA_SECRETS" \
   --allow-unauthenticated --port=8080 --memory=1Gi --cpu=1 --no-cpu-throttling \
   --min-instances=0 --max-instances=4 --timeout=120 --quiet

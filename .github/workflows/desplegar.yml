@@ -79,7 +79,7 @@ jobs:
             --image="$IMAGEN_API" --region="$REGION" \
             --service-account="sipra-app-${AMBIENTE}@${PROYECTO}.iam.gserviceaccount.com" \
             --add-cloudsql-instances="$CONEXION_SQL" \
-            --set-env-vars="NODE_ENV=production,SIPRA_AMBIENTE=${AMBIENTE},AUTH_MODO=abierto,API_PREFIJO=api,API_VERSION=1,COLA_DRIVER=en_proceso,STORAGE_DRIVER=gcs,GCS_BUCKET=${BUCKET},IA_DRIVER=simulado,SINU_DRIVER=simulado,CORREO_DRIVER=consola,LOG_NIVEL=info,DB_SOCKET_PATH=/cloudsql/${CONEXION_SQL},DB_USER=sipra,DB_NAME=sipra_${AMBIENTE},GCP_PROYECTO=${PROYECTO},GCP_REGION=${REGION}" \
+            --set-env-vars="NODE_ENV=production,SIPRA_AMBIENTE=${AMBIENTE},AUTH_MODO=abierto,AUTH_ABIERTO_CONFIRMADO=true,API_PREFIJO=api,API_VERSION=1,COLA_DRIVER=en_proceso,STORAGE_DRIVER=gcs,GCS_BUCKET=${BUCKET},IA_DRIVER=simulado,SINU_DRIVER=simulado,CORREO_DRIVER=consola,LOG_NIVEL=info,DB_SOCKET_PATH=/cloudsql/${CONEXION_SQL},DB_USER=sipra,DB_NAME=sipra_${AMBIENTE},GCP_PROYECTO=${PROYECTO},GCP_REGION=${REGION}" \
             --set-secrets="JWT_SECRETO=sipra-${AMBIENTE}-jwt:latest,DB_PASSWORD=sipra-${AMBIENTE}-db-pass:latest" \
             --allow-unauthenticated --port=8080 --memory=1Gi --cpu=1 \
             --min-instances=0 --max-instances=4 --timeout=120 --quiet
@@ -96,7 +96,7 @@ jobs:
           export DB_SOCKET_PATH="/tmp/cloudsql/$CONEXION_SQL" DB_USER=sipra DB_NAME="sipra_${AMBIENTE}"
           export DB_PASSWORD="$(gcloud secrets versions access latest --secret=sipra-${AMBIENTE}-db-pass)"
           export JWT_SECRETO="$(gcloud secrets versions access latest --secret=sipra-${AMBIENTE}-jwt)"
-          export NODE_ENV=production SIPRA_AMBIENTE="${AMBIENTE}" AUTH_MODO=abierto
+          export NODE_ENV=production SIPRA_AMBIENTE="${AMBIENTE}" AUTH_MODO=abierto AUTH_ABIERTO_CONFIRMADO=true
           export STORAGE_DRIVER=local IA_DRIVER=simulado SINU_DRIVER=simulado CORREO_DRIVER=consola
           npm run build --workspace=@sipra/api
           npm run migration:run

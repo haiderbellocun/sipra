@@ -26,8 +26,10 @@ export class VariablesEntorno {
   @IsIn(['development', 'test', 'production'])
   NODE_ENV = 'development';
 
-  @IsEnum(Ambiente)
-  SIPRA_AMBIENTE: Ambiente = Ambiente.DEV;
+  // Sin valor de fábrica: un ambiente sin declarar no puede arrancar «como dev»,
+  // porque `dev` es justo el único donde se permite el ingreso abierto.
+  @IsEnum(Ambiente, { message: 'SIPRA_AMBIENTE es obligatorio: dev, qa, pre o prod' })
+  SIPRA_AMBIENTE!: Ambiente;
 
   @IsInt() @Min(1) @Max(65535)
   PORT = 3000;
@@ -52,8 +54,15 @@ export class VariablesEntorno {
   @IsInt() REDIS_PORT = 6379;
   @IsInt() REDIS_TTL_SEGUNDOS = 300;
 
-  @IsEnum(ModoAutenticacion)
-  AUTH_MODO: ModoAutenticacion = ModoAutenticacion.ABIERTO;
+  // Sin valor de fábrica: omitirla no puede degradar el ambiente a ingreso abierto.
+  @IsEnum(ModoAutenticacion, { message: 'AUTH_MODO es obligatorio: abierto u oidc' })
+  AUTH_MODO!: ModoAutenticacion;
+
+  /**
+   * Segunda llave del ingreso abierto: `AUTH_MODO=abierto` solo arranca si,
+   * además, esta bandera es `true` y el ambiente es `dev`.
+   */
+  @IsBoolean() AUTH_ABIERTO_CONFIRMADO = false;
 
   @IsString() @MinLength(32, {
     message: 'JWT_SECRETO debe tener al menos 32 caracteres y ser distinto en cada ambiente',
@@ -130,7 +139,7 @@ export class VariablesEntorno {
 }
 
 const BOOLEANOS = new Set([
-  'DB_SSL', 'METRICAS_HABILITADAS', 'SPE_ANEXO_CONFIRMADO',
+  'DB_SSL', 'METRICAS_HABILITADAS', 'SPE_ANEXO_CONFIRMADO', 'AUTH_ABIERTO_CONFIRMADO',
 ]);
 const ENTEROS = new Set([
   'PORT', 'DB_PORT', 'REDIS_PORT', 'REDIS_TTL_SEGUNDOS',
@@ -169,21 +178,44 @@ export function validarEntorno(bruto: Record<string, unknown>): VariablesEntorno
 }
 
 /**
+ * ¿El ingreso abierto por selección de perfil está habilitado? Exige las tres
+ * condiciones a la vez: modo `abierto`, confirmación explícita y ambiente `dev`.
+ * Lo usan el arranque y el controlador, de modo que ambos decidan igual.
+ */
+export function ingresoAbiertoPermitido(config: {
+  AUTH_MODO?: unknown; AUTH_ABIERTO_CONFIRMADO?: unknown; SIPRA_AMBIENTE?: unknown;
+}): boolean {
+  return (
+    config.AUTH_MODO === ModoAutenticacion.ABIERTO &&
+    config.AUTH_ABIERTO_CONFIRMADO === true &&
+    config.SIPRA_AMBIENTE === Ambiente.DEV
+  );
+}
+
+/**
  * Reglas que ningún despliegue puede saltarse.
  *
- * El ingreso abierto por selección de perfil es una decisión deliberada del
- * ambiente de pruebas. Aquí se garantiza que no viaje a preproducción ni a
- * producción por descuido: allí el arranque falla.
+ * El ingreso abierto por selección de perfil existe únicamente para desarrollo
+ * local: exige `SIPRA_AMBIENTE=dev`, `AUTH_MODO=abierto` y
+ * `AUTH_ABIERTO_CONFIRMADO=true` a la vez. En cualquier otro ambiente, o con
+ * cualquiera de las tres faltando, el arranque falla.
  */
 function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
   const errores: string[] = [];
   const ambientesCerrados: Ambiente[] = [Ambiente.PRE, Ambiente.PROD];
 
-  if (config.AUTH_MODO === ModoAutenticacion.ABIERTO && ambientesCerrados.includes(config.SIPRA_AMBIENTE)) {
-    errores.push(
-      `AUTH_MODO=abierto está prohibido en el ambiente "${config.SIPRA_AMBIENTE}". ` +
-        'El ingreso sin contraseña solo existe en dev y qa.',
-    );
+  if (config.AUTH_MODO === ModoAutenticacion.ABIERTO) {
+    if (config.SIPRA_AMBIENTE !== Ambiente.DEV) {
+      errores.push(
+        `AUTH_MODO=abierto está prohibido en el ambiente "${config.SIPRA_AMBIENTE}". ` +
+          'El ingreso sin contraseña solo existe en desarrollo local (SIPRA_AMBIENTE=dev).',
+      );
+    } else if (!config.AUTH_ABIERTO_CONFIRMADO) {
+      errores.push(
+        'AUTH_MODO=abierto exige AUTH_ABIERTO_CONFIRMADO=true: el ingreso sin contraseña ' +
+          'debe habilitarse de forma explícita.',
+      );
+    }
   }
 
   // Una base mal declarada debe impedir el arranque, no descubrirse en la
@@ -209,6 +241,9 @@ function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
     if (!config.OIDC_CLIENT_ID) errores.push('AUTH_MODO=oidc exige OIDC_CLIENT_ID');
     if (!config.OIDC_CLIENT_SECRET) errores.push('AUTH_MODO=oidc exige OIDC_CLIENT_SECRET');
     if (!config.OIDC_REDIRECT_URI) errores.push('AUTH_MODO=oidc exige OIDC_REDIRECT_URI');
+    else if (!/^https?:\/\/\S+$/.test(config.OIDC_REDIRECT_URI)) {
+      errores.push('OIDC_REDIRECT_URI debe ser una URL http(s) absoluta de la pantalla /ingreso/callback');
+    }
   }
 
   if (ambientesCerrados.includes(config.SIPRA_AMBIENTE)) {

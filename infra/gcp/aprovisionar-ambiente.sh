@@ -34,7 +34,7 @@ elif [[ "$AMBIENTE" == "pre" ]]; then
   ALTA_DISPONIBILIDAD="--availability-type=ZONAL"; AUTH_MODO="oidc"
 else
   NIVEL_SQL="db-g1-small"; RESPALDOS="--backup-start-time=07:00"
-  ALTA_DISPONIBILIDAD="--availability-type=ZONAL"; AUTH_MODO="abierto"
+  ALTA_DISPONIBILIDAD="--availability-type=ZONAL"; AUTH_MODO="oidc"
 fi
 
 echo "▸ Ambiente $AMBIENTE · proyecto $PROYECTO · región $REGION · autenticación $AUTH_MODO"
