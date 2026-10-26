@@ -129,6 +129,25 @@ describe('Política de acceso · rutas sensibles', () => {
       .toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ESTUDIANTE, Rol.TUTOR].sort());
   });
 
+  it('documentos: decidir lo hacen docente, coordinación, administración y el auxiliar (solo EPS, lo impone el caso de uso)', () => {
+    expect(ordenados(rolesDe('DocumentosController.decidir')))
+      .toEqual([Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.TUTOR].sort());
+  });
+
+  it('validación de EPS: el auxiliar opera, el estudiante solo consulta, docente/empresa/extensión fuera', () => {
+    const operan = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR].sort();
+    expect(ordenados(rolesDe('ValidacionesEpsController.consultar')))
+      .toEqual([...operan, Rol.ESTUDIANTE].sort());
+    for (const clave of ['evidencias', 'reservar', 'liberar']) {
+      expect(ordenados(rolesDe(`ValidacionesEpsController.${clave}`))).toEqual(operan);
+    }
+    const eps = RUTAS.filter((r) => r.controlador === 'ValidacionesEpsController');
+    expect(eps).toHaveLength(4);
+    for (const r of eps) {
+      for (const excluido of [Rol.TUTOR, Rol.EMPRESA, Rol.EXTENSION]) expect(r.roles).not.toContain(excluido);
+    }
+  });
+
   it('bitácora: ni auxiliar, ni extensión, ni empresa', () => {
     const esperados = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ESTUDIANTE, Rol.TUTOR].sort();
     expect(ordenados(rolesDe('BitacoraController.listar'))).toEqual(esperados);

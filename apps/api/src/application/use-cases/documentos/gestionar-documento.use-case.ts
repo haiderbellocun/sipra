@@ -1,10 +1,10 @@
 import {
-  BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException,
 } from '@nestjs/common';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import {
-  DatosDocumento, Documento, EstadoDocumento, MetricasCalidadCaptura, TipoDocumento,
+  DatosDocumento, Documento, DocumentoYaDecididoError, EstadoDocumento, MetricasCalidadCaptura, TipoDocumento,
 } from '../../../domain/entities/documento.entity';
 import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, DOCUMENTO_REPOSITORY, DocumentoRepositoryPort,
@@ -43,6 +43,10 @@ import { PipelineValidacionUseCase } from './pipeline-validacion.use-case';
 import { BitacoraUseCase } from '../practicas/bitacora.use-case';
 import { ParametrosUseCase } from '../administracion/parametros.use-case';
 import { ConsentimientoUseCase } from '../consentimientos/consentimiento.use-case';
+import { ValidacionEpsUseCase } from './validacion-eps.use-case';
+import {
+  puedeDecidirDocumento, puedeVerLecturaInterna,
+} from '../../../domain/value-objects/acceso-eps.vo';
 import { TipoVentana } from '../../../domain/entities/periodo.entity';
 
 /** Minimización: la imagen del documento de identidad se purga a los 30 días. */
@@ -77,6 +81,7 @@ export class GestionarDocumentoUseCase {
     @Inject(PERIODO_REPOSITORY) private readonly periodos: PeriodoRepositoryPort,
     private readonly parametros: ParametrosUseCase,
     private readonly consentimientos: ConsentimientoUseCase,
+    private readonly validacionesEps: ValidacionEpsUseCase,
   ) {}
 
   async cargar(
@@ -291,10 +296,21 @@ export class GestionarDocumentoUseCase {
     dto: DecisionDocumentoDto,
     actor: Actor,
   ): Promise<DocumentoRespuestaDto> {
-    if (![Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+    // Docente, coordinación y administración deciden cualquier documento de su alcance; el
+    // auxiliar entra aquí solo para el certificado de EPS (se comprueba más abajo).
+    if (![Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR].includes(actor.rol)) {
       throw new ForbiddenException('Su perfil no puede decidir sobre documentos');
     }
     const documento = await this.exigirVisible(documentoId, actor);
+    await this.exigirTipoPermitido(documento, actor);
+    if (!puedeDecidirDocumento(actor.rol, documento.tipo)) {
+      throw new ForbiddenException('Su perfil solo decide sobre el certificado de EPS');
+    }
+    // Un caso de EPS que otro funcionario tiene reservado no se decide por encima.
+    if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
+      await this.validacionesEps.exigirSinReservaAjena(documentoId, actor);
+    }
+    const estadoLeido = documento.estado;
 
     // Límite explícito de la automatización: el plan de mejoramiento es una
     // valoración académica y solo lo aprueba el tutor.
@@ -314,13 +330,23 @@ export class GestionarDocumentoUseCase {
         case 'devolver': documento.devolver(dto.justificacion, actor.id); break;
       }
     } catch (error) {
+      // Un documento ya decidido por una persona no se decide otra vez por accidente.
+      if (error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);
       throw new BadRequestException((error as Error).message);
     }
 
-    const guardado = await this.documentos.guardar(documento.instantanea());
+    // Compare-and-set: si entre la lectura y la escritura alguien cambió el estado (otra
+    // decisión, un resultado del pipeline), no se sobrescribe en silencio.
+    const aplicado = await this.documentos.guardarSiEstado(documento.instantanea(), estadoLeido);
+    if (!aplicado) {
+      throw new ConflictException('El documento cambió mientras se decidía: recárguelo e inténtelo de nuevo');
+    }
+    const guardado = documento;
     await this.registrar(actor, AccionAuditada.DECISION_DOCUMENTO, documentoId, {
       decision: dto.decision, puntaje: documento.puntaje, banda: documento.banda,
     }, dto.justificacion);
+    // La validación de EPS refleja la decisión humana y deja su evidencia.
+    await this.validacionesEps.registrarDecisionHumana(guardado, dto.decision, actor);
     await this.notificarSiRequiereAccion(guardado, actor);
     if (dto.decision === 'devolver') {
       // El manual pide dejar en la bitácora el plazo de ocho días para subsanar.
@@ -428,7 +454,8 @@ export class GestionarDocumentoUseCase {
    */
   private aRespuesta(documento: Documento, actor: Actor): DocumentoRespuestaDto {
     const datos = documento.instantanea();
-    const esInterno = [Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol);
+    // Puntaje, banderas y lectura: los ve quien revisa ese tipo (el auxiliar, solo el certificado de EPS).
+    const esInterno = puedeVerLecturaInterna(actor.rol, datos.tipo);
     return {
       id: datos.id,
       practicaId: datos.practicaId,

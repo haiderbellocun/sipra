@@ -6,7 +6,12 @@ import {
 import {
   DOCUMENTO_REPOSITORY, DocumentoRepositoryPort, VACANTE_REPOSITORY, VacanteRepositoryPort,
 } from '../../domain/ports/out/repositorios.port';
-import { ALMACENAMIENTO, AlmacenamientoPort } from '../../domain/ports/out/servicios-externos.port';
+import {
+  ALMACENAMIENTO, AlmacenamientoPort, COLA, ColaPort,
+} from '../../domain/ports/out/servicios-externos.port';
+import {
+  VIGENCIA_RECLAMO_PIPELINE_MS,
+} from '../../application/use-cases/documentos/pipeline-validacion.use-case';
 import { SolicitudArlUseCase } from '../../application/use-cases/practicas/solicitud-arl.use-case';
 import { VistasSinuUseCase } from '../../application/use-cases/administracion/vistas-sinu.use-case';
 
@@ -26,7 +31,25 @@ export class TareasProgramadasService {
     @Inject(ALMACENAMIENTO) private readonly almacen: AlmacenamientoPort,
     private readonly solicitudesArl: SolicitudArlUseCase,
     private readonly vistasSinu: VistasSinuUseCase,
+    @Inject(COLA) private readonly cola: ColaPort,
   ) {}
+
+  /**
+   * Recuperación controlada: un documento `analizando` más tiempo del que dura una
+   * ejecución legítima quedó interrumpido (se cayó una instancia). Se vuelve a
+   * encolar; el reclamo atómico del pipeline garantiza que, aunque varias
+   * instancias lo hagan a la vez, el documento se procese una sola vez.
+   */
+  @Cron(CronExpression.EVERY_10_MINUTES, { name: 'recuperar-procesamientos' })
+  async recuperarProcesamientosInterrumpidos(): Promise<void> {
+    const caducados = await this.documentos.listarProcesamientoCaducado(
+      new Date(Date.now() - VIGENCIA_RECLAMO_PIPELINE_MS), 100,
+    );
+    for (const documento of caducados) {
+      await this.cola.encolar({ tipo: 'validar_documento', referencia: documento.id, prioridad: 'lote' });
+    }
+    if (caducados.length > 0) this.log.warn(`Procesamientos interrumpidos re-encolados: ${caducados.length}`);
+  }
 
   /**
    * Sincronizador prácticas–docente: mantiene la correspondencia SINU → SGP

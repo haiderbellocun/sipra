@@ -124,9 +124,15 @@ gcloud storage buckets add-iam-policy-binding "gs://sipra-$AMBIENTE-documentos" 
   --member="serviceAccount:$CUENTA" --role=roles/storage.objectAdmin >/dev/null
 
 # ── Cola de trabajo para el pico de cierre de periodo ──────────────────────
-gcloud tasks queues describe "sipra-documentos-$AMBIENTE" --location="$REGION" >/dev/null 2>&1 || \
-  gcloud tasks queues create "sipra-documentos-$AMBIENTE" --location="$REGION" \
-    --max-dispatches-per-second=50 --max-concurrent-dispatches=200 --max-attempts=5
+# Convención ÚNICA (la que consume apps/api/src/infrastructure/adapters/cola/cola.adapter.ts):
+#   sipra-documentos-<ambiente>  prioridad interactiva (el cargue en curso)
+#   sipra-lote-<ambiente>        prioridad de lote (procesamiento diferido)
+# Son dos colas porque Cloud Tasks no ordena por prioridad dentro de una cola.
+for cola in "sipra-documentos-$AMBIENTE" "sipra-lote-$AMBIENTE"; do
+  gcloud tasks queues describe "$cola" --location="$REGION" >/dev/null 2>&1 || \
+    gcloud tasks queues create "$cola" --location="$REGION" \
+      --max-dispatches-per-second=50 --max-concurrent-dispatches=200 --max-attempts=5
+done
 
 echo
 echo "▸ Ambiente $AMBIENTE aprovisionado."

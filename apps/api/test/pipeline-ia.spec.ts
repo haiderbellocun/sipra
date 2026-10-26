@@ -1,3 +1,4 @@
+import { operacionesAtomicasEnMemoria } from './soporte-concurrencia';
 import { ConfigService } from '@nestjs/config';
 import { ParametrosUseCase } from '../src/application/use-cases/administracion/parametros.use-case';
 import {
@@ -147,6 +148,7 @@ function pipeline(extractor: ExtraccionIaPort, opciones: OpcionesArnes = {}): {
       return Promise.resolve(Documento.desde(datos));
     },
     listarParaPurga: () => Promise.resolve([]),
+    ...operacionesAtomicasEnMemoria(() => almacenado, (d) => { almacenado = d; }),
     gastoIaDesde: (desde) => {
       consultas.push(desde);
       return Promise.resolve(opciones.gastoHoy ?? 0);

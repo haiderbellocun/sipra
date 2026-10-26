@@ -20,6 +20,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:pg": "ts-node --transpile-only herramientas/verificar-concurrencia-pg.ts",
     "test:aislamiento": "jest --testPathPatterns=aislamiento --runInBand",
     "typeorm": "typeorm-ts-node-commonjs -d src/infrastructure/persistence/postgres/data-source.ts",
     "migration:generate": "npm run typeorm -- migration:generate",

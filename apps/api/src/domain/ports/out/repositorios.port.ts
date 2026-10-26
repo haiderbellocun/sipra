@@ -1,4 +1,6 @@
-import { DatosDocumento, Documento, TipoDocumento } from '../../entities/documento.entity';
+import {
+  DatosDocumento, Documento, EstadoDocumento, TipoDocumento,
+} from '../../entities/documento.entity';
 import { DatosEmpresa, Empresa, EstadoEmpresa } from '../../entities/empresa.entity';
 import { DatosObligacion, Obligacion } from '../../entities/obligacion.entity';
 import { DatosPractica, EstadoPractica, Practica } from '../../entities/practica.entity';
@@ -76,6 +78,26 @@ export interface DocumentoRepositoryPort {
   gastoIaDesde(desde: Date): Promise<number>;
   /** Lecturas automáticas de una práctica desde esa fecha; sostiene el límite por práctica y día. */
   contarLecturasDesde(practicaId: string, desde: Date): Promise<number>;
+
+  // ── Concurrencia: compare-and-set en la base (correcto con varias instancias) ──
+
+  /**
+   * Reclama el procesamiento: pasa a `analizando` SOLO si estaba `recibido`, o
+   * `analizando` desde hace al menos `caducidadMs` (ejecución interrumpida). Es
+   * una única sentencia condicional: de N intentos simultáneos, exactamente uno
+   * recibe `true`.
+   */
+  reclamarProcesamiento(id: string, ahora: Date, caducidadMs: number): Promise<boolean>;
+  /** Devuelve un reclamo propio a `recibido` (fallo inesperado), solo si sigue `analizando`. */
+  liberarReclamo(id: string, ahora: Date): Promise<boolean>;
+  /**
+   * Guarda las columnas del ciclo de vida (estado, puntaje, banda, banderas,
+   * extracción, decisión) SOLO si el estado en la base sigue siendo el esperado.
+   * `false` = alguien lo cambió antes (p. ej. una decisión humana): no se pisa.
+   */
+  guardarSiEstado(datos: DatosDocumento, estadoEsperado: EstadoDocumento): Promise<boolean>;
+  /** Documentos `analizando` desde antes de la fecha dada: procesamientos interrumpidos. */
+  listarProcesamientoCaducado(antesDe: Date, limite: number): Promise<Documento[]>;
 }
 export const DOCUMENTO_REPOSITORY = Symbol('DOCUMENTO_REPOSITORY');
 

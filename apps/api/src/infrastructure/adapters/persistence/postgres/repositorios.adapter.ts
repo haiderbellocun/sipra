@@ -5,7 +5,9 @@ import {
 } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { RegistroAuditoria } from '../../../../domain/entities/auditoria.entity';
-import { DatosDocumento, Documento, TipoDocumento } from '../../../../domain/entities/documento.entity';
+import {
+  DatosDocumento, Documento, EstadoDocumento, TipoDocumento,
+} from '../../../../domain/entities/documento.entity';
 import { DatosEmpresa, Empresa, EstadoEmpresa } from '../../../../domain/entities/empresa.entity';
 import { DatosObligacion, EstadoObligacion, Obligacion } from '../../../../domain/entities/obligacion.entity';
 import { DatosPractica, Practica } from '../../../../domain/entities/practica.entity';
@@ -207,6 +209,58 @@ export class DocumentoRepositoryAdapter implements DocumentoRepositoryPort {
   async guardar(datos: DatosDocumento): Promise<Documento> {
     const guardado = await this.repo.save(DocumentoMapper.aOrm(datos));
     return DocumentoMapper.aDominio(guardado);
+  }
+
+  async reclamarProcesamiento(id: string, ahora: Date, caducidadMs: number): Promise<boolean> {
+    const limite = new Date(ahora.getTime() - caducidadMs);
+    const resultado = await this.repo
+      .createQueryBuilder()
+      .update(DocumentoOrm)
+      .set({ estado: EstadoDocumento.ANALIZANDO, actualizado_en: ahora })
+      .where(
+        'id = :id AND (estado = :recibido OR (estado = :analizando AND actualizado_en <= :limite))',
+        { id, recibido: EstadoDocumento.RECIBIDO, analizando: EstadoDocumento.ANALIZANDO, limite },
+      )
+      .execute();
+    return (resultado.affected ?? 0) === 1;
+  }
+
+  async liberarReclamo(id: string, ahora: Date): Promise<boolean> {
+    const resultado = await this.repo.update(
+      { id, estado: EstadoDocumento.ANALIZANDO },
+      { estado: EstadoDocumento.RECIBIDO, actualizado_en: ahora },
+    );
+    return (resultado.affected ?? 0) === 1;
+  }
+
+  async guardarSiEstado(datos: DatosDocumento, estadoEsperado: EstadoDocumento): Promise<boolean> {
+    const orm = DocumentoMapper.aOrm(datos);
+    // Solo las columnas del ciclo de vida: nunca se reescribe lo que no cambió.
+    const resultado = await this.repo.update(
+      { id: datos.id, estado: estadoEsperado },
+      {
+        estado: orm.estado,
+        puntaje: orm.puntaje,
+        banda: orm.banda,
+        // jsonb: el tipado de TypeORM no lo admite sin conversión.
+        banderas: orm.banderas as never,
+        extraccion: orm.extraccion as never,
+        decidido_por: orm.decidido_por,
+        justificacion_decision: orm.justificacion_decision,
+        motivo_devolucion: orm.motivo_devolucion,
+        actualizado_en: orm.actualizado_en,
+      },
+    );
+    return (resultado.affected ?? 0) === 1;
+  }
+
+  async listarProcesamientoCaducado(antesDe: Date, limite: number): Promise<Documento[]> {
+    const filas = await this.repo.find({
+      where: { estado: EstadoDocumento.ANALIZANDO, actualizado_en: LessThanOrEqual(antesDe) },
+      order: { actualizado_en: 'ASC' },
+      take: limite,
+    });
+    return filas.map((fila) => DocumentoMapper.aDominio(fila));
   }
 
   async listarParaPurga(ahora: Date): Promise<Documento[]> {

@@ -56,6 +56,7 @@ describe('Política de acceso documental (dominio)', () => {
 interface Montaje {
   casoDeUso: GestionarDocumentoUseCase;
   consentimientos: { exigirParaCargar: jest.Mock };
+  validacionesEps: { exigirSinReservaAjena: jest.Mock; registrarDecisionHumana: jest.Mock };
   auditoria: { registrar: jest.Mock };
   almacen: { leer: jest.Mock; enlaceFirmado: jest.Mock; guardar: jest.Mock };
   documentos: { buscarPorId: jest.Mock; listarPorPractica: jest.Mock; guardar: jest.Mock };
@@ -79,12 +80,16 @@ function montar(practica: Practica = practicaDe(), usuarios: ReturnType<typeof u
     guardar: jest.fn(),
   };
   const consentimientos = { exigirParaCargar: jest.fn().mockResolvedValue(undefined) };
+  const validacionesEps = {
+    exigirSinReservaAjena: jest.fn().mockResolvedValue(undefined),
+    registrarDecisionHumana: jest.fn().mockResolvedValue(undefined),
+  };
   const casoDeUso = new GestionarDocumentoUseCase(
     documentos as never, practicas as never, usuariosRepo as never, auditoria as never,
     almacen as never, {} as never, {} as never, {} as never, {} as never, {} as never,
-    {} as never, {} as never, consentimientos as never,
+    {} as never, {} as never, consentimientos as never, validacionesEps as never,
   );
-  return { casoDeUso, consentimientos, auditoria, almacen, documentos };
+  return { casoDeUso, consentimientos, validacionesEps, auditoria, almacen, documentos };
 }
 
 const dueno = (rol: Rol, extra = {}) => actorDe(rol, extra);

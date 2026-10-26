@@ -1,3 +1,4 @@
+import { operacionesAtomicasEnMemoria } from './soporte-concurrencia';
 import { ParametrosUseCase } from '../src/application/use-cases/administracion/parametros.use-case';
 import {
   PipelineValidacionUseCase,
@@ -91,6 +92,7 @@ function pipeline(extractor: ExtraccionIaPort): {
       return Promise.resolve(Documento.desde(datos));
     },
     listarParaPurga: () => Promise.resolve([]),
+    ...operacionesAtomicasEnMemoria(() => almacenado, (d) => { almacenado = d; }),
     gastoIaDesde: () => Promise.resolve(0),
     contarLecturasDesde: () => Promise.resolve(0),
   };

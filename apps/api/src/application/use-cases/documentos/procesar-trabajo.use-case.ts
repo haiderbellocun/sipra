@@ -13,9 +13,10 @@ import {
   DOCUMENTO_REPOSITORY, DocumentoRepositoryPort, PRACTICA_REPOSITORY,
   PracticaRepositoryPort, USUARIO_REPOSITORY, UsuarioRepositoryPort,
 } from '../../../domain/ports/out/repositorios.port';
-import { Documento, EstadoDocumento } from '../../../domain/entities/documento.entity';
+import { Documento, EstadoDocumento, TipoDocumento } from '../../../domain/entities/documento.entity';
 import { MetricasService } from '../../../infrastructure/observability/metricas.service';
 import { PipelineValidacionUseCase } from './pipeline-validacion.use-case';
+import { ValidacionEpsUseCase } from './validacion-eps.use-case';
 
 /**
  * Punto único de ejecución de los trabajos encolados.
@@ -36,6 +37,7 @@ export class ProcesarTrabajoUseCase {
     @Inject(ALMACENAMIENTO) private readonly almacen: AlmacenamientoPort,
     private readonly notificaciones: NotificacionesService,
     private readonly metricas: MetricasService,
+    private readonly validacionesEps: ValidacionEpsUseCase,
   ) {}
 
   async ejecutar(trabajo: Trabajo): Promise<void> {
@@ -55,8 +57,21 @@ export class ProcesarTrabajoUseCase {
     }
   }
 
+  /**
+   * Idempotente: repetir el trabajo (reintento de Cloud Tasks, doble entrega) no
+   * vuelve a leer, no duplica métricas ni avisos y no pisa una decisión humana.
+   */
   private async validarDocumento(documentoId: string, inicio: bigint): Promise<void> {
-    const documento = await this.pipeline.ejecutar(documentoId);
+    const { documento, ejecutado } = await this.pipeline.procesar(documentoId);
+    if (ejecutado) await this.registrarResultado(documento, inicio);
+    // La validación de EPS se asegura SIEMPRE: si un intento anterior falló después de
+    // procesar el documento, el reintento (que ya no ejecuta capas) la completa.
+    if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
+      await this.validacionesEps.registrarProcesamiento(documento);
+    }
+  }
+
+  private async registrarResultado(documento: Documento, inicio: bigint): Promise<void> {
     const datos = documento.instantanea();
 
     const segundos = Number(process.hrtime.bigint() - inicio) / 1e9;

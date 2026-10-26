@@ -121,11 +121,14 @@ ok "$SA_APP · solo Cloud SQL, sus secretos, su bucket y su cola"
 
 # ── Cola de trabajo ────────────────────────────────────────────────────────
 azul "Colas de trabajo"
-for cola in sipra-interactiva sipra-lote; do
+# Convención ÚNICA (la que consume apps/api/src/infrastructure/adapters/cola/cola.adapter.ts):
+#   sipra-documentos-<ambiente>  prioridad interactiva (el cargue en curso)
+#   sipra-lote-<ambiente>        prioridad de lote (procesamiento diferido)
+for cola in "sipra-documentos-$AMBIENTE" "sipra-lote-$AMBIENTE"; do
   gcloud tasks queues describe "$cola" --location="$REGION" >/dev/null 2>&1 || \
     gcloud tasks queues create "$cola" --location="$REGION" --quiet
 done
-ok "sipra-interactiva y sipra-lote"
+ok "sipra-documentos-$AMBIENTE y sipra-lote-$AMBIENTE"
 
 # ── Identidad de despliegue: GitHub sin claves descargables ────────────────
 azul "Autorizando a GitHub Actions por federación de identidades"

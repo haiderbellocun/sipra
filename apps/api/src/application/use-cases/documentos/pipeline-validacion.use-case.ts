@@ -10,7 +10,7 @@ import {
 } from '../../../domain/ports/out/repositorios.port';
 import {
   ALMACENAMIENTO, AlmacenamientoPort, COHERENCIA_CRUZADA, CoherenciaCruzadaPort,
-  EXTRACCION_IA, ExtraccionIaPort, LECTOR_CODIGO_BARRAS, LectorCodigoBarrasPort,
+  EXTRACCION_IA, EXTRACCION_LOCAL, ExtraccionIaPort, LECTOR_CODIGO_BARRAS, LectorCodigoBarrasPort,
   ResultadoExtraccion,
 } from '../../../domain/ports/out/servicios-externos.port';
 import { ForenseDomainService } from '../../../domain/services/forense.domain-service';
@@ -21,6 +21,9 @@ import {
   PasoAplicado, PreprocesamientoDomainService,
 } from '../../../domain/services/preprocesamiento.domain-service';
 import { Pdf417DomainService } from '../../../domain/services/pdf417.domain-service';
+import {
+  ModoProcesamiento, modoProcesamientoDe, permiteAutoAprobacionDelPipeline,
+} from '../../../domain/services/politica-procesamiento';
 import { camposDe } from '../../../domain/entities/campos-extraccion';
 import { inicioDelDiaEnColombia } from '../../../domain/services/fechas-colombia';
 import {
@@ -33,6 +36,27 @@ const TIPOS_EMITIDOS_POR_SISTEMA: readonly TipoDocumento[] = [
   TipoDocumento.CERTIFICADO_EXISTENCIA,
   TipoDocumento.PLANILLA_APORTES,
 ];
+
+/**
+ * Cuánto vale un reclamo de procesamiento. Una ejecución legítima termina antes
+ * (la IA tiene un tope de 120 s); pasado este tiempo se considera interrumpida
+ * y otro trabajo puede tomar el documento.
+ */
+export const VIGENCIA_RECLAMO_PIPELINE_MS = 15 * 60_000;
+
+/** Otro procesamiento tiene el documento: el trabajo debe reintentarse, no darse por hecho. */
+export class ProcesamientoEnCursoError extends Error {
+  constructor(documentoId: string) {
+    super(`El documento ${documentoId} está siendo procesado por otra ejecución`);
+    this.name = 'ProcesamientoEnCursoError';
+  }
+}
+
+export interface ResultadoProcesamiento {
+  documento: Documento;
+  /** false = nada se ejecutó (ya procesado, decidido o resultado descartado): sin efectos. */
+  ejecutado: boolean;
+}
 
 /**
  * Orquesta las capas 0 a 5 (sección 4 del documento técnico).
@@ -62,12 +86,67 @@ export class PipelineValidacionUseCase {
     @Inject(LECTOR_CODIGO_BARRAS) private readonly lectorCodigos: LectorCodigoBarrasPort,
     private readonly parametros: ParametrosUseCase,
     @Optional() private readonly config?: ConfigService,
+    @Optional() @Inject(EXTRACCION_LOCAL) private readonly extraccionLocal?: ExtraccionIaPort,
   ) {}
 
+  /** Compatibilidad: devuelve el documento resultante, haya o no ejecutado capas. */
   async ejecutar(documentoId: string): Promise<Documento> {
+    return (await this.procesar(documentoId)).documento;
+  }
+
+  /**
+   * Procesa el documento UNA sola vez.
+   *
+   * Idempotente por documento (cada versión es otro documento) y correcto con
+   * varias instancias y reintentos de Cloud Tasks:
+   *  1. Solo se procesa `recibido`. Lo `decidido`, `auto_aprobado`, `en_revision`
+   *     o `ilegible` no se toca: un reproceso exige una acción explícita.
+   *  2. El reclamo es un compare-and-set en la base (`recibido` → `analizando`):
+   *     de N ejecuciones simultáneas, una sola corre las capas.
+   *  3. El resultado se guarda solo si el documento sigue `analizando`: una
+   *     decisión humana que llegue en medio gana y el resultado se descarta.
+   *  4. Si una ejecución se interrumpe, su reclamo caduca y otro trabajo la retoma.
+   */
+  async procesar(documentoId: string): Promise<ResultadoProcesamiento> {
     const documento = await this.documentos.buscarPorId(documentoId);
     if (!documento) throw new Error(`Documento ${documentoId} no encontrado`);
 
+    const ahora = new Date();
+    if (!documento.puedeIniciarProcesamiento(ahora, VIGENCIA_RECLAMO_PIPELINE_MS)) {
+      if (documento.estado === EstadoDocumento.ANALIZANDO) throw new ProcesamientoEnCursoError(documentoId);
+      this.log.log(`Documento ${documentoId}: ya procesado (estado ${documento.estado}); se ignora la repetición`);
+      return { documento, ejecutado: false };
+    }
+
+    const reclamado = await this.documentos.reclamarProcesamiento(documentoId, ahora, VIGENCIA_RECLAMO_PIPELINE_MS);
+    if (!reclamado) {
+      // Otra ejecución se adelantó entre la lectura y el reclamo.
+      const actual = (await this.documentos.buscarPorId(documentoId)) ?? documento;
+      if (actual.estado === EstadoDocumento.ANALIZANDO) throw new ProcesamientoEnCursoError(documentoId);
+      this.log.log(`Documento ${documentoId}: lo procesó otra ejecución (estado ${actual.estado})`);
+      return { documento: actual, ejecutado: false };
+    }
+
+    documento.iniciarProcesamiento(ahora);
+    try {
+      return await this.ejecutarCapas(documento);
+    } catch (error) {
+      // Fallo inesperado: se devuelve el reclamo para que el reintento no espere a que caduque.
+      await this.documentos.liberarReclamo(documentoId, new Date());
+      throw error;
+    }
+  }
+
+  /** Guarda el resultado solo si el documento sigue `analizando`; si no, su estado actual manda. */
+  private async finalizar(documento: Documento): Promise<ResultadoProcesamiento> {
+    const aplicado = await this.documentos.guardarSiEstado(documento.instantanea(), EstadoDocumento.ANALIZANDO);
+    if (aplicado) return { documento, ejecutado: true };
+    this.log.warn(`Documento ${documento.id}: cambió durante el procesamiento; el resultado automático se descarta`);
+    return { documento: (await this.documentos.buscarPorId(documento.id)) ?? documento, ejecutado: false };
+  }
+
+  private async ejecutarCapas(documento: Documento): Promise<ResultadoProcesamiento> {
+    const documentoId = documento.id;
     const datos = documento.instantanea();
     const contenido = await this.almacen.leer(datos.rutaAlmacenamiento);
 
@@ -99,7 +178,7 @@ export class PipelineValidacionUseCase {
         this.log.log(
           `Documento ${documentoId}: datos tomados del código PDF417, sin OCR ni IA`,
         );
-        return this.documentos.guardar(documento.instantanea());
+        return this.finalizar(documento);
       }
     }
 
@@ -108,7 +187,7 @@ export class PipelineValidacionUseCase {
         `Documento ${documentoId}: bandera crítica en capa 0/1. Se omite la extracción con IA.`,
       );
       documento.aplicarResultadoPipeline(this.forense.calcularPuntaje(banderas), banderas, null);
-      return this.documentos.guardar(documento.instantanea());
+      return this.finalizar(documento);
     }
 
     // ── Capa 2 — extracción asistida por IA ───────────────────────────────
@@ -119,8 +198,12 @@ export class PipelineValidacionUseCase {
     // Una respuesta inservible del proveedor también se facturó: se guarda
     // como lectura fallida (sin campos) para que el gasto cuente.
     let lecturaFallida: ResultadoExtraccion | null = null;
-    const tope = await this.topeDiarioAlcanzado();
-    const limitePractica = tope ? null : await this.limitePorPracticaAlcanzado(datos.practicaId);
+    // Un tipo con procesamiento local nunca sale a un proveedor externo y no cuesta IA:
+    // ni tope diario ni límite por práctica. Sin extractor local no hay lectura.
+    const procesamientoLocal = modoProcesamientoDe(datos.tipo) === ModoProcesamiento.LOCAL;
+    const extractor: ExtraccionIaPort | null = procesamientoLocal ? (this.extraccionLocal ?? null) : this.extraccion;
+    const tope = procesamientoLocal ? null : await this.topeDiarioAlcanzado();
+    const limitePractica = procesamientoLocal || tope ? null : await this.limitePorPracticaAlcanzado(datos.practicaId);
     if (limitePractica) {
       this.log.warn(
         `Documento ${documentoId}: la práctica ${datos.practicaId} ya tuvo ${limitePractica.lecturas} lecturas ` +
@@ -149,9 +232,17 @@ export class PipelineValidacionUseCase {
           `configurado (${tope.tope} USD); el documento requiere revisión humana`,
         mensajeUsuario: 'Su documento quedó en revisión del docente.',
       });
+    } else if (!extractor) {
+      banderas.push({
+        codigo: 'C2_PROCESAMIENTO_LOCAL_NO_DISPONIBLE',
+        capa: 2,
+        severidad: SeveridadBandera.ALTA,
+        mensaje: 'Este tipo se procesa solo en local y no hay extractor local disponible; requiere revisión humana',
+        mensajeUsuario: 'Su documento quedó en revisión.',
+      });
     } else {
       try {
-        extraido = await this.extraccion.extraer(contenido, datos.mimeReal, datos.tipo);
+        extraido = await extractor.extraer(contenido, datos.mimeReal, datos.tipo);
       } catch (error) {
         this.log.error(`Extracción fallida en ${documentoId}: ${(error as Error).message}`);
         lecturaFallida = this.lecturaFallida(error as Error);
@@ -174,7 +265,9 @@ export class PipelineValidacionUseCase {
     let pasosPreproceso: PasoAplicado[] = [];
     if (extraido?.ilegible) {
       const primerIntento = extraido;
-      const segundoIntento = await this.reintentarConPreproceso(contenido, datos.mimeReal, datos.tipo);
+      const segundoIntento = await this.reintentarConPreproceso(
+        contenido, datos.mimeReal, datos.tipo, extractor as ExtraccionIaPort,
+      );
       if (segundoIntento) {
         // Las dos lecturas costaron: el gasto se acumula en la que se guarda.
         extraido = this.acumularGasto(
@@ -218,7 +311,7 @@ export class PipelineValidacionUseCase {
           'sobre una superficie plana y sin sombras, procurando que todo el texto quede enfocado.' +
           (motivo ? ` Lo que se detectó: ${motivo}` : ''),
       );
-      return this.documentos.guardar(documento.instantanea());
+      return this.finalizar(documento);
     }
 
     if (extraido) {
@@ -280,6 +373,10 @@ export class PipelineValidacionUseCase {
           nitEmpresa: null,
           fechaInicio: practica.fechaInicio,
           nombreEstudiante: estudiante?.nombre ?? '',
+          documentoEstudiante: estudiante?.instantanea().documento ?? null,
+          diasVigenciaEps: datos.tipo === TipoDocumento.CERTIFICADO_EPS
+            ? await this.parametros.numero('arl.dias_vigencia_eps')
+            : undefined,
         })),
       );
     }
@@ -287,6 +384,17 @@ export class PipelineValidacionUseCase {
     // ── Capa 5 — puntaje y decisión ───────────────────────────────────────
     // Los umbrales se leen ahora, no al compilar: la Dirección los calibra
     // durante el piloto y el cambio surte efecto sin desplegar.
+    const permiteAutoAprobacion = permiteAutoAprobacionDelPipeline(datos.tipo);
+    if (!permiteAutoAprobacion) {
+      banderas.push({
+        codigo: 'C3_AUTOAPROBACION_NO_HABILITADA',
+        capa: 3,
+        severidad: SeveridadBandera.INFORMATIVA,
+        mensaje:
+          'Este tipo no se autoaprueba por el pipeline: su autenticidad no se verifica aquí; ' +
+          'lo decide una persona',
+      });
+    }
     const puntaje = this.forense.calcularPuntaje(banderas);
     const lecturaGuardada = extraido ?? lecturaFallida;
     documento.aplicarResultadoPipeline(
@@ -295,13 +403,14 @@ export class PipelineValidacionUseCase {
       lecturaGuardada ? this.conFechaDeLectura(lecturaGuardada, datos.extraccion) : null,
       new Date(),
       await this.parametros.umbralesPipeline(),
+      { permiteAutoAprobacion },
     );
 
     this.log.log(
       `Documento ${documentoId}: puntaje ${puntaje}, banda ${documento.banda}, ` +
         `${banderas.length} bandera(s), estado ${documento.estado}`,
     );
-    return this.documentos.guardar(documento.instantanea());
+    return this.finalizar(documento);
   }
 
   /**
@@ -587,6 +696,7 @@ export class PipelineValidacionUseCase {
     contenido: Buffer,
     mime: string,
     tipo: TipoDocumento,
+    extractor: ExtraccionIaPort,
   ): Promise<{ extraccion: ResultadoExtraccion; pasos: PasoAplicado[] } | null> {
     if (mime === 'application/pdf') return null;
 
@@ -598,7 +708,7 @@ export class PipelineValidacionUseCase {
 
     try {
       const png = this.decodificador.codificarPng(resultado.imagen);
-      const extraccion = await this.extraccion.extraer(png, 'image/png', tipo);
+      const extraccion = await extractor.extraer(png, 'image/png', tipo);
       // Se devuelve aunque siga ilegible: esa lectura también costó.
       return { extraccion, pasos: resultado.pasos };
     } catch (error) {

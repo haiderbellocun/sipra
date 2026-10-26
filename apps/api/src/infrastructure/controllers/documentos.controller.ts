@@ -130,11 +130,12 @@ export class DocumentosController {
   }
 
   @Patch(':id/decision')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR)
   @ApiOperation({
     summary: 'Decidir sobre un documento',
     description:
-      'Toda decisión exige justificación. El plan de mejoramiento solo lo aprueba el tutor ' +
+      'Toda decisión exige justificación y un documento ya decidido no se decide de nuevo (409). El auxiliar ' +
+      'decide únicamente el certificado de EPS. El plan de mejoramiento solo lo aprueba el tutor ' +
       'académico: la IA no lo aprueba ni lo rechaza en ninguna circunstancia.',
   })
   @ApiResponse({ status: 200, type: DocumentoRespuestaDto })

@@ -40,7 +40,7 @@ import {
 
 import {
   GENERADOR_PDF, GENERADOR_HOJA_CALCULO,
-  ALMACENAMIENTO, COHERENCIA_CRUZADA, COLA, EXTRACCION_IA, LECTOR_CODIGO_BARRAS,
+  ALMACENAMIENTO, COHERENCIA_CRUZADA, COLA, EXTRACCION_IA, EXTRACCION_LOCAL, LECTOR_CODIGO_BARRAS,
   NOTIFICACION, RUES, SINU,
 } from '../../domain/ports/out/servicios-externos.port';
 import {
@@ -108,6 +108,10 @@ import { PeriodosController } from '../controllers/periodos.controller';
 import { CatalogoController } from '../controllers/catalogo.controller';
 import { PqrsController } from '../controllers/pqrs.controller';
 import { ConsentimientosController } from '../controllers/consentimientos.controller';
+import { ValidacionesEpsController } from '../controllers/validaciones-eps.controller';
+import { ValidacionEpsUseCase } from '../../application/use-cases/documentos/validacion-eps.use-case';
+import { VALIDACION_EPS_REPOSITORY } from '../../domain/ports/out/validacion-eps.port';
+import { ValidacionEpsRepositoryAdapter } from '../adapters/persistence/postgres/validacion-eps.adapter';
 import { ConsentimientoUseCase } from '../../application/use-cases/consentimientos/consentimiento.use-case';
 import {
   CONSENTIMIENTO_REPOSITORY, POLITICA_CONSENTIMIENTO_REPOSITORY,
@@ -190,7 +194,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     EmpresasController, CumplimientoController, BolsaController, SaludController,
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
-    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController,
+    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -213,6 +217,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: PQRS_REPOSITORY, useClass: PqrsRepositoryAdapter },
     { provide: POLITICA_CONSENTIMIENTO_REPOSITORY, useClass: PoliticaConsentimientoRepositoryAdapter },
     { provide: CONSENTIMIENTO_REPOSITORY, useClass: ConsentimientoRepositoryAdapter },
+    { provide: VALIDACION_EPS_REPOSITORY, useClass: ValidacionEpsRepositoryAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
 
@@ -261,6 +266,9 @@ import { TareasProgramadasService } from './tareas-programadas.service';
         return simulada;
       },
     },
+    // Extractor LOCAL y determinístico: el único que usan los tipos con procesamiento local
+    // (certificado de EPS). Nunca sale a un proveedor externo, sea cual sea `IA_DRIVER`.
+    { provide: EXTRACCION_LOCAL, useExisting: ExtraccionSimuladaAdapter },
     { provide: COHERENCIA_CRUZADA, useClass: CoherenciaCruzadaAdapter },
     { provide: RUES, useClass: RuesSimuladoAdapter },
     { provide: SINU, useClass: SinuSimuladoAdapter },
@@ -290,6 +298,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     GestionarPeriodosUseCase,
     PqrsUseCase,
     ConsentimientoUseCase,
+    ValidacionEpsUseCase,
     PipelineValidacionUseCase,
     ProcesarTrabajoUseCase,
     GestionarDocumentoUseCase,

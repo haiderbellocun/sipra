@@ -77,7 +77,15 @@ export const EXTRACCION_IA = Symbol('EXTRACCION_IA');
 export interface CoherenciaCruzadaPort {
   evaluar(
     extracciones: Record<string, ResultadoExtraccion>,
-    contexto: { nitEmpresa: string | null; fechaInicio: Date | null; nombreEstudiante: string },
+    contexto: {
+      nitEmpresa: string | null;
+      fechaInicio: Date | null;
+      nombreEstudiante: string;
+      /** Documento del estudiante en SIPRA; permite comparar el del certificado de EPS. */
+      documentoEstudiante?: string | null;
+      /** Vigencia institucional del certificado de EPS, en días. */
+      diasVigenciaEps?: number;
+    },
   ): Promise<Bandera[]>;
 }
 export const COHERENCIA_CRUZADA = Symbol('COHERENCIA_CRUZADA');
@@ -190,6 +198,12 @@ export interface ColaPort {
   profundidad(): Promise<Record<PrioridadTrabajo, number>>;
 }
 export const COLA = Symbol('COLA');
+
+/**
+ * Extractor LOCAL y determinístico, sin proveedor externo. Es el único que usan
+ * los tipos con `procesamiento_local` (certificado de EPS).
+ */
+export const EXTRACCION_LOCAL = Symbol('EXTRACCION_LOCAL');
 
 /**
  * Lectura de códigos de barras bidimensionales (M4, capa 0).

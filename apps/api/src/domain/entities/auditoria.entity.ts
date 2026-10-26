@@ -38,6 +38,12 @@ export enum AccionAuditada {
   CONSENTIMIENTO_ACEPTADO = 'consentimiento_aceptado',
   CONSENTIMIENTO_REVOCADO = 'consentimiento_revocado',
   POLITICA_CONSENTIMIENTO_PUBLICADA = 'politica_consentimiento_publicada',
+  VALIDACION_EPS_INICIADA = 'validacion_eps_iniciada',
+  VALIDACION_EPS_PROCESADA = 'validacion_eps_procesada',
+  EVIDENCIA_EPS_REGISTRADA = 'evidencia_eps_registrada',
+  VALIDACION_EPS_ASIGNADA = 'validacion_eps_asignada',
+  VALIDACION_EPS_LIBERADA = 'validacion_eps_liberada',
+  DECISION_EPS = 'decision_eps',
 }
 
 export interface RegistroAuditoria {

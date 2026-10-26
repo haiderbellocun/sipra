@@ -20,6 +20,25 @@ export const ESTADOS_TERMINALES: readonly EstadoDocumento[] = [
   EstadoDocumento.RECHAZADO,
 ];
 
+/**
+ * Estados que deja una DECISIÓN HUMANA. Un documento en uno de ellos no se
+ * decide otra vez por accidente ni lo reemplaza un reproceso automático:
+ * reabrirlo sería una acción explícita y auditada que hoy no existe.
+ */
+export const ESTADOS_DECIDIDOS: readonly EstadoDocumento[] = [
+  EstadoDocumento.APROBADO,
+  EstadoDocumento.DEVUELTO,
+  EstadoDocumento.RECHAZADO,
+];
+
+/** Un documento ya decidido por una persona no admite otra decisión ni un resultado automático. */
+export class DocumentoYaDecididoError extends Error {
+  constructor(estado: EstadoDocumento) {
+    super(`El documento ya fue decidido (${estado}) y no admite otra decisión`);
+    this.name = 'DocumentoYaDecididoError';
+  }
+}
+
 export enum TipoDocumento {
   CEDULA = 'cedula',
   /** Certificado de afiliación a EPS. No lo sustituyen ADRES, Sisbén ni planilla. */
@@ -168,6 +187,32 @@ export class Documento {
   get banderas(): readonly Bandera[] { return this.datos.banderas; }
   get puntaje(): number | null { return this.datos.puntaje; }
   get banda(): BandaPuntaje | null { return this.datos.banda; }
+  get actualizadoEn(): Date { return this.datos.actualizadoEn; }
+  get estaDecidido(): boolean { return ESTADOS_DECIDIDOS.includes(this.datos.estado); }
+
+  /**
+   * ¿El pipeline puede tomar este documento? Solo si está `recibido` o si otro
+   * procesamiento quedó `analizando` más tiempo del que dura una ejecución
+   * legítima (se interrumpió). Todo lo demás —incluido `auto_aprobado`— se
+   * reprocesa únicamente por una acción explícita que hoy no existe.
+   */
+  puedeIniciarProcesamiento(ahora: Date, caducidadMs: number): boolean {
+    if (this.datos.estado === EstadoDocumento.RECIBIDO) return true;
+    return (
+      this.datos.estado === EstadoDocumento.ANALIZANDO &&
+      ahora.getTime() - this.datos.actualizadoEn.getTime() >= caducidadMs
+    );
+  }
+
+  iniciarProcesamiento(ahora: Date = new Date()): void {
+    this.exigirNoDecidido();
+    this.datos.estado = EstadoDocumento.ANALIZANDO;
+    this.datos.actualizadoEn = ahora;
+  }
+
+  private exigirNoDecidido(): void {
+    if (this.estaDecidido) throw new DocumentoYaDecididoError(this.datos.estado);
+  }
 
   instantanea(): DatosDocumento {
     return { ...this.datos, banderas: [...this.datos.banderas] };
@@ -194,21 +239,26 @@ export class Documento {
     extraccion: Record<string, unknown> | null,
     ahora: Date = new Date(),
     umbrales: UmbralesPuntaje = UMBRALES_PUNTAJE,
+    opciones: { permiteAutoAprobacion?: boolean } = {},
   ): void {
+    this.exigirNoDecidido();
     this.datos.puntaje = puntaje;
     this.datos.banda = Documento.bandaDe(puntaje, umbrales);
     this.datos.banderas = [...this.datos.banderas, ...banderas];
     this.datos.extraccion = extraccion;
     this.datos.actualizadoEn = ahora;
 
+    // Un tipo que no admite autoaprobación del pipeline (p. ej. certificado de EPS,
+    // cuya autenticidad el pipeline no verifica) queda siempre en revisión.
     this.datos.estado =
-      this.datos.banda === BandaPuntaje.VERDE
+      this.datos.banda === BandaPuntaje.VERDE && opciones.permiteAutoAprobacion !== false
         ? EstadoDocumento.AUTO_APROBADO
         : EstadoDocumento.EN_REVISION;
   }
 
   /** Resultado distinto de aprobar o rechazar: el documento no se pudo leer. */
   marcarIlegible(mensajeUsuario: string, ahora: Date = new Date()): void {
+    this.exigirNoDecidido();
     this.datos.estado = EstadoDocumento.ILEGIBLE;
     this.datos.motivoDevolucion = mensajeUsuario;
     this.datos.actualizadoEn = ahora;
@@ -216,6 +266,7 @@ export class Documento {
 
   devolver(mensajeUsuario: string, actorId: string, ahora: Date = new Date()): void {
     if (!mensajeUsuario?.trim()) throw new DecisionSinJustificacionError();
+    this.exigirNoDecidido();
     this.datos.estado = EstadoDocumento.DEVUELTO;
     this.datos.motivoDevolucion = mensajeUsuario;
     this.datos.decididoPor = actorId;
@@ -224,6 +275,7 @@ export class Documento {
 
   aprobar(actorId: string, justificacion: string, ahora: Date = new Date()): void {
     if (!justificacion?.trim()) throw new DecisionSinJustificacionError();
+    this.exigirNoDecidido();
     this.datos.estado = EstadoDocumento.APROBADO;
     this.datos.decididoPor = actorId;
     this.datos.justificacionDecision = justificacion;
@@ -232,6 +284,7 @@ export class Documento {
 
   rechazar(actorId: string, justificacion: string, ahora: Date = new Date()): void {
     if (!justificacion?.trim()) throw new DecisionSinJustificacionError();
+    this.exigirNoDecidido();
     this.datos.estado = EstadoDocumento.RECHAZADO;
     this.datos.decididoPor = actorId;
     this.datos.justificacionDecision = justificacion;

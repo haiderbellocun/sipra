@@ -102,6 +102,9 @@ const ETIQUETAS: Record<string, string> = {
   sincronizacion_docentes: 'Sincronización de docentes', periodo_actualizado: 'Periodo actualizado',
   consentimiento_aceptado: 'Consentimiento aceptado', consentimiento_revocado: 'Consentimiento revocado',
   politica_consentimiento_publicada: 'Política de consentimiento publicada',
+  validacion_eps_iniciada: 'Validación de EPS iniciada', validacion_eps_procesada: 'Validación de EPS procesada',
+  evidencia_eps_registrada: 'Evidencia de EPS registrada', validacion_eps_asignada: 'Validación de EPS tomada',
+  validacion_eps_liberada: 'Validación de EPS liberada', decision_eps: 'Decisión sobre la EPS',
 };
 
 /** Traduce los códigos de la API a lenguaje comprensible en la interfaz. */

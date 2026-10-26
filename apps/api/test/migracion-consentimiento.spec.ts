@@ -24,8 +24,11 @@ describe('Migración de consentimiento versionado (sin ejecutar)', () => {
   let todo: string;
   beforeAll(async () => { up = await sqlDe('up'); todo = up.join('\n'); });
 
-  it('está registrada al final de la lista de migraciones y sus entidades en el ORM', () => {
-    expect(MIGRACIONES[MIGRACIONES.length - 1]).toBe(ConsentimientoVersionado1756000010000);
+  it('está registrada en la lista de migraciones y sus entidades en el ORM', () => {
+    // Está registrada, después de la migración 9 y antes de cualquier posterior (p. ej. EPS).
+    const posicion = MIGRACIONES.indexOf(ConsentimientoVersionado1756000010000);
+    expect(posicion).toBeGreaterThan(0);
+    expect(MIGRACIONES[posicion - 1].name).toBe('CronogramaYPqrs1756000009000');
     expect(ENTIDADES_ORM).toEqual(expect.arrayContaining([ConsentimientoOrm, PoliticaConsentimientoOrm]));
   });
 

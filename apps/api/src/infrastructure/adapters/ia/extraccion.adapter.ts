@@ -9,6 +9,9 @@ import { CAMPOS_POR_TIPO as CAMPOS } from '../../../domain/entities/campos-extra
 import {
   ConocimientoDocumentalDomainService,
 } from '../../../domain/services/conocimiento-documental.domain-service';
+import {
+  compararCertificadoEps, construirDatosExtraidosEps,
+} from '../../../domain/services/comparacion-eps.domain-service';
 
 /**
  * El esquema de campos por tipo vive en el dominio (`campos-extraccion.ts`) y la
@@ -336,7 +339,13 @@ export class ExtraccionAnthropicAdapter implements ExtraccionIaPort {
 export class CoherenciaCruzadaAdapter implements CoherenciaCruzadaPort {
   async evaluar(
     extracciones: Record<string, ResultadoExtraccion>,
-    contexto: { nitEmpresa: string | null; fechaInicio: Date | null; nombreEstudiante: string },
+    contexto: {
+      nitEmpresa: string | null;
+      fechaInicio: Date | null;
+      nombreEstudiante: string;
+      documentoEstudiante?: string | null;
+      diasVigenciaEps?: number;
+    },
   ): Promise<Bandera[]> {
     const banderas: Bandera[] = [];
     const valor = (tipo: string, campo: string): string | null =>
@@ -406,6 +415,39 @@ export class CoherenciaCruzadaAdapter implements CoherenciaCruzadaPort {
         severidad: SeveridadBandera.ALTA,
         mensaje: `El afiliado "${afiliado}" no corresponde al estudiante "${contexto.nombreEstudiante}"`,
       });
+    }
+
+    // Certificado de EPS: ¿corresponde al estudiante y está dentro de la vigencia? Es una
+    // comparación INTERNA; no dice nada de la autenticidad ni de la afiliación vigente. Los
+    // mensajes no repiten cédula ni nombre: eso se ve en el detalle de la validación.
+    const certificadoEps = extracciones.certificado_eps;
+    if (certificadoEps) {
+      const comparacion = compararCertificadoEps(
+        construirDatosExtraidosEps(certificadoEps.campos ?? {}),
+        { numeroDocumento: contexto.documentoEstudiante ?? null, nombre: contexto.nombreEstudiante || null },
+        { ahora: new Date(), diasVigencia: contexto.diasVigenciaEps ?? 30 },
+      );
+      for (const d of comparacion.discrepancias) {
+        if (d.campo === 'numero_documento' && d.resultado === 'diferente') {
+          banderas.push({
+            codigo: 'C3_EPS_DOCUMENTO_DISTINTO', capa: 3, severidad: SeveridadBandera.ALTA,
+            mensaje: 'El documento del afiliado en el certificado de EPS no corresponde al del estudiante',
+            mensajeUsuario: 'El certificado de EPS no parece estar a su nombre. Revise que sea el suyo.',
+          });
+        } else if (d.campo === 'nombre' && d.resultado === 'diferente') {
+          banderas.push({
+            codigo: 'C3_EPS_NOMBRE_DISTINTO', capa: 3, severidad: SeveridadBandera.ALTA,
+            mensaje: 'El nombre del afiliado en el certificado de EPS no corresponde al del estudiante',
+            mensajeUsuario: 'El nombre del certificado de EPS no coincide con el suyo. Revise que sea el suyo.',
+          });
+        } else if (d.campo === 'fecha_expedicion' && d.resultado === 'vencido') {
+          banderas.push({
+            codigo: 'C3_EPS_VENCIDO', capa: 3, severidad: SeveridadBandera.MEDIA,
+            mensaje: 'El certificado de EPS supera la vigencia institucional desde su expedición',
+            mensajeUsuario: 'El certificado de EPS tiene demasiado tiempo de expedido. Descargue uno nuevo.',
+          });
+        }
+      }
     }
 
     // Vigencia del certificado de existencia (práctica común: 30 días).
