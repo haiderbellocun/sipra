@@ -17,7 +17,7 @@ import {
 import { EstadoPractica } from '../../domain/entities/practica.entity';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
-import { Roles } from '../auth/roles.decorator';
+import { Autenticado, Roles } from '../auth/roles.decorator';
 import { AuditoriaService } from '../modules/auditoria.service';
 
 @ApiTags('Prácticas')
@@ -31,6 +31,7 @@ export class PracticasController {
   ) {}
 
   @Get()
+  @Autenticado()
   @ApiOperation({
     summary: 'Listar prácticas dentro del alcance del actor',
     description:
@@ -121,6 +122,7 @@ export class PracticasController {
   }
 
   @Get(':id')
+  @Autenticado()
   @ApiOperation({ summary: 'Obtener un expediente de práctica' })
   @ApiResponse({ status: 200, type: PracticaRespuestaDto })
   @ApiResponse({ status: 404, description: 'Expediente no encontrado o fuera del alcance' })

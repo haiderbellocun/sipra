@@ -52,6 +52,8 @@ services:
       - "9090:9090"
     volumes:
       - ../../infra/docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Credencial de /api/v1/metrics: créela antes de levantar este perfil.
+      - ../../infra/docker/metricas.token:/etc/prometheus/metricas.token:ro
 
   grafana:
     image: grafana/grafana:latest

@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger as LoggerPino } from 'nestjs-pino';
+import { documentacionApiHabilitada } from './infrastructure/config/configuracion';
 import { AppModule } from './infrastructure/modules/app.module';
 
 /**
@@ -24,7 +25,7 @@ export async function crearAplicacion(): Promise<NestFastifyApplication> {
 
   app.useLogger(app.get(LoggerPino));
   const config = app.get(ConfigService);
-  const ambiente = config.get<string>('SIPRA_AMBIENTE') ?? 'dev';
+  const ambiente = config.getOrThrow<string>('SIPRA_AMBIENTE');
 
   await app.register(import('@fastify/helmet'), {
     contentSecurityPolicy: false, // la API no sirve HTML
@@ -60,8 +61,8 @@ export async function crearAplicacion(): Promise<NestFastifyApplication> {
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
-  // Swagger: fuera de producción, donde la superficie documentada no se expone.
-  if (ambiente !== 'prod') {
+  // Swagger: solo en desarrollo; qa, pre y prod no exponen la superficie documentada.
+  if (documentacionApiHabilitada(ambiente)) {
     const documento = SwaggerModule.createDocument(
       app,
       new DocumentBuilder()

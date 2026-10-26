@@ -21,6 +21,12 @@ const DOMINIOS_GENERICOS = [
   'live.com', 'icloud.com', 'protonmail.com', 'aol.com',
 ];
 
+/**
+ * Quién consulta la bandeja de empresas. Estudiantes, docentes y auxiliares
+ * no: la empresa de su práctica llega dentro del expediente.
+ */
+const ROLES_CONSULTAN: readonly Rol[] = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION, Rol.EMPRESA];
+
 @Injectable()
 export class GestionarEmpresaUseCase {
   constructor(
@@ -147,6 +153,7 @@ export class GestionarEmpresaUseCase {
   }
 
   async listar(estado: EstadoEmpresa | undefined, actor: Actor): Promise<EmpresaRespuestaDto[]> {
+    this.exigirConsulta(actor);
     const esInterno = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION].includes(actor.rol);
     const empresas = await this.empresas.listar(estado);
     const visibles =
@@ -157,6 +164,7 @@ export class GestionarEmpresaUseCase {
   }
 
   async obtener(id: string, actor: Actor): Promise<EmpresaRespuestaDto> {
+    this.exigirConsulta(actor);
     const empresa = await this.empresas.buscarPorId(id);
     if (!empresa) throw new NotFoundException('Empresa no encontrada');
     if (actor.rol === Rol.EMPRESA && actor.empresaId !== id) {
@@ -201,6 +209,12 @@ export class GestionarEmpresaUseCase {
       ocurridoEn: new Date(),
     });
     return this.aRespuesta(guardada, true);
+  }
+
+  private exigirConsulta(actor: Actor): void {
+    if (!ROLES_CONSULTAN.includes(actor.rol)) {
+      throw new ForbiddenException('Su perfil no consulta la bandeja de empresas');
+    }
   }
 
   private aRespuesta(empresa: Empresa, esInterno: boolean): EmpresaRespuestaDto {

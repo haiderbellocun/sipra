@@ -83,6 +83,7 @@ import {
 import { Pdf417Adapter } from '../adapters/codigo-barras/pdf417.adapter';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { REDACCION_LOGS } from '../observability/redaccion-logs';
 import { OidcService } from '../auth/oidc.service';
 import { RolesGuard } from '../auth/roles.guard';
 import { PermisoEscrituraGuard } from '../auth/permiso-escritura.guard';
@@ -153,8 +154,9 @@ import { TareasProgramadasService } from './tareas-programadas.service';
             process.stdout.isTTY && config.get<string>('NODE_ENV') === 'development'
               ? { target: 'pino-pretty', options: { singleLine: true, translateTime: 'HH:MM:ss' } }
               : undefined,
-          // Nunca se registran cuerpos de petición ni cabeceras de autorización.
-          redact: ['req.headers.authorization', 'req.headers.cookie'],
+          // Nunca se registran cuerpos de petición, cabeceras de autorización ni la
+          // firma de los enlaces de descarga.
+          redact: REDACCION_LOGS,
         },
       }),
     }),

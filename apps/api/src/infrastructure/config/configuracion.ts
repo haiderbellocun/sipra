@@ -135,6 +135,15 @@ export class VariablesEntorno {
 
   @IsBoolean() METRICAS_HABILITADAS = true;
   @IsString() METRICAS_RUTA = '/metrics';
+  /**
+   * Credencial de `GET /api/v1/metrics` (Authorization: Bearer). Sin ella el
+   * endpoint responde 404; fuera de `dev` es obligatoria si las métricas están
+   * habilitadas.
+   */
+  @IsOptional() @IsString() @MinLength(32, {
+    message: 'METRICAS_TOKEN debe tener al menos 32 caracteres',
+  })
+  METRICAS_TOKEN?: string;
   @IsIn(['fatal', 'error', 'warn', 'info', 'debug', 'trace']) LOG_NIVEL = 'info';
 }
 
@@ -149,6 +158,10 @@ const ENTEROS = new Set([
 
 export function validarEntorno(bruto: Record<string, unknown>): VariablesEntorno {
   const normalizado: Record<string, unknown> = { ...bruto };
+  // Una variable declarada vacía (`METRICAS_TOKEN=`) equivale a no declararla.
+  if (typeof normalizado.METRICAS_TOKEN === 'string' && normalizado.METRICAS_TOKEN.trim() === '') {
+    delete normalizado.METRICAS_TOKEN;
+  }
   for (const clave of BOOLEANOS) {
     const valor = normalizado[clave];
     if (typeof valor === 'string') normalizado[clave] = valor.toLowerCase() === 'true';
@@ -175,6 +188,11 @@ export function validarEntorno(bruto: Record<string, unknown>): VariablesEntorno
 
   aplicarReglasDeAmbiente(config);
   return config;
+}
+
+/** La documentación de la API (Swagger) existe únicamente en desarrollo. */
+export function documentacionApiHabilitada(ambiente: unknown): boolean {
+  return ambiente === Ambiente.DEV;
 }
 
 /**
@@ -257,6 +275,14 @@ function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
     if (config.JWT_SECRETO.includes('cambiar')) {
       errores.push('JWT_SECRETO conserva el valor de plantilla');
     }
+  }
+
+  // Las métricas revelan volumen, costo de IA y comportamiento: nunca quedan sin credencial.
+  if (config.METRICAS_HABILITADAS && config.SIPRA_AMBIENTE !== Ambiente.DEV && !config.METRICAS_TOKEN) {
+    errores.push(
+      `METRICAS_HABILITADAS=true exige METRICAS_TOKEN en el ambiente "${config.SIPRA_AMBIENTE}" ` +
+        '(o METRICAS_HABILITADAS=false)',
+    );
   }
 
   if (config.STORAGE_DRIVER === 'gcs' && !config.GCS_BUCKET) {

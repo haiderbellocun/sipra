@@ -62,7 +62,14 @@ export class EmpresasController {
 
   @ApiBearerAuth()
   @Get()
-  @ApiOperation({ summary: 'Bandeja de empresas con semáforo de pre-verificación' })
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION, Rol.EMPRESA)
+  @ApiOperation({
+    summary: 'Bandeja de empresas con semáforo de pre-verificación',
+    description:
+      'Administración, coordinación y extensión ven la bandeja; una empresa solo la suya. ' +
+      'Estudiantes, docentes y auxiliares reciben los datos básicos de la empresa de su práctica ' +
+      'dentro del expediente, no por aquí.',
+  })
   @ApiQuery({ name: 'estado', required: false, enum: EstadoEmpresa })
   @ApiResponse({ status: 200, type: [EmpresaRespuestaDto] })
   listar(
@@ -74,6 +81,7 @@ export class EmpresasController {
 
   @ApiBearerAuth()
   @Get(':id')
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION, Rol.EMPRESA)
   @ApiOperation({ summary: 'Detalle de una empresa' })
   obtener(
     @Param('id', ParseUUIDPipe) id: string,

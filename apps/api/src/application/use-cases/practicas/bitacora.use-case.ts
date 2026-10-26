@@ -349,7 +349,11 @@ export class BitacoraUseCase {
   }
 
   private async exigirVisible(id: string, actor: Actor): Promise<Practica> {
-    if (actor.rol === Rol.EMPRESA) throw new ForbiddenException('La bitácora es entre el estudiante y su docente');
+    // La bitácora es entre el estudiante y su docente (y coordinación/administración): ni la
+    // empresa, ni el auxiliar, ni extensión la leen.
+    if ([Rol.EMPRESA, Rol.AUXILIAR, Rol.EXTENSION].includes(actor.rol)) {
+      throw new ForbiddenException('La bitácora es entre el estudiante y su docente');
+    }
     const practica = await this.practicas.buscarPorId(id);
     if (!practica) throw new NotFoundException('Expediente no encontrado');
     if (!practica.visiblePara({ id: actor.id, rol: actor.rol, escuelas: actor.escuelas, empresaId: actor.empresaId })) {

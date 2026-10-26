@@ -7,8 +7,16 @@ export interface AlmacenamientoPort {
   guardar(ruta: string, contenido: Buffer, mime: string): Promise<string>;
   leer(ruta: string): Promise<Buffer>;
   eliminar(ruta: string): Promise<void>;
-  /** Enlace firmado de vigencia corta. */
-  enlaceFirmado(ruta: string, minutos: number): Promise<string>;
+  /**
+   * Enlace de descarga de vigencia corta, firmado para un documento y para quien
+   * lo pidió. La descarga pasa siempre por la API, que es la que la audita.
+   */
+  enlaceFirmado(contexto: ContextoEnlaceDocumento, minutos: number): Promise<string>;
+}
+export interface ContextoEnlaceDocumento {
+  documentoId: string;
+  /** Usuario al que se le emitió el enlace. */
+  solicitanteId: string;
 }
 export const ALMACENAMIENTO = Symbol('ALMACENAMIENTO');
 

@@ -9,7 +9,7 @@ import { ModalidadPractica } from '../../domain/entities/modalidad.entity';
 import { CalendarioPeriodo, TipoVentana } from '../../domain/entities/periodo.entity';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
-import { Roles } from '../auth/roles.decorator';
+import { Autenticado, Roles } from '../auth/roles.decorator';
 
 export class CrearPeriodoDto implements CrearPeriodo {
   @ApiProperty({ example: '2027A' }) @IsString() @MaxLength(12) codigo!: string;
@@ -43,12 +43,14 @@ export class PeriodosController {
   constructor(private readonly periodos: GestionarPeriodosUseCase) {}
 
   @Get()
+  @Autenticado()
   @ApiOperation({ summary: 'Periodos con sus ventanas y su estado actual' })
   listar(): Promise<PeriodoRespuesta[]> {
     return this.periodos.listar();
   }
 
   @Get(':codigo')
+  @Autenticado()
   obtener(@Param('codigo') codigo: string): Promise<PeriodoRespuesta> {
     return this.periodos.obtener(codigo);
   }

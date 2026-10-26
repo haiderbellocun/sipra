@@ -181,6 +181,18 @@ describe('BitacoraUseCase', () => {
     await expect(caso.listar('p1', actorEmpresa)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('el auxiliar y extensión tampoco: ni leen, ni consultan el cierre, ni escriben', async () => {
+    const { caso } = armar();
+    for (const rol of [Rol.AUXILIAR, Rol.EXTENSION]) {
+      const actor = { ...actorEmpresa, rol, empresaId: null };
+      await expect(caso.listar('p1', actor)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(caso.estadoCierre('p1', actor)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        caso.escribir('p1', { tipo: TipoEntradaBitacora.MENSAJE_LIBRE, mensaje: 'hola' }, actor, HOY),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    }
+  });
+
   it('un mensaje del docente avisa al estudiante y viceversa', async () => {
     const { caso, notificaciones } = armar();
     await caso.escribir('p1', { tipo: TipoEntradaBitacora.MENSAJE_LIBRE, mensaje: 'Recuerde cargar el plan' }, actorDocente, HOY);

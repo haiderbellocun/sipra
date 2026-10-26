@@ -5,7 +5,7 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.2 |
+| Versión del documento | 0.17.3 |
 | Fecha | 26 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
@@ -438,8 +438,29 @@ El rol `sipra_app` recibe:
 
 ### 6.4 Superficie pública
 
-**El formulario de solicitud de empresa es la única superficie expuesta sin
-autenticación.** Realiza una sola operación: insertar una solicitud. Protegido
+**Política de acceso obligatoria (0.17.3).** Toda ruta declara exactamente una de
+`@Publico()`, `@Autenticado()` (cualquier sesión) o `@Roles(...)`. `RolesGuard`
+**rechaza** la ruta que no declare ninguna: olvidar `@Roles` ya no abre el acceso.
+`test/autorizacion-rutas.spec.ts` recorre todos los controladores y falla ante
+una ruta sin política o ante una ruta pública nueva que no se haya decidido allí.
+
+Rutas sin sesión (las únicas): `auth/modo`, `auth/perfiles` y `auth/ingresar`
+(solo con el ingreso abierto de `dev`), `auth/oidc/inicio` y `auth/oidc/callback`,
+`empresas/solicitudes`, `empresas/nit/verificar`, `salud`, `documentos/descarga`
+(la firma es la credencial, §6.5), `trabajos/procesar` (solo con `cloud_tasks`,
+token de servicio) y `metrics` (token de scraping).
+
+- **`/metrics`** existe solo con `METRICAS_HABILITADAS=true` **y** `METRICAS_TOKEN`
+  (≥ 32 caracteres, `Authorization: Bearer`, comparación en tiempo constante); si
+  falta cualquiera responde 404. Fuera de `dev` el token es obligatorio al arrancar
+  (o `METRICAS_HABILITADAS=false`). nginx tampoco lo publica por el origen web.
+- **`/trabajos/procesar`** solo responde con `COLA_DRIVER=cloud_tasks`, y exige un
+  id_token de la cuenta de servicio emitido para `WORKER_URL`. Con la cola en
+  proceso el trabajo corre dentro del servicio y el endpoint no existe (404).
+- **Swagger** (`/docs/dev-only/swagger`) solo con `SIPRA_AMBIENTE=dev`.
+
+**El formulario de solicitud de empresa es la superficie expuesta sin
+autenticación que recibe datos.** Realiza una sola operación: insertar una solicitud. Protegido
 con campo trampa (`sitioWebAlterno`) y validación de NIT.
 
 La respuesta es **idéntica en todos los casos, incluso cuando el NIT ya está
@@ -454,10 +475,29 @@ hay tenant, ni usuario, ni acceso.
 - Verificación del tipo real por **firma binaria**, no por extensión ni por
   encabezado declarado.
 - Ruta de almacenamiento **no adivinable**: 16 bytes aleatorios por documento.
-- Enlaces firmados de vigencia corta (10 minutos por defecto).
+- Enlaces firmados de vigencia corta (10 minutos por defecto), **siempre por la
+  API** (ya no se usa la URL firmada nativa del bucket, que no podría auditarse).
+  El enlace firma `documento + usuario + vencimiento` con una **clave derivada y
+  exclusiva** (no `JWT_SECRETO` directo), se verifica con `timingSafeEqual` y no
+  lleva la ruta de almacenamiento. Al descargar se vuelve a comprobar el estado
+  actual del usuario y su acceso al documento.
 - Buckets privados con `--public-access-prevention` verificado en el
   aprovisionamiento.
-- Cada visualización y descarga queda auditada con identificación del actor.
+- **Generar el enlace ≠ descargar:** emitirlo audita `documento_visualizado`
+  (`etapa: enlace_generado`); la entrega real audita `documento_descargado`, con el
+  usuario del enlace, la IP y el agente. Si el archivo no se entrega, no hay
+  descarga registrada.
+- La firma y la ruta se **redactan** de los registros (`observability/redaccion-logs.ts`).
+- **Acceso por función** (`domain/value-objects/acceso-documental.vo.ts`), además de la
+  visibilidad de la práctica:
+
+  | Rol | Documentos |
+  |---|---|
+  | Estudiante, docente, coordinación, administración | Todos los de su alcance |
+  | Auxiliar | Solo `certificado_eps`, `cedula`, `acta_inicio`, `rut_natural`, `rut_juridico`, `camara_comercio`, `certificado_arl` (el resto responde 404) |
+  | Empresa, extensión | Ninguno |
+
+  Cargan documentos: estudiante, docente, coordinación y administración.
 
 ### 6.6 Protección de datos personales
 
@@ -1190,7 +1230,9 @@ seguridad del ambiente; la red privada lo resuelve sin cambiarla.
 
 ## 11. Observabilidad
 
-Endpoint `/api/v1/metrics` en formato Prometheus.
+Endpoint `/api/v1/metrics` en formato Prometheus, protegido con `METRICAS_TOKEN`
+(`Authorization: Bearer`; ver §6.4). En local, `infra/docker/prometheus.yml` lo
+consulta con `credentials_file` (`infra/docker/metricas.token`, fuera de git).
 
 ### 11.1 Cuatro señales de oro
 
@@ -1240,8 +1282,8 @@ npm run dev                   # API en :3000 · web en :4200
 |---|---|
 | Aplicación | http://localhost:4200 |
 | API | http://localhost:3000/api/v1 |
-| Documentación OpenAPI | http://localhost:3000/docs/dev-only/swagger |
-| Métricas | http://localhost:3000/api/v1/metrics |
+| Documentación OpenAPI (solo `dev`) | http://localhost:3000/docs/dev-only/swagger |
+| Métricas (con `METRICAS_TOKEN`) | http://localhost:3000/api/v1/metrics |
 | Grafana (perfil `observabilidad`) | http://localhost:3001 |
 
 ### 12.1 Perfiles sembrados
@@ -2289,6 +2331,33 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.3 — 26 de octubre de 2026
+
+Fase 3 · P0-B1, autorización y superficie de seguridad:
+
+- **Política de acceso explícita:** `@Autenticado()` nuevo; `RolesGuard` falla
+  cerrado; meta-prueba de todas las rutas (§6.4).
+- **Empresas:** `GET /empresas` y `/:id` solo para administración, coordinación,
+  extensión y la propia empresa (controlador y caso de uso). Estudiantes, docentes
+  y auxiliares reciben la empresa de su práctica dentro del expediente.
+- **Documentos:** acceso por función (§6.5). `POST documentos/practica/:id` ya no
+  admite empresa, extensión ni auxiliar (empresa y extensión podían cargar si veían
+  la práctica). El expediente del frontend tolera la ausencia de documentos y de
+  bitácora.
+- **Bitácora:** auxiliar y extensión ya no la leen (controlador y caso de uso).
+- **Cartas:** extensión deja de generarlas y consultarlas (DT §5).
+- **Worker, métricas, Swagger, enlaces firmados y nginx** (§6.4 y §6.5); en nginx las
+  cabeceras de seguridad se repiten en los bloques con `add_header` propio.
+- **`verificarTokenDeServicio`** exige la audiencia (`WORKER_URL`) y no falla con 500
+  ante un token ilegible.
+- `cloudbuild.yaml` fija `METRICAS_HABILITADAS=false` hasta que exista el token en
+  Secret Manager.
+- **Pendientes conocidos (fuera de P0-B1):** `/vistas/sinu/estudiante` y
+  `/vistas/sinu/matriculas` no acotan por escuela (falta el mapeo programa–escuela);
+  cartas y consolidado de ARL tampoco acotan por escuela; la proyección de práctica
+  para `empresa` incluye `nota` y `avance`; consentimiento de datos (P0-B2); cookie
+  HttpOnly, CSRF y revocación de sesión; CSP; límite de peticiones.
 
 ### 0.17.2 — 26 de octubre de 2026
 

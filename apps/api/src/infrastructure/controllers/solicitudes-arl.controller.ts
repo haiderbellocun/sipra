@@ -35,6 +35,7 @@ export class SolicitudesArlController {
   }
 
   @Get()
+  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Bandeja de solicitudes (el estudiante ve las suyas)' })
   @ApiQuery({ name: 'estado', required: false, enum: EstadoSolicitudArl })
   @ApiQuery({ name: 'periodo', required: false })
@@ -58,6 +59,7 @@ export class SolicitudesArlController {
   }
 
   @Get(':id')
+  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
   @ApiResponse({ status: 200, type: SolicitudArlRespuestaDto })
   obtener(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<SolicitudArlRespuestaDto> {
     return this.solicitudes.obtener(id, actor);

@@ -15,6 +15,9 @@ coverage/
 
 # Almacenamiento local de documentos (driver STORAGE_DRIVER=local)
 .almacen/
+
+# Credencial local de scraping de métricas (METRICAS_TOKEN)
+infra/docker/metricas.token
 out-tsc/
 
 

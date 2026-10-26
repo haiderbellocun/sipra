@@ -8,7 +8,13 @@ global:
 
 scrape_configs:
   - job_name: sipra-api
-    metrics_path: /metrics
+    # La ruta real lleva el prefijo y la versión de la API. El endpoint exige el
+    # token METRICAS_TOKEN: guárdelo, sin salto de línea, en infra/docker/metricas.token
+    # (está en .gitignore) y declárelo también en el .env de la API.
+    metrics_path: /api/v1/metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/metricas.token
     static_configs:
       - targets: ["host.docker.internal:3000"]
         labels:

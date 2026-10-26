@@ -19,7 +19,7 @@ import { Usuario } from '../../domain/entities/usuario.entity';
 import { ingresoAbiertoPermitido } from '../config/configuracion';
 import { ActorActual } from '../auth/actor.decorator';
 import { OidcService } from '../auth/oidc.service';
-import { Publico } from '../auth/roles.decorator';
+import { Autenticado, Publico } from '../auth/roles.decorator';
 import { AuditoriaService } from '../modules/auditoria.service';
 import { UsuarioRepositoryAdapter } from '../adapters/persistence/postgres/repositorios.adapter';
 
@@ -122,6 +122,7 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @Autenticado()
   @Get('yo')
   @ApiOperation({ summary: 'Identidad de la sesión activa' })
   yo(@ActorActual() actor: Actor): Actor {

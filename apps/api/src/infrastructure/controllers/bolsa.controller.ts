@@ -10,7 +10,7 @@ import {
 import { EstadoVacante, MarcoVacante } from '../../domain/entities/vacante.entity';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
-import { Roles } from '../auth/roles.decorator';
+import { Autenticado, Roles } from '../auth/roles.decorator';
 
 /**
  * M7 — Bolsa de empleo.
@@ -27,6 +27,7 @@ export class BolsaController {
   constructor(private readonly gestionar: GestionarVacanteUseCase) {}
 
   @Post('vacantes/validar-texto')
+  @Autenticado()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Filtro antidiscriminación sobre un texto',
@@ -40,6 +41,7 @@ export class BolsaController {
   }
 
   @Get('vacantes')
+  @Autenticado()
   @ApiOperation({ summary: 'Listar vacantes según el perfil' })
   @ApiQuery({ name: 'estado', required: false, enum: EstadoVacante })
   @ApiQuery({ name: 'marco', required: false, enum: MarcoVacante })

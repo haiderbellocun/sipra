@@ -212,11 +212,17 @@ export class OidcService {
   async verificarTokenDeServicio(
     idToken: string,
     correoEsperado: string,
+    audienciaEsperada: string,
   ): Promise<{ correo: string } | null> {
     const [cabeceraB64, cargaB64, firmaB64] = idToken.split('.');
     if (!cabeceraB64 || !cargaB64 || !firmaB64) return null;
 
-    const cabecera = JSON.parse(base64UrlADecodificado(cabeceraB64)) as { kid: string; alg: string };
+    let cabecera: { kid: string; alg: string };
+    try {
+      cabecera = JSON.parse(base64UrlADecodificado(cabeceraB64)) as { kid: string; alg: string };
+    } catch {
+      return null;
+    }
     if (cabecera.alg !== 'RS256') return null;
 
     const clave = (await this.claves()).find((c) => c.kid === cabecera.kid);
@@ -234,11 +240,17 @@ export class OidcService {
     );
     if (!valida) return null;
 
-    const carga = JSON.parse(base64UrlADecodificado(cargaB64)) as {
-      iss: string; exp: number; email?: string; email_verified?: boolean;
-    };
+    let carga: { iss: string; aud?: string; exp: number; email?: string; email_verified?: boolean };
+    try {
+      carga = JSON.parse(base64UrlADecodificado(cargaB64)) as typeof carga;
+    } catch {
+      return null;
+    }
     if (!['https://accounts.google.com', 'accounts.google.com'].includes(carga.iss)) return null;
     if (carga.exp * 1000 < Date.now()) return null;
+    // El token debe haberse emitido PARA este servicio, no para otro.
+    if (!audienciaEsperada || carga.aud !== audienciaEsperada) return null;
+    if (carga.email_verified === false) return null;
     if (carga.email !== correoEsperado) {
       this.log.warn(`Token de servicio con identidad inesperada: ${carga.email ?? 'sin correo'}`);
       return null;

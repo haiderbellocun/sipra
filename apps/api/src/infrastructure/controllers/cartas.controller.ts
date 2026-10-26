@@ -8,7 +8,14 @@ import { Actor } from '../../application/use-cases/practicas/gestionar-practica.
 import {
   CartaPresentacionUseCase, CartaRespuesta,
 } from '../../application/use-cases/practicas/carta-presentacion.use-case';
+import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
+import { Roles } from '../auth/roles.decorator';
+
+/** Quién genera y consulta cartas (DT §5). Empresa y extensión no intervienen. */
+const ROLES_CARTAS: readonly Rol[] = [
+  Rol.ESTUDIANTE, Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR,
+];
 
 export class SolicitarCartaDto {
   @ApiProperty({ example: '2026C' }) @IsString() @MaxLength(12) periodoAcademico!: string;
@@ -25,6 +32,7 @@ export class CartasController {
   constructor(private readonly cartas: CartaPresentacionUseCase) {}
 
   @Post()
+  @Roles(...ROLES_CARTAS)
   @ApiOperation({
     summary: 'Generar una carta de presentación',
     description:
@@ -36,6 +44,7 @@ export class CartasController {
   }
 
   @Get()
+  @Roles(...ROLES_CARTAS)
   @ApiOperation({ summary: 'Cartas generadas (reporte de cartas)' })
   @ApiQuery({ name: 'periodo', required: false })
   listar(@ActorActual() actor: Actor, @Query('periodo') periodo?: string): Promise<CartaRespuesta[]> {
@@ -43,6 +52,7 @@ export class CartasController {
   }
 
   @Get(':id/pdf')
+  @Roles(...ROLES_CARTAS)
   @ApiOperation({ summary: 'Descargar la carta en PDF (reimpresión idéntica)' })
   async pdf(
     @Param('id', ParseUUIDPipe) id: string,

@@ -123,7 +123,9 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
 
       <div class="pestanas" role="tablist">
         <button type="button" role="tab" [class.activa]="pestana() === 'documentos'" (click)="pestana.set('documentos')">Documentos por momento</button>
-        <button type="button" role="tab" [class.activa]="pestana() === 'bitacora'" (click)="pestana.set('bitacora')">Bitácora ({{ bitacora().length }})</button>
+        @if (puedeVerBitacora()) {
+          <button type="button" role="tab" [class.activa]="pestana() === 'bitacora'" (click)="pestana.set('bitacora')">Bitácora ({{ bitacora().length }})</button>
+        }
         <button type="button" role="tab" [class.activa]="pestana() === 'datos'" (click)="pestana.set('datos')">Datos de la práctica</button>
       </div>
 
@@ -401,6 +403,7 @@ export class ExpedienteComponent implements OnInit {
   readonly puedeAdministrar = computed(() => ['administrador', 'coordinador'].includes(this.sesion.rol() ?? ''));
   readonly puedeDecidir = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeCargar = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? '') && !this.terminal());
+  readonly puedeVerBitacora = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeEscribir = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeCalificar = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeEditarVacante = computed(() => this.puedeCargar());
@@ -541,7 +544,9 @@ export class ExpedienteComponent implements OnInit {
     try {
       const [practica, documentos, bitacora, cierre] = await Promise.all([
         firstValueFrom(this.api.obtenerPractica(this.id())),
-        firstValueFrom(this.api.listarDocumentos(this.id())),
+        // Empresa y extensión no consultan documentos (403) y el auxiliar solo los de su proceso:
+        // el expediente se abre igual, sin lista.
+        firstValueFrom(this.api.listarDocumentos(this.id())).catch(() => [] as Documento[]),
         firstValueFrom(this.api.listarBitacora(this.id())).catch(() => [] as EntradaBitacora[]),
         firstValueFrom(this.api.estadoCierre(this.id())).catch(() => null),
       ]);

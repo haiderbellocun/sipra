@@ -1,5 +1,6 @@
 import {
-  Ambiente, ModoAutenticacion, VariablesEntorno, ingresoAbiertoPermitido, validarEntorno,
+  Ambiente, ModoAutenticacion, VariablesEntorno, documentacionApiHabilitada, ingresoAbiertoPermitido,
+  validarEntorno,
 } from '../src/infrastructure/config/configuracion';
 
 /**
@@ -173,5 +174,49 @@ describe('validarEntorno · lectura documental con OpenAI', () => {
     expect(() => entorno({ OPENAI_MAX_TOKENS_SALIDA: '100' }, OPENAI)).toThrow(/OPENAI_MAX_TOKENS_SALIDA/);
     expect(entorno({ OPENAI_TIEMPO_MAXIMO_MS: '60000', OPENAI_MAX_TOKENS_SALIDA: '8000' }, OPENAI))
       .toMatchObject({ OPENAI_TIEMPO_MAXIMO_MS: 60_000, OPENAI_MAX_TOKENS_SALIDA: 8_000 });
+  });
+});
+
+describe('validarEntorno · métricas', () => {
+  const OIDC_QA = {
+    SIPRA_AMBIENTE: 'qa', AUTH_MODO: 'oidc', OIDC_CLIENT_ID: 'id', OIDC_CLIENT_SECRET: 's',
+    OIDC_REDIRECT_URI: 'http://localhost:4200/ingreso/callback',
+  };
+  const TOKEN = 'token-de-metricas-de-al-menos-treinta-y-dos-caracteres';
+
+  it('dev: habilitadas sin token arranca (el endpoint queda cerrado, 404)', () => {
+    expect(entorno({ METRICAS_HABILITADAS: 'true' }).METRICAS_TOKEN).toBeUndefined();
+  });
+
+  it.each(['qa', 'pre', 'prod'])('%s: habilitadas sin METRICAS_TOKEN → falla', (ambiente) => {
+    expect(() => entorno({ ...OIDC_QA, SIPRA_AMBIENTE: ambiente, METRICAS_HABILITADAS: 'true' }))
+      .toThrow(/METRICAS_TOKEN/);
+  });
+
+  it('qa: habilitadas con token válido → arranca', () => {
+    expect(entorno({ ...OIDC_QA, METRICAS_HABILITADAS: 'true', METRICAS_TOKEN: TOKEN }).METRICAS_TOKEN).toBe(TOKEN);
+  });
+
+  it('qa: deshabilitadas, sin token → arranca', () => {
+    expect(entorno({ ...OIDC_QA, METRICAS_HABILITADAS: 'false' }).METRICAS_HABILITADAS).toBe(false);
+  });
+
+  it('un token débil (< 32 caracteres) se rechaza', () => {
+    expect(() => entorno({ ...OIDC_QA, METRICAS_HABILITADAS: 'true', METRICAS_TOKEN: 'corto' }))
+      .toThrow(/METRICAS_TOKEN debe tener al menos 32/);
+  });
+
+  it('declarar METRICAS_TOKEN vacío equivale a no declararlo (y en qa sigue siendo obligatorio)', () => {
+    expect(entorno({ METRICAS_TOKEN: '' }).METRICAS_TOKEN).toBeUndefined();
+    expect(() => entorno({ ...OIDC_QA, METRICAS_HABILITADAS: 'true', METRICAS_TOKEN: '  ' })).toThrow(/METRICAS_TOKEN/);
+  });
+});
+
+describe('documentacionApiHabilitada · Swagger solo en desarrollo', () => {
+  it('dev sí; qa, pre, prod y valores ausentes o desconocidos no', () => {
+    expect(documentacionApiHabilitada('dev')).toBe(true);
+    for (const ambiente of ['qa', 'pre', 'prod', '', undefined, null, 'local', 'DEV']) {
+      expect(documentacionApiHabilitada(ambiente)).toBe(false);
+    }
   });
 });

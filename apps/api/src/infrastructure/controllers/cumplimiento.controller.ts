@@ -7,7 +7,7 @@ import { Actor } from '../../application/use-cases/practicas/gestionar-practica.
 import { CATALOGO_OBLIGACIONES } from '../../domain/entities/obligacion.entity';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
-import { Roles } from '../auth/roles.decorator';
+import { Autenticado, Roles } from '../auth/roles.decorator';
 import { AuditoriaService } from '../modules/auditoria.service';
 
 @ApiTags('Cumplimiento normativo')
@@ -20,6 +20,7 @@ export class CumplimientoController {
   ) {}
 
   @Get('catalogo')
+  @Autenticado()
   @ApiOperation({
     summary: 'Catálogo de obligaciones normativas administradas',
     description: 'Norma, responsable, efecto y descripción de cada obligación.',

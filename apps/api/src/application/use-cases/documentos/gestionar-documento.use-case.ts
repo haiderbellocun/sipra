@@ -30,6 +30,9 @@ import {
 import {
   DecodificadorImagenAdapter,
 } from '../../../infrastructure/adapters/imagen/decodificador.adapter';
+import {
+  puedeCargarDocumentos, puedeConsultarDocumentos, puedeVerDocumento,
+} from '../../../domain/value-objects/acceso-documental.vo';
 import { Rol } from '../../../domain/value-objects/rol.vo';
 import {
   DecisionDocumentoDto, DocumentoRespuestaDto, LecturaAsistidaDto,
@@ -82,6 +85,9 @@ export class GestionarDocumentoUseCase {
     tamanoMaximoBytes: number,
     actor: Actor,
   ): Promise<DocumentoRespuestaDto> {
+    if (!puedeCargarDocumentos(actor.rol)) {
+      throw new ForbiddenException('Su perfil no carga documentos en la práctica');
+    }
     const practica = await this.practicas.buscarPorId(practicaId);
     if (!practica) throw new NotFoundException('Expediente no encontrado');
     if (
@@ -207,6 +213,7 @@ export class GestionarDocumentoUseCase {
   }
 
   async listarPorPractica(practicaId: string, actor: Actor): Promise<DocumentoRespuestaDto[]> {
+    this.exigirAccesoDocumental(actor);
     const practica = await this.practicas.buscarPorId(practicaId);
     if (
       !practica ||
@@ -217,16 +224,60 @@ export class GestionarDocumentoUseCase {
       throw new NotFoundException('Expediente no encontrado');
     }
     const documentos = await this.documentos.listarPorPractica(practicaId);
-    return documentos.map((d) => this.aRespuesta(d, actor));
+    return documentos
+      .filter((d) => puedeVerDocumento(actor.rol, d.tipo))
+      .map((d) => this.aRespuesta(d, actor));
   }
 
-  /** Enlace firmado de vigencia corta. Cada acceso queda auditado. */
+  /**
+   * Enlace firmado de vigencia corta. Emitirlo se audita como visualización
+   * solicitada; la descarga real la audita «descargar», que es otra acción.
+   */
   async enlace(documentoId: string, minutos: number, actor: Actor): Promise<{ url: string; expiraEn: string }> {
+    this.exigirAccesoDocumental(actor);
     const documento = await this.exigirVisible(documentoId, actor);
-    const url = await this.almacen.enlaceFirmado(documento.instantanea().rutaAlmacenamiento, minutos);
-    await this.registrar(actor, AccionAuditada.DOCUMENTO_VISUALIZADO, documentoId, { minutos });
+    await this.exigirTipoPermitido(documento, actor);
+    const url = await this.almacen.enlaceFirmado({ documentoId, solicitanteId: actor.id }, minutos);
+    await this.registrar(actor, AccionAuditada.DOCUMENTO_VISUALIZADO, documentoId, {
+      minutos, etapa: 'enlace_generado',
+    });
     const expira = new Date(Date.now() + minutos * 60_000);
     return { url, expiraEn: expira.toISOString() };
+  }
+
+  /**
+   * Entrega el archivo a quien presenta un enlace ya verificado. Vuelve a
+   * comprobar, con el estado ACTUAL del usuario, que sigue activo y que puede ver
+   * ese documento: el enlace no es un salvoconducto. Solo cuando el contenido se
+   * entrega queda registrada la descarga.
+   */
+  async descargar(
+    documentoId: string,
+    solicitanteId: string,
+    origen: { ip: string | null; agenteUsuario: string | null },
+  ): Promise<Buffer> {
+    const usuario = await this.usuarios.buscarPorId(solicitanteId);
+    if (!usuario || !usuario.activo || !puedeConsultarDocumentos(usuario.rol)) {
+      throw new NotFoundException('Documento no encontrado');
+    }
+    const actor: Actor = {
+      id: usuario.id,
+      correo: usuario.correo,
+      rol: usuario.rol,
+      permiso: usuario.permiso,
+      escuelas: usuario.escuelas,
+      empresaId: usuario.empresaId,
+      ip: origen.ip,
+      agenteUsuario: origen.agenteUsuario,
+    };
+    const documento = await this.exigirVisible(documentoId, actor);
+    await this.exigirTipoPermitido(documento, actor);
+
+    const contenido = await this.almacen.leer(documento.instantanea().rutaAlmacenamiento);
+    await this.registrar(actor, AccionAuditada.DOCUMENTO_DESCARGADO, documentoId, {
+      tamanoBytes: contenido.length,
+    });
+    return contenido;
   }
 
   /** Decisión humana. Sin justificación no hay decisión. */
@@ -302,6 +353,22 @@ export class GestionarDocumentoUseCase {
       'El plazo de cargue venció: la fecha de cargue del periodo y los ocho días calendario posteriores ' +
         'al fin de la práctica ya pasaron. Solicite a su docente la habilitación por la bitácora.',
     );
+  }
+
+  /** El rol debe participar en la gestión documental (empresa y extensión no). */
+  private exigirAccesoDocumental(actor: Actor): void {
+    if (!puedeConsultarDocumentos(actor.rol)) {
+      throw new ForbiddenException('Su perfil no consulta los documentos de la práctica');
+    }
+  }
+
+  /** El auxiliar solo alcanza los tipos de su proceso; el resto responde como inexistente. */
+  private async exigirTipoPermitido(documento: Documento, actor: Actor): Promise<void> {
+    if (puedeVerDocumento(actor.rol, documento.tipo)) return;
+    await this.registrar(actor, AccionAuditada.ACCESO_FUERA_DE_ALCANCE, documento.id, {
+      motivo: 'tipo_no_habilitado_para_el_rol',
+    });
+    throw new NotFoundException('Documento no encontrado');
   }
 
   private async exigirVisible(documentoId: string, actor: Actor): Promise<Documento> {

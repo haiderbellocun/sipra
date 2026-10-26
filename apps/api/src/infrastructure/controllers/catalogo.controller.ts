@@ -10,6 +10,7 @@ import {
 import { EQUIVALENCIA_SGP, EstadoPractica } from '../../domain/entities/practica.entity';
 import { CategoriaAyuda, PreguntaFrecuente } from '../../domain/entities/preguntas-frecuentes';
 import { CATEGORIAS_PQRS } from '../../domain/entities/pqrs.entity';
+import { Autenticado } from '../auth/roles.decorator';
 import {
   ETIQUETA_MOTIVO_RECHAZO, MotivoRechazoArl, aplicaSolicitudArl, documentosExigidosArl,
 } from '../../domain/entities/solicitud-arl.entity';
@@ -36,6 +37,7 @@ export interface ModalidadCatalogo {
  */
 @ApiTags('Catálogo del proceso')
 @ApiBearerAuth()
+@Autenticado()
 @Controller('catalogo')
 export class CatalogoController {
   constructor(private readonly ayuda: PqrsUseCase) {}

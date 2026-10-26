@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, Get, Headers, HttpCode, Inject, Post,
+  BadRequestException, Body, Controller, Get, Headers, HttpCode, Inject, NotFoundException, Post,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -31,6 +31,11 @@ export class TrabajosController {
    * Endpoint que invoca Cloud Tasks. No lo llama un usuario: lo llama la cola
    * con un token OIDC de la cuenta de servicio. Se marca `@Publico` para
    * saltar el guard de sesión y se verifica la identidad de servicio aquí.
+   *
+   * Solo existe con `COLA_DRIVER=cloud_tasks`. Con la cola en proceso el
+   * trabajo se ejecuta dentro del propio servicio y este endpoint no se usa:
+   * dejarlo abierto permitiría a cualquiera disparar el pipeline (y el gasto de
+   * IA) sobre un identificador, así que allí responde 404.
    */
   @Publico()
   @Post('procesar')
@@ -40,6 +45,9 @@ export class TrabajosController {
     @Body() trabajo: Trabajo,
     @Headers('authorization') autorizacion?: string,
   ): Promise<void> {
+    if (this.config.get<string>('COLA_DRIVER') !== 'cloud_tasks') {
+      throw new NotFoundException();
+    }
     await this.verificarIdentidadDeServicio(autorizacion);
 
     if (!TIPOS.includes(trabajo?.tipo)) {
@@ -70,18 +78,20 @@ export class TrabajosController {
   }
 
   /**
-   * En Google Cloud la petición trae un id_token OIDC de la cuenta de servicio
-   * de la aplicación. Fuera de GCP —desarrollo— la cola corre en proceso y este
-   * endpoint no se usa, así que exigirlo allí solo estorbaría.
+   * La petición trae un id_token OIDC de la cuenta de servicio de la aplicación,
+   * emitido para la URL del worker. Falla cerrada: sin token, o con uno que no
+   * se puede comprobar, no se ejecuta nada.
    */
   private async verificarIdentidadDeServicio(autorizacion?: string): Promise<void> {
-    if (this.config.get<string>('COLA_DRIVER') !== 'cloud_tasks') return;
-
     const token = autorizacion?.startsWith('Bearer ') ? autorizacion.slice(7) : null;
     if (!token) throw new UnauthorizedException('El worker solo acepta llamadas de la cola');
 
-    const esperado = this.config.getOrThrow<string>('GCP_CUENTA_SERVICIO');
-    const identidad = await this.oidc.verificarTokenDeServicio(token, esperado);
+    const esperado = this.config.get<string>('GCP_CUENTA_SERVICIO');
+    const audiencia = this.config.get<string>('WORKER_URL');
+    if (!esperado || !audiencia) {
+      throw new UnauthorizedException('El worker no tiene configurada la identidad de servicio');
+    }
+    const identidad = await this.oidc.verificarTokenDeServicio(token, esperado, audiencia);
     if (!identidad) {
       throw new UnauthorizedException('La identidad de servicio no corresponde a esta aplicación');
     }

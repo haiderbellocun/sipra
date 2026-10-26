@@ -38,6 +38,7 @@ export class PqrsController {
   }
 
   @Get()
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Mis solicitudes (estudiante) o bandeja completa (quien atiende)' })
   @ApiQuery({ name: 'estado', required: false, enum: EstadoPqrs })
   @ApiQuery({ name: 'categoria', required: false, enum: CATEGORIAS_PQRS })
@@ -50,6 +51,7 @@ export class PqrsController {
   }
 
   @Get(':id')
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   obtener(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<PqrsRespuesta> {
     return this.pqrs.obtener(id, actor);
   }
@@ -71,6 +73,7 @@ export class PqrsController {
   }
 
   @Patch(':id/cerrar')
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Cerrar una solicitud ya respondida' })
   cerrar(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<PqrsRespuesta> {
     return this.pqrs.cerrar(id, actor);

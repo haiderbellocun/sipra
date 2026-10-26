@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Req, Res,
+  BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -17,10 +17,14 @@ import {
   MetricasCalidadCaptura, TipoDocumento,
 } from '../../domain/entities/documento.entity';
 import { Rol } from '../../domain/value-objects/rol.vo';
-import { verificarEnlaceDescarga } from '../adapters/storage/almacenamiento.adapter';
-import { ALMACENAMIENTO, AlmacenamientoPort } from '../../domain/ports/out/servicios-externos.port';
+import { verificarEnlaceDocumento } from '../adapters/storage/enlace-documento';
 import { ActorActual } from '../auth/actor.decorator';
 import { Publico, Roles } from '../auth/roles.decorator';
+
+/** Roles que consultan documentos; el auxiliar, solo los tipos de su proceso (dominio). */
+const ROLES_DOCUMENTALES: readonly Rol[] = [
+  Rol.ESTUDIANTE, Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR,
+];
 
 @ApiTags('Documentos')
 @ApiBearerAuth()
@@ -29,10 +33,10 @@ export class DocumentosController {
   constructor(
     private readonly gestionar: GestionarDocumentoUseCase,
     private readonly config: ConfigService,
-    @Inject(ALMACENAMIENTO) private readonly almacen: AlmacenamientoPort,
   ) {}
 
   @Get('practica/:practicaId')
+  @Roles(...ROLES_DOCUMENTALES)
   @ApiOperation({
     summary: 'Documentos de una práctica',
     description:
@@ -48,6 +52,7 @@ export class DocumentosController {
   }
 
   @Post('practica/:practicaId')
+  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Cargar un documento',
@@ -109,9 +114,12 @@ export class DocumentosController {
   }
 
   @Get(':id/enlace')
+  @Roles(...ROLES_DOCUMENTALES)
   @ApiOperation({
     summary: 'Enlace firmado de vigencia corta',
-    description: 'Cada visualización y descarga queda registrada en la auditoría inmutable.',
+    description:
+      'Emitir el enlace queda auditado como visualización solicitada; la descarga real se ' +
+      'audita aparte. El auxiliar solo obtiene enlaces de los documentos de su proceso.',
   })
   enlace(
     @Param('id', ParseUUIDPipe) id: string,
@@ -143,20 +151,28 @@ export class DocumentosController {
   @ApiOperation({
     summary: 'Descarga por enlace firmado por la API',
     description:
-      'Con almacenamiento local es la única vía. Con Cloud Storage se usa cuando la identidad no puede ' +
-      'firmar URL del bucket; el archivo se lee del bucket privado y se sirve desde aquí.',
+      'El enlace va firmado para un documento y para quien lo pidió. Al descargar se vuelve a ' +
+      'comprobar el estado actual del usuario y su acceso al documento, y la descarga queda ' +
+      'registrada en la auditoría. Es público (sin cabecera de sesión) solo porque la firma es ' +
+      'la credencial.',
   })
   async descargar(
-    @Query('ruta') ruta: string,
-    @Query('expira') expira: string,
-    @Query('firma') firma: string,
+    @Query('doc') doc: string,
+    @Query('usr') usr: string,
+    @Query('exp') exp: string,
+    @Query('sig') sig: string,
+    @Req() peticion: FastifyRequest,
     @Res() respuesta: FastifyReply,
   ): Promise<void> {
-    const secreto = this.config.get<string>('JWT_SECRETO') ?? 'local';
-    if (!verificarEnlaceDescarga(secreto, ruta ?? '', Number(expira), firma ?? '')) {
-      throw new BadRequestException('Enlace inválido o vencido');
-    }
-    const contenido = await this.almacen.leer(ruta);
+    const enlace = verificarEnlaceDocumento(this.config.getOrThrow<string>('JWT_SECRETO'), {
+      doc, usr, exp, sig,
+    });
+    if (!enlace) throw new BadRequestException('Enlace inválido o vencido');
+
+    const contenido = await this.gestionar.descargar(enlace.documentoId, enlace.solicitanteId, {
+      ip: peticion.ip ?? null,
+      agenteUsuario: peticion.headers['user-agent'] ?? null,
+    });
     await respuesta
       .header('content-type', 'application/octet-stream')
       .header('cache-control', 'private, no-store')
