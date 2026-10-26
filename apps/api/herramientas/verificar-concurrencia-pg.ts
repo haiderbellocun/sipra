@@ -169,6 +169,15 @@ async function main(): Promise<void> {
       ds.query("UPDATE validaciones_eps SET decision = 'rechazado' WHERE id = $1", [idV]), /ck_veps_decision_humana/);
     await rechaza('reserva incoherente (funcionario sin plazo)', () =>
       ds.query('UPDATE validaciones_eps SET asignado_a = $2, reservado_en = NULL WHERE id = $1', [idV, funcionario]), /ck_veps_reserva/);
+    await rechaza('autenticidad verificada sin verificador ni fecha', () =>
+      ds.query("UPDATE validaciones_eps SET autenticidad = 'verificada' WHERE id = $1", [idV]), /ck_veps_requiere_verificador/);
+    await rechaza('afiliación activa sin verificador ni fecha', () =>
+      ds.query("UPDATE validaciones_eps SET afiliacion = 'activa' WHERE id = $1", [idV]), /ck_veps_requiere_verificador/);
+    await rechaza('verificador sin fecha de verificación', () =>
+      ds.query("UPDATE validaciones_eps SET verificador_codigo = 'v' WHERE id = $1", [idV]), /ck_veps_verificacion_coherente/);
+    await ds.query("UPDATE validaciones_eps SET autenticidad = 'verificada', verificador_codigo = 'v', verificado_en = now() WHERE id = $1", [idV]);
+    comprobar('autenticidad verificada CON verificador y fecha se acepta', true);
+    await ds.query("UPDATE validaciones_eps SET autenticidad = 'no_evaluada', verificador_codigo = NULL, verificado_en = NULL WHERE id = $1", [idV]);
     await rechaza('eje con valor fuera del catálogo', () =>
       ds.query("UPDATE validaciones_eps SET afiliacion = 'vigente' WHERE id = $1", [idV]), /ck_veps_afiliacion/);
     await rechaza('segunda validación para el mismo documento', () =>

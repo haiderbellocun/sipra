@@ -23,6 +23,11 @@ export class DiscrepanciaEpsDto {
   @ApiProperty({ nullable: true }) esperado!: string | null;
   @ApiProperty({ nullable: true }) observado!: string | null;
   @ApiProperty() resultado!: string;
+  @ApiProperty({ required: false, enum: ['certificado_vs_interno', 'oficial_vs_certificado', 'oficial_vs_interno'] })
+  comparacion?: string;
+  @ApiProperty({ required: false, nullable: true }) interno?: string | null;
+  @ApiProperty({ required: false, nullable: true }) certificado?: string | null;
+  @ApiProperty({ required: false, nullable: true }) oficial?: string | null;
 }
 
 /** Vista de quien opera la validación (auxiliar, coordinación, administración). */
@@ -42,6 +47,17 @@ export class ValidacionEpsOperacionDto {
   @ApiProperty({ nullable: true, description: 'Lo que una fuente oficial CONFIRMÓ. Vacío hasta que existan verificadores.' })
   datosVerificados!: Record<string, unknown> | null;
   @ApiProperty({ type: [DiscrepanciaEpsDto] }) discrepancias!: DiscrepanciaEpsDto[];
+  @ApiProperty({
+    enum: ['qr_oficial', 'sin_verificar'],
+    description: 'Cómo se validó: «qr_oficial» solo si un verificador oficial registrado dio un resultado definitivo.',
+  })
+  metodoValidacion!: 'qr_oficial' | 'sin_verificar';
+  @ApiProperty({ nullable: true, description: 'Verificador oficial que respalda la autenticidad o la afiliación.' })
+  verificador!: string | null;
+  @ApiProperty({ nullable: true, description: 'Cuándo se obtuvo el último resultado definitivo del verificador.' })
+  verificadoEn!: string | null;
+  @ApiProperty({ nullable: true, description: 'Código del último intento que no concluyó (portal caído, sin QR…).' })
+  verificacionError!: string | null;
   @ApiProperty({ nullable: true }) asignadoA!: string | null;
   @ApiProperty({ nullable: true }) reservaHasta!: string | null;
   @ApiProperty() version!: number;

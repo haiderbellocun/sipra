@@ -6,6 +6,7 @@ import {
   EvidenciaEpsDto, ValidacionEpsEstudianteDto, ValidacionEpsOperacionDto,
 } from '../../application/dtos/validacion-eps.dto';
 import { ValidacionEpsUseCase } from '../../application/use-cases/documentos/validacion-eps.use-case';
+import { ResultadoVerificarEps, VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
 import { Actor } from '../../application/use-cases/practicas/gestionar-practica.use-case';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
@@ -24,7 +25,10 @@ import { Roles } from '../auth/roles.decorator';
 @ApiExtraModels(ValidacionEpsEstudianteDto, ValidacionEpsOperacionDto)
 @Controller('validaciones-eps')
 export class ValidacionesEpsController {
-  constructor(private readonly validaciones: ValidacionEpsUseCase) {}
+  constructor(
+    private readonly validaciones: ValidacionEpsUseCase,
+    private readonly verificaciones: VerificacionEpsUseCase,
+  ) {}
 
   @Get('documento/:documentoId')
   @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
@@ -67,6 +71,22 @@ export class ValidacionesEpsController {
     @ActorActual() actor: Actor,
   ): Promise<ValidacionEpsOperacionDto> {
     return this.validaciones.reservar(id, actor);
+  }
+
+  @Post(':id/verificar')
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Reintentar la verificación oficial del certificado',
+    description:
+      'Consulta, si existe, el verificador oficial registrado para el QR del certificado. No hay petición a ningún ' +
+      'destino que no esté en el registro. Devuelve el resultado del intento (p. ej. «deshabilitada», «qr_no_soportado», «verificado»).',
+  })
+  async verificar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActorActual() actor: Actor,
+  ): Promise<{ resultado: ResultadoVerificarEps }> {
+    return { resultado: await this.verificaciones.verificarComoOperador(id, actor) };
   }
 
   @Delete(':id/reserva')

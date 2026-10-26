@@ -96,19 +96,34 @@ export interface DatosExtraidosEps {
   fuentes?: Record<string, 'texto_nativo' | 'ocr' | 'qr'>;
 }
 
-/** Lo que una fuente oficial CONFIRMÓ. Vacío hasta que existan verificadores reales. */
+/**
+ * Lo que una fuente oficial CONFIRMÓ. Vacío mientras no haya un verificador
+ * habilitado. Cada campo es opcional: solo viene lo que esa fuente devuelve.
+ */
 export interface DatosVerificadosEps {
   fuente: string;
   verificadoEn: string;
   eps: string | null;
   regimen: string | null;
+  /** Estado de afiliación que la FUENTE confirma (no el que imprime el certificado). */
   estadoAfiliacion: string | null;
+  tipoDocumento?: string | null;
+  numeroDocumento?: string | null;
+  nombre?: string | null;
+  /** AAAA-MM-DD. */
+  fechaExpedicion?: string | null;
 }
 
 export interface DiscrepanciaEps {
   campo: 'numero_documento' | 'nombre' | 'fecha_expedicion' | 'eps' | 'regimen' | 'estado_reportado';
+  /** Lo que dice el certificado frente a lo que SIPRA esperaba (comparación interna). */
   esperado: string | null;
   observado: string | null;
+  /** Comparación con la fuente oficial: de quién es cada valor. Ausente en la comparación interna. */
+  comparacion?: 'certificado_vs_interno' | 'oficial_vs_certificado' | 'oficial_vs_interno';
+  interno?: string | null;
+  certificado?: string | null;
+  oficial?: string | null;
   /** `fuentes_distintas`: el texto digital y el OCR leyeron valores diferentes; no se escogió ninguno. */
   resultado: 'diferente' | 'insuficiente' | 'vencido' | 'ausente' | 'no_reconocido' | 'fuentes_distintas';
 }
@@ -130,6 +145,15 @@ export interface DatosValidacionEps {
   datosVerificados: DatosVerificadosEps | null;
   discrepancias: DiscrepanciaEps[];
   errorCodigo: string | null;
+  // ── Verificación oficial (Fase 3): un verificador autoriza o no, y deja su huella ──
+  /** Verificador oficial que establece la autenticidad (o la afiliación). Nulo mientras no hay. */
+  verificadorCodigo: string | null;
+  /** Reclamo de la verificación en curso: un solo proceso consulta a la vez. */
+  verificacionIniciadaEn: Date | null;
+  /** Cuándo se obtuvo el último resultado DEFINITIVO de un verificador. */
+  verificadoEn: Date | null;
+  /** Código del último intento que no llegó a un resultado definitivo (portal caído, tiempo…). */
+  verificacionError: string | null;
   // ── Reserva: un caso, un funcionario a la vez ──
   asignadoA: string | null;
   reservadoEn: Date | null;
@@ -232,6 +256,10 @@ export class ValidacionEps {
       datosVerificados: null,
       discrepancias: [],
       errorCodigo: null,
+      verificadorCodigo: null,
+      verificacionIniciadaEn: null,
+      verificadoEn: null,
+      verificacionError: null,
       asignadoA: null,
       reservadoEn: null,
       reservaHasta: null,
@@ -318,6 +346,80 @@ export class ValidacionEps {
     if (verificacion.afiliacion !== undefined) this.datos.afiliacion = verificacion.afiliacion;
     if (verificacion.ruta !== undefined) this.datos.ruta = verificacion.ruta;
     if (verificacion.datosVerificados !== undefined) this.datos.datosVerificados = { ...verificacion.datosVerificados };
+    this.datos.actualizadaEn = ahora;
+    this.recalcularCandidatura();
+  }
+
+  // ── Verificación oficial ─────────────────────────────────────────────────
+
+  get verificadorCodigo(): string | null { return this.datos.verificadorCodigo; }
+  get verificacionIniciadaEn(): Date | null { return this.datos.verificacionIniciadaEn; }
+  get verificadoEn(): Date | null { return this.datos.verificadoEn; }
+  get verificacionError(): string | null { return this.datos.verificacionError; }
+
+  /** ¿Hay un resultado definitivo de un verificador? (autenticidad o afiliación ya establecidas). */
+  get tieneVerificacionDefinitiva(): boolean {
+    return this.datos.verificadorCodigo !== null && this.datos.verificadoEn !== null;
+  }
+
+  /** ¿Otro proceso tiene reclamada la verificación y su reclamo sigue vigente? */
+  verificacionEnCurso(ahora: Date, caducidadMs: number): boolean {
+    const inicio = this.datos.verificacionIniciadaEn;
+    return inicio !== null && ahora.getTime() - inicio.getTime() < caducidadMs;
+  }
+
+  /** Reclama la verificación. Se guarda con compare-and-set por versión: de varios, uno solo gana. */
+  iniciarVerificacion(ahora: Date): void {
+    this.exigirNoDecidida();
+    this.datos.verificacionIniciadaEn = ahora;
+    this.datos.actualizadaEn = ahora;
+  }
+
+  /**
+   * Resultado DEFINITIVO de un verificador oficial. La autenticidad y la
+   * afiliación se establecen aquí y solo aquí, con el verificador que las
+   * respalda. `afiliacion` omitido = ese verificador no la confirma: se conserva
+   * `no_contrastada` aunque el certificado diga «ACTIVO».
+   */
+  registrarVerificacionOficial(
+    r: {
+      verificador: string;
+      autenticidad: AutenticidadEps;
+      afiliacion?: AfiliacionEps;
+      ruta: RutaValidacionEps;
+      datosVerificados: DatosVerificadosEps | null;
+      discrepancias: DiscrepanciaEps[];
+      coincidencia?: CoincidenciaEps;
+    },
+    ahora: Date,
+  ): void {
+    this.exigirNoDecidida();
+    this.datos.verificadorCodigo = r.verificador;
+    this.datos.verificadoEn = ahora;
+    this.datos.verificacionIniciadaEn = null;
+    this.datos.verificacionError = null;
+    this.datos.autenticidad = r.autenticidad;
+    if (r.afiliacion !== undefined) this.datos.afiliacion = r.afiliacion;
+    this.datos.ruta = r.ruta;
+    this.datos.datosVerificados = r.datosVerificados ? { ...r.datosVerificados } : null;
+    if (r.coincidencia !== undefined) this.datos.coincidencia = r.coincidencia;
+    // Las discrepancias de la verificación se suman a las ya registradas, sin repetir las suyas.
+    const previas = this.datos.discrepancias.filter((d) => d.comparacion === undefined || d.comparacion === 'certificado_vs_interno');
+    this.datos.discrepancias = [...previas, ...r.discrepancias];
+    this.datos.actualizadaEn = ahora;
+    this.recalcularCandidatura();
+  }
+
+  /**
+   * La verificación no pudo establecer nada (QR sin verificador, portal caído,
+   * respuesta inválida): se anota el código y se libera el reclamo. NO toca la
+   * autenticidad: un error de red no vuelve falso a un certificado.
+   */
+  registrarVerificacionNoConcluyente(codigo: string, ahora: Date, autenticidad?: AutenticidadEps): void {
+    this.exigirNoDecidida();
+    this.datos.verificacionIniciadaEn = null;
+    this.datos.verificacionError = codigo.slice(0, 40);
+    if (autenticidad !== undefined) this.datos.autenticidad = autenticidad;
     this.datos.actualizadaEn = ahora;
     this.recalcularCandidatura();
   }

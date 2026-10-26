@@ -1,6 +1,7 @@
 import { QueryRunner } from 'typeorm';
 import { ValidacionEps1756000011000 } from '../src/infrastructure/persistence/postgres/migrations/1756000011000-ValidacionEps';
 import { EvidenciaEpsOcr1756000012000 } from '../src/infrastructure/persistence/postgres/migrations/1756000012000-EvidenciaEpsOcr';
+import { VerificacionEps1756000013000 } from '../src/infrastructure/persistence/postgres/migrations/1756000013000-VerificacionEps';
 import { MIGRACIONES } from '../src/infrastructure/persistence/postgres/migrations/todas.migracion';
 import {
   EvidenciaValidacionEpsOrm, ValidacionEpsOrm,
@@ -153,5 +154,40 @@ describe('Migración de evidencia OCR (sin ejecutar)', () => {
   it('no toca datos, disparadores ni privilegios', async () => {
     const todo = (await sql('up')) + (await sql('down'));
     expect(todo).not.toMatch(/INSERT|UPDATE evidencias|DELETE|TRUNCATE|GRANT|REVOKE|TRIGGER|DROP TABLE/i);
+  });
+});
+
+describe('Migración de verificación oficial (sin ejecutar)', () => {
+  async function sql(metodo: 'up' | 'down'): Promise<string> {
+    const emitido: string[] = [];
+    const corredor = { query: (s: string) => { emitido.push(s.replace(/\s+/g, ' ').trim()); return Promise.resolve(); } };
+    await new VerificacionEps1756000013000()[metodo](corredor as unknown as QueryRunner);
+    return emitido.join('\n');
+  }
+
+  it('está registrada justo después de la de evidencia OCR', () => {
+    const i = MIGRACIONES.indexOf(VerificacionEps1756000013000);
+    expect(i).toBeGreaterThan(0);
+    expect(MIGRACIONES[i - 1].name).toBe('EvidenciaEpsOcr1756000012000');
+  });
+
+  it('agrega solo columnas nulas de verificación', async () => {
+    const up = await sql('up');
+    for (const c of ['verificador_codigo varchar(60)', 'verificacion_iniciada_en timestamptz', 'verificado_en timestamptz', 'verificacion_error varchar(40)']) {
+      expect(up).toContain(c);
+    }
+    expect(up).not.toMatch(/NOT NULL DEFAULT|INSERT|DELETE|GRANT|REVOKE|DROP TABLE/i);
+  });
+
+  it('impide afirmar autenticidad o afiliación sin verificador y fecha', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/ck_veps_requiere_verificador CHECK \( \(autenticidad NOT IN \('verificada','invalida'\) AND afiliacion NOT IN \('activa','inactiva'\)\) OR \(verificador_codigo IS NOT NULL AND verificado_en IS NOT NULL\)/);
+    expect(up).toMatch(/ck_veps_verificacion_coherente CHECK \( \(verificador_codigo IS NULL\) = \(verificado_en IS NULL\)/);
+  });
+
+  it('down quita lo agregado', async () => {
+    const down = await sql('down');
+    expect(down).toMatch(/DROP CONSTRAINT IF EXISTS ck_veps_requiere_verificador/);
+    expect(down).toMatch(/DROP COLUMN IF EXISTS verificador_codigo/);
   });
 });

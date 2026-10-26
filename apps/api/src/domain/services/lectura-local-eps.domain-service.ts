@@ -94,6 +94,34 @@ export class LecturaLocalEpsService {
     return { campos, resumen, ilegible, motivoIlegible };
   }
 
+  /**
+   * Solo los QR del documento, CRUDOS (con su contenido completo), para una
+   * verificación posterior. El contenido no se persiste: quien lo recibe lo usa
+   * en memoria y lo descarta. Falla cerrado: ante cualquier problema, lista vacía.
+   */
+  async detectarQrCrudos(
+    contenido: Buffer, mime: string, limites: LimitesLecturaLocal = LIMITES_LECTURA_EPS,
+  ): Promise<HallazgoQrCrudo[]> {
+    const qr: HallazgoQrCrudo[] = [];
+    try {
+      if (mime === 'application/pdf') {
+        const nativo = await this.lector.extraerTextoNativo(contenido, limites);
+        for (const { pagina } of nativo.porPagina) {
+          try {
+            const img = await this.lector.renderizarPagina(contenido, pagina, limites);
+            qr.push(...await this.lector.detectarQr(img.imagen, pagina));
+          } catch { /* una página que no se rasteriza no impide revisar las demás */ }
+        }
+      } else if (MIMES_IMAGEN.includes(mime)) {
+        const img = await this.lector.prepararImagen(contenido, mime, limites);
+        qr.push(...await this.lector.detectarQr(img.imagen, null));
+      }
+    } catch {
+      return [];
+    }
+    return qr;
+  }
+
   private codigoDeLimite(error: LimiteLecturaLocalError): string {
     return error.limite === 'paginas' ? 'documento_excede_paginas'
       : error.limite === 'pixeles' ? 'pagina_excede_pixeles' : 'tiempo_agotado';

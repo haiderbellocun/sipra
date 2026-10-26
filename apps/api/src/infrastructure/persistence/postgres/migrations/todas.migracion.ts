@@ -14,6 +14,7 @@ import { CronogramaYPqrs1756000009000 } from './1756000009000-CronogramaYPqrs';
 import { ConsentimientoVersionado1756000010000 } from './1756000010000-ConsentimientoVersionado';
 import { ValidacionEps1756000011000 } from './1756000011000-ValidacionEps';
 import { EvidenciaEpsOcr1756000012000 } from './1756000012000-EvidenciaEpsOcr';
+import { VerificacionEps1756000013000 } from './1756000013000-VerificacionEps';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -37,4 +38,5 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   ConsentimientoVersionado1756000010000,
   ValidacionEps1756000011000,
   EvidenciaEpsOcr1756000012000,
+  VerificacionEps1756000013000,
 ];

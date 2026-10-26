@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Trabajo } from '../../../domain/ports/out/servicios-externos.port';
 import {
   ALMACENAMIENTO, AlmacenamientoPort,
@@ -17,6 +17,7 @@ import { Documento, EstadoDocumento, TipoDocumento } from '../../../domain/entit
 import { MetricasService } from '../../../infrastructure/observability/metricas.service';
 import { PipelineValidacionUseCase, ProcesamientoEnCursoError } from './pipeline-validacion.use-case';
 import { ValidacionEpsUseCase } from './validacion-eps.use-case';
+import { VerificacionEpsUseCase } from './verificacion-eps.use-case';
 
 /**
  * Punto único de ejecución de los trabajos encolados.
@@ -38,6 +39,7 @@ export class ProcesarTrabajoUseCase {
     private readonly notificaciones: NotificacionesService,
     private readonly metricas: MetricasService,
     private readonly validacionesEps: ValidacionEpsUseCase,
+    @Optional() private readonly verificacionesEps?: VerificacionEpsUseCase,
   ) {}
 
   async ejecutar(trabajo: Trabajo): Promise<void> {
@@ -68,6 +70,13 @@ export class ProcesarTrabajoUseCase {
     // procesar el documento, el reintento (que ya no ejecuta capas) la completa.
     if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
       await this.validacionesEps.registrarProcesamiento(documento);
+      // Verificación oficial: es un complemento. Si falla, el trabajo NO falla (la validación ya quedó
+      // procesada y en revisión humana) y un reintento no vuelve a consultar el portal si ya hay resultado.
+      try {
+        await this.verificacionesEps?.verificar(documento.id);
+      } catch (error) {
+        this.log.warn(`Verificación EPS del documento ${documento.id}: sin resultado (${(error as Error).name})`);
+      }
     }
   }
 

@@ -138,11 +138,11 @@ describe('Política de acceso · rutas sensibles', () => {
     const operan = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR].sort();
     expect(ordenados(rolesDe('ValidacionesEpsController.consultar')))
       .toEqual([...operan, Rol.ESTUDIANTE].sort());
-    for (const clave of ['evidencias', 'reservar', 'liberar']) {
+    for (const clave of ['evidencias', 'reservar', 'liberar', 'verificar']) {
       expect(ordenados(rolesDe(`ValidacionesEpsController.${clave}`))).toEqual(operan);
     }
     const eps = RUTAS.filter((r) => r.controlador === 'ValidacionesEpsController');
-    expect(eps).toHaveLength(4);
+    expect(eps).toHaveLength(5);
     for (const r of eps) {
       for (const excluido of [Rol.TUTOR, Rol.EMPRESA, Rol.EXTENSION]) expect(r.roles).not.toContain(excluido);
     }

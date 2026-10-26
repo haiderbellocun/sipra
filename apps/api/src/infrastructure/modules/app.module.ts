@@ -111,6 +111,13 @@ import { ConsentimientosController } from '../controllers/consentimientos.contro
 import { ValidacionesEpsController } from '../controllers/validaciones-eps.controller';
 import { ValidacionEpsUseCase } from '../../application/use-cases/documentos/validacion-eps.use-case';
 import { VALIDACION_EPS_REPOSITORY } from '../../domain/ports/out/validacion-eps.port';
+import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
+import { ADAPTADORES_RESPUESTA_EPS, VERIFICADOR_CERTIFICADO_EPS } from '../../domain/ports/out/verificador-certificado-eps.port';
+import {
+  REGISTRO_VERIFICADORES_EPS, RegistroVerificadoresEps, VERIFICADORES_EPS_OFICIALES,
+} from '../../domain/services/registro-verificadores-eps';
+import { ClienteHttpSeguro } from '../adapters/verificacion-eps/cliente-http-seguro';
+import { VerificadorEpsHttpAdapter } from '../adapters/verificacion-eps/verificador-eps-http.adapter';
 import { ValidacionEpsRepositoryAdapter } from '../adapters/persistence/postgres/validacion-eps.adapter';
 import { ConsentimientoUseCase } from '../../application/use-cases/consentimientos/consentimiento.use-case';
 import {
@@ -302,6 +309,13 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     PqrsUseCase,
     ConsentimientoUseCase,
     ValidacionEpsUseCase,
+    // Verificación OFICIAL de certificados de EPS: registro de destinos permitidos (hoy vacío),
+    // cliente HTTP con defensa SSRF y un adaptador por verificador (ninguno habilitado todavía).
+    { provide: REGISTRO_VERIFICADORES_EPS, useFactory: () => new RegistroVerificadoresEps(VERIFICADORES_EPS_OFICIALES) },
+    { provide: ADAPTADORES_RESPUESTA_EPS, useValue: [] },
+    { provide: ClienteHttpSeguro, useFactory: () => new ClienteHttpSeguro() },
+    { provide: VERIFICADOR_CERTIFICADO_EPS, useClass: VerificadorEpsHttpAdapter },
+    VerificacionEpsUseCase,
     PipelineValidacionUseCase,
     ProcesarTrabajoUseCase,
     GestionarDocumentoUseCase,

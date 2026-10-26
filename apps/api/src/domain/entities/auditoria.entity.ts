@@ -44,6 +44,9 @@ export enum AccionAuditada {
   VALIDACION_EPS_ASIGNADA = 'validacion_eps_asignada',
   VALIDACION_EPS_LIBERADA = 'validacion_eps_liberada',
   DECISION_EPS = 'decision_eps',
+  VERIFICACION_EPS_INICIADA = 'verificacion_eps_iniciada',
+  VERIFICACION_EPS_COMPLETADA = 'verificacion_eps_completada',
+  VERIFICACION_EPS_FALLIDA = 'verificacion_eps_fallida',
 }
 
 export interface RegistroAuditoria {

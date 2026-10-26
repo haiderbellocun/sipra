@@ -5,7 +5,7 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.6 |
+| Versión del documento | 0.17.7 |
 | Fecha | 26 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
@@ -922,6 +922,95 @@ serializado); sin cambios de infraestructura en esta fase.
 **Pruebas sin red.** `lectura-local-sin-red.spec.ts` lee un corpus completo en un proceso aparte con un
 bloqueo de red precargado en **cada hilo** (los de trabajo heredan los argumentos) y comprueba que no
 hay un solo intento de conexión.
+
+### 7.17 Verificación oficial de certificados de EPS (Fase 3 EPS)
+
+**Idea.** Cuatro cosas distintas que nunca se confunden: un **QR encontrado** (solo se decodificó), la
+**autenticidad** (una fuente oficial permitida confirmó el certificado), la **afiliación** (una fuente
+confirmó el estado vigente) y la **coincidencia** (los datos corresponden al estudiante). Un verificador
+puede confirmar autenticidad y no afiliación; el «ACTIVO» impreso nunca activa la afiliación.
+
+**Inventario de mecanismos oficiales.** *Resultado: ninguno habilitado.* No se pudo confirmar, desde
+fuentes públicas, un mecanismo de verificación por QR que una EPS ofrezca de forma oficial, abierta y sin
+pasos humanos (la búsqueda solo encontró consultas de ADRES —Fase 4, asistida— y verificadores de otras
+entidades, como certificados de cámaras de comercio o de vacunación, que no son de EPS). Por regla, **no
+se inventan URLs, no se deducen endpoints inspeccionando portales ni se usan APIs vistas en DevTools**.
+`VERIFICADORES_EPS_OFICIALES` está vacío; con él, **ningún** QR recibe una petición.
+
+Para dar de alta un verificador la persona responsable aporta, por EPS (todo se valida al arrancar y una
+ficha incompleta impide el arranque):
+
+| Dato de la ficha | Campo |
+|---|---|
+| EPS/emisor y alias aprobados | `emisor`, `aliasesEmisor` |
+| Dominio exacto y puertos | `hostsPermitidos`, `puertosPermitidos` (443 por defecto) |
+| URL pública y ruta | `prefijosRuta` |
+| ¿El QR apunta directo allí? ¿hay redirecciones? | `hostsRedireccionPermitidos`, `maxRedirecciones` (máx. 2, declaradas) |
+| ¿Requiere intervención humana (CAPTCHA, sesión) o credenciales? | `requiereInteraccionHumana`, `requiereCredenciales` (si sí, **nunca** se consulta) |
+| Formato que devuelve | `formato`, `contentTypes` |
+| ¿Confirma autenticidad? ¿afiliación vigente? | `autenticaCertificado`, `confirmaAfiliacion` |
+| Condiciones de uso y fuente que lo sustenta | `fuenteOficial`, `aprobadoPor`, `aprobadoEn` |
+
+Además requiere un **adaptador específico** (`AdaptadorRespuestaEps`: qué campos espera y cómo reconoce
+POSITIVAMENTE éxito y rechazo; cualquier otra estructura es `estructura_no_reconocida`). No hay lector
+universal de páginas. La verificación está apagada por defecto (`VERIFICACION_EPS_HABILITADA`).
+
+**Flujo.** Tras procesar el certificado (Fase 2) el worker llama a `VerificacionEpsUseCase`. El QR **se
+vuelve a leer del archivo**: la URL completa solo vive en memoria durante la consulta (en la base queda
+únicamente el origen saneado). Solo los QR cuyo host está **exactamente** en el registro (https, sin
+usuario:clave, puerto y ruta declarados) pasan; el resto —URL desconocida, host parecido, `javascript:`,
+`data:`, texto— recibe **cero peticiones** y deja `autenticidad = no_verificable`, ruta de revisión
+manual. Varios QR oficiales distintos: no se elige uno (`qr_ambiguo`). Sin QR: nada se consulta.
+
+**SSRF** (`ClienteHttpSeguro`, única vía de salida): (1) https, sin credenciales, sin IP literal en
+ninguna notación ni nombres internos (`localhost`, `.internal`, `metadata.google.internal`), puerto
+permitido; (2) el nombre se resuelve **en el `lookup` de la propia conexión** y todas las direcciones
+deben ser públicas (loopback, RFC 1918, CGNAT, enlace local incluida la metadata `169.254.169.254`, ULA,
+IPv4 mapeada, NAT64, multicast, documentación) — como la conexión usa esa misma respuesta no hay segunda
+resolución que cambiar (DNS rebinding); (3) sin redirecciones salvo las declaradas, cada una revalidada de
+cero contra la allowlist, nunca de https a http, máximo 2; (4) tiempo total (8 s), tamaño (256 KB),
+Content-Type esperado, sin compresión; (5) sin cookies, sin credenciales, User-Agent institucional neutro;
+no se ejecuta ni se carga nada del sitio. Verificación TLS siempre activa.
+
+**Resultados y errores.** `verificado` / `rechazado` (la fuente lo afirma de forma explícita:
+`certificado_no_encontrado`, `certificado_invalido`) / `no_verificable`. Un portal caído, un tiempo
+agotado, una respuesta enorme, un HTML cambiado o un Content-Type inesperado son `no_verificable`
+(`verificador_no_disponible`, `timeout`, `respuesta_demasiado_grande`, `respuesta_invalida`,
+`contenido_no_esperado`, `redireccion_no_permitida`): **jamás** «auténtico» ni «falso». Las capacidades
+son las DECLARADAS del verificador: lo que no declara, no lo establece aunque la respuesta lo diga.
+
+**Comparaciones separadas** (`compararConFuenteOficial`): certificado ↔ SIPRA (Fase 1), fuente ↔
+certificado y fuente ↔ SIPRA; cada discrepancia dice `comparacion`, `interno`, `certificado`, `oficial`.
+Si la fuente contradice el documento, la EPS o la fecha del certificado: autenticidad `invalida`
+(`datos_inconsistentes`). Si autentica un certificado de otra persona: sigue auténtico pero la coincidencia
+pasa a `discrepancia`. **Aliases de EPS:** igualdad de clave canónica o alias APROBADO en el verificador;
+nunca semejanza de texto (`SANITAS` ≠ `SANITAZ`; `COMPENSAR` = `EPS COMPENSAR`).
+
+**Candidato a autoaprobación** (regla de Fase 1, sin cambios): autenticidad verificada Y coincidencia Y
+afiliación activa Y vigencia Y sin banderas críticas. Autenticidad sin afiliación confirmada → **no** hay
+candidatura (queda lista para ADRES asistido, Fase 4). El documento NO pasa a `auto_aprobado`.
+
+**Persistencia** (migración `1756000013000`; creada, **no ejecutada** en base real; validada en
+PostgreSQL desechable): `verificador_codigo`, `verificado_en`, `verificacion_error`,
+`verificacion_iniciada_en`, y `CHECK` que impiden `verificada`/`invalida`/`activa`/`inactiva` sin
+verificador y fecha. Evidencia `respuesta_eps` (fuente `eps_oficial`) con verificador, resultado, hash de la
+respuesta (no el cuerpo), origen sin parámetros y nombres de los campos obtenidos. Auditoría
+`verificacion_eps_iniciada/completada/fallida`, por identificadores.
+
+**Idempotencia y concurrencia.** Un resultado definitivo no se repite; tras un intento sin conclusión no se
+vuelve a consultar durante 10 minutos (el reintento manual de operación, `POST validaciones-eps/:id/verificar`,
+sí puede). Un reclamo con compare-and-set por versión (caduca a los 2 minutos) deja pasar a un solo worker.
+Una decisión humana previa gana.
+
+**API.** `ValidacionEpsOperacionDto` suma `metodoValidacion` (`qr_oficial`/`sin_verificar`),
+`verificador`, `verificadoEn` y `verificacionError`; el estudiante sigue viendo solo el resultado reducido.
+
+**Pruebas** (sin Internet): servidores HTTPS locales sintéticos con certificado autofirmado generado en
+memoria (`soporte-certificado.ts`; ninguna clave en el repositorio): válido, inválido, inexistente,
+redirección permitida y prohibida, timeout, respuesta enorme, HTML/JSON cambiado, caída del portal; SSRF
+(localhost, 127.0.0.1, 169.254.169.254, metadata, 10/8, 172.16/12, 192.168/16, ::1, enlace local, DNS a
+IP privada, redirección a privada), y QR (`javascript:`, `data:`, `file:`, `ftp:`, usuario:clave, puerto,
+host parecido).
 
 ---
 
@@ -2507,6 +2596,21 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.7 — 26 de octubre de 2026
+
+Fase 3 EPS · verificación oficial de autenticidad (sin ADRES, sin RUAF, sin CAPTCHA, sin scraping):
+
+- **Registro de verificadores** (allowlist exacta) y puerto `VerificadorCertificadoEpsPort`; **inventario
+  vacío**: no se confirmó ningún mecanismo oficial de EPS (§7.17). Verificación apagada por defecto.
+- **`ClienteHttpSeguro`** con defensa SSRF, DNS fijado en la conexión, redirecciones revalidadas, límites de
+  tiempo y tamaño.
+- **Conclusiones por capacidades declaradas**: autenticidad ≠ afiliación; fallos de red ≠ certificado falso.
+- Comparación fuente ↔ certificado ↔ SIPRA con discrepancias estructuradas; aliases de EPS solo aprobados.
+- **Migración `1756000013000`** (no ejecutada en base real), evidencia `respuesta_eps`, auditoría de
+  verificación, ruta de reintento para operación y campos nuevos en el DTO de operación.
+- **Pendientes (Fase 4):** ADRES asistido; alta documentada de verificadores oficiales con su adaptador;
+  política de retención de EPS.
 
 ### 0.17.6 — 26 de octubre de 2026
 

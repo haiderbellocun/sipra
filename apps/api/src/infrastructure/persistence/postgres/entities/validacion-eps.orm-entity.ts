@@ -19,6 +19,10 @@ export class ValidacionEpsOrm {
   @Column({ type: 'jsonb', nullable: true }) datos_verificados!: Record<string, unknown> | null;
   @Column({ type: 'jsonb' }) discrepancias!: Record<string, unknown>[];
   @Column({ type: 'varchar', length: 60, nullable: true }) error_codigo!: string | null;
+  @Column({ type: 'varchar', length: 60, nullable: true }) verificador_codigo!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) verificacion_iniciada_en!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) verificado_en!: Date | null;
+  @Column({ type: 'varchar', length: 40, nullable: true }) verificacion_error!: string | null;
   @Column({ type: 'uuid', nullable: true }) asignado_a!: string | null;
   @Column({ type: 'timestamptz', nullable: true }) reservado_en!: Date | null;
   @Column({ type: 'timestamptz', nullable: true }) reserva_hasta!: Date | null;
