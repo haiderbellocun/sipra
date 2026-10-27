@@ -87,6 +87,8 @@ const textoPagina = `document.body.innerText`;
 
 async function abrirMesa(nav, sesion, ancho = 1440, alto = 900) {
   await nav.sembrarSesion(sesion);
+  // La lista de casos se fija junto al detalle (en escritorio, de fábrica se oculta con un caso abierto): estos pasos usan la lista.
+  await nav.enviar('Page.addScriptToEvaluateOnNewDocument', { source: "try{localStorage.setItem('sipra.mesa.lista','si');}catch(e){}" });
   await nav.vista(ancho, alto);
   await nav.ir(`${WEB}/eps`);
   await nav.esperar(`document.querySelector('h1')?.textContent.includes('Mesa de validación de EPS')`, 30000, 'título de la Mesa');
@@ -120,10 +122,10 @@ async function main() {
         afirmar(await nav.evaluar(sinDesborde), `hay desborde horizontal (scrollWidth ${await nav.evaluar('document.documentElement.scrollWidth')} > ${ancho})`);
         if (CAPTURAS) await nav.captura(join(CAPTURAS, `mesa-${etiqueta.replace(' ', '-')}-lista.png`));
       });
-      await paso(`${etiqueta}: abrir un caso muestra el detalle${ancho < 1024 ? ' y oculta la lista (lista → detalle)' : ' junto a la lista'}`, async () => {
+      await paso(`${etiqueta}: abrir un caso muestra el detalle${ancho < 1200 ? ' y oculta la lista (lista → detalle)' : ' junto a la lista'}`, async () => {
         await nav.clic('.caso', 'Laura');
         await nav.esperar(`document.querySelector('sipra-eps-detalle h2')?.textContent.includes('Laura')`, 15000, 'detalle del caso');
-        if (ancho < 1024) {
+        if (ancho < 1200) {
           afirmar(await nav.evaluar(`getComputedStyle(document.querySelector('.lista-col')).display === 'none'`), 'la lista debería ocultarse en pantallas angostas');
           afirmar(await nav.evaluar(`[...document.querySelectorAll('.atras')].some((b) => b.offsetWidth > 0)`), 'falta el botón «Volver a la lista»');
         } else {
@@ -131,7 +133,7 @@ async function main() {
         }
         afirmar(await nav.evaluar(sinDesborde), 'desborde horizontal en el detalle');
         if (CAPTURAS) await nav.captura(join(CAPTURAS, `mesa-${etiqueta.replace(' ', '-')}-detalle.png`));
-        if (ancho < 1024) {
+        if (ancho < 1200) {
           await nav.clic('.atras', 'Volver');
           await nav.esperar(`getComputedStyle(document.querySelector('.lista-col')).display !== 'none'`, 5000, 'regreso a la lista');
         }
@@ -206,7 +208,7 @@ async function main() {
     });
 
     await paso('la comparación triple muestra los tres valores con icono y texto por campo', async () => {
-      const filasComparacion = await nav.evaluar(`[...document.querySelectorAll('sipra-eps-comparacion tbody tr')].map((tr) => tr.innerText.replace(/\\s+/g, ' ').trim())`);
+      const filasComparacion = await nav.evaluar(`[...document.querySelectorAll('sipra-eps-comparacion li')].map((tr) => tr.innerText.replace(/\\s+/g, ' ').trim())`);
       afirmar(filasComparacion.length >= 4, `la comparación tiene ${filasComparacion.length} filas`);
       afirmar(filasComparacion.every((f) => /Coincide|Diferente|Sin información/.test(f)), 'cada fila debe decir su resultado con texto');
       afirmar(filasComparacion.some((f) => /Coincide/.test(f)), 'debería coincidir al menos un campo');

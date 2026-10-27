@@ -1369,6 +1369,19 @@ la arquitectura ni las reglas de seguridad (lectura 100 % local, blob autenticad
 debe confirmar el nombre en el visor. Un PDF con fragmentos superpuestos (varias capas del mismo texto) solo se resuelve con el OCR de respaldo.
 **Reproceso.** El pipeline es idempotente por contenido: para volver a leer un certificado hay que cargar una **nueva versión con contenido distinto**; una copia idéntica no se vuelve a leer.
 
+#### 7.21.13 Estación de trabajo de la Mesa (solo presentación)
+
+Rediseño de la **experiencia y el layout** del detalle de la Mesa; no cambia extracción, OCR, comparación, ADRES, recomendaciones, reservas, permisos, endpoints ni modelos.
+
+- **Antes:** una pila de doce tarjetas (≈ 5.800 px de detalle y ≈ 6.500 px de página a 1440) con el certificado fuera de la primera pantalla, y una comparación en tabla de seis columnas que partía las palabras.
+- **Ahora, desde 1200 px de ventana:** al abrir un caso la lista se oculta (se puede fijar al lado y la preferencia se recuerda por navegador) y el detalle se compone en **dos columnas** que responden al ancho del propio detalle (*container query*):
+  certificado fijo a la izquierda (≈ 42-45 %) y la revisión a su lado, en orden de decisión (recomendación, discrepancias, datos extraídos, autenticidad + afiliación, comparación, ADRES). Debajo, una zona secundaria
+  (versiones y evidencia, historial con los 4 últimos movimientos y «Ver historial completo», tiempos) y una **barra de decisión fija** al pie.
+- **Comparación:** una fila por campo (etiqueta sobre valor: SIPRA · certificado · ADRES) con «Certificado vs SIPRA» y el resultado ADRES; ninguna palabra se parte.
+- **Responsive:** 1024-1199 px, lista o detalle (como en móvil) con el documento arriba y la revisión debajo; 390 px, una columna sin sticky ni scroll horizontal.
+- **ADRES** conserva el flujo (se abre fuera de SIPRA; sin iframe). El visor, el blob autenticado y el modal ampliado no cambian.
+- Cabecera de la Mesa más baja (KPI en una línea, filtros plegados), lista de casos más compacta. Sin tokens ni dependencias nuevas; funciona en los temas oscuro y claro.
+
 <!-- FIN_PILOTO_EPS -->
 
 ---
@@ -2955,6 +2968,14 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.12 — 27 de octubre de 2026
+
+Estación de trabajo de la Mesa EPS (§7.21.13). Solo presentación, sin cambios de lógica ni de backend:
+
+- Detalle en dos columnas (certificado fijo + revisión), comparación por campo sin palabras partidas, discrepancias y datos extraídos compactos, historial con «ver completo», versiones en pastillas y barra de decisión fija.
+- Lista de casos más angosta y compacta (se oculta con un caso abierto en escritorio); cabecera y KPI más bajos.
+- Reducción medida a 1440×900: de ≈ 6.540 px a ≈ 3.250 px de página; probado en 1440, 1366, 1024 y 390 px, en oscuro y claro, con datos de peor caso.
 
 ### 0.17.11 — 27 de octubre de 2026
 

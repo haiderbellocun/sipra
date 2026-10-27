@@ -30,25 +30,34 @@ const ERRORES: Record<string, string> = {
   imports: [FormsModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    .consulta { border-left:3px solid var(--marca); padding:var(--sp-2) var(--sp-3); background:var(--superficie-2); border-radius:0 var(--r-sm) var(--r-sm) 0; margin:var(--sp-3) 0; }
-    .consulta .grande { font-size:var(--fs-lg, 1.25rem); font-weight:700; letter-spacing:.04em; }
+    :host { display:block; }
+    .fila { display:flex; flex-wrap:wrap; gap:var(--sp-2) var(--sp-3); align-items:center; justify-content:space-between; }
+    .fila p { margin:0; }
+    .consulta { padding:var(--sp-3) var(--sp-4); background:var(--superficie-2); border-radius:var(--r-sm); margin-top:var(--sp-3); }
+    .consulta > :first-child { margin-top:0; }
+    .consulta .grande { font-size:var(--fs-lg, 1.25rem); font-weight:700; letter-spacing:.04em; font-variant-numeric:tabular-nums; overflow-wrap:break-word; }
+    .consulta ol { margin:0 0 var(--sp-3); padding-left:1.25rem; display:grid; gap:var(--sp-1); font-size:var(--fs-sm); }
+    .consulta h4 { margin:var(--sp-3) 0 var(--sp-2); font-size:var(--fs-base); }
+    .cargar { display:grid; gap:0 var(--sp-4); grid-template-columns:repeat(auto-fit, minmax(14rem, 1fr)); }
     .error-texto { color:var(--peligro); }
   `],
   template: `
-    <p>
-      <span class="etiqueta etiqueta--icono etiqueta--{{ rotulo().tono }}"><span aria-hidden="true">{{ rotulo().icono }}</span> {{ rotulo().texto }}</span>
-      @if (errorPrevio()) { <span class="error-texto"> · {{ errorTexto(errorPrevio()!) }}</span> }
-    </p>
-
-    @if (puedeConsultar()) {
-      <div class="acciones">
-        <button type="button" class="boton boton--primario" [disabled]="ocupado()" (click)="preparar()">Consultar ADRES</button>
-        @if (estado() === 'evidencia_recibida' || estado() === 'error') {
-          <button type="button" class="boton" [disabled]="ocupado()" (click)="reprocesar()">Reintentar el procesamiento</button>
-        }
-      </div>
-    } @else {
-      <p class="pista">Para consultar ADRES, tome el caso y espere a que su reserva esté vigente.</p>
+    <div class="fila">
+      <p>
+        <span class="etiqueta etiqueta--icono etiqueta--{{ rotulo().tono }}"><span aria-hidden="true">{{ rotulo().icono }}</span> {{ rotulo().texto }}</span>
+        @if (errorPrevio()) { <span class="error-texto"> · {{ errorTexto(errorPrevio()!) }}</span> }
+      </p>
+      @if (puedeConsultar()) {
+        <div class="acciones">
+          <button type="button" class="boton boton--primario compacto" [disabled]="ocupado()" (click)="preparar()">Consultar ADRES</button>
+          @if (estado() === 'evidencia_recibida' || estado() === 'error') {
+            <button type="button" class="boton compacto" [disabled]="ocupado()" (click)="reprocesar()">Reintentar el procesamiento</button>
+          }
+        </div>
+      }
+    </div>
+    @if (!puedeConsultar()) {
+      <p class="pista" style="margin:var(--sp-2) 0 0">Para consultar ADRES, tome el caso y espere a que su reserva esté vigente.</p>
     }
 
     @if (pidiendoTipo(); as t) {
@@ -73,8 +82,10 @@ const ERRORES: Record<string, string> = {
           <span class="pista"> · la consulta vence a las {{ c.venceEn | date: 'HH:mm' }}</span>
         </p>
         <h4>Cargar el resultado</h4>
-        <div class="campo"><label for="a-arch">Resultado de ADRES (PDF)</label><input id="a-arch" type="file" accept="application/pdf,.pdf" (change)="elegirArchivo($event)" /></div>
-        <div class="campo"><label for="a-fecha">Fecha de la consulta (opcional)</label><input id="a-fecha" type="date" [(ngModel)]="fechaConsulta" /></div>
+        <div class="cargar">
+          <div class="campo"><label for="a-arch">Resultado de ADRES (PDF)</label><input id="a-arch" type="file" accept="application/pdf,.pdf" (change)="elegirArchivo($event)" /></div>
+          <div class="campo"><label for="a-fecha">Fecha de la consulta (opcional)</label><input id="a-fecha" type="date" [(ngModel)]="fechaConsulta" /></div>
+        </div>
         <button type="button" class="boton boton--primario" [disabled]="!archivo() || ocupado()" (click)="subir(c)">Cargar y procesar</button>
       </div>
     }

@@ -26,11 +26,14 @@ type EstadoVisor = 'cerrado' | 'cargando' | 'listo' | 'error';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    :host { display:block; }
+    /* Llena la columna que lo contiene (en escritorio, la columna fija del certificado). La altura mínima la
+       fija quien lo aloja con --visor-min; sin eso, una vista previa cómoda. */
+    :host { display:flex; flex-direction:column; height:100%; min-height:0; }
     .barra { display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; margin-bottom:var(--sp-2); }
-    .barra .meta { flex:1 1 220px; font-size:var(--fs-sm); color:var(--texto-tenue); min-width:0; overflow-wrap:anywhere; }
-    .marco { border:1px solid var(--borde); border-radius:var(--r-sm); background:var(--superficie-2); overflow:auto; }
-    .marco.previa { height:clamp(480px, 78vh, 900px); }
+    .barra .meta { flex:1 1 7rem; font-size:var(--fs-sm); color:var(--texto-tenue); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .barra .meta strong { color:var(--texto); }
+    .marco { border:1px solid var(--borde); border-radius:var(--r-sm); background:var(--superficie-2); overflow:auto; flex:1 1 auto; min-height:0; display:grid; }
+    .marco.previa { display:block; min-height:var(--visor-min, clamp(420px, 70dvh, 820px)); }
     .marco iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
     .marco img { display:block; margin:0 auto; transform-origin:top center; max-width:100%; height:auto; }
     .estado { padding:var(--sp-5); text-align:center; color:var(--texto-tenue); }
@@ -54,9 +57,8 @@ type EstadoVisor = 'cerrado' | 'cargando' | 'listo' | 'error';
   `],
   template: `
     <div class="barra">
-      <div class="meta">
-        <strong>{{ meta().nombreOriginal }}</strong> · versión {{ meta().version }} · cargado {{ cargado() }}
-        · {{ esPdf() ? 'PDF' : 'Imagen' }}
+      <div class="meta" [attr.title]="meta().nombreOriginal + ' · versión ' + meta().version + ' · cargado ' + cargado()">
+        <strong>{{ meta().nombreOriginal }}</strong> · v{{ meta().version }} · {{ esPdf() ? 'PDF' : 'Imagen' }}
       </div>
       @if (estado() === 'cerrado' || estado() === 'error') {
         <button type="button" class="boton boton--primario compacto" [disabled]="!habilitado()" (click)="abrir()">Abrir el certificado</button>
