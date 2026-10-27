@@ -10,6 +10,7 @@ import {
   CategoriaAyuda, PreguntaFrecuente, Pqrs, RadicarPqrs,
   ComparativaModeloIa, ConfiguracionIa, EstimacionIa, ResumenGastoIa, TarifaIa,
   ConsultaAdresPreparada, FilaBandejaAdres, ResultadoAdres,
+  DecisionMesa, DetalleMesa, FiltrosMesa, ListadoMesa, ResultadoTomarSiguiente, SupervisionMesa,
 } from '../models/modelos';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
@@ -25,6 +26,32 @@ const aParams = (valores: Record<string, string | number | boolean | null | unde
 export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly base = entorno.apiBase;
+
+  // ── Mesa operativa de EPS ──────────────────────────────────────────────
+  listarMesaEps(filtros: FiltrosMesa = {}): Observable<ListadoMesa> {
+    return this.http.get<ListadoMesa>(`${this.base}/mesa-eps`, { params: aParams({ ...filtros }) });
+  }
+
+  detalleMesaEps(id: string): Observable<DetalleMesa> {
+    return this.http.get<DetalleMesa>(`${this.base}/mesa-eps/${id}`);
+  }
+
+  /** El certificado llega por la sesión autenticada (cabecera Authorization): no hay enlace firmado ni credencial en la URL. */
+  certificadoMesaEps(id: string): Observable<Blob> {
+    return this.http.get(`${this.base}/mesa-eps/${id}/certificado`, { responseType: 'blob' });
+  }
+
+  tomarSiguienteEps(criterios: { periodo?: string; programa?: string; modalidad?: string; enfoque?: 'pendiente_adres' } = {}): Observable<ResultadoTomarSiguiente> {
+    return this.http.post<ResultadoTomarSiguiente>(`${this.base}/mesa-eps/siguiente`, criterios);
+  }
+
+  decidirMesaEps(id: string, dto: DecisionMesa): Observable<unknown> {
+    return this.http.post(`${this.base}/mesa-eps/${id}/decision`, dto);
+  }
+
+  supervisionMesaEps(): Observable<SupervisionMesa> {
+    return this.http.get<SupervisionMesa>(`${this.base}/mesa-eps/supervision`);
+  }
 
   // ── Validación de EPS · consulta ADRES asistida ────────────────────────
   // La persona consulta el portal oficial y resuelve ella misma la verificación; la API nunca llama a ADRES.

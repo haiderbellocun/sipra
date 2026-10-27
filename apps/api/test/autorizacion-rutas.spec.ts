@@ -148,6 +148,19 @@ describe('Política de acceso · rutas sensibles', () => {
     }
   });
 
+  it('Mesa de EPS: auxiliar, coordinación y administración; docente, estudiante, empresa y extensión no entran; supervisión solo coordinación y administración', () => {
+    const operan = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR].sort();
+    for (const clave of ['listar', 'siguiente', 'detalle', 'certificado', 'decidir']) {
+      expect(ordenados(rolesDe(`MesaEpsController.${clave}`))).toEqual(operan);
+    }
+    expect(ordenados(rolesDe('MesaEpsController.supervision'))).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR].sort());
+    const mesa = RUTAS.filter((r) => r.controlador === 'MesaEpsController');
+    expect(mesa).toHaveLength(6);
+    for (const r of mesa) for (const excluido of [Rol.TUTOR, Rol.ESTUDIANTE, Rol.EMPRESA, Rol.EXTENSION]) expect(r.roles).not.toContain(excluido);
+    // El visor NO usa un enlace firmado público: es una ruta autenticada (P-73).
+    expect(mesa.find((r) => r.metodo === 'certificado')?.publico).toBe(false);
+  });
+
   it('bitácora: ni auxiliar, ni extensión, ni empresa', () => {
     const esperados = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ESTUDIANTE, Rol.TUTOR].sort();
     expect(ordenados(rolesDe('BitacoraController.listar'))).toEqual(esperados);

@@ -5,7 +5,7 @@ import {
   ADAPTADORES_RESPUESTA_EPS, AdaptadorRespuestaEps, CodigoErrorVerificacion, ResultadoVerificacionEps,
   SolicitudVerificacionEps, VerificadorCertificadoEpsPort,
 } from '../../../domain/ports/out/verificador-certificado-eps.port';
-import { RegistroVerificadoresEps } from '../../../domain/services/registro-verificadores-eps';
+import { REGISTRO_VERIFICADORES_EPS, RegistroVerificadoresEps } from '../../../domain/services/registro-verificadores-eps';
 import { ClienteHttpSeguro, ErrorHttpSeguro, PoliticaHttp } from './cliente-http-seguro';
 
 export const TIMEOUT_VERIFICACION_MS = 8_000;
@@ -27,7 +27,7 @@ export class VerificadorEpsHttpAdapter implements VerificadorCertificadoEpsPort 
   private readonly maxBytes: number;
 
   constructor(
-    private readonly registro: RegistroVerificadoresEps,
+    @Inject(REGISTRO_VERIFICADORES_EPS) private readonly registro: RegistroVerificadoresEps,
     private readonly cliente: ClienteHttpSeguro,
     @Inject(ADAPTADORES_RESPUESTA_EPS) adaptadores: readonly AdaptadorRespuestaEps[],
     @Optional() config?: ConfigService,

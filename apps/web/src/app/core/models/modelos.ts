@@ -543,3 +543,95 @@ export interface ResultadoAdres {
   validacionId: string; estadoAdres: EstadoAdres; afiliacion: string; recomendacion: string | null; error: string | null;
   duplicada: boolean; comparacion: ComparacionTriple[];
 }
+
+// ── Mesa operativa de EPS ───────────────────────────────────────────────────
+
+export type EstadoReservaMesa = 'libre' | 'mia' | 'ajena' | 'vencida';
+
+export interface ReservaMesa { estado: EstadoReservaMesa; responsable: string | null; hasta: string | null }
+
+export interface PrioridadMesa { puntaje: number; razones: string[] }
+
+export interface FilaMesa {
+  validacionId: string; documentoId: string;
+  estudiante: { nombre: string; documentoEnmascarado: string };
+  programa: string; modalidad: string; periodo: string; fechaInicioPractica: string | null;
+  versionDocumento: number; totalVersiones: number; recibidaEn: string; procesamiento: string;
+  autenticidad: string; afiliacion: string; estadoAdres: EstadoAdres; recomendacion: string;
+  discrepancias: { criticas: number; informativas: number }; decision: string;
+  prioridad: PrioridadMesa; reserva: ReservaMesa;
+}
+
+export interface KpisMesa {
+  abiertas: number; pendientes: number; enRevision: number; pendientesAdres: number; conDiscrepancias: number;
+  candidatos: number; asignadosAMi: number; misPorVencer: number;
+}
+
+export interface ListadoMesa {
+  kpis: KpisMesa; total: number; pagina: number; limite: number; filas: FilaMesa[];
+  filtrosDisponibles: { periodos: string[]; programas: string[]; modalidades: string[] }; generadoEn: string;
+}
+
+export interface FiltrosMesa {
+  estadoAdres?: string; autenticidad?: string; afiliacion?: string; recomendacion?: string; responsable?: string;
+  periodo?: string; programa?: string; modalidad?: string; desde?: string; hasta?: string;
+  conDiscrepancias?: string; soloMios?: string; reserva?: string; buscar?: string; orden?: string; pagina?: number;
+}
+
+export interface DiscrepanciaLegible {
+  severidad: 'critica' | 'informativa'; campo: string; titulo: string; explicacion: string;
+}
+
+export interface EventoHistorial { fecha: string; tipo: string; titulo: string; actor: string | null; detalle: string | null }
+
+export interface DetalleMesa {
+  caso: {
+    validacionId: string; documentoId: string; practicaId: string;
+    estudiante: { nombre: string; documento: string | null; documentoEnmascarado: string };
+    programa: string; modalidad: string; periodo: string; fechaInicioPractica: string | null;
+    esVersionVigente: boolean; version: number; totalVersiones: number; decision: string; decididoEn: string | null;
+  };
+  acceso: {
+    puedeVerValores: boolean; esMia: boolean; reserva: ReservaMesa; puedeDecidir: boolean; puedeConsultarAdres: boolean;
+    motivoSinAcceso: string | null;
+  };
+  certificado: {
+    nombreOriginal: string; mime: string; tamanoBytes: number; version: number; cargadoEn: string; estadoDocumento: string;
+    metodoExtraccion: 'texto_nativo' | 'ocr' | 'mixto' | 'desconocido'; vigencia: string;
+    campos: Array<{ campo: string; etiqueta: string; valor: string | null; fuente: 'texto_nativo' | 'ocr' | 'qr' | null }>;
+  };
+  autenticidad: {
+    estado: string; metodo: 'verificador_oficial' | 'ninguno'; verificador: string | null; verificadoEn: string | null;
+    qrHallados: number; explicacion: string;
+  };
+  afiliacion: {
+    estado: string; fuente: 'adres_bdua' | 'verificador_oficial' | 'ninguna'; consultadoEn: string | null;
+    fuenteActualizadaEn: string | null; estadoAdres: EstadoAdres;
+    frescura: { politicaDefinida: boolean; dias: number | null; vencida: boolean | null };
+  };
+  comparacion: ComparacionTriple[];
+  discrepancias: DiscrepanciaLegible[];
+  recomendacion: { codigo: string; titulo: string; explicacion: string; esDecision: false };
+  adres: { estado: EstadoAdres; tipoDocumento: string | null; error: string | null; cargadaEn: string | null };
+  evidencias: Array<{ id: string; tipo: string; fuente: string; metodo: string; resultado: string; fecha: string; error: string | null }>;
+  historial: EventoHistorial[];
+  versiones: Array<{ documentoId: string; version: number; cargadoEn: string; estado: string; esVigente: boolean; esEsta: boolean }>;
+  metricas: { recibidaEn: string | null; primeraRevisionEn: string | null; decididoEn: string | null; horasHastaDecision: number | null; reenvios: number };
+  prioridad: PrioridadMesa;
+  retencion: string;
+}
+
+export interface SupervisionMesa {
+  abiertas: number; sinAsignar: number; horasMediasHastaPrimeraRevision: number | null;
+  funcionarios: Array<{
+    funcionarioId: string; nombre: string; rol: string; reservasVigentes: number; reservasPorVencer: number;
+    decididas7Dias: number; horasMediasHastaDecision: number | null;
+  }>;
+}
+
+export interface ResultadoTomarSiguiente { estado: 'tomado' | 'sin_casos'; validacionId?: string; mensaje?: string }
+
+export type MotivoDevolucionEps =
+  | 'documento_ilegible' | 'certificado_vencido' | 'datos_no_coinciden' | 'certificado_incorrecto' | 'falta_informacion' | 'otro';
+
+export interface DecisionMesa { decision: 'aprobar' | 'devolver' | 'rechazar'; motivo?: MotivoDevolucionEps; justificacion?: string }

@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "C:/app_sipra_2/sipra-practicas-main/apps/web/src/app/features/eps/eps-visor.component.ts"
+        ],
+        "createdAt": "2026-10-26T21:32:01.104Z",
+        "reason": "falso positivo: el src es un enlace dinámico a un blob local del certificado, renderizado solo con el contenido ya cargado (decidido por el asistente, no por el usuario)"
+      }
+    ]
+  }
+}

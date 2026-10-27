@@ -173,6 +173,9 @@ export interface DatosValidacionEps {
   afiliacionFuente: 'verificador_oficial' | 'adres_bdua' | null;
   /** Consulta ADRES asistida: estado propio, separado de autenticidad, coincidencia, afiliación y decisión. */
   adres: EstadoAdresValidacion;
+  /** Métricas de negocio: cuándo llegó el certificado y cuándo lo tomó una persona por primera vez. */
+  recibidaEn: Date | null;
+  primeraRevisionEn: Date | null;
   /** Versión optimista: cada escritura la incrementa y exige la que se leyó. */
   version: number;
   creadaEn: Date;
@@ -261,6 +264,8 @@ export class ValidacionEps {
   /** Validación recién creada: nada evaluado, nada decidido. */
   static pendiente(entrada: {
     id: string; documentoId: string; practicaId: string; estudianteId: string; ahora: Date;
+    /** Cuándo se cargó el certificado; si no se sabe, el momento de crear la validación. */
+    recibidaEn?: Date;
   }): ValidacionEps {
     return new ValidacionEps({
       id: entrada.id,
@@ -291,6 +296,8 @@ export class ValidacionEps {
       retencionHasta: null,
       afiliacionFuente: null,
       adres: adresInicial(),
+      recibidaEn: entrada.recibidaEn ?? entrada.ahora,
+      primeraRevisionEn: null,
       version: 1,
       creadaEn: entrada.ahora,
       actualizadaEn: entrada.ahora,
@@ -571,6 +578,7 @@ export class ValidacionEps {
     this.exigirNoDecidida();
     if (this.reservadaPorOtro(actorId, ahora)) throw new ReservaAjenaError();
     this.datos.asignadoA = actorId;
+    this.datos.primeraRevisionEn ??= ahora;
     this.datos.reservadoEn = ahora;
     this.datos.reservaHasta = new Date(ahora.getTime() + duracionMs);
     this.datos.actualizadaEn = ahora;

@@ -10,7 +10,8 @@
     "build:dev": "ng build --configuration development",
     "watch": "ng build --watch --configuration development",
     "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
-    "test": "ng test --watch=false --browsers=ChromeHeadless"
+    "test": "node pruebas/ejecutar.mjs",
+    "typecheck:pruebas": "tsc --noEmit -p tsconfig.spec.json"
   },
   "dependencies": {
     "@angular/common": "^20.3.0",

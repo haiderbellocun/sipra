@@ -1,253 +1,245 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
-import { SesionService } from '@core/auth/sesion.service';
-import { ConsultaAdresPreparada, EstadoAdres, FilaBandejaAdres, ResultadoAdres } from '@core/models/modelos';
-import { ApiService } from '@core/services/api.service';
-import { AvisosService } from '@core/ui/avisos.service';
-import { leerError } from '@shared/utils/errores';
+import { FilaMesa, KpisMesa } from '@core/models/modelos';
+import { EpsDetalleComponent } from './eps-detalle.component';
+import { EpsMesaEstado, VistaRapida } from './eps-mesa.estado';
+import { AFILIACION, AUTENTICIDAD, ESTADO_ADRES, ESTADO_RESERVA, RECOMENDACION, diaCorto, textoRestante } from './eps.util';
 
-const ESTADOS: Record<EstadoAdres, string> = {
-  no_requerido: 'No requerido',
-  pendiente: 'Pendiente de ADRES',
-  en_consulta: 'En consulta',
-  evidencia_recibida: 'Resultado recibido',
-  procesado: 'Procesado',
-  error: 'Con error',
-  no_determinable: 'No determinable',
-};
+interface TarjetaKpi { clave: keyof KpisMesa; titulo: string; vista?: VistaRapida; filtro?: Record<string, string> }
 
-const RECOMENDACIONES: Record<string, string> = {
-  candidato_autoaprobacion: 'Candidato (solo etiqueta; decide una persona)',
-  recomendar_revision_documental: 'Revisar el documento',
-  recomendar_revision_rechazo: 'Revisar: posible rechazo',
-  discrepancia_critica: 'Discrepancia crítica entre fuentes',
-  pendiente_adres: 'Pendiente de ADRES',
-  informacion_insuficiente: 'Información insuficiente',
-};
+const KPIS: TarjetaKpi[] = [
+  { clave: 'abiertas', titulo: 'Casos abiertos', vista: 'todos' },
+  { clave: 'pendientes', titulo: 'Pendientes', filtro: { responsable: 'sin_asignar' } },
+  { clave: 'enRevision', titulo: 'En revisión (otras personas)', filtro: { responsable: 'otros' } },
+  { clave: 'pendientesAdres', titulo: 'Pendientes de ADRES', filtro: { estadoAdres: 'pendiente' } },
+  { clave: 'conDiscrepancias', titulo: 'Con discrepancias', filtro: { conDiscrepancias: 'si' } },
+  { clave: 'candidatos', titulo: 'Candidatos', filtro: { recomendacion: 'candidato_autoaprobacion' } },
+  { clave: 'asignadosAMi', titulo: 'Asignados a mí', vista: 'mis' },
+];
 
-const ERRORES: Record<string, string> = {
-  pdf_ilegible: 'El PDF está dañado o no se pudo abrir.',
-  sin_texto: 'El PDF no tiene texto legible (ni siquiera con OCR).',
-  no_es_resultado_adres: 'El archivo no parece un resultado de ADRES.',
-  documento_no_corresponde: 'El documento del resultado no es el del estudiante.',
-  sin_documento_en_resultado: 'El resultado no trae el número de documento: no se puede atar al estudiante.',
-  tipo_documento_no_corresponde: 'El tipo de documento del resultado no es el consultado.',
-  nombre_no_corresponde: 'El nombre del resultado no corresponde al del estudiante.',
-  archivo_no_disponible: 'El archivo cargado ya no está disponible.',
-  lectura_fallida: 'No se pudo leer el resultado.',
-};
-
-const CAMPOS: Record<string, string> = {
-  numero_documento: 'Número de documento', tipo_documento: 'Tipo de documento', nombre: 'Nombre', eps: 'EPS', regimen: 'Régimen', estado: 'Estado',
-};
+const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
+  { valor: 'todos', texto: 'Todos' },
+  { valor: 'mis', texto: 'Mis casos' },
+  { valor: 'mis_pendiente_adres', texto: 'Míos · falta ADRES' },
+  { valor: 'mis_listos', texto: 'Míos · listos para decidir' },
+  { valor: 'por_vencer', texto: 'Reservas por vencer' },
+];
 
 /**
- * Validación de EPS · consulta ADRES asistida (interfaz mínima de operación).
- *
- * La PERSONA consulta el portal oficial de ADRES en su propio navegador y resuelve
- * ella misma la verificación (CAPTCHA); aquí solo se prepara qué consultar, se
- * carga el resultado guardado como PDF y se ve la comparación. SIPRA no llama a ADRES.
+ * Mesa operativa de validación de EPS. La pantalla solo coordina: la bandeja, los
+ * filtros, la prioridad, la reserva y el TOMAR SIGUIENTE los resuelve la API (de forma
+ * atómica); la decisión es siempre de una persona.
  */
 @Component({
   selector: 'sipra-eps',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, EpsDetalleComponent],
+  providers: [EpsMesaEstado],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    .cab p { margin: 0; }
-    .dos { display:grid; gap:var(--sp-4); grid-template-columns:1fr; margin-top:var(--sp-4); } @media (width >= 1000px) { .dos { grid-template-columns:1fr 1.2fr; align-items:start; } }
-    .fila { display:flex; gap:var(--sp-3); align-items:center; padding:var(--sp-2) 0; border-bottom:1px solid var(--borde); font-size:var(--fs-sm); cursor:pointer; }
-    .fila:last-child { border-bottom:0; } .fila:hover { background:var(--superficie-2); } .fila.sel { background:var(--marca-suave); }
-    .fila .q { flex:1; min-width:0; } .fila .n { font-weight:600; }
-    .datos { display:grid; gap:var(--sp-2) var(--sp-4); grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); font-size:var(--fs-sm); }
-    .datos .k { font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.05em; color:var(--texto-tenue); }
-    .consulta { border-left:3px solid var(--marca); padding:var(--sp-2) var(--sp-3); background:var(--superficie-2); border-radius:0 var(--r-sm) var(--r-sm) 0; margin:var(--sp-3) 0; }
-    .consulta .grande { font-size:var(--fs-lg, 1.25rem); font-weight:700; letter-spacing:.04em; }
-    table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); } th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--borde); }
-    tr.critico td { background:var(--peligro-suave, #fde8e8); } .pista-error { color:var(--peligro, #b42318); }
+    :host { display:block; }
+    .cab { display:flex; gap:var(--sp-3); justify-content:space-between; align-items:flex-start; flex-wrap:wrap; }
+    .cab h1 { margin:0; } .cab p { margin:0; }
+    .kpis { display:grid; gap:var(--sp-2); grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); margin:var(--sp-4) 0; }
+    .kpi { text-align:left; border:1px solid var(--borde); border-radius:var(--r-md); background:var(--superficie); padding:var(--sp-2) var(--sp-3); cursor:pointer; color:inherit; font:inherit; }
+    .kpi:hover { background:var(--superficie-2); }
+    .kpi[aria-pressed='true'] { border-color:var(--marca); background:var(--marca-suave); }
+    .kpi .n { display:block; font-size:1.5rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums; }
+    .kpi .t { font-size:var(--fs-xs); color:var(--texto-tenue); }
+    .vistas { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-3); }
+    .vistas button[aria-pressed='true'] { border-color:var(--marca); background:var(--marca-suave); }
+    .filtros { display:grid; gap:var(--sp-2); grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); align-items:end; margin-bottom:var(--sp-3); }
+    .filtros .campo { margin:0; }
+    .filtros[hidden] { display:none; }
+    .cuerpo { display:grid; gap:var(--sp-4); grid-template-columns:1fr; align-items:start; }
+    @media (width >= 1024px) { .cuerpo { grid-template-columns:minmax(340px,420px) 1fr; } }
+    @media (width < 1024px) { .cuerpo.ver-detalle .lista-col { display:none; } .cuerpo.ver-lista .detalle-col { display:none; } }
+    .lista { list-style:none; margin:0; padding:0; max-height:75vh; overflow:auto; }
+    .caso { display:block; width:100%; text-align:left; background:transparent; border:0; border-bottom:1px solid var(--borde); padding:var(--sp-2) var(--sp-2); cursor:pointer; color:inherit; font:inherit; }
+    .caso:hover { background:var(--superficie-2); }
+    .caso[aria-current='true'] { background:var(--marca-suave); }
+    .caso .n { font-weight:600; }
+    .caso .etiquetas { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+    .pagina { display:flex; gap:var(--sp-2); align-items:center; justify-content:space-between; margin-top:var(--sp-2); font-size:var(--fs-sm); }
+    .sup table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); }
+    .sup th, .sup td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--borde); }
+    .sup .envoltura { overflow-x:auto; }
+    .error { border-left:3px solid var(--peligro); background:var(--peligro-suave); padding:var(--sp-2) var(--sp-3); border-radius:0 var(--r-sm) var(--r-sm) 0; }
   `],
   template: `
     <div class="cab">
-      <h1>Validación de EPS · contraste con ADRES</h1>
-      <p class="pista">
-        Para los certificados cuya afiliación no está contrastada. Usted consulta el portal oficial de ADRES, resuelve
-        usted mismo la verificación (CAPTCHA) y carga aquí el resultado guardado como PDF. El resultado de ADRES contrasta la
-        <strong>afiliación</strong>; no prueba que el certificado sea auténtico.
-      </p>
+      <div>
+        <h1>Mesa de validación de EPS</h1>
+        <p class="pista">Revise los certificados de afiliación, contraste con ADRES y decida. La recomendación del sistema es una ayuda; la decisión es suya.</p>
+      </div>
+      <div class="acciones">
+        <button type="button" class="boton boton--primario" [disabled]="estado.ocupado()" (click)="estado.tomarSiguiente()">Tomar siguiente</button>
+        <button type="button" class="boton" [disabled]="estado.ocupado()" (click)="estado.tomarSiguiente('pendiente_adres')">Siguiente con ADRES pendiente</button>
+        <button type="button" class="boton" [disabled]="estado.cargando()" (click)="estado.cargar()">Actualizar</button>
+      </div>
     </div>
 
-    <div class="dos">
-      <section class="tarjeta">
-        <h2>Casos pendientes</h2>
-        @if (cargando()) { <p class="pista">Cargando…</p> }
-        @else if (filas().length === 0) { <div class="vacio">No hay casos con la afiliación pendiente de contrastar.</div> }
-        @for (f of filas(); track f.validacionId) {
-          <div class="fila" [class.sel]="seleccion()?.validacionId === f.validacionId" (click)="seleccionar(f)" (keyup.enter)="seleccionar(f)" tabindex="0" role="button">
-            <div class="q">
-              <div class="n">{{ f.estudiante.nombre }} <span class="pista">· {{ f.estudiante.documentoEnmascarado }}</span></div>
-              <div class="pista">{{ estadoEtiqueta(f.estadoAdres) }} · afiliación {{ f.afiliacion.replace('_', ' ') }} · {{ f.metodoValidacion === 'qr_oficial' ? 'verificada por fuente oficial' : 'sin verificar' }}</div>
-            </div>
-            @if (f.responsable) { <span class="etiqueta etiqueta--{{ esMio(f) ? 'ok' : 'neutra' }}">{{ esMio(f) ? 'Tomado por usted' : 'Tomado por otra persona' }}</span> }
-          </div>
+    @if (estado.listado(); as l) {
+      <div class="kpis" role="group" aria-label="Indicadores de la Mesa">
+        @for (k of kpis; track k.clave) {
+          <button type="button" class="kpi" [attr.aria-pressed]="kpiActivo(k)" (click)="clicKpi(k)">
+            <span class="n">{{ l.kpis[k.clave] }}</span><span class="t">{{ k.titulo }}</span>
+          </button>
         }
-        <div class="acciones"><button type="button" class="boton" (click)="cargar()" [disabled]="cargando()">Actualizar</button></div>
-      </section>
+      </div>
+    }
 
-      <section class="tarjeta">
-        @if (seleccion(); as f) {
-          <h2>{{ f.estudiante.nombre }}</h2>
-          <div class="datos">
-            <div><div class="k">Documento</div>{{ f.estudiante.documentoEnmascarado }}</div>
-            <div><div class="k">Método</div>{{ f.metodoValidacion === 'qr_oficial' ? 'Fuente oficial (QR)' : 'Sin verificar' }}</div>
-            <div><div class="k">Afiliación</div>{{ f.afiliacion.replace('_', ' ') }}</div>
-            <div><div class="k">Estado ADRES</div>{{ estadoEtiqueta(f.estadoAdres) }}</div>
-            <div><div class="k">Recomendación</div>{{ f.recomendacion ? recomendacion(f.recomendacion) : '—' }}</div>
-            <div><div class="k">Responsable</div>{{ f.responsable ? (esMio(f) ? 'Usted' : 'Otra persona') : 'Nadie' }}@if (f.reservaHasta) { <span class="pista"> hasta {{ f.reservaHasta | date: 'HH:mm' }}</span> }</div>
-          </div>
+    <div class="vistas" role="group" aria-label="Vistas rápidas">
+      @for (v of vistas; track v.valor) {
+        <button type="button" class="boton compacto" [attr.aria-pressed]="estado.vistaRapida() === v.valor" (click)="estado.elegirVista(v.valor)">{{ v.texto }}</button>
+      }
+    </div>
 
-          <div class="acciones" style="margin-top:var(--sp-3)">
-            @if (!f.responsable) { <button type="button" class="boton boton--primario" [disabled]="ocupado()" (click)="tomar(f)">Tomar el caso</button> }
-            @if (esMio(f)) {
-              <button type="button" class="boton" [disabled]="ocupado()" (click)="liberar(f)">Liberar</button>
-              @if (puedeConsultar(f)) { <button type="button" class="boton boton--primario" [disabled]="ocupado()" (click)="preparar(f)">Consultar ADRES</button> }
-              @if (f.estadoAdres === 'evidencia_recibida' || f.estadoAdres === 'error') { <button type="button" class="boton" [disabled]="ocupado()" (click)="reprocesar(f)">Reintentar el procesamiento</button> }
-            }
-          </div>
-          @if (!esMio(f) && f.responsable) { <p class="pista">Este caso lo tiene otra persona; podrá tomarlo cuando venza su reserva.</p> }
+    <div class="acciones" style="margin-bottom:var(--sp-2)">
+      <button type="button" class="boton compacto" [attr.aria-expanded]="filtrosAbiertos()" aria-controls="filtros-mesa" (click)="filtrosAbiertos.set(!filtrosAbiertos())">
+        {{ filtrosAbiertos() ? 'Ocultar filtros' : 'Mostrar filtros' }}@if (filtrosActivos() > 0) { ({{ filtrosActivos() }} activos) }
+      </button>
+    </div>
+    <form id="filtros-mesa" class="filtros" role="search" aria-label="Filtros de la Mesa" [hidden]="!filtrosAbiertos()" (submit)="$event.preventDefault()">
+      <div class="campo"><label for="f-buscar">Buscar estudiante o documento</label>
+        <input id="f-buscar" type="search" autocomplete="off" [ngModel]="estado.filtros().buscar ?? ''" name="buscar" (ngModelChange)="estado.buscar($event)" /></div>
+      <div class="campo"><label for="f-adres">Estado ADRES</label>
+        <select id="f-adres" [ngModel]="estado.filtros().estadoAdres ?? ''" name="estadoAdres" (ngModelChange)="filtrar({ estadoAdres: $event })">
+          <option value="">Todos</option>@for (e of estadosAdres; track e[0]) { <option [value]="e[0]">{{ e[1] }}</option> }</select></div>
+      <div class="campo"><label for="f-aut">Autenticidad</label>
+        <select id="f-aut" [ngModel]="estado.filtros().autenticidad ?? ''" name="autenticidad" (ngModelChange)="filtrar({ autenticidad: $event })">
+          <option value="">Todas</option>@for (e of autenticidades; track e[0]) { <option [value]="e[0]">{{ e[1] }}</option> }</select></div>
+      <div class="campo"><label for="f-afi">Afiliación</label>
+        <select id="f-afi" [ngModel]="estado.filtros().afiliacion ?? ''" name="afiliacion" (ngModelChange)="filtrar({ afiliacion: $event })">
+          <option value="">Todas</option>@for (e of afiliaciones; track e[0]) { <option [value]="e[0]">{{ e[1] }}</option> }</select></div>
+      <div class="campo"><label for="f-rec">Recomendación</label>
+        <select id="f-rec" [ngModel]="estado.filtros().recomendacion ?? ''" name="recomendacion" (ngModelChange)="filtrar({ recomendacion: $event })">
+          <option value="">Todas</option>@for (e of recomendaciones; track e[0]) { <option [value]="e[0]">{{ e[1] }}</option> }</select></div>
+      <div class="campo"><label for="f-dis">Discrepancias</label>
+        <select id="f-dis" [ngModel]="estado.filtros().conDiscrepancias ?? ''" name="conDiscrepancias" (ngModelChange)="filtrar({ conDiscrepancias: $event })">
+          <option value="">Todas</option><option value="si">Con discrepancias</option><option value="no">Sin discrepancias</option></select></div>
+      <div class="campo"><label for="f-res">Responsable</label>
+        <select id="f-res" [ngModel]="estado.filtros().responsable ?? ''" name="responsable" (ngModelChange)="filtrar({ responsable: $event })">
+          <option value="">Todos</option><option value="yo">Yo</option><option value="otros">Otras personas</option><option value="sin_asignar">Sin asignar</option></select></div>
+      <div class="campo"><label for="f-per">Periodo</label>
+        <select id="f-per" [ngModel]="estado.filtros().periodo ?? ''" name="periodo" (ngModelChange)="filtrar({ periodo: $event })">
+          <option value="">Todos</option>@for (p of estado.listado()?.filtrosDisponibles?.periodos ?? []; track p) { <option [value]="p">{{ p }}</option> }</select></div>
+      <div class="campo"><label for="f-pro">Programa</label>
+        <select id="f-pro" [ngModel]="estado.filtros().programa ?? ''" name="programa" (ngModelChange)="filtrar({ programa: $event })">
+          <option value="">Todos</option>@for (p of estado.listado()?.filtrosDisponibles?.programas ?? []; track p) { <option [value]="p">{{ p }}</option> }</select></div>
+      <div class="campo"><label for="f-mod">Modalidad</label>
+        <select id="f-mod" [ngModel]="estado.filtros().modalidad ?? ''" name="modalidad" (ngModelChange)="filtrar({ modalidad: $event })">
+          <option value="">Todas</option>@for (p of estado.listado()?.filtrosDisponibles?.modalidades ?? []; track p) { <option [value]="p">{{ p }}</option> }</select></div>
+      <div class="campo"><label for="f-des">Recibido desde</label>
+        <input id="f-des" type="date" [ngModel]="estado.filtros().desde ?? ''" name="desde" (ngModelChange)="filtrar({ desde: $event })" /></div>
+      <div class="campo"><label for="f-has">Recibido hasta</label>
+        <input id="f-has" type="date" [ngModel]="estado.filtros().hasta ?? ''" name="hasta" (ngModelChange)="filtrar({ hasta: $event })" /></div>
+      <button type="button" class="boton" (click)="estado.limpiarFiltros()">Limpiar filtros</button>
+    </form>
 
-          @if (pidiendoTipo(); as t) {
-            <div class="consulta">
-              <p><strong>SIPRA no conoce el tipo de documento de este estudiante.</strong> Confírmelo usted: no se deduce del número.</p>
-              @if (t.sugerencia) { <p class="pista">El certificado menciona «{{ t.sugerencia }}», pero eso no es una fuente válida.</p> }
-              <div class="campo"><label for="e-tipo">Tipo de documento</label>
-                <select id="e-tipo" [(ngModel)]="tipoElegido"><option value="">Seleccione…</option>@for (o of t.opciones ?? []; track o) { <option [value]="o">{{ o }}</option> }</select></div>
-              <button type="button" class="boton boton--primario" [disabled]="!tipoElegido || ocupado()" (click)="preparar(f, tipoElegido)">Confirmar y preparar</button>
-            </div>
-          }
-
-          @if (consulta(); as c) {
-            <div class="consulta">
-              <p>Consulte en ADRES este documento:</p>
-              <p class="grande">{{ c.tipoDocumento }} {{ c.numeroDocumento }}</p>
-              <ol>@for (i of c.instrucciones ?? []; track i) { <li>{{ i }}</li> }</ol>
-              <p><a class="boton boton--primario" [href]="c.portalUrl" target="_blank" rel="noopener noreferrer">Abrir el portal oficial de ADRES</a>
-                <span class="pista"> · la consulta vence a las {{ c.venceEn | date: 'HH:mm' }}</span></p>
-              <h3>Cargar el resultado</h3>
-              <div class="campo"><label for="e-arch">Resultado de ADRES (PDF)</label><input id="e-arch" type="file" accept="application/pdf,.pdf" (change)="elegirArchivo($event)" /></div>
-              <div class="campo"><label for="e-fecha">Fecha de la consulta (opcional)</label><input id="e-fecha" type="date" [(ngModel)]="fechaConsulta" /></div>
-              <button type="button" class="boton boton--primario" [disabled]="!archivo() || ocupado()" (click)="subir(f, c)">Cargar y procesar</button>
-            </div>
-          }
-
-          @if (resultado(); as r) {
-            <h3>Resultado</h3>
-            @if (r.error) { <p class="pista-error">{{ errorTexto(r.error) }}</p> }
-            @if (r.duplicada) { <p class="pista">Este resultado ya estaba cargado: no se registró otra vez.</p> }
-            <div class="datos">
-              <div><div class="k">Estado ADRES</div>{{ estadoEtiqueta(r.estadoAdres) }}</div>
-              <div><div class="k">Afiliación</div>{{ r.afiliacion.replace('_', ' ') }}</div>
-              <div><div class="k">Recomendación</div>{{ r.recomendacion ? recomendacion(r.recomendacion) : '—' }}</div>
-            </div>
-            @if (r.comparacion.length) {
-              <table>
-                <thead><tr><th>Campo</th><th>SIPRA</th><th>Certificado</th><th>ADRES</th><th>Resultado</th></tr></thead>
-                <tbody>
-                  @for (c of r.comparacion; track c.campo) {
-                    <tr [class.critico]="c.critico"><td>{{ campoEtiqueta(c.campo) }}</td><td>{{ c.sipra ?? '—' }}</td><td>{{ c.certificado ?? '—' }}</td><td>{{ c.adres ?? '—' }}</td><td>{{ c.resultado.replace('_', ' ') }}@if (c.critico) { · crítico }</td></tr>
-                  }
-                </tbody>
-              </table>
-            }
-            <p class="pista">La decisión sobre el certificado sigue siendo de una persona; esta pantalla no aprueba nada.</p>
-          }
+    <div class="cuerpo" [class.ver-lista]="estado.vista() === 'lista'" [class.ver-detalle]="estado.vista() === 'detalle'">
+      <section class="tarjeta lista-col" aria-labelledby="t-lista">
+        <h2 id="t-lista">Casos @if (estado.listado(); as l) { <span class="pista">({{ l.total }})</span> }</h2>
+        @if (estado.errorListado(); as e) {
+          <div class="error" role="alert">{{ e }} <button type="button" class="boton compacto" (click)="estado.cargar()">Reintentar</button></div>
+        } @else if (estado.cargando() && !estado.listado()) {
+          <p class="pista" role="status">Cargando los casos…</p>
+        } @else if (estado.filas().length === 0) {
+          <div class="vacio">No hay casos con estos criterios.</div>
         } @else {
-          <div class="vacio">Seleccione un caso.</div>
+          <ul class="lista" [attr.aria-busy]="estado.cargando()">
+            @for (f of estado.filas(); track f.validacionId) {
+              <li>
+                <button type="button" class="caso" [attr.aria-current]="estado.seleccionId() === f.validacionId" (click)="estado.seleccionar(f.validacionId)">
+                  <span class="n">{{ f.estudiante.nombre }}</span>
+                  <span class="pista"> · {{ f.estudiante.documentoEnmascarado }}</span>
+                  <span class="pista" style="display:block">{{ f.programa }} · recibido {{ dia(f.recibidaEn) }}@if (f.totalVersiones > 1) { · versión {{ f.versionDocumento }} }</span>
+                  <span class="etiquetas">
+                    <span class="etiqueta etiqueta--icono etiqueta--{{ reserva(f).tono }}"><span aria-hidden="true">{{ reserva(f).icono }}</span> {{ reserva(f).texto }}@if (f.reserva.estado === 'mia') { · {{ restante(f) }} }</span>
+                    @if (f.recomendacion !== 'pendiente_adres') {
+                      <span class="etiqueta etiqueta--icono etiqueta--{{ rec(f).tono }}"><span aria-hidden="true">{{ rec(f).icono }}</span> {{ rec(f).texto }}</span>
+                    }
+                    <span class="etiqueta etiqueta--icono etiqueta--{{ adres(f).tono }}"><span aria-hidden="true">{{ adres(f).icono }}</span> {{ adres(f).texto }}</span>
+                    @if (f.discrepancias.criticas > 0) { <span class="etiqueta etiqueta--icono etiqueta--peligro"><span aria-hidden="true">!</span> {{ f.discrepancias.criticas }} crítica{{ f.discrepancias.criticas > 1 ? 's' : '' }}</span> }
+                    <span class="etiqueta etiqueta--neutra" [title]="f.prioridad.razones.join(' · ')">Prioridad {{ f.prioridad.puntaje }}</span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+          @if (estado.listado(); as l) {
+            <div class="pagina">
+              <button type="button" class="boton compacto" [disabled]="l.pagina <= 1" (click)="estado.aplicarFiltros({ pagina: l.pagina - 1 })">Anterior</button>
+              <span>Página {{ l.pagina }} de {{ paginas(l.total, l.limite) }}</span>
+              <button type="button" class="boton compacto" [disabled]="l.pagina >= paginas(l.total, l.limite)" (click)="estado.aplicarFiltros({ pagina: l.pagina + 1 })">Siguiente</button>
+            </div>
+          }
         }
       </section>
+
+      <section class="tarjeta detalle-col" aria-label="Detalle del caso">
+        @if (estado.seleccionId()) { <sipra-eps-detalle /> }
+        @else { <div class="vacio">Elija un caso de la lista o pulse «Tomar siguiente».</div> }
+      </section>
     </div>
+
+    @if (estado.esSupervisor()) {
+      <section class="tarjeta sup" style="margin-top:var(--sp-4)" aria-labelledby="t-sup">
+        <h2 id="t-sup">Supervisión</h2>
+        <div class="acciones"><button type="button" class="boton" [disabled]="estado.cargandoSupervision()" (click)="estado.cargarSupervision()">Cargar la supervisión</button></div>
+        @if (estado.supervision(); as s) {
+          <p>{{ s.abiertas }} abiertos · {{ s.sinAsignar }} sin asignar · primera revisión en promedio: {{ s.horasMediasHastaPrimeraRevision ?? '—' }} h</p>
+          <div class="envoltura">
+            <table>
+              <thead><tr><th scope="col">Funcionario</th><th scope="col">Reservas vigentes</th><th scope="col">Por vencer</th><th scope="col">Decididos (7 días)</th><th scope="col">Horas medias hasta decidir</th></tr></thead>
+              <tbody>
+                @for (f of s.funcionarios; track f.funcionarioId) {
+                  <tr><th scope="row">{{ f.nombre }}</th><td>{{ f.reservasVigentes }}</td><td>{{ f.reservasPorVencer }}</td><td>{{ f.decididas7Dias }}</td><td>{{ f.horasMediasHastaDecision ?? '—' }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
   `,
 })
 export class EpsComponent implements OnInit {
-  private readonly api = inject(ApiService);
-  private readonly avisos = inject(AvisosService);
-  private readonly sesion = inject(SesionService);
+  protected readonly estado = inject(EpsMesaEstado);
 
-  readonly filas = signal<FilaBandejaAdres[]>([]);
-  readonly cargando = signal(false);
-  readonly ocupado = signal(false);
-  readonly seleccionId = signal<string | null>(null);
-  readonly seleccion = computed(() => this.filas().find((f) => f.validacionId === this.seleccionId()) ?? null);
-  readonly consulta = signal<ConsultaAdresPreparada | null>(null);
-  readonly pidiendoTipo = signal<ConsultaAdresPreparada | null>(null);
-  readonly resultado = signal<ResultadoAdres | null>(null);
-  readonly archivo = signal<File | null>(null);
-  tipoElegido = '';
-  fechaConsulta = '';
+  readonly kpis = KPIS;
+  readonly vistas = VISTAS;
+  /** En pantallas angostas los filtros empiezan plegados para que la lista quede a la vista. */
+  readonly filtrosAbiertos = signal(typeof matchMedia === 'function' ? matchMedia('(width >= 1024px)').matches : true);
+  readonly filtrosActivos = computed(() => Object.keys(this.estado.filtros()).filter((k) => k !== 'pagina').length);
+  readonly estadosAdres = Object.entries(ESTADO_ADRES).map(([k, v]) => [k, v.texto] as const);
+  readonly autenticidades = Object.entries(AUTENTICIDAD).map(([k, v]) => [k, v.texto] as const);
+  readonly afiliaciones = Object.entries(AFILIACION).map(([k, v]) => [k, v.texto] as const);
+  readonly recomendaciones = Object.entries(RECOMENDACION).map(([k, v]) => [k, v.texto] as const);
 
-  async ngOnInit(): Promise<void> { await this.cargar(); }
-
-  async cargar(): Promise<void> {
-    this.cargando.set(true);
-    try { this.filas.set(await firstValueFrom(this.api.bandejaAdres())); } catch (e) { this.avisos.error(leerError(e)); } finally { this.cargando.set(false); }
+  async ngOnInit(): Promise<void> {
+    await this.estado.cargar();
+    if (this.estado.esSupervisor()) await this.estado.cargarSupervision();
   }
 
-  seleccionar(f: FilaBandejaAdres): void {
-    this.seleccionId.set(f.validacionId);
-    // La consulta preparada y el resultado son de UN caso: al cambiar de caso se descartan.
-    this.consulta.set(null); this.pidiendoTipo.set(null); this.resultado.set(null); this.archivo.set(null); this.tipoElegido = ''; this.fechaConsulta = '';
+  filtrar(parcial: Record<string, string>): void { void this.estado.aplicarFiltros(parcial); }
+
+  async clicKpi(k: TarjetaKpi): Promise<void> {
+    if (k.vista) { await this.estado.limpiarFiltros(); if (k.vista !== 'todos') await this.estado.elegirVista(k.vista); return; }
+    await this.estado.limpiarFiltros();
+    await this.estado.aplicarFiltros(k.filtro ?? {});
   }
 
-  esMio(f: FilaBandejaAdres): boolean { return f.responsable !== null && f.responsable === this.sesion.sesion()?.id; }
-  puedeConsultar(f: FilaBandejaAdres): boolean { return ['pendiente', 'en_consulta', 'error', 'no_determinable'].includes(f.estadoAdres); }
-  estadoEtiqueta(e: EstadoAdres): string { return ESTADOS[e] ?? e; }
-  recomendacion(r: string): string { return RECOMENDACIONES[r] ?? r; }
-  errorTexto(e: string): string { return ERRORES[e] ?? e; }
-  campoEtiqueta(c: string): string { return CAMPOS[c] ?? c; }
-
-  elegirArchivo(evento: Event): void {
-    this.archivo.set((evento.target as HTMLInputElement).files?.[0] ?? null);
+  kpiActivo(k: TarjetaKpi): boolean {
+    if (k.vista) return this.estado.vistaRapida() === k.vista && Object.keys(this.estado.filtros()).length === 0;
+    const f = this.estado.filtros() as Record<string, unknown>;
+    return Object.entries(k.filtro ?? {}).every(([c, v]) => f[c] === v);
   }
 
-  private async ejecutar(accion: () => Promise<void>): Promise<void> {
-    this.ocupado.set(true);
-    try { await accion(); } catch (e) { this.avisos.error(leerError(e)); } finally { this.ocupado.set(false); }
-  }
-
-  async tomar(f: FilaBandejaAdres): Promise<void> {
-    await this.ejecutar(async () => { await firstValueFrom(this.api.tomarCasoEps(f.validacionId)); await this.cargar(); this.avisos.exito('Caso tomado.'); });
-  }
-
-  async liberar(f: FilaBandejaAdres): Promise<void> {
-    await this.ejecutar(async () => { await firstValueFrom(this.api.liberarCasoEps(f.validacionId)); this.consulta.set(null); await this.cargar(); });
-  }
-
-  async preparar(f: FilaBandejaAdres, tipo?: string): Promise<void> {
-    await this.ejecutar(async () => {
-      const r = await firstValueFrom(this.api.prepararAdres(f.validacionId, tipo));
-      if (r.estado === 'requiere_tipo_documento') { this.pidiendoTipo.set(r); this.consulta.set(null); return; }
-      this.pidiendoTipo.set(null); this.consulta.set(r); this.resultado.set(null);
-      await this.cargar();
-    });
-  }
-
-  async subir(f: FilaBandejaAdres, c: ConsultaAdresPreparada): Promise<void> {
-    const archivo = this.archivo();
-    if (!archivo || !c.consultaId) return;
-    await this.ejecutar(async () => {
-      const formulario = new FormData();
-      formulario.append('consultaId', c.consultaId as string);
-      if (this.fechaConsulta) formulario.append('fechaConsulta', this.fechaConsulta);
-      formulario.append('archivo', archivo);
-      this.resultado.set(await firstValueFrom(this.api.cargarResultadoAdres(f.validacionId, formulario)));
-      // El identificador de la consulta es de un solo uso: ya se consumió.
-      this.consulta.set(null); this.archivo.set(null);
-      await this.cargar();
-    });
-  }
-
-  async reprocesar(f: FilaBandejaAdres): Promise<void> {
-    await this.ejecutar(async () => { this.resultado.set(await firstValueFrom(this.api.procesarResultadoAdres(f.validacionId))); await this.cargar(); });
-  }
+  reserva(f: FilaMesa) { return ESTADO_RESERVA[f.reserva.estado]; }
+  rec(f: FilaMesa) { return RECOMENDACION[f.recomendacion] ?? RECOMENDACION['informacion_insuficiente']; }
+  adres(f: FilaMesa) { return ESTADO_ADRES[f.estadoAdres] ?? ESTADO_ADRES['no_determinable']; }
+  restante(f: FilaMesa): string { return textoRestante(f.reserva.hasta, this.estado.ahora()); }
+  dia(iso: string | null): string { return diaCorto(iso); }
+  paginas(total: number, limite: number): number { return Math.max(1, Math.ceil(total / Math.max(1, limite))); }
 }

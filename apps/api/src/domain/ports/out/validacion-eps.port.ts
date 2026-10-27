@@ -28,5 +28,59 @@ export interface ValidacionEpsRepositoryPort {
   buscarEvidenciaAdresPorHash(hash: string): Promise<{ validacionEpsId: string } | null>;
   /** Casos con contraste ADRES abierto, los más antiguos primero. */
   listarParaAdres(limite: number): Promise<ValidacionEps[]>;
+  /**
+   * Todas las validaciones ABIERTAS (sin decisión humana) de la versión vigente de cada
+   * certificado, dentro del alcance. Tope de seguridad: 2000.
+   */
+  listarAbiertasMesa(ahora: Date, escuelasAlcance: string[] | null): Promise<FilaMesaRepo[]>;
+  /**
+   * «Tomar siguiente»: elige y reserva, en UNA sentencia atómica (`FOR UPDATE SKIP LOCKED`), el
+   * caso disponible de mayor prioridad. Dos personas a la vez reciben casos distintos.
+   * Devuelve el id de la validación o `null` si no hay casos disponibles.
+   */
+  tomarSiguiente(
+    actorId: string, ahora: Date, hasta: Date, escuelasAlcance: string[] | null, criterios?: CriteriosSiguiente,
+  ): Promise<string | null>;
+  supervisionMesa(ahora: Date, escuelasAlcance: string[] | null): Promise<ResumenSupervisionRepo>;
+}
+
+// ── Lectura para la Mesa operativa ──────────────────────────────────────────
+
+/** Una validación abierta con lo necesario para mostrarla en la bandeja (un solo viaje a la base). */
+export interface FilaMesaRepo {
+  validacion: ValidacionEps;
+  estudiante: { id: string; nombre: string; documento: string | null };
+  practica: { id: string; programaId: string; modalidad: string; periodoAcademico: string; fechaInicio: Date | null; escuelaId: string };
+  documento: { id: string; version: number; cargadoEn: Date; estado: string; nombreOriginal: string; totalVersiones: number };
+  /** Nombre de quien tiene el caso, solo si su reserva sigue vigente. */
+  responsableNombre: string | null;
+}
+
+export interface FilaSupervisionRepo {
+  funcionarioId: string;
+  nombre: string;
+  correo: string;
+  rol: string;
+  reservasVigentes: number;
+  reservasPorVencer: number;
+  decididas7Dias: number;
+  /** Horas desde que llegó el certificado hasta la decisión (últimos 30 días); nulo si no hay datos. */
+  horasMediasHastaDecision: number | null;
+}
+
+export interface ResumenSupervisionRepo {
+  abiertas: number;
+  sinAsignar: number;
+  /** Horas medias entre la llegada del certificado y la primera vez que una persona lo tomó (últimos 30 días). */
+  horasMediasHastaPrimeraRevision: number | null;
+  funcionarios: FilaSupervisionRepo[];
+}
+
+export interface CriteriosSiguiente {
+  periodo?: string;
+  programa?: string;
+  modalidad?: string;
+  /** Solo casos con la afiliación por contrastar (o con ADRES en estos estados). */
+  estadosAdres?: string[];
 }
 export const VALIDACION_EPS_REPOSITORY = Symbol('VALIDACION_EPS_REPOSITORY');

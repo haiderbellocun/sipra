@@ -113,6 +113,11 @@ import { ValidacionEpsUseCase } from '../../application/use-cases/documentos/val
 import { VALIDACION_EPS_REPOSITORY } from '../../domain/ports/out/validacion-eps.port';
 import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
 import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/consulta-adres.use-case';
+import { MesaEpsUseCase } from '../../application/use-cases/documentos/mesa-eps.use-case';
+import { MesaEpsController } from '../controllers/mesa-eps.controller';
+import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
+import { LectorDocumentoLocalAdapter } from '../adapters/lectura-local/lector-documento-local.adapter';
+import { ExtraccionLocalAdapter } from '../adapters/ia/extraccion-local.adapter';
 import { ADAPTADORES_RESPUESTA_EPS, VERIFICADOR_CERTIFICADO_EPS } from '../../domain/ports/out/verificador-certificado-eps.port';
 import {
   REGISTRO_VERIFICADORES_EPS, RegistroVerificadoresEps, VERIFICADORES_EPS_OFICIALES,
@@ -202,7 +207,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     EmpresasController, CumplimientoController, BolsaController, SaludController,
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
-    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController,
+    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -318,6 +323,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: VERIFICADOR_CERTIFICADO_EPS, useClass: VerificadorEpsHttpAdapter },
     VerificacionEpsUseCase,
     ConsultaAdresUseCase,
+    MesaEpsUseCase,
     PipelineValidacionUseCase,
     ProcesarTrabajoUseCase,
     GestionarDocumentoUseCase,
@@ -357,7 +363,5 @@ export class AppModule implements OnModuleInit {
       this.colaEnProceso.registrarEjecutor((trabajo) => this.procesarTrabajo.ejecutar(trabajo));
     }
   }
-}import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
-import { LectorDocumentoLocalAdapter } from '../adapters/lectura-local/lector-documento-local.adapter';
-import { ExtraccionLocalAdapter } from '../adapters/ia/extraccion-local.adapter';
+}
 

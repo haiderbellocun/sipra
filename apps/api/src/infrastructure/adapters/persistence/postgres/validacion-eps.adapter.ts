@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   DatosEvidenciaEps, EvidenciaEps, FuenteEvidenciaEps, TipoEvidenciaEps,
 } from '../../../../domain/entities/evidencia-validacion-eps.entity';
@@ -8,7 +8,10 @@ import {
   AfiliacionEps, AutenticidadEps, CoincidenciaEps, DatosExtraidosEps, DatosValidacionEps, DatosVerificadosEps,
   DecisionEps, DiscrepanciaEps, EstadoProcesamientoEps, RutaValidacionEps, ValidacionEps, VigenciaCertificado,
 } from '../../../../domain/entities/validacion-eps.entity';
-import { ValidacionEpsRepositoryPort } from '../../../../domain/ports/out/validacion-eps.port';
+import {
+  CriteriosSiguiente, FilaMesaRepo, ResumenSupervisionRepo, ValidacionEpsRepositoryPort,
+} from '../../../../domain/ports/out/validacion-eps.port';
+import { ESTADOS_ADRES_ABIERTOS, PESOS_PRIORIDAD } from '../../../../domain/services/mesa-eps.domain-service';
 import {
   ComparacionTripleCampo, DatosAdres, EstadoAdres, OrigenTipoDocumento, RecomendacionEps,
 } from '../../../../domain/entities/adres';
@@ -66,6 +69,8 @@ const ValidacionEpsMapper = {
       decididoPor: orm.decidido_por,
       decididoEn: orm.decidido_en,
       retencionHasta: orm.retencion_hasta,
+      recibidaEn: orm.recibida_en,
+      primeraRevisionEn: orm.primera_revision_en,
       version: orm.version,
       creadaEn: orm.creada_en,
       actualizadaEn: orm.actualizada_en,
@@ -79,6 +84,7 @@ const ValidacionEpsMapper = {
     orm.estudiante_id = d.estudianteId;
     Object.assign(orm, ValidacionEpsMapper.columnasMutables(d));
     orm.retencion_hasta = d.retencionHasta;
+    orm.recibida_en = d.recibidaEn;
     orm.version = d.version;
     orm.creada_en = d.creadaEn;
     return orm;
@@ -126,6 +132,7 @@ const ValidacionEpsMapper = {
       reserva_hasta: d.reservaHasta,
       decidido_por: d.decididoPor,
       decidido_en: d.decididoEn,
+      primera_revision_en: d.primeraRevisionEn,
       actualizada_en: d.actualizadaEn,
     };
   },
@@ -215,6 +222,7 @@ export class ValidacionEpsRepositoryAdapter implements ValidacionEpsRepositoryPo
       .update(ValidacionEpsOrm)
       .set({
         asignado_a: actorId, reservado_en: ahora, reserva_hasta: hasta, actualizada_en: ahora,
+        primera_revision_en: () => 'COALESCE(primera_revision_en, :ahora)',
         version: () => 'version + 1',
       })
       .where(
@@ -267,6 +275,145 @@ export class ValidacionEpsRepositoryAdapter implements ValidacionEpsRepositoryPo
       .limit(limite)
       .getMany();
     return filas.map((f) => ValidacionEpsMapper.aDominio(f));
+  }
+
+  // ── Mesa operativa ────────────────────────────────────────────────────────
+
+  /** Versión vigente del certificado, aún no decidido por una persona. */
+  private static readonly ABIERTA = `
+    v.decision IN ('pendiente','candidato_autoaprobacion')
+    AND d.version = (SELECT max(x.version) FROM documentos x WHERE x.practica_id = d.practica_id AND x.tipo = d.tipo)
+    AND d.estado IN ('recibido','analizando','en_revision')`;
+
+  /** Consulta cruda con filas tipadas como registros: el resultado de `query` es `any`. */
+  private async consultar(sql: string, params: unknown[]): Promise<Array<Record<string, unknown>>> {
+    const r: unknown = await this.repo.query(sql, params);
+    return Array.isArray(r) ? (r as Array<Record<string, unknown>>) : [];
+  }
+
+  async listarAbiertasMesa(ahora: Date, escuelasAlcance: string[] | null): Promise<FilaMesaRepo[]> {
+    const params: unknown[] = [ahora];
+    let escuela = '';
+    if (escuelasAlcance && escuelasAlcance.length > 0) { params.push(escuelasAlcance); escuela = 'AND p.escuela_id = ANY($2)'; }
+    const filas = (await this.consultar(`
+      SELECT v.id AS validacion_id, u.id AS estudiante_id, u.nombre AS estudiante_nombre, u.documento AS estudiante_documento,
+             p.id AS practica_id, p.programa_id, p.modalidad, p.periodo_academico, p.fecha_inicio, p.escuela_id,
+             d.id AS documento_id, d.version AS documento_version, d.cargado_en, d.estado AS documento_estado, d.nombre_original,
+             (SELECT count(*)::int FROM documentos x WHERE x.practica_id = d.practica_id AND x.tipo = d.tipo) AS total_versiones,
+             r.nombre AS responsable_nombre
+      FROM validaciones_eps v
+      JOIN documentos d ON d.id = v.documento_id
+      JOIN practicas p ON p.id = v.practica_id
+      JOIN usuarios u ON u.id = v.estudiante_id
+      LEFT JOIN usuarios r ON r.id = v.asignado_a AND v.reserva_hasta > $1
+      WHERE ${ValidacionEpsRepositoryAdapter.ABIERTA} ${escuela}
+      ORDER BY COALESCE(v.recibida_en, v.creada_en) ASC
+      LIMIT 2000`, params));
+    if (filas.length === 0) return [];
+    const entidades = await this.repo.find({ where: { id: In(filas.map((f) => f.validacion_id as string)) } });
+    const porId = new Map(entidades.map((e) => [e.id, e]));
+    return filas.flatMap((f): FilaMesaRepo[] => {
+      const orm = porId.get(f.validacion_id as string);
+      if (!orm) return [];
+      return [{
+        validacion: ValidacionEpsMapper.aDominio(orm),
+        estudiante: { id: f.estudiante_id as string, nombre: f.estudiante_nombre as string, documento: (f.estudiante_documento as string | null) ?? null },
+        practica: {
+          id: f.practica_id as string, programaId: f.programa_id as string, modalidad: f.modalidad as string,
+          periodoAcademico: f.periodo_academico as string, fechaInicio: f.fecha_inicio ? new Date(f.fecha_inicio as string) : null, escuelaId: f.escuela_id as string,
+        },
+        documento: {
+          id: f.documento_id as string, version: Number(f.documento_version), cargadoEn: new Date(f.cargado_en as string),
+          estado: f.documento_estado as string, nombreOriginal: f.nombre_original as string, totalVersiones: Number(f.total_versiones),
+        },
+        responsableNombre: (f.responsable_nombre as string | null) ?? null,
+      }];
+    });
+  }
+
+  async tomarSiguiente(
+    actorId: string, ahora: Date, hasta: Date, escuelasAlcance: string[] | null, criterios: CriteriosSiguiente = {},
+  ): Promise<string | null> {
+    const params: unknown[] = [actorId, ahora, hasta];
+    const extra: string[] = [];
+    const agregar = (condicion: string, valor: unknown): void => { params.push(valor); extra.push(condicion.replace('?', `$${params.length}`)); };
+    if (escuelasAlcance && escuelasAlcance.length > 0) agregar('p.escuela_id = ANY(?)', escuelasAlcance);
+    if (criterios.periodo) agregar('p.periodo_academico = ?', criterios.periodo);
+    if (criterios.programa) agregar('p.programa_id = ?', criterios.programa);
+    if (criterios.modalidad) agregar('p.modalidad = ?', criterios.modalidad);
+    if (criterios.estadosAdres && criterios.estadosAdres.length > 0) agregar('v2.adres_estado = ANY(?)', criterios.estadosAdres);
+    const abiertosAdres = ESTADOS_ADRES_ABIERTOS.map((e) => `'${e}'`).join(',');
+    // Misma regla que `calcularPrioridad` (hay una prueba contra PostgreSQL que las compara).
+    const prioridad = `
+      LEAST(${PESOS_PRIORIDAD.antiguedadMaxDias}, GREATEST(0, FLOOR(EXTRACT(EPOCH FROM ($2::timestamptz - COALESCE(v2.recibida_en, v2.creada_en))) / 86400)))
+      + CASE WHEN p.fecha_inicio IS NOT NULL AND p.fecha_inicio <= $2::timestamptz + interval '${PESOS_PRIORIDAD.inicioPracticaDias} days' THEN ${PESOS_PRIORIDAD.inicioPractica} ELSE 0 END
+      + CASE WHEN d.version > 1 THEN ${PESOS_PRIORIDAD.reenvio} ELSE 0 END
+      + CASE WHEN (v2.coincidencia = 'discrepancia' OR v2.autenticidad = 'invalida' OR v2.afiliacion = 'inactiva' OR v2.hay_bandera_critica
+                   OR EXISTS (SELECT 1 FROM jsonb_array_elements(v2.adres_comparacion) e WHERE (e->>'critico')::boolean IS TRUE))
+             THEN ${PESOS_PRIORIDAD.discrepanciaCritica} ELSE 0 END
+      + CASE WHEN v2.adres_estado IN (${abiertosAdres}) THEN ${PESOS_PRIORIDAD.adresPendiente} ELSE 0 END`;
+    const filas = (await this.repo.query(`
+      UPDATE validaciones_eps v
+      SET asignado_a = $1, reservado_en = $2, reserva_hasta = $3, actualizada_en = $2,
+          primera_revision_en = COALESCE(v.primera_revision_en, $2), version = v.version + 1
+      WHERE v.id = (
+        SELECT v2.id
+        FROM validaciones_eps v2
+        JOIN documentos d ON d.id = v2.documento_id
+        JOIN practicas p ON p.id = v2.practica_id
+        WHERE v2.estado_procesamiento = 'procesado'
+          AND v2.decision IN ('pendiente','candidato_autoaprobacion')
+          AND (v2.asignado_a IS NULL OR v2.reserva_hasta <= $2)
+          AND d.version = (SELECT max(x.version) FROM documentos x WHERE x.practica_id = d.practica_id AND x.tipo = d.tipo)
+          AND d.estado IN ('recibido','analizando','en_revision')
+          ${extra.map((e) => `AND ${e}`).join(' ')}
+        ORDER BY (${prioridad}) DESC, COALESCE(v2.recibida_en, v2.creada_en) ASC, v2.id ASC
+        FOR UPDATE OF v2 SKIP LOCKED
+        LIMIT 1)
+      RETURNING v.id`, params)) as unknown;
+    // El controlador de pg devuelve [filas, cantidad] para UPDATE … RETURNING.
+    const lista = filas as unknown[];
+    const filasDevueltas = (Array.isArray(lista[0]) ? lista[0] : lista) as Array<{ id: string }>;
+    return filasDevueltas[0]?.id ?? null;
+  }
+
+  async supervisionMesa(ahora: Date, escuelasAlcance: string[] | null): Promise<ResumenSupervisionRepo> {
+    const params: unknown[] = [ahora];
+    let escuela = '';
+    if (escuelasAlcance && escuelasAlcance.length > 0) { params.push(escuelasAlcance); escuela = 'AND p.escuela_id = ANY($2)'; }
+    const [resumen] = (await this.consultar(`
+      SELECT count(*)::int AS abiertas,
+             count(*) FILTER (WHERE v.asignado_a IS NULL OR v.reserva_hasta <= $1)::int AS sin_asignar,
+             avg(extract(epoch FROM (v.primera_revision_en - COALESCE(v.recibida_en, v.creada_en))) / 3600)
+               FILTER (WHERE v.primera_revision_en >= $1::timestamptz - interval '30 days') AS horas_primera
+      FROM validaciones_eps v
+      JOIN documentos d ON d.id = v.documento_id
+      JOIN practicas p ON p.id = v.practica_id
+      WHERE ${ValidacionEpsRepositoryAdapter.ABIERTA} ${escuela}`, params));
+    const filas = (await this.consultar(`
+      SELECT u.id, u.nombre, u.correo, u.rol,
+             count(*) FILTER (WHERE v.asignado_a = u.id AND v.reserva_hasta > $1 AND v.decision IN ('pendiente','candidato_autoaprobacion'))::int AS reservas_vigentes,
+             count(*) FILTER (WHERE v.asignado_a = u.id AND v.reserva_hasta > $1 AND v.reserva_hasta <= $1::timestamptz + interval '5 minutes'
+                               AND v.decision IN ('pendiente','candidato_autoaprobacion'))::int AS por_vencer,
+             count(*) FILTER (WHERE v.decidido_por = u.id AND v.decidido_en >= $1::timestamptz - interval '7 days')::int AS decididas7,
+             avg(extract(epoch FROM (v.decidido_en - COALESCE(v.recibida_en, v.creada_en))) / 3600)
+               FILTER (WHERE v.decidido_por = u.id AND v.decidido_en >= $1::timestamptz - interval '30 days') AS horas_decision
+      FROM usuarios u
+      JOIN validaciones_eps v ON (v.asignado_a = u.id OR v.decidido_por = u.id)
+      JOIN practicas p ON p.id = v.practica_id
+      WHERE u.rol IN ('auxiliar','coordinador','administrador') ${escuela}
+      GROUP BY u.id, u.nombre, u.correo, u.rol
+      ORDER BY reservas_vigentes DESC, u.nombre ASC`, params));
+    return {
+      abiertas: Number(resumen?.abiertas ?? 0),
+      sinAsignar: Number(resumen?.sin_asignar ?? 0),
+      horasMediasHastaPrimeraRevision: resumen?.horas_primera === null || resumen?.horas_primera === undefined ? null : Number(resumen.horas_primera),
+      funcionarios: filas.map((f) => ({
+        funcionarioId: f.id as string, nombre: f.nombre as string, correo: f.correo as string, rol: f.rol as string,
+        reservasVigentes: Number(f.reservas_vigentes), reservasPorVencer: Number(f.por_vencer), decididas7Dias: Number(f.decididas7),
+        horasMediasHastaDecision: f.horas_decision === null || f.horas_decision === undefined ? null : Number(f.horas_decision),
+      })),
+    };
   }
 
   async listarEvidencias(validacionEpsId: string): Promise<EvidenciaEps[]> {

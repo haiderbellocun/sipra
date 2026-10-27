@@ -3,6 +3,7 @@ import { ValidacionEps1756000011000 } from '../src/infrastructure/persistence/po
 import { EvidenciaEpsOcr1756000012000 } from '../src/infrastructure/persistence/postgres/migrations/1756000012000-EvidenciaEpsOcr';
 import { VerificacionEps1756000013000 } from '../src/infrastructure/persistence/postgres/migrations/1756000013000-VerificacionEps';
 import { ConsultaAdres1756000014000 } from '../src/infrastructure/persistence/postgres/migrations/1756000014000-ConsultaAdres';
+import { MesaEps1756000015000 } from '../src/infrastructure/persistence/postgres/migrations/1756000015000-MesaEps';
 import { MIGRACIONES } from '../src/infrastructure/persistence/postgres/migrations/todas.migracion';
 import {
   EvidenciaValidacionEpsOrm, ValidacionEpsOrm,
@@ -253,5 +254,40 @@ describe('Migración de consulta ADRES asistida (sin ejecutar)', () => {
     const down = await sql('down');
     expect(down).toMatch(/ADD CONSTRAINT ck_veps_requiere_verificador CHECK \( \(autenticidad NOT IN \('verificada','invalida'\) AND afiliacion NOT IN \('activa','inactiva'\)\)/);
     expect(down).toMatch(/DROP COLUMN IF EXISTS afiliacion_fuente/);
+  });
+});
+
+describe('Migración de la Mesa de EPS (sin ejecutar)', () => {
+  async function sql(metodo: 'up' | 'down'): Promise<string> {
+    const emitido: string[] = [];
+    const corredor = { query: (s: string) => { emitido.push(s.replace(/\s+/g, ' ').trim()); return Promise.resolve(); } };
+    await new MesaEps1756000015000()[metodo](corredor as unknown as QueryRunner);
+    return emitido.join('\n');
+  }
+
+  it('está registrada justo después de la de consulta ADRES', () => {
+    const i = MIGRACIONES.indexOf(MesaEps1756000015000);
+    expect(i).toBeGreaterThan(0);
+    expect(MIGRACIONES[i - 1].name).toBe('ConsultaAdres1756000014000');
+  });
+
+  it('agrega solo las métricas de negocio (nulas) y copia la fecha de carga a lo existente', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/ADD COLUMN IF NOT EXISTS recibida_en\s+timestamptz/);
+    expect(up).toMatch(/ADD COLUMN IF NOT EXISTS primera_revision_en\s+timestamptz/);
+    expect(up).toMatch(/UPDATE validaciones_eps v SET recibida_en = d\.cargado_en FROM documentos d/);
+    expect(up).not.toMatch(/timestamptz\s+NOT NULL|DEFAULT|DELETE|TRUNCATE|DROP TABLE|GRANT|REVOKE/i);
+  });
+
+  it('indexa la bandeja (decisión abierta) y las decisiones por funcionario', async () => {
+    const up = await sql('up');
+    expect(up).toMatch(/ix_veps_mesa ON validaciones_eps \(recibida_en\) WHERE decision IN \('pendiente','candidato_autoaprobacion'\)/);
+    expect(up).toMatch(/ix_veps_decididas ON validaciones_eps \(decidido_por, decidido_en\) WHERE decidido_en IS NOT NULL/);
+  });
+
+  it('down quita lo agregado', async () => {
+    const down = await sql('down');
+    expect(down).toMatch(/DROP COLUMN IF EXISTS recibida_en/);
+    expect(down).toMatch(/DROP INDEX IF EXISTS ix_veps_mesa/);
   });
 });

@@ -51,6 +51,7 @@ export enum AccionAuditada {
   EVIDENCIA_ADRES_CARGADA = 'evidencia_adres_cargada',
   EVIDENCIA_ADRES_PROCESADA = 'evidencia_adres_procesada',
   COMPARACION_ADRES_REALIZADA = 'comparacion_adres_realizada',
+  DECISION_EPS_CONTEXTO = 'decision_eps_contexto',
 }
 
 export interface RegistroAuditoria {

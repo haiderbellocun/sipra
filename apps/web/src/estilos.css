@@ -212,6 +212,7 @@ code { font-family: var(--fuente-mono); font-size: .9em; }
   border: 1px solid transparent;
 }
 .etiqueta::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.etiqueta--icono::before { content: none; } /* ya lleva su propio icono: sin punto duplicado */
 .etiqueta--ok      { color: var(--ok);          background: var(--ok-suave); }
 .etiqueta--aviso   { color: var(--aviso);       background: var(--aviso-suave); }
 .etiqueta--peligro { color: var(--peligro);     background: var(--peligro-suave); }

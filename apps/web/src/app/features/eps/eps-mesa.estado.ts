@@ -1,0 +1,229 @@
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { SesionService } from '@core/auth/sesion.service';
+import {
+  DecisionMesa, DetalleMesa, FiltrosMesa, ListadoMesa, SupervisionMesa,
+} from '@core/models/modelos';
+import { ApiService } from '@core/services/api.service';
+import { AvisosService } from '@core/ui/avisos.service';
+import { reservaVencidaAhora, traducirErrorEps } from './eps.util';
+
+export type VistaRapida = 'todos' | 'mis' | 'por_vencer' | 'mis_pendiente_adres' | 'mis_listos';
+
+const VISTAS: Record<VistaRapida, FiltrosMesa> = {
+  todos: {},
+  mis: { soloMios: 'true' },
+  por_vencer: { reserva: 'por_vencer' },
+  mis_pendiente_adres: { soloMios: 'true', estadoAdres: 'pendiente' },
+  mis_listos: { soloMios: 'true', estadoAdres: 'procesado' },
+};
+
+/** La reserva se renueva sola si quedan menos de estos minutos y la persona sigue trabajando el caso. */
+const RENOVAR_DESDE_MS = 5 * 60_000;
+
+/**
+ * Estado y acciones de la Mesa de EPS (signals). Toda la lógica de negocio vive en la
+ * API; aquí solo se coordina la pantalla: qué se ve, qué está en curso y qué hacer
+ * cuando el servidor dice que la reserva se perdió. Nada de esto toma decisiones.
+ */
+@Injectable()
+export class EpsMesaEstado {
+  private readonly api = inject(ApiService);
+  private readonly avisos = inject(AvisosService);
+  private readonly sesion = inject(SesionService);
+
+  /** «Ahora», actualizado cada 15 s: lo usan las cuentas regresivas de la reserva. */
+  readonly ahora = signal(Date.now());
+
+  readonly listado = signal<ListadoMesa | null>(null);
+  readonly cargando = signal(false);
+  readonly errorListado = signal<string | null>(null);
+  readonly filtros = signal<FiltrosMesa>({});
+  readonly vistaRapida = signal<VistaRapida>('todos');
+
+  /** En pantallas angostas se ve una cosa a la vez: la lista o el detalle. */
+  readonly vista = signal<'lista' | 'detalle'>('lista');
+  readonly seleccionId = signal<string | null>(null);
+  readonly detalle = signal<DetalleMesa | null>(null);
+  readonly cargandoDetalle = signal(false);
+  readonly errorDetalle = signal<string | null>(null);
+
+  /** Una operación crítica en curso: mientras dura, los botones quedan inactivos. */
+  readonly ocupado = signal(false);
+  readonly supervision = signal<SupervisionMesa | null>(null);
+  readonly cargandoSupervision = signal(false);
+
+  readonly filas = computed(() => this.listado()?.filas ?? []);
+  readonly esSupervisor = computed(() => ['coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly reservaVencidaEnPantalla = computed(() => {
+    const d = this.detalle();
+    return d !== null && reservaVencidaAhora(d.acceso.reserva, this.ahora());
+  });
+  /** Tiene el caso y su reserva sigue vigente: solo entonces se actúa sobre él. */
+  readonly puedeActuar = computed(() => (this.detalle()?.acceso.esMia ?? false) && !this.reservaVencidaEnPantalla());
+
+  private temporizadorBusqueda: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    const reloj = setInterval(() => this.ahora.set(Date.now()), 15_000);
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(reloj);
+      if (this.temporizadorBusqueda) clearTimeout(this.temporizadorBusqueda);
+    });
+  }
+
+  // ── Bandeja ───────────────────────────────────────────────────────────────
+
+  async cargar(): Promise<void> {
+    this.cargando.set(true);
+    this.errorListado.set(null);
+    try {
+      this.listado.set(await firstValueFrom(this.api.listarMesaEps({ ...VISTAS[this.vistaRapida()], ...this.filtros() })));
+    } catch (e) {
+      this.errorListado.set(traducirErrorEps(e));
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  async aplicarFiltros(parcial: FiltrosMesa): Promise<void> {
+    this.filtros.update((f) => {
+      const nuevo: FiltrosMesa = { ...f, ...parcial, pagina: parcial.pagina ?? 1 };
+      for (const k of Object.keys(nuevo) as Array<keyof FiltrosMesa>) if (nuevo[k] === '' || nuevo[k] === undefined) delete nuevo[k];
+      return nuevo;
+    });
+    await this.cargar();
+  }
+
+  async limpiarFiltros(): Promise<void> {
+    this.filtros.set({});
+    this.vistaRapida.set('todos');
+    await this.cargar();
+  }
+
+  async elegirVista(v: VistaRapida): Promise<void> {
+    this.vistaRapida.set(v);
+    this.filtros.update((f) => ({ ...f, pagina: 1 }));
+    await this.cargar();
+  }
+
+  /** Búsqueda con espera corta para no consultar en cada tecla. */
+  buscar(texto: string): void {
+    if (this.temporizadorBusqueda) clearTimeout(this.temporizadorBusqueda);
+    this.temporizadorBusqueda = setTimeout(() => { void this.aplicarFiltros({ buscar: texto.trim() }); }, 300);
+  }
+
+  // ── Caso ──────────────────────────────────────────────────────────────────
+
+  async seleccionar(id: string): Promise<void> {
+    this.seleccionId.set(id);
+    this.vista.set('detalle');
+    await this.refrescarDetalle();
+  }
+
+  volverALista(): void {
+    this.vista.set('lista');
+  }
+
+  async refrescarDetalle(): Promise<void> {
+    const id = this.seleccionId();
+    if (!id) return;
+    this.cargandoDetalle.set(true);
+    this.errorDetalle.set(null);
+    try {
+      this.detalle.set(await firstValueFrom(this.api.detalleMesaEps(id)));
+    } catch (e) {
+      this.detalle.set(null);
+      this.errorDetalle.set(traducirErrorEps(e));
+    } finally {
+      this.cargandoDetalle.set(false);
+    }
+  }
+
+  /** Ejecuta una acción crítica: sin dobles envíos, con el error traducido y el estado refrescado si falla. */
+  private async ejecutar(accion: () => Promise<void>, exito?: string): Promise<boolean> {
+    if (this.ocupado()) return false;
+    this.ocupado.set(true);
+    try {
+      await accion();
+      if (exito) this.avisos.exito(exito);
+      return true;
+    } catch (e) {
+      this.avisos.error(traducirErrorEps(e));
+      // Un conflicto casi siempre significa que el caso cambió (lo tomó otra persona, la reserva venció).
+      await Promise.all([this.refrescarDetalle(), this.cargar()]);
+      return false;
+    } finally {
+      this.ocupado.set(false);
+    }
+  }
+
+  async tomar(): Promise<boolean> {
+    const id = this.seleccionId();
+    if (!id) return false;
+    return this.ejecutar(async () => {
+      await firstValueFrom(this.api.tomarCasoEps(id));
+      await Promise.all([this.refrescarDetalle(), this.cargar()]);
+    }, 'Caso tomado. Tiene 15 minutos; se renueva mientras trabaja.');
+  }
+
+  async liberar(): Promise<boolean> {
+    const id = this.seleccionId();
+    if (!id) return false;
+    return this.ejecutar(async () => {
+      await firstValueFrom(this.api.liberarCasoEps(id));
+      await Promise.all([this.refrescarDetalle(), this.cargar()]);
+    }, 'Caso liberado.');
+  }
+
+  /** Renueva la reserva si quedan pocos minutos (hay actividad). No avisa: es silencioso. */
+  async renovarSiHaceFalta(): Promise<void> {
+    const d = this.detalle();
+    if (!d?.acceso.esMia || !d.acceso.reserva.hasta || this.reservaVencidaEnPantalla()) return;
+    if (new Date(d.acceso.reserva.hasta).getTime() - Date.now() > RENOVAR_DESDE_MS) return;
+    try {
+      await firstValueFrom(this.api.tomarCasoEps(d.caso.validacionId));
+      await this.refrescarDetalle();
+    } catch { /* si no se pudo renovar, la pantalla lo mostrará al refrescar */ }
+  }
+
+  /** El servidor elige y reserva en una sola operación atómica: aquí solo se pide y se muestra el resultado. */
+  async tomarSiguiente(enfoque?: 'pendiente_adres'): Promise<boolean> {
+    return this.ejecutar(async () => {
+      const f = this.filtros();
+      const r = await firstValueFrom(this.api.tomarSiguienteEps({
+        periodo: f.periodo, programa: f.programa, modalidad: f.modalidad, enfoque,
+      }));
+      if (r.estado === 'sin_casos' || !r.validacionId) {
+        this.avisos.info(r.mensaje ?? 'No hay casos disponibles ahora.');
+        return;
+      }
+      this.seleccionId.set(r.validacionId);
+      this.vista.set('detalle');
+      await Promise.all([this.refrescarDetalle(), this.cargar()]);
+      this.avisos.exito('Caso asignado. Tiene 15 minutos; se renueva mientras trabaja.');
+    });
+  }
+
+  async decidir(dto: DecisionMesa): Promise<boolean> {
+    if (this.reservaVencidaEnPantalla()) {
+      this.avisos.error('Su reserva del caso venció. Tómelo de nuevo antes de decidir.');
+      await this.refrescarDetalle();
+      return false;
+    }
+    const id = this.seleccionId();
+    if (!id) return false;
+    return this.ejecutar(async () => {
+      await firstValueFrom(this.api.decidirMesaEps(id, dto));
+      await Promise.all([this.refrescarDetalle(), this.cargar()]);
+    }, dto.decision === 'aprobar' ? 'Certificado aprobado.' : dto.decision === 'devolver' ? 'Certificado devuelto al estudiante.' : 'Certificado rechazado.');
+  }
+
+  // ── Supervisión ───────────────────────────────────────────────────────────
+
+  async cargarSupervision(): Promise<void> {
+    if (!this.esSupervisor()) return;
+    this.cargandoSupervision.set(true);
+    try { this.supervision.set(await firstValueFrom(this.api.supervisionMesaEps())); } catch (e) { this.avisos.error(traducirErrorEps(e)); } finally { this.cargandoSupervision.set(false); }
+  }
+}

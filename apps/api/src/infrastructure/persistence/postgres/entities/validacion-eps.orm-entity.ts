@@ -50,6 +50,8 @@ export class ValidacionEpsOrm {
   @Column({ type: 'timestamptz', nullable: true }) decidido_en!: Date | null;
   /** POLÍTICA DE RETENCIÓN EPS PENDIENTE DE DEFINICIÓN INSTITUCIONAL: nadie lo llena. */
   @Column({ type: 'timestamptz', nullable: true }) retencion_hasta!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) recibida_en!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) primera_revision_en!: Date | null;
   @Column({ type: 'integer' }) version!: number;
   @Column({ type: 'timestamptz' }) creada_en!: Date;
   @Column({ type: 'timestamptz' }) actualizada_en!: Date;

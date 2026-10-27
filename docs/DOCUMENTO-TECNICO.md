@@ -5,8 +5,8 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.8 |
-| Fecha | 26 de octubre de 2026 |
+| Versión del documento | 0.17.9 |
+| Fecha | 27 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
 | Repositorio | `ironfuentes-netizen/sipra-practicas` (repositorio privado independiente desde el 14 de octubre de 2026; antes vivió como carpeta `sipra/` del repositorio `Productoacademico`, rama `claude/sipra-practicas-setup-l0zasi`) |
@@ -1147,6 +1147,64 @@ pequeño (ahorra teclear dos campos; **no ayuda con el CAPTCHA**, que es lo que 
 **Para reconsiderarla.** (1) Un piloto de la Fase 5 que muestre que el tecleo o el cambio de ventana es un
 cuello de botella real; (2) confirmación por escrito de ADRES sobre este uso; (3) que una persona verifique el
 flujo y el DOM reales del portal. No se publica nada ni se usa la Chrome Web Store.
+
+### 7.20 Mesa operativa de validación de EPS (Fase 5 EPS)
+
+Convierte la infraestructura de las Fases 1–4 en un flujo de trabajo para ~6 funcionarios. **No reconstruye
+nada**: la Mesa consume los casos de uso existentes (reserva, decisión, consulta ADRES) y añade una capa de
+lectura, priorización y asignación. La decisión es siempre de una persona; la recomendación es una ayuda.
+
+**Backend** (`application/use-cases/documentos/mesa-eps.use-case.ts`, `infrastructure/controllers/mesa-eps.controller.ts`,
+`domain/services/mesa-eps.domain-service.ts`):
+
+| Ruta (`/api/v1/mesa-eps`) | Roles | Qué hace |
+|---|---|---|
+| `GET /` | auxiliar, coordinación, administración | Bandeja con KPIs, filtros, búsqueda y paginación |
+| `GET /supervision` | coordinación, administración | Reservas por funcionario, casos sin asignar, tiempos |
+| `POST /siguiente` | auxiliar, coordinación, administración | **Tomar siguiente**: elige y reserva en una sola sentencia atómica |
+| `GET /:id` | ídem | Detalle: datos con fuente, autenticidad, afiliación, comparación triple, discrepancias, recomendación, evidencia, historial, versiones, tiempos |
+| `GET /:id/certificado` | ídem (caso propio vigente o supervisión) | Visor protegido (ver P‑73) |
+| `POST /:id/decision` | ídem | Aprobar / devolver (motivo del catálogo) / rechazar |
+
+Tutor, estudiante, empresa y extensión no entran (403); sin sesión, 401. Coordinación con escuelas ve solo las suyas.
+
+- **Prioridad transparente (sin IA).** Antigüedad 1 pt/día (tope 30), inicio de práctica en ≤15 días o ya iniciada +20,
+  reenvío (versión > 1) +10, discrepancia crítica persistida +10, ADRES abierto +5. La misma regla está en TypeScript
+  (`calcularPrioridad`) y en el SQL de `tomarSiguiente`; `test:pg` verifica que ordenan igual. Cada fila muestra sus razones.
+- **Concurrencia.** `tomarSiguiente` = `UPDATE … WHERE id = (SELECT … ORDER BY prioridad DESC, recibida ASC FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING`:
+  seis funcionarios simultáneos reciben seis casos distintos; con 3 casos para 6 personas, 3 reciben y 3 reciben «sin casos».
+  Reservar y decidir usan comparar‑y‑fijar por versión; la reserva dura 15 min y se renueva con actividad.
+- **Decisión.** Exige reserva propia vigente (revalidada en servidor) y la versión vigente del documento. Devolver exige motivo
+  del catálogo (`otro` exige texto). Si la persona se aparta de la recomendación (aprobar con discrepancia crítica o posible
+  rechazo; rechazar a un candidato) la justificación sube de 10 a 40 caracteres. Queda `DECISION_EPS_CONTEXTO` en la auditoría.
+- **Datos personales.** La lista muestra el documento enmascarado (`••••NNNN`); valores completos y certificado solo con el caso
+  tomado por la persona o por supervisión.
+- **Tiempos.** `recibida_en`, `primera_revision_en` (se fija al reservar por primera vez), `decidido_en`, horas hasta la decisión,
+  reenvíos. Migración `1756000015000` (con relleno de históricos e índices); **no se ejecutó en ninguna base real**.
+- **Frescura de ADRES.** Configurable con `ADRES_FRESCURA_DIAS`; sin valor no se declara vencido ningún resultado (no se inventa plazo).
+- **Retención.** Sigue el aviso «POLÍTICA DE RETENCIÓN EPS PENDIENTE DE DEFINICIÓN INSTITUCIONAL»; no hay purgas.
+
+**Frontend** (`apps/web/src/app/features/eps/`): `eps.component` (KPIs clicables, vistas «Mis casos», filtros plegables, lista,
+Tomar siguiente, supervisión), `eps-detalle`, `eps-visor`, `eps-comparacion`, `eps-adres`, `eps-decision` (diálogo nativo),
+`eps-mesa.estado` (signals, sin lógica de negocio) y `eps.util`. Todo standalone y `OnPush`. Ningún estado se comunica solo con
+color (icono + texto). Debajo de 1024 px se ve la lista **o** el detalle, con «Volver a la lista».
+
+**P‑73 (firma del enlace en la URL).** Cerrado **solo para el visor de la Mesa**: el certificado se pide con la cabecera
+`Authorization` y se muestra como `blob:` local; no hay enlace firmado ni credencial en la URL (`cache-control: private, no-store`).
+**Sigue abierto** para el resto de descargas y para el JWT en `localStorage`: migrar toda la sesión a cookie HttpOnly queda fuera de
+esta fase.
+
+**Pruebas.** Backend: dominio, caso de uso (6 concurrentes, permisos, decisiones), rutas, migración, `test:pg`. Frontend: no había
+infraestructura (`ng test` sin Karma/Jasmine) y el registro de npm no estaba accesible (certificado autofirmado del proxy), así que
+se evitó agregar dependencias: `apps/web/pruebas/ejecutar.mjs` empaqueta con `esbuild` y corre `node --test` sobre los servicios con
+signals (sin DOM); `npm test -w @sipra/web`. El renderizado se verifica con el **E2E en Chrome real** (`pruebas/e2e/mesa-eps.e2e.mjs`,
+protocolo CDP, 1440/1366/1024/móvil; requiere API en dev, base desechable y `ng serve`). Limitación: los componentes no se montan en
+pruebas unitarias; si se acepta una dependencia, el siguiente paso es Vitest con jsdom.
+
+**Hallazgos corregidos.** Al arrancar el API compilado por primera vez desde la Fase 3 aparecieron dos defectos que las pruebas
+unitarias no ven (no levantan `AppModule`): tres `import` pegados tras la clase en `app.module.ts` (error de inicialización en el JS
+compilado) y `VerificadorEpsHttpAdapter` sin `@Inject(REGISTRO_VERIFICADORES_EPS)`. Quedó corregido; **pendiente recomendable:** una
+prueba que arranque `AppModule` (humo de DI).
 
 ---
 
@@ -2732,6 +2790,18 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.9 — 27 de octubre de 2026
+
+Fase 5 EPS · Mesa operativa de validación para funcionarios (§7.20):
+
+- Mesa `/eps`: KPIs, vistas «Mis casos», filtros y búsqueda, prioridad transparente, reserva, **tomar siguiente atómico**,
+  visor protegido, comparación triple, discrepancias, recomendación (ayuda, no decisión), ADRES asistido, decisiones con
+  justificación reforzada, historial, versiones, supervisión y tiempos.
+- Migración `1756000015000` (no ejecutada en base real); nueva auditoría `decision_eps_contexto`; rutas `/api/v1/mesa-eps`.
+- P‑73 cerrado solo para el visor; sesión en `localStorage` sin cambios.
+- Pruebas de frontend mínimas (`node --test` + esbuild) y E2E en Chrome real por CDP.
+- Corregidos dos defectos de arranque heredados de la Fase 3 (imports tardíos en `app.module.ts`; `@Inject` del registro de verificadores).
 
 ### 0.17.8 — 26 de octubre de 2026
 

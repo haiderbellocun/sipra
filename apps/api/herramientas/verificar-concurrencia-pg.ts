@@ -23,6 +23,9 @@ import {
 } from '../src/domain/entities/evidencia-validacion-eps.entity';
 import { ValidacionEps } from '../src/domain/entities/validacion-eps.entity';
 import {
+  ESTADOS_ADRES_ABIERTOS, calcularPrioridad, tieneDiscrepanciaCriticaPersistida,
+} from '../src/domain/services/mesa-eps.domain-service';
+import {
   DocumentoRepositoryAdapter,
 } from '../src/infrastructure/adapters/persistence/postgres/repositorios.adapter';
 import {
@@ -255,6 +258,109 @@ async function main(): Promise<void> {
       !lista.some((p: string) => /DELETE|TRUNCATE/.test(p)), lista.join(', '));
     comprobar('sipra_app: evidencias solo SELECT e INSERT',
       lista.filter((p: string) => p.startsWith('evidencias')).sort().join(',') === 'evidencias_validacion_eps:INSERT,evidencias_validacion_eps:SELECT', lista.join(', '));
+    // ── Mesa operativa: «tomar siguiente» atómico y su prioridad ──
+    console.log('\n— Mesa de EPS —');
+    // Se aparta lo anterior: estos casos son de la Mesa y empiezan sin reserva.
+    await ds.query("UPDATE validaciones_eps SET asignado_a = NULL, reservado_en = NULL, reserva_hasta = NULL WHERE reserva_hasta IS NOT NULL");
+    await ds.query("UPDATE validaciones_eps SET decision = 'rechazado', decidido_por = $1, decidido_en = now() WHERE decision IN ('pendiente','candidato_autoaprobacion')", [funcionario]);
+    const funcionarios: string[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      const id = randomUUID();
+      funcionarios.push(id);
+      await ds.query('INSERT INTO usuarios (id, correo, nombre, rol) VALUES ($1, $2, $3, $4)', [id, `${id}@mesa.example`, `Funcionario ${i + 1}`, 'coordinador']);
+    }
+    const hoy = new Date();
+    const crearCaso = async (o: { hace: number; inicioEnDias?: number | null; version?: number; critica?: boolean; adres?: string }): Promise<string> => {
+      const est = randomUUID();
+      const pra = randomUUID();
+      await ds.query('INSERT INTO usuarios (id, correo, nombre, rol, documento) VALUES ($1, $2, $3, $4, $5)',
+        [est, `${est}@estudiante.example`, 'Estudiante sintético', 'estudiante', String(Math.floor(1e9 + Math.random() * 8e9))]);
+      const inicio = o.inicioEnDias === undefined || o.inicioEnDias === null ? null : new Date(hoy.getTime() + o.inicioEnDias * 86_400_000);
+      await ds.query(
+        `INSERT INTO practicas (id, estudiante_id, programa_id, escuela_id, ciclo, periodo_academico, modalidad, estado, fecha_inicio)
+         VALUES ($1, $2, 'PRG', $3, 'profesional', '2026-2', 'pasantia', 'documentacion', $4)`, [pra, est, esc, inicio]);
+      const recibida = new Date(hoy.getTime() - o.hace * 86_400_000);
+      const documento = randomUUID();
+      for (let ver = 1; ver <= (o.version ?? 1); ver += 1) {
+        const doc = ver === (o.version ?? 1) ? documento : randomUUID();
+        await ds.query(
+          `INSERT INTO documentos (id, practica_id, tipo, version, estado, nombre_original, mime_real, tamano_bytes, hash_sha256, ruta_almacenamiento, cargado_en)
+           VALUES ($1, $2, 'certificado_eps', $3, 'en_revision', 'x.pdf', 'application/pdf', 10, $4, 'ruta/x', $5)`,
+          [doc, pra, ver, String(ver).padStart(64, 'e'), recibida]);
+      }
+      const v = ValidacionEps.pendiente({ id: randomUUID(), documentoId: documento, practicaId: pra, estudianteId: est, ahora: recibida, recibidaEn: recibida });
+      v.registrarProcesamiento({
+        datosExtraidos: null as never, coincidencia: 'coincide' as never, discrepancias: [], vigencia: 'vigente', hayBanderaCritica: o.critica ?? false,
+      }, recibida);
+      const { validacion } = await validaciones.crearSiNoExiste(v.instantanea());
+      if (o.adres) await ds.query('UPDATE validaciones_eps SET adres_estado = $2 WHERE id = $1', [validacion.id, o.adres]);
+      return validacion.id;
+    };
+
+    const casos = {
+      antiguo: await crearCaso({ hace: 25 }),
+      practicaProxima: await crearCaso({ hace: 3, inicioEnDias: 5 }),
+      reenvio: await crearCaso({ hace: 2, version: 2 }),
+      critica: await crearCaso({ hace: 1, critica: true }),
+      adresPendiente: await crearCaso({ hace: 1, adres: 'pendiente' }),
+      reciente: await crearCaso({ hace: 0 }),
+    };
+    const todas = await validaciones.listarAbiertasMesa(hoy, null);
+    comprobar('la bandeja trae SOLO la versión vigente de cada certificado (el reenvío cuenta una vez)', todas.length === 6, String(todas.length));
+    comprobar('la bandeja trae el estudiante, la práctica y el documento unidos', todas.every((f) => f.estudiante.nombre && f.practica.periodoAcademico === '2026-2' && f.documento.version >= 1));
+    const reenvioFila = todas.find((f) => f.validacion.id === casos.reenvio);
+    comprobar('el reenvío reporta 2 versiones y la vigente es la 2', reenvioFila?.documento.version === 2 && reenvioFila.documento.totalVersiones === 2);
+
+    // La prioridad de SQL (la de «tomar siguiente») debe dar EXACTAMENTE el orden de la regla del dominio.
+    const ordenDominio = [...todas].sort((a, b) => {
+      const pa = (f: typeof a): number => calcularPrioridad({
+        recibidaEn: f.validacion.instantanea().recibidaEn ?? hoy, fechaInicioPractica: f.practica.fechaInicio, version: f.documento.version,
+        discrepanciaCritica: tieneDiscrepanciaCriticaPersistida(f.validacion.instantanea()),
+        adresPendiente: ESTADOS_ADRES_ABIERTOS.includes(f.validacion.instantanea().adres.estado),
+      }, hoy).puntaje;
+      return pa(b) - pa(a) || (a.validacion.instantanea().recibidaEn as Date).getTime() - (b.validacion.instantanea().recibidaEn as Date).getTime();
+    }).map((f) => f.validacion.id);
+    const ordenSql: string[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      const id = await validaciones.tomarSiguiente(funcionarios[0], hoy, new Date(hoy.getTime() + 900_000), null);
+      if (id) ordenSql.push(id);
+    }
+    comprobar('«tomar siguiente» sigue el orden de prioridad del dominio', JSON.stringify(ordenSql) === JSON.stringify(ordenDominio), JSON.stringify({ ordenSql: ordenSql.length, ordenDominio: ordenDominio.length }));
+    comprobar('un caso con reserva vigente no se entrega otra vez', (await validaciones.tomarSiguiente(funcionarios[1], hoy, new Date(hoy.getTime() + 900_000), null)) === null);
+    const primera = (await ds.query('SELECT primera_revision_en, version FROM validaciones_eps WHERE id = $1', [ordenSql[0]]))[0];
+    comprobar('al tomarlo queda la fecha de la primera revisión y sube la versión', primera.primera_revision_en !== null && primera.version >= 2);
+
+    // SEIS funcionarios a la vez, seis casos: seis casos distintos.
+    await ds.query("UPDATE validaciones_eps SET asignado_a = NULL, reservado_en = NULL, reserva_hasta = NULL WHERE reserva_hasta IS NOT NULL");
+    const seis: string[] = [];
+    for (let i = 0; i < 6; i += 1) seis.push(await crearCaso({ hace: i }));
+    await ds.query("UPDATE validaciones_eps SET decision = 'rechazado', decidido_por = $1, decidido_en = now() WHERE id = ANY($2)", [funcionario, ordenSql]);
+    const hastaMesa = new Date(hoy.getTime() + 900_000);
+    const simultaneos = await Promise.all(funcionarios.map((f) => validaciones.tomarSiguiente(f, hoy, hastaMesa, null)));
+    comprobar('seis funcionarios a la vez con seis casos: seis casos DISTINTOS', simultaneos.every((x) => x !== null) && new Set(simultaneos).size === 6, JSON.stringify(simultaneos.map((x) => x?.slice(0, 4))));
+    const duenos = await ds.query('SELECT asignado_a FROM validaciones_eps WHERE id = ANY($1)', [seis]);
+    comprobar('cada caso quedó con exactamente un responsable y todos son distintos', new Set(duenos.map((d: { asignado_a: string }) => d.asignado_a)).size === 6);
+
+    // Solo 3 casos para 6 funcionarios.
+    await ds.query("UPDATE validaciones_eps SET decision = 'rechazado', decidido_por = $1, decidido_en = now() WHERE id = ANY($2)", [funcionario, seis]);
+    const tres: string[] = [];
+    for (let i = 0; i < 3; i += 1) tres.push(await crearCaso({ hace: i + 1 }));
+    const reparto = await Promise.all(funcionarios.map((f) => validaciones.tomarSiguiente(f, hoy, hastaMesa, null)));
+    const con = reparto.filter((x) => x !== null);
+    comprobar('solo 3 casos para 6 funcionarios: 3 reciben caso y 3 reciben «sin casos»', con.length === 3 && reparto.filter((x) => x === null).length === 3 && new Set(con).size === 3);
+    comprobar('los 3 casos entregados son los 3 que existían', new Set(con).size === 3 && con.every((c) => tres.includes(c as string)));
+
+    // Una reserva vencida se puede volver a tomar.
+    await ds.query("UPDATE validaciones_eps SET reservado_en = now() - interval '20 minutes', reserva_hasta = now() - interval '1 minute' WHERE id = $1", [tres[0]]);
+    const retomado = await validaciones.tomarSiguiente(funcionarios[0], new Date(), new Date(Date.now() + 900_000), null);
+    comprobar('una reserva vencida vuelve a estar disponible', retomado === tres[0]);
+
+    // Alcance por escuela y criterios.
+    comprobar('con otra escuela en el alcance no se entrega nada', (await validaciones.tomarSiguiente(funcionarios[2], new Date(), new Date(Date.now() + 900_000), ['no-existe'])) === null);
+
+    const supervision = await validaciones.supervisionMesa(new Date(), null);
+    comprobar('la supervisión cuenta abiertas y la carga por funcionario', supervision.abiertas >= 3 && supervision.funcionarios.some((f) => f.reservasVigentes >= 1));
+
     void TipoDocumento;
   } finally {
     await ds.destroy();

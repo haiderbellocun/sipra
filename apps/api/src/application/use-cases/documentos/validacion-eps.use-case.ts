@@ -88,7 +88,7 @@ export class ValidacionEpsUseCase {
     if (!validacion) {
       const nueva = ValidacionEps.pendiente({
         id: randomUUID(), documentoId: datos.id, practicaId: datos.practicaId,
-        estudianteId: practica.estudianteId, ahora,
+        estudianteId: practica.estudianteId, ahora, recibidaEn: datos.cargadoEn,
       });
       const { validacion: existente, creada } = await this.validaciones.crearSiNoExiste(nueva.instantanea());
       validacion = existente;
