@@ -129,8 +129,11 @@ import {
           <div><div class="k">Fuente actualizada el</div>{{ fecha(d.afiliacion.fuenteActualizadaEn) }}</div>
         </div>
         <p class="pista" style="margin-top:var(--sp-2)">{{ d.autenticidad.explicacion }}</p>
+        @if (d.afiliacion.frescura.diasDesdeConsulta !== null) {
+          <p class="pista">Consulta a ADRES realizada {{ d.afiliacion.frescura.diasDesdeConsulta === 0 ? 'hoy' : 'hace ' + d.afiliacion.frescura.diasDesdeConsulta + (d.afiliacion.frescura.diasDesdeConsulta === 1 ? ' día' : ' días') }}.</p>
+        }
         @if (!d.afiliacion.frescura.politicaDefinida) {
-          <p class="pista">Aún no hay un plazo institucional de vigencia de la consulta a ADRES: SIPRA no da por vencido ningún resultado.</p>
+          <p class="pista">Frescura de ADRES pendiente de definición del proceso: SIPRA no da por vencido ningún resultado.</p>
         } @else if (d.afiliacion.frescura.vencida) {
           <div class="aviso" role="status">La consulta a ADRES tiene más de {{ d.afiliacion.frescura.dias }} días. Considere repetirla.</div>
         }

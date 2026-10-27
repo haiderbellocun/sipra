@@ -210,12 +210,15 @@ export interface FrescuraAdres {
   politicaDefinida: boolean;
   dias: number | null;
   vencida: boolean | null;
+  /** Días enteros desde la consulta a ADRES: informativo, sirve aun sin política (no declara nada vencido). */
+  diasDesdeConsulta: number | null;
 }
 
 export function evaluarFrescuraAdres(consultadoEn: Date | null, dias: number | null | undefined, ahora: Date): FrescuraAdres {
-  if (dias === null || dias === undefined || !Number.isFinite(dias) || dias <= 0) return { politicaDefinida: false, dias: null, vencida: null };
-  if (!consultadoEn) return { politicaDefinida: true, dias, vencida: null };
-  return { politicaDefinida: true, dias, vencida: ahora.getTime() - consultadoEn.getTime() > dias * MS_DIA };
+  const diasDesdeConsulta = consultadoEn ? Math.max(0, Math.floor((ahora.getTime() - consultadoEn.getTime()) / MS_DIA)) : null;
+  if (dias === null || dias === undefined || !Number.isFinite(dias) || dias <= 0) return { politicaDefinida: false, dias: null, vencida: null, diasDesdeConsulta };
+  if (!consultadoEn) return { politicaDefinida: true, dias, vencida: null, diasDesdeConsulta };
+  return { politicaDefinida: true, dias, vencida: ahora.getTime() - consultadoEn.getTime() > dias * MS_DIA, diasDesdeConsulta };
 }
 
 /**

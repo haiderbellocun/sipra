@@ -349,3 +349,49 @@ describe('VerificadorEpsHttpAdapter', () => {
     } finally { await s.cerrar(); }
   });
 });
+
+describe('Regresión Fase 6 · SSRF ampliada', () => {
+  it.each([
+    '192.0.0.1', '192.88.99.1', '240.0.0.1', '198.19.255.255', '203.0.113.7', '0.1.2.3',
+    '2002:7f00:1::', '2002:a00:1::', '2001::1', '::ffff:0:127.0.0.1', '64:ff9b::a00:1', 'fec0::1', 'ff00::', '100::1',
+  ])('rango reservado o de transición hacia una dirección interna: %s es privado', (d) => expect(esDireccionPrivada(d)).toBe(true));
+
+  it.each(['169.254.169.254', '::ffff:169.254.169.254', '[fd00:ec2::254]', '100.100.100.200'])('metadatos de nube (%s) siempre bloqueados', (d) => expect(esDireccionPrivada(d)).toBe(true));
+
+  it('DNS rebinding: cada petición resuelve UNA vez y usa esa resolución para conectar; un nombre que cambia a privado en la segunda se rechaza', async () => {
+    let llamadas = 0;
+    const c = new ClienteHttpSeguro({
+      resolver: () => { llamadas += 1; return Promise.resolve([{ address: llamadas === 1 ? '8.8.8.8' : '127.0.0.1', family: 4 }]); },
+    });
+    // 1.ª resolución pública: pasa la validación (la conexión real falla o expira, no importa: nunca alcanza 127.0.0.1).
+    await c.obtener(new URL('https://verificador.eps.example/x'), politica(443, { timeoutMs: 300 })).catch(() => undefined);
+    // 2.ª resolución, ahora privada: se rechaza antes de conectar.
+    await expect(c.obtener(new URL('https://verificador.eps.example/x'), politica(443))).rejects.toMatchObject({ codigo: 'host_no_permitido' });
+    expect(llamadas).toBeGreaterThanOrEqual(2);
+  });
+
+  it.each([
+    'https://127.0.0.1/x', 'https://[::1]/x', 'https://2130706433/x', 'https://0x7f.1/x', 'https://localhost/x', 'https://metadata.google.internal/x',
+    'https://169.254.169.254/latest/meta-data', 'https://verificador.eps.example.atacante.test@127.0.0.1/x',
+  ])('URL peligrosa %s: se rechaza sin conectar', async (u) => {
+    const c = new ClienteHttpSeguro({ resolver: () => Promise.reject(new Error('no debe resolver')) });
+    await expect(c.obtener(new URL(u), politica(443))).rejects.toBeInstanceOf(ErrorHttpSeguro);
+  });
+
+  it('INVENTARIO VACÍO ⇒ CERO SALIDA HTTP: con el registro real, ni resolver DNS ni abrir un socket', async () => {
+    const { VERIFICADORES_EPS_OFICIALES } = await import('../src/domain/services/registro-verificadores-eps');
+    expect(VERIFICADORES_EPS_OFICIALES).toEqual([]);
+    let resoluciones = 0;
+    const espiaDns = jest.spyOn(dns.promises, 'lookup').mockImplementation(() => { resoluciones += 1; return Promise.reject(new Error('sin red')); });
+    const espiaRed = jest.spyOn(net.Socket.prototype, 'connect').mockImplementation(() => { resoluciones += 1; throw new Error('sin red'); });
+    try {
+      const adaptador = new VerificadorEpsHttpAdapter(new RegistroVerificadoresEps(VERIFICADORES_EPS_OFICIALES), new ClienteHttpSeguro(), []);
+      const r = await adaptador.verificar({
+        url: 'https://cualquier.eps.example/verificar/123', datosCertificado: null,
+        verificador: { codigo: 'inexistente', emisor: 'X', aliasesEmisor: [], hostsPermitidos: ['cualquier.eps.example'], puertosPermitidos: [443], rutasPermitidas: ['/'], requiereInteraccionHumana: false, requiereCredenciales: false } as never,
+      });
+      expect(r).toMatchObject({ estado: 'no_verificable' });
+      expect(resoluciones).toBe(0);
+    } finally { espiaDns.mockRestore(); espiaRed.mockRestore(); }
+  });
+});

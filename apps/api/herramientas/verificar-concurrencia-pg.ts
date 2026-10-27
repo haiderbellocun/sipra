@@ -110,6 +110,17 @@ async function main(): Promise<void> {
     comprobar('un reclamo vigente no se vuelve a ganar', !(await documentos.reclamarProcesamiento(docReclamo, new Date(ahora.getTime() + 1000), 900_000)));
     comprobar('un reclamo caducado sí se retoma', await documentos.reclamarProcesamiento(docReclamo, new Date(ahora.getTime() + 901_000), 900_000));
 
+    // ── 1b. Reinicio: el proceso murió en «analizando» y varias instancias nuevas intentan retomar a la vez ──
+    console.log('\n— Reinicio: proceso muerto durante «analizando» —');
+    const docMuerto = await nuevoDocumento('recibido');
+    comprobar('la instancia que va a morir reclama el documento', await documentos.reclamarProcesamiento(docMuerto, ahora, 900_000));
+    const [{ estado: estadoMuerto }] = await ds.query('SELECT estado FROM documentos WHERE id = $1', [docMuerto]);
+    comprobar('queda en «analizando» (el proceso muere sin soltarlo)', estadoMuerto === 'analizando', estadoMuerto);
+    const antesDelVencimiento = await Promise.all(Array.from({ length: 10 }, () => documentos.reclamarProcesamiento(docMuerto, new Date(ahora.getTime() + 60_000), 900_000)));
+    comprobar('antes de caducar el reclamo, NINGUNA instancia nueva lo retoma (no hay doble procesamiento)', antesDelVencimiento.every((x) => !x));
+    const alReiniciar = await Promise.all(Array.from({ length: 10 }, () => documentos.reclamarProcesamiento(docMuerto, new Date(ahora.getTime() + 905_000), 900_000)));
+    comprobar('tras caducar, 10 instancias que reinician a la vez: exactamente UNA lo retoma', alReiniciar.filter(Boolean).length === 1, String(alReiniciar.filter(Boolean).length));
+
     // ── 2. Guardado condicionado al estado ─────────────────────────────────
     console.log('\n— Guardado condicionado (decisión humana vs. resultado automático) —');
     const docCas = await nuevoDocumento('en_revision');

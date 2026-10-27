@@ -31,6 +31,7 @@ import {
 import { aliasesAprobados, concluirVerificacion } from '../../../domain/services/verificacion-eps.domain-service';
 import { puedeOperarValidacionEps } from '../../../domain/value-objects/acceso-eps.vo';
 import { Actor } from '../practicas/gestionar-practica.use-case';
+import { INTERRUPTORES_EPS, interruptorEps } from '../../services/interruptores-eps';
 
 /** Un reclamo de verificación abandonado (proceso caído) deja de bloquear pasado este tiempo. */
 export const CADUCIDAD_RECLAMO_VERIFICACION_MS = 2 * 60_000;
@@ -77,8 +78,7 @@ export class VerificacionEpsUseCase {
 
   /** Apagada por defecto: se enciende cuando hay al menos un verificador aprobado y su adaptador. */
   get habilitada(): boolean {
-    const v = this.config?.get<string | boolean>('VERIFICACION_EPS_HABILITADA');
-    return v === true || String(v).toLowerCase() === 'true';
+    return interruptorEps(this.config, INTERRUPTORES_EPS.verificacion);
   }
 
   /** Para operación: reintento manual de la verificación de una validación (no respeta la ventana de espera). */

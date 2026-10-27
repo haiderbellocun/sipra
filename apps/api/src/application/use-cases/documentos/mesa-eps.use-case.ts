@@ -15,7 +15,7 @@ import {
 } from '../../../domain/ports/out/repositorios.port';
 import { ALMACENAMIENTO, AlmacenamientoPort } from '../../../domain/ports/out/servicios-externos.port';
 import {
-  FilaMesaRepo, VALIDACION_EPS_REPOSITORY, ValidacionEpsRepositoryPort,
+  FilaMesaRepo, TOPE_LISTADO_MESA, VALIDACION_EPS_REPOSITORY, ValidacionEpsRepositoryPort,
 } from '../../../domain/ports/out/validacion-eps.port';
 import { compararTriple } from '../../../domain/services/adres-resultado.domain-service';
 import {
@@ -36,6 +36,8 @@ import {
 import { Actor } from '../practicas/gestionar-practica.use-case';
 import { GestionarDocumentoUseCase } from './gestionar-documento.use-case';
 import { DURACION_RESERVA_EPS_MS } from './validacion-eps.use-case';
+import { INTERRUPTORES_EPS, exigirInterruptorEps } from '../../services/interruptores-eps';
+import { MetricasService } from '../../../infrastructure/observability/metricas.service';
 
 export const AVISO_RETENCION_EPS = 'POLÍTICA DE RETENCIÓN EPS PENDIENTE DE DEFINICIÓN INSTITUCIONAL';
 const POR_VENCER_MS = 5 * 60_000;
@@ -122,12 +124,23 @@ export class MesaEpsUseCase {
     @Inject(ALMACENAMIENTO) private readonly almacen: AlmacenamientoPort,
     private readonly gestionar: GestionarDocumentoUseCase,
     @Optional() private readonly config?: ConfigService,
+    @Optional() private readonly metricas?: MetricasService,
   ) {}
+
+  onModuleInit(): void {
+    this.metricas?.registrarFuenteEps(() => this.validaciones.resumenMetricasEps(new Date()));
+  }
 
   // ── Alcance y permisos ─────────────────────────────────────────────────────
 
   private exigirOperador(actor: Actor): void {
     if (!puedeOperarValidacionEps(actor.rol)) throw new ForbiddenException('Su perfil no opera la Mesa de EPS');
+    this.exigirActiva();
+  }
+
+  /** Interruptor de incidente: se evalúa DESPUÉS del permiso (un perfil sin acceso sigue viendo 403). */
+  private exigirActiva(): void {
+    exigirInterruptorEps(this.config, INTERRUPTORES_EPS.validacion, 'La validación de EPS está suspendida temporalmente. Los certificados quedan en espera; no se pierde nada.');
   }
 
   /** Coordinación con escuelas asignadas ve solo las suyas; el resto del personal operativo, todas. */
@@ -145,10 +158,13 @@ export class MesaEpsUseCase {
   async listar(actor: Actor, q: Record<string, string | undefined> = {}, ahora: Date = new Date()): Promise<ListadoMesaDto> {
     this.exigirOperador(actor);
     const todas = await this.validaciones.listarAbiertasMesa(ahora, this.alcance(actor));
+    // Si la bandeja topó, el total REAL sale de un conteo en SQL: los KPI no pueden subestimar el trabajo pendiente.
+    const truncado = todas.length >= TOPE_LISTADO_MESA;
+    const totalAbiertas = truncado ? Math.max(todas.length, await this.validaciones.contarAbiertasMesa(this.alcance(actor))) : todas.length;
     const calculadas = todas.map((f) => this.aFila(f, actor, ahora));
 
     const kpis: KpisMesaDto = {
-      abiertas: calculadas.length,
+      abiertas: totalAbiertas,
       pendientes: calculadas.filter((c) => c.fila.reserva.estado === 'libre' || c.fila.reserva.estado === 'vencida').length,
       enRevision: calculadas.filter((c) => c.fila.reserva.estado === 'mia' || c.fila.reserva.estado === 'ajena').length,
       pendientesAdres: calculadas.filter((c) => ESTADOS_ADRES_ABIERTOS.includes(c.datos.adres.estado)).length,
@@ -195,7 +211,7 @@ export class MesaEpsUseCase {
     const pagina = Math.max(1, Number(q.pagina) || 1);
     const unicos = (f: (c: (typeof calculadas)[number]) => string): string[] => [...new Set(calculadas.map(f))].sort();
     return {
-      kpis, total: filtradas.length, pagina, limite,
+      kpis, total: filtradas.length, pagina, limite, truncado, mostrando: todas.length,
       filas: filtradas.slice((pagina - 1) * limite, pagina * limite).map((c) => c.fila),
       filtrosDisponibles: { periodos: unicos((c) => c.fila.periodo), programas: unicos((c) => c.fila.programa), modalidades: unicos((c) => c.fila.modalidad) },
       generadoEn: ahora.toISOString(),
@@ -508,6 +524,9 @@ export class MesaEpsUseCase {
     await this.auditar(AccionAuditada.DECISION_EPS_CONTEXTO, d.id, {
       decision: dto.decision, recomendacion, apartaDeRecomendacion, motivoDevolucion: dto.motivo ?? null,
     }, actor, ahora);
+    this.metricas?.epsDecisiones.inc({ decision: dto.decision, aparta_de_recomendacion: String(apartaDeRecomendacion) });
+    const recibida = d.recibidaEn ?? null;
+    if (recibida) this.metricas?.epsTiempoRevision.observe(Math.max(0, (ahora.getTime() - recibida.getTime()) / 3_600_000));
     return respuesta;
   }
 
@@ -515,6 +534,7 @@ export class MesaEpsUseCase {
 
   async supervision(actor: Actor, ahora: Date = new Date()): Promise<SupervisionMesaDto> {
     if (!esSupervisorEps(actor.rol)) throw new ForbiddenException('Solo coordinación y administración supervisan la Mesa de EPS');
+    this.exigirActiva();
     const r = await this.validaciones.supervisionMesa(ahora, this.alcance(actor));
     const redondear = (n: number | null): number | null => (n === null ? null : Math.round(n * 10) / 10);
     return {

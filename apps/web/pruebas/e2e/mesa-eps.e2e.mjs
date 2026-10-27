@@ -267,6 +267,65 @@ async function main() {
       afirmar(detalle?.caso?.decision === 'devuelto', `la decisión registrada es «${detalle?.caso?.decision}»`);
     });
 
+    // ── Reenvío: v1 devuelta → el estudiante carga v2 → la Mesa trabaja la versión vigente ──────────
+    console.log('\nReenvío (v1 devuelta → v2)');
+    const andres = ESTUDIANTES[1];
+    const filaV1 = filas.find((x) => x.estudiante.nombre.startsWith('Andrés'));
+    let filaV2 = null;
+    await paso('el estudiante recibe la devolución con el mensaje del catálogo y carga la versión 2', async () => {
+      const sEst = await ingresar('estudiante', andres.correo);
+      const antes = (await api(`/documentos/practica/${andres.practica}`, { token: sEst.accessToken })).json ?? [];
+      const v1 = antes.find((d) => d.tipo === 'certificado_eps');
+      afirmar(v1?.estado === 'devuelto', `la versión 1 debería figurar «devuelto»: ${v1?.estado}`);
+      afirmar(/no coinciden/i.test(v1?.motivoDevolucion ?? ''), `el estudiante debería leer el mensaje del catálogo: ${v1?.motivoDevolucion}`);
+      const f = new FormData();
+      f.append('tipo', 'certificado_eps');
+      f.append('archivo', new Blob([await certificado(andres.nombre, '1019887659')], { type: 'application/pdf' }), 'certificado-eps-v2.pdf');
+      const r = await api(`/documentos/practica/${andres.practica}`, { token: sEst.accessToken, metodo: 'POST', formulario: f });
+      afirmar(r.estado < 300, `la carga de v2 respondió ${r.estado}`);
+      for (let i = 0; i < 60 && !filaV2; i += 1) {
+        await dormir(500);
+        filaV2 = ((await api('/mesa-eps', { token: aux.accessToken })).json?.filas ?? []).find((x) => x.estudiante.nombre.startsWith('Andrés') && x.versionDocumento === 2) ?? null;
+      }
+      afirmar(!!filaV2, 'la versión 2 no apareció en la Mesa');
+    });
+
+    await paso('la Mesa trabaja la v2: la v1 queda como historia, sin mezclar evidencias y sin poder decidirse', async () => {
+      const d1 = (await api(`/mesa-eps/${filaV1.validacionId}`, { token: aux.accessToken })).json;
+      const d2 = (await api(`/mesa-eps/${filaV2.validacionId}`, { token: aux.accessToken })).json;
+      afirmar(d1.caso.esVersionVigente === false && d2.caso.esVersionVigente === true, 'solo la v2 debe ser vigente');
+      afirmar(d2.caso.totalVersiones === 2 && d2.versiones.length === 2, 'debe listar las dos versiones');
+      const ids1 = new Set(d1.evidencias.map((e) => e.id));
+      afirmar(d2.evidencias.length > 0 && d2.evidencias.every((e) => !ids1.has(e.id)), 'las evidencias de v1 no deben aparecer en v2');
+      const ADRES_v1 = d1.adres.estado;
+      afirmar(['pendiente', 'no_requerido'].includes(ADRES_v1) || d2.adres.estado !== 'procesado', 'la consulta ADRES de v1 no debe heredarse');
+      const intento = await api(`/mesa-eps/${filaV1.validacionId}/decision`, { token: aux.accessToken, metodo: 'POST', cuerpo: { decision: 'aprobar' } });
+      afirmar([400, 409].includes(intento.estado), `decidir la v1 respondió ${intento.estado}: debe rechazarse`);
+    });
+
+    await paso('el funcionario aprueba la v2 desde la pantalla y el estudiante ve solo el resultado permitido', async () => {
+      await abrirMesa(nav, aux);
+      await nav.clic('.caso', 'Andrés');
+      await nav.esperar(`document.querySelector('sipra-eps-detalle')?.innerText.includes('versión 2 de 2')`, 15000, 'detalle de la versión 2');
+      await nav.clic('sipra-eps-detalle button', 'Tomar el caso');
+      await nav.esperar(`document.querySelector('sipra-eps-detalle')?.innerText.includes('Tomado por usted')`, 15000);
+      afirmar(await nav.evaluar(`document.querySelector('sipra-eps-detalle').innerText.includes('Vigente')`), 'el panel de versiones debe marcar la vigente');
+      await nav.clic('.decisiones button', 'Aprobar');
+      await nav.esperar(`!!document.querySelector('dialog[open]')`, 5000);
+      const reforzada = await nav.evaluar(`/Se aparta de la recomendación/.test(document.querySelector('dialog[open]').innerText)`);
+      if (reforzada) await nav.escribir('dialog[open] #eps-just', 'Documento corregido por el estudiante en la versión 2; coincide con SIPRA y es legible.');
+      await nav.clic('dialog[open] .pie button', 'Aprobar');
+      await nav.esperar(`/Certificado aprobado/.test(document.body.innerText)`, 15000, 'aviso de aprobación');
+      const d2 = (await api(`/mesa-eps/${filaV2.validacionId}`, { token: aux.accessToken })).json;
+      afirmar(d2.caso.decision === 'aprobado_manual', `decisión v2: ${d2.caso.decision}`);
+      const sEst = await ingresar('estudiante', andres.correo);
+      const docs = (await api(`/documentos/practica/${andres.practica}`, { token: sEst.accessToken })).json ?? [];
+      const eps = docs.filter((d) => d.tipo === 'certificado_eps').sort((a, b) => a.version - b.version);
+      afirmar(eps.length === 2 && eps[0].estado === 'devuelto' && eps[1].estado === 'aprobado', `el estudiante ve: ${eps.map((d) => d.version + ':' + d.estado).join(', ')}`);
+      const visto = JSON.stringify(eps);
+      afirmar(!/aux|auxiliar@|candidato|recomendacion|adres|prioridad|asignado/i.test(visto.replace(/auxiliar_/g, '')), 'el estudiante no debe ver datos internos de la revisión');
+    });
+
     // ── Tomar siguiente (atómico) ───────────────────────────────────────────
     console.log('\nTomar siguiente y permisos');
     await paso('tomar siguiente: asigna el caso restante y luego avisa que no hay más', async () => {

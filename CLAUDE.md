@@ -56,6 +56,27 @@ Estas no son convenciones: si se rompen, el lint o la base fallan.
   oficial: el ingestor lo verifica y falla.
 - **La cola en proceso está prohibida** en `pre` y `prod`; allí va Cloud Tasks.
 
+## Validación del certificado de EPS (programa por fases, 0–6)
+
+Detalle en `docs/DOCUMENTO-TECNICO.md` (§7.15–7.20 y §7.21 «Estado piloto EPS»). Lo que el código hace cumplir:
+
+- **Lectura 100 % local** (pdf.js, ZXing y Tesseract en el proceso). **Nada de OpenAI/Anthropic**
+  para certificados de EPS, y ningún certificado sale a un servicio externo.
+- **ADRES es asistido:** la persona abre el portal, resuelve ella misma el CAPTCHA y sube el PDF
+  guardado. Prohibido automatizar el portal, el CAPTCHA, el scraping, los endpoints privados y
+  construir una extensión de Chrome. ADRES contrasta la **afiliación**; no autentica el certificado.
+- **La autoaprobación NO existe.** Solo hay una etiqueta «candidato»; decide siempre una persona.
+  `EPS_AUTOAPROBACION_HABILITADA=true` impide el arranque en todos los ambientes.
+- **Verificadores oficiales:** inventario vacío (`VERIFICADORES_EPS_OFICIALES`) ⇒ cero salida HTTP.
+- **Interruptores de incidente** (sin desplegar código): `EPS_VALIDACION_HABILITADA`,
+  `ADRES_ASISTIDO_HABILITADO`, `EPS_OCR_HABILITADO`, `VERIFICACION_EPS_HABILITADA` (apagada de fábrica).
+- **Políticas pendientes de definición institucional** (no inventar valores): `ADRES_FRESCURA_DIAS`
+  (sin valor no se declara vencida ninguna consulta) y `EPS_RETENCION_DIAS` (solo configuración: no
+  hay purga de certificados, evidencias, ADRES ni auditoría).
+- Evidencias EPS y auditoría son de **solo inserción**; la reserva de casos y «tomar siguiente» son
+  atómicos en SQL. Ningún dato personal real en el repositorio: el corpus del piloto vive en
+  `pilot-data/` (ignorado por Git).
+
 ## Ambientes y autenticación
 
 Cuatro proyectos separados de Google Cloud: `dev`, `qa`, `pre`, `prod`.
@@ -81,14 +102,29 @@ debe exigir tocar lógica de negocio.
   desarrollo.
 - **Nunca** versionar credenciales. Los secretos van a Secret Manager.
 
+## Git
+
+**La escritura en Git la hace el propietario del repositorio.** Un asistente no ejecuta `git add`,
+`commit`, `push`, `merge`, `rebase`, `tag` ni `reset --hard`, ni crea o borra ramas: solo lee
+(`status`, `diff`, `log`, `branch`). El despliegue es **manual** (`desplegar.yml`).
+
 ## Antes de dar algo por terminado
 
 ```bash
-npm run lint              # debe pasar con 0 advertencias
-npm test                  # 583 pruebas
-npm run test:aislamiento  # condición de despliegue
-npm run build
+npm run lint                  # API y web: 0 advertencias
+npm test                      # API: 68 suites, 1.802 pruebas
+npm run test:web              # frontend (node --test + esbuild) y typecheck de sus pruebas
+npm run test:aislamiento      # condición de despliegue
+npm run build                 # API y web
+npm run smoke:arranque        # arranca el JS COMPILADO (requiere build y una base migrada)
+npm run test:pg               # concurrencia y restricciones contra PostgreSQL LOCAL desechable (DB_URL)
+npm run verificar:migraciones # desde cero, reversión EPS y upgrade pre-EPS (DB_URL, base local)
 ```
+
+Las pruebas unitarias no levantan `AppModule`: por eso existe el smoke de arranque (dos defectos de la
+Fase 3 pasaron en verde y rompían `node dist/main.js`). `test:pg`, `verificar:migraciones`,
+`carga:mesa` y `lectura:benchmark:concurrente` se niegan a correr contra una base que no sea local.
+El E2E de la Mesa (`apps/web/pruebas/e2e/mesa-eps.e2e.mjs`) usa Chrome o Edge instalados y datos sintéticos.
 
 La prueba de aislamiento entre empresas es bloqueante en CI y en Cloud Build.
 Si una empresa alcanza un solo registro de otra, no se despliega.

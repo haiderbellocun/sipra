@@ -5,7 +5,7 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.9 |
+| Versión del documento | 0.17.10 |
 | Fecha | 27 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
@@ -1205,6 +1205,139 @@ pruebas unitarias; si se acepta una dependencia, el siguiente paso es Vitest con
 unitarias no ven (no levantan `AppModule`): tres `import` pegados tras la clase en `app.module.ts` (error de inicialización en el JS
 compilado) y `VerificadorEpsHttpAdapter` sin `@Inject(REGISTRO_VERIFICADORES_EPS)`. Quedó corregido; **pendiente recomendable:** una
 prueba que arranque `AppModule` (humo de DI).
+
+### 7.21 Estado piloto EPS (Fase 6 EPS)
+
+**Veredicto.** El flujo EPS está **listo para un piloto controlado**, no para producción general. Lo construido es estable, seguro en lo
+que se pudo probar, operable y medible; lo que falta lo decide el proceso (políticas) y solo lo puede demostrar un piloto con documentos
+reales autorizados (calidad de lectura sobre certificados reales de varias EPS). Ninguna cifra de calidad de este documento proviene de
+documentos reales: **no existe todavía un corpus real** y no se inventan resultados.
+
+#### 7.21.1 Capacidades
+
+Lectura local del certificado (PDF digital, escaneado, PNG, JPEG; texto nativo → QR → OCR solo si hace falta); comparación con SIPRA;
+verificación oficial **apagada** (inventario de verificadores vacío); consulta ADRES asistida (la persona resuelve el CAPTCHA); Mesa de
+validación para ~6 funcionarios con reserva atómica, «tomar siguiente», decisiones humanas con justificación reforzada, reenvíos
+(versión vigente), supervisión y métricas; auditoría y evidencias de solo inserción; interruptores de incidente; métricas Prometheus sin PII.
+
+#### 7.21.2 Limitaciones y riesgos que persisten
+
+- **Calidad de lectura sin medir en real.** Depende de las EPS y de la calidad de los escaneos/fotos; se mide en el piloto (§7.21.9).
+- **Sin verificación oficial de autenticidad.** Ninguna EPS tiene un mecanismo confirmado: la autenticidad queda «no verificable» y la decide una persona. Un QR no prueba nada.
+- **ADRES contrasta afiliación, no autentica el certificado**, y es manual (CAPTCHA humano): el cuello de botella del flujo.
+- **Sesión del navegador** (JWT en `localStorage`, 8 h sin revocación) y **sin limitación de tasa** (§7.21.6): bloqueantes para producción general (P-13, P-73).
+- **Escala de la bandeja.** Hasta ~2.000 casos abiertos todo es en memoria con aviso; con 10.000 el listado muestra los 2.000 más antiguos (los KPI usan el total real).
+- **Parsers nativos** (pdf.js, ZXing/WASM, decodificador de imágenes) sobre archivos de terceros: ver §7.21.5; sin antivirus.
+- **Texto libre de las justificaciones** que escriben los funcionarios puede contener datos personales (queda en `auditoria` y `documentos`).
+- **Evidencia anterior a la Fase 1.** Los certificados cargados antes de la migración 11 no tienen validación EPS: hay que reprocesarlos (trabajo `validar_documento`) o pedir reenvío.
+
+#### 7.21.3 Decisiones institucionales pendientes
+
+1. **Frescura de la consulta ADRES** (`ADRES_FRESCURA_DIAS`): FRESCURA ADRES PENDIENTE DE DEFINICIÓN DEL PROCESO. Hoy se muestra «consultada hace X días» y **nada se declara vencido**.
+2. **Retención EPS** (`EPS_RETENCION_DIAS`): POLÍTICA DE RETENCIÓN EPS PENDIENTE DE DEFINICIÓN INSTITUCIONAL. Hay que decidir plazo para: certificado EPS (archivo), resultado ADRES (PDF), evidencias (hechos leídos, hashes), texto derivado de OCR y auditoría. Hoy **no se purga nada** (la única purga automática es la imagen de la cédula, 30 días) y **la auditoría histórica nunca debe borrarse como efecto colateral**: cualquier purga futura conserva auditoría y hash.
+3. Umbrales de calidad y de operación de §7.21.9–7.21.10 (se proponen como candidatos).
+4. Qué EPS tienen un verificador oficial aprobado (hoy ninguna) y si se autoriza una extensión del navegador (estudio de la Fase 4: no recomendada).
+5. Si, y bajo qué evidencia, se evaluará algún día la autoaprobación (hoy **imposible**: el arranque se niega si `EPS_AUTOAPROBACION_HABILITADA=true`).
+6. Responsables y capacidad del piloto (§7.21.9) y quién puede apagar un interruptor en un incidente.
+
+#### 7.21.4 Arranque real, CI y migraciones
+
+- **Smoke de arranque** (`npm run smoke:arranque`): carga el JS **compilado**, resuelve `AppModule`, escucha en un puerto libre, exige `/salud` 200, rutas protegidas 401 y `/metrics` no abierto, y cierra. Se verificó por **mutación** que detecta los dos defectos reales de la Fase 3 (import tardío → `Cannot access … before initialization`; `@Inject` ausente → `UnknownDependenciesException`).
+- **CI** (`ci.yml`, el despliegue sigue **manual**): se añadieron pruebas del frontend, smoke de arranque, `test:pg` y la verificación de migraciones al job con PostgreSQL.
+- **Orden exacto de migraciones (16):** `1756000000000` EsquemaInicial · `…001000` RolAplicacionMinimoPrivilegio · `…002000` CatalogosYEstado · `…003000` ParametrosOperativos · `…004000` ModalidadesRealesYEtapas · `…005000` ProcesoBaseSgp · `…006000` FormularioUnicoRegistro · `…007000` BitacoraYCierre · `…008000` SolicitudesArl · `…009000` CronogramaYPqrs · `…010000` ConsentimientoVersionado · **EPS:** `…011000` ValidacionEps · `…012000` EvidenciaEpsOcr · `…013000` VerificacionEps · `…014000` ConsultaAdres · `…015000` MesaEps. Todas tienen `up()` y `down()`.
+- **Desde cero** (`npm run verificar:migraciones`, solo PostgreSQL local): 16 aplicadas en orden, segunda ejecución sin cambios, restricciones e índices válidos, 0 filas huérfanas, disparadores de inmutabilidad, privilegios de `sipra_app` (sin UPDATE/DELETE en `auditoria` ni en evidencias).
+- **Reversibilidad.** `down` de 15, 14 y 13 es seguro (quita columnas, índices y restricciones propias; el de 14 restituye una restricción anterior y **se niega** si hay datos que la contradigan). El de **12 se niega a propósito** si existen evidencias de OCR (tabla de solo inserción): verificado, queda registrada y sin daño. El de **11 elimina las tablas EPS con todos sus datos**: solo para bases desechables; **en un ambiente real el rollback es corregir hacia adelante y apagar con un interruptor, no revertir migraciones**.
+- **Upgrade desde pre-EPS** (migraciones 0–10 + semillas + documentos, decisiones y auditoría sintéticos): al aplicar 11–15, las 24 tablas previas conservan **conteo y contenido idénticos** (huella MD5), ningún id cambia, la auditoría previa queda completa, la 15 rellena `recibida_en` con la fecha de carga de los 4 certificados existentes, FKs válidas (38 → 48) y la aplicación arranca.
+
+#### 7.21.5 Interruptores de incidente y archivos
+
+| Variable | De fábrica | Efecto al apagar (sin desplegar código) |
+|---|---|---|
+| `EPS_VALIDACION_HABILITADA` | `true` | Mesa y decisiones responden 503; los certificados se cargan y **esperan** (el reintento es idempotente) |
+| `ADRES_ASISTIDO_HABILITADO` | `true` | Preparar, cargar, procesar y bandeja ADRES responden 503 |
+| `EPS_OCR_HABILITADO` | `true` | Sin OCR: se lee texto nativo y QR; lo demás pasa a revisión humana |
+| `VERIFICACION_EPS_HABILITADA` | `false` | Ninguna consulta a verificadores oficiales |
+| `EPS_AUTOAPROBACION_HABILITADA` | `false` | **No puede ser true**: el arranque se niega en todos los ambientes |
+| `ADRES_FRESCURA_DIAS`, `EPS_RETENCION_DIAS` | sin valor | Vacío = «pendiente»; la retención es solo configuración (una prueba estática garantiza que nadie la lee para purgar) |
+
+Los interruptores se leen en cada uso (no se cachean). Apagar no borra ni reasigna nada.
+
+**Archivos.** Solo PDF, PNG y JPEG; tipo real por firma binaria; el nombre del archivo **nunca** forma parte de la ruta (la genera el servidor); el almacenamiento rechaza rutas que salen de su raíz; PDF sin acciones activas (`/JavaScript`, `/OpenAction`, `/AA`, `/Launch`, `/EmbeddedFile` se neutralizan sin cambiar el tamaño); pdf.js corre en un hilo aparte con límites; límites de páginas y de píxeles (una «bomba» PNG de 60.000 × 60.000 se descarta sin rasterizar); PDF cifrado, vacío o truncado → ilegible, nunca error ni aprobación. **¿Antivirus?** Para el piloto controlado el saneamiento + parsers acotados basta (documentos de estudiantes de la propia institución, pocos funcionarios, sin ejecución de contenido). **Antes de producción general se recomienda** escaneo con ClamAV (o Cloud Storage + análisis) con punto de integración en `AlmacenamientoPort.guardar` / antes de encolar `validar_documento`, y mantener actualizados `pdfjs-dist`, `@napi-rs/canvas` y `zxing-wasm` (no se pudo ejecutar `npm audit`: el registro no está accesible desde esta máquina por el certificado del proxy). No se agregó infraestructura.
+
+#### 7.21.6 Seguridad: regresiones y backlog
+
+- **SSRF.** La regresión encontró brechas reales en `esDireccionPrivada` (6to4 `2002::/16`, Teredo/`2001::/23`, SIIT `::ffff:0:a.b.c.d`, `100::/64`, `192.88.99.0/24`, NAT64 local): corregidas y cubiertas. Con el inventario de verificadores vacío hay **cero** salidas HTTP (verificado con espías de DNS y sockets); redirecciones, hosts parecidos, puertos, esquemas y rebinding ya estaban cubiertos.
+- **ADRES.** Prueba estática: sin Puppeteer/Playwright/Selenium, sin cookies ni reCAPTCHA, ningún archivo que nombre ADRES hace HTTP, el único dominio de ADRES aparece como enlace para la persona, el flujo EPS no usa OpenAI/Anthropic y no existe extensión de Chrome.
+- **PII.** Prueba con datos centinela (cédula, nombre, apellido, correo) sobre preparar/cargar/procesar y el camino de error: ni logs técnicos ni consola los contienen (con «canario» que prueba el captador), ni `auditoria.metadatos` (solo ids, enumeraciones, conteos y bytes). La auditoría demuestra quién, qué y cuándo sin copiar el documento.
+- **Autorización.** Matriz por 7 perfiles × 6 operaciones de la Mesa (solo auxiliar, coordinación y administración operan; solo coordinación y administración supervisan; un perfil sin acceso no cambia nada); IDOR: un id de otra escuela o inexistente responde igual (404), sin confirmar existencia; sin tener el caso no se ven valores ni el certificado.
+- **Sesión / P-73 — qué sigue abierto** (backlog por prioridad): (1) **limitación de tasa** inexistente; (2) JWT en `localStorage` → cookie `HttpOnly` + `SameSite` + CSRF; (3) revocación/rotación de `JWT_SECRETO` y cierre de sesión en servidor; (4) CSP, HSTS y cabeceras de nginx en todos los `location`; (5) firma de descarga en la URL y reutilización de `JWT_SECRETO` en **otros** flujos de descarga (cerrado solo en el visor de la Mesa). No se rediseñó la sesión.
+- **Limitación de tasa (propuesta, sin implementar):** no hay `@fastify/rate-limit` ni `@nestjs/throttler` y no se puede instalar aquí; exige decidir dónde (Cloud Armor/Redis). Límites sugeridos por usuario: ingreso 10/min por IP; carga de documentos 20/min; preparar ADRES 30/min; cargar/procesar resultado 20/min; decisiones 60/min; tomar siguiente 30/min; lectura general 300/min.
+
+#### 7.21.7 Rendimiento, concurrencia y recuperación (máquina de desarrollo; no equivale a Cloud Run)
+
+**OCR concurrente** (`npm run lectura:benchmark:concurrente`, corpus sintético mixto, `LECTURA_LOCAL_OCR_CONCURRENTES=1`, 2 renders): arranque en frío 1,4 s; 1 documento 0,2–0,6 s; 3 simultáneos 0,9–1,2 s; **6 simultáneos 7,2–7,9 s en total (media 3,4–3,6 s por documento)**, sin errores ni vencimientos. **RSS pico 398 MB (39 % de 1 GiB; 226 MB son la base de la herramienta)**; con OCR concurrente 2 no hay mejora (370 MB, 7,2–8,3 s). Conclusión: **1 GiB sigue siendo razonable** con concurrencia moderada y OCR de una lectura por instancia; la latencia con 6 a la vez es de segundos y el trabajo es asíncrono. Con 1 vCPU puede ser varias veces más lenta: medir en el piloto. No se tocó Cloud Run.
+
+**Mesa con volumen** (`npm run carga:mesa`, datos sintéticos de Mesa, sin OCR, PostgreSQL local; milisegundos):
+
+| Casos abiertos | SQL de la bandeja | Listar (caso de uso) | Supervisión | Tomar siguiente | 6 simultáneos |
+|---|---|---|---|---|---|
+| 100 | 16–21 | 22 | 11 | 7–11 | 70 (6/6 distintos) |
+| 1.000 | 58–74 | 94 | 28 | 26–32 | 62 (6/6) |
+| 10.000 | 137–221 (tope 2.000 filas) | 201–228 | 44–64 | 55–81 | 163–178 (6/6) |
+| 10.000 + 30.000 decididos | 172–217 | — | 147 | 74–225 | — |
+
+- **Defecto encontrado y corregido:** con más de 2.000 abiertos, el listado y los KPI se quedaban en 2.000 sin avisar. Ahora los KPI usan un conteo SQL exacto, la bandeja avisa «se muestran los N más antiguos de M» y «Tomar siguiente» (SQL) siempre considera todos.
+- **N+1 / orden en memoria / filtros:** el listado hace una consulta (más una para los nombres de reserva) y filtra y ordena en memoria sobre ≤ 2.000 filas; es la única parte que no escala, aceptable para el piloto.
+- **EXPLAIN (ANALYZE, BUFFERS):** ningún barrido secuencial en las consultas principales (índice único por documento, `documentos_pkey`, `ix_documentos_estado`); el costo crece linealmente con los casos abiertos por la subconsulta de «versión vigente» y el cálculo de prioridad por candidato. **No se agregó ningún índice: no hay evidencia de que haga falta** (el índice parcial `ix_veps_mesa` ya existe). Revisar si los abiertos superan ~10.000.
+- **Concurrencia operativa** (6 funcionarios × 150 acciones aleatorias simultáneas sobre 1.000 casos: tomar siguiente, renovar, liberar, decidir, adjuntar evidencia): **900 acciones en 2,7 s** (368 tomas, 161 renovaciones, 135 liberaciones, 157 decisiones, 79 evidencias): decisiones aplicadas = decisiones en base (157), 0 evidencias perdidas, 0 errores de base; las invariantes (ningún caso en dos manos, ninguna decisión pisada, ninguna evidencia perdida, cero `40P01`/`40001`) las verifica la propia herramienta y **falla** si se rompen. `test:pg` agrega 10 instancias reiniciando a la vez sobre un reclamo vencido: exactamente una lo retoma, y ninguna lo retoma antes de que caduque.
+- **Recuperación sin corrupción:** almacenamiento que falla al guardar (nada cambia, la consulta sigue vigente); proceso que muere tras guardar el estado y antes de la evidencia (estado estable, `procesar` completa sin duplicar); lector que cae (queda en error recuperable); reserva que expira a mitad del flujo (409, caso intacto); reclamo de procesamiento vencido que se retoma una sola vez; reintento tras decisión humana que no la pisa.
+
+#### 7.21.8 Observabilidad y alertas (sin PII; `/metrics` sigue exigiendo token)
+
+| Métrica | Tipo | Para qué |
+|---|---|---|
+| `sipra_eps_documentos_procesados_total{ruta,ocr}` | contador | certificados leídos y por qué ruta |
+| `sipra_eps_ocr_total` | contador | cuántos requirieron OCR |
+| `sipra_eps_decisiones_total{decision,aparta_de_recomendacion}` | contador | decisiones humanas y cuántas se apartan de la recomendación |
+| `sipra_eps_tiempo_revision_horas` | histograma | llegada → decisión |
+| `sipra_eps_pendientes_revision`, `sipra_eps_pendientes_adres`, `sipra_eps_sin_asignar` | gauge (en cada scrape, caché 5 s) | backlog |
+| `sipra_eps_procesamiento_atascado`, `sipra_eps_procesamiento_error` | gauge | worker muerto o fallos |
+| `sipra_eps_candidatos_autoaprobacion` | gauge | **modo sombra**: casos que hubieran sido candidatos; no se aprueba nada |
+
+**Alertas propuestas para producción** (no se configuró GCP): `procesamiento_atascado > 0` por 15 min; `procesamiento_error` creciente o > 5 % de los procesados en 1 h; `pendientes_revision` creciendo 3 h seguidas o `sin_asignar` > capacidad horaria × 2; tasa de OCR (`ocr_total` / procesados) fuera de su banda del piloto; p95 de `sipra_pipeline_duracion_seconds` y de `http_request_duration_seconds` sobre umbral; trabajos de Cloud Tasks fallidos o en cola > N; errores 5xx de `/mesa-eps/*` y errores de almacenamiento > 1 %; cualquier `403`/IDOR inusual (`sipra_accesos_fuera_de_alcance_total`); caída del tiempo hasta decisión (p90 > 72 h).
+
+#### 7.21.9 Piloto: corpus, muestra, métricas y criterios
+
+**Corpus.** `pilot-data/` (ignorado por Git salvo `.gitkeep` y la plantilla `manifiesto-evaluacion.plantilla.csv`): `pilot-data/documentos/` recibe archivos autorizados, anonimizados o sintéticos; el manifiesto **no tiene datos personales** (`caso_id, archivo, formato, tipo_documento, tiene_qr, hash_documento, hash_nombre, eps_esperada, regimen_esperado, estado_esperado, fecha_expedicion_esperada, observaciones`; la identidad se anota como SHA-256 normalizado con `--hash-documento` / `--hash-nombre` por entrada estándar). `npm run piloto:evaluar -w @sipra/api` lee el corpus, **no imprime valores extraídos** y entrega la matriz por campo; sin corpus no calcula nada; `-- --sintetico` es una autoprueba de la herramienta (cifras sin valor real).
+
+**Muestra propuesta (no existe aún; 80 certificados autorizados o anonimizados):** 20 PDF digitales (10 con QR, 10 sin) · 20 PDF escaneados · 25 imágenes (JPEG/PNG; 8 rotadas, con sombra o de baja iluminación) · ≥ 6 EPS distintas · regímenes contributivo (cotizante y beneficiario) y subsidiado · 56 vigentes y 8 vencidos · 8 con discrepancia (otro nombre, otro documento, otra EPS) · 8 ilegibles o dañados · y para ADRES, 20 PDF de resultado (activos, inactivos, de otra persona, ilegibles).
+
+**Métricas de calidad** (con la matriz *correcto / incorrecto / no extraído / ambiguo* por campo: documento, nombre, EPS, régimen, estado, fecha; no basta «se procesó»): precisión = correcto/(correcto+incorrecto), cobertura = extraídos/evaluados, exactitud = correcto/evaluados; **% que requiere OCR**; **QR**: detección, falsos positivos, no interpretables; **ADRES**: % de PDF procesables, % por OCR, % `no_determinable`; **operación**: tiempo por caso, casos/hora/funcionario, % que va a ADRES, % con discrepancias, % devuelto, reenvíos, p90 hasta la decisión, **candidatos en sombra**.
+
+**Umbrales candidatos (a acordar con el proceso; no son definitivos):** documento: **incorrecto ≤ 1 %** (leer mal una cédula es peor que no leerla) y cobertura ≥ 90 %; nombre precisión ≥ 97 %; EPS ≥ 95 %; régimen y fecha ≥ 90 %; QR detectado ≥ 90 % donde existe y 0 falsos positivos relevantes; ADRES procesable ≥ 90 % y `no_determinable` ≤ 10 %; tiempo medio de revisión ≤ 5 min por caso con ADRES resuelto; p90 hasta decisión ≤ 48 h hábiles.
+
+**Plan por etapas** (no se inició ningún piloto real): **Etapa 1 — equipo interno + sintéticos** (1 semana: smoke, E2E, ensayo del runbook y de los interruptores); **Etapa 2 — documentos anonimizados/autorizados** (2 semanas, la muestra de arriba, evaluación con `piloto:evaluar`, sin estudiantes reales); **Etapa 3 — piloto limitado con funcionarios reales** (3–4 semanas, una escuela o un periodo, 2–3 funcionarios, con doble revisión del 100 % al inicio y 20 % después). Responsables: Dirección de Prácticas (proceso y umbrales), Tecnología (operación, métricas, interruptores), Jurídica (retención y datos personales). **Detener y revertir** (apagar `EPS_VALIDACION_HABILITADA`; los certificados quedan en espera y el proceso manual anterior continúa) si: cualquier fallo de autorización o mezcla entre estudiantes; pérdida de evidencia o de decisión; un certificado aprobado por error atribuible al sistema; > 1 % de documentos mal leídos sin marcar; datos personales en logs; backlog sin control o `procesamiento_atascado` sostenido.
+
+**GO / NO-GO para pasar de piloto controlado a ampliar (candidatos):** **GO** si en la Etapa 2 y 3: cero fallos críticos de autorización; cero mezcla entre estudiantes; cero pérdida de evidencia o decisión; documento incorrecto ≤ 1 % y los demás umbrales; tiempos operativos aceptados; todos los errores recuperables (sin intervención en base); ≥ 95 % de las decisiones humanas coherentes con la recomendación o justificadas; y las decisiones institucionales de §7.21.3 (1, 2 y 6) tomadas. **NO-GO** si falla cualquiera de los anteriores o no hay limitación de tasa, sesión endurecida y antivirus acordados para producción general.
+
+**Autoaprobación en sombra.** No se activa. El piloto mide `sipra_eps_candidatos_autoaprobacion` y cuántos candidatos terminó **devolviendo o rechazando** una persona; con esa evidencia se decidirá más adelante, por escrito, si tiene sentido evaluarla.
+
+#### 7.21.10 Runbook (no se ejecutó ningún despliegue)
+
+1. **Desplegar:** manual (`desplegar.yml` no se reactiva). Antes: CI verde incluido el smoke de arranque, `verificar:migraciones` y `test:pg`.
+2. **Migrar:** `npm run migration:run` en la base del ambiente (nunca `synchronize`); aplicar en orden las 16; en `qa`/`pre`/`prod` solo con el responsable de datos. **Rollback = corregir hacia adelante + interruptor**, no `migration:revert` (§7.21.4).
+3. **Verificar salud:** `GET /api/v1/salud` 200 y `npm run smoke:arranque` sobre el build; `/metrics` con token.
+4. **Comprobar el worker:** `sipra_eps_documentos_procesados_total` crece; `sipra_eps_procesamiento_atascado = 0`; en Cloud Tasks sin trabajos fallidos. Los documentos «analizando» con reclamo vencido (15 min) se retoman solos (tarea cada 10 min).
+5. **Probar la Mesa:** con perfil auxiliar sintético, tomar un caso, abrir el certificado, preparar ADRES (sin abrir el portal), decidir y verificar el historial (guion del E2E: `apps/web/pruebas/e2e/mesa-eps.e2e.mjs`).
+6. **Apagar sin desplegar:** cambiar la variable y reiniciar la revisión: `EPS_VALIDACION_HABILITADA=false` (todo EPS), `ADRES_ASISTIDO_HABILITADO=false`, `EPS_OCR_HABILITADO=false`, `VERIFICACION_EPS_HABILITADA=false`. `EPS_AUTOAPROBACION_HABILITADA` no se puede encender.
+7. **Recuperar la cola:** reencender y dejar que los reintentos (idempotentes) completen; un trabajo manual `validar_documento` por documento desde el panel de trabajos de administración; no borrar filas.
+8. **Revisar métricas:** gauges de §7.21.8 y p90 de revisión; revisar a diario durante el piloto.
+
+#### 7.21.11 Hallazgos corregidos en la Fase 6
+
+1. Brechas de SSRF en rangos de transición IPv6/IPv4 (§7.21.6). 2. La supervisión de la Mesa no pasaba por el interruptor. 3. Con > 2.000 casos abiertos los KPI mentían (§7.21.7). 4. CI no corría las pruebas del frontend, ni el arranque real, ni las migraciones EPS, ni `test:pg`. 5. `FRESCURA` solo se mostraba como «sin plazo»: ahora informa los días desde la consulta sin declarar nada vencido. 6. Faltaba prueba de que ninguna purga automática alcance los datos EPS. 7. Cache del hook de diseño (`.impeccable/hook.cache.json`) ignorada en Git; `.impeccable/config.json` (ya versionado) trae una ruta absoluta de la máquina local y un ignore de `broken-image` para el visor: **se recomienda dejar de versionarlo** (decisión del propietario).
+
+<!-- FIN_PILOTO_EPS -->
 
 ---
 
@@ -2790,6 +2923,17 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.10 — 27 de octubre de 2026
+
+Fase 6 EPS · piloto controlado, seguridad, rendimiento y preparación (§7.21). Sin despliegue, sin migraciones en ambientes reales:
+
+- **Smoke de arranque real** del JS compilado (detecta los dos defectos de la Fase 3 por mutación) y CI ampliado: pruebas web, smoke, `test:pg`, migraciones EPS.
+- **Migraciones** verificadas desde cero, con reversión controlada del bloque EPS y upgrade desde pre-EPS con datos sintéticos (`verificar:migraciones`).
+- **Interruptores de incidente** (`EPS_VALIDACION_HABILITADA`, `ADRES_ASISTIDO_HABILITADO`, `EPS_OCR_HABILITADO`), autoaprobación imposible de encender, `ADRES_FRESCURA_DIAS` y `EPS_RETENCION_DIAS` como políticas pendientes; la frescura muestra «consultada hace X días».
+- **Correcciones:** brechas SSRF (rangos de transición), supervisión sin interruptor, KPI topados en 2.000 casos (ahora conteo exacto y aviso).
+- **Pruebas nuevas:** regresión estática ADRES/EPS/retención, seguridad de archivos hostiles, PII en logs y auditoría, matriz de autorización e IDOR, recomendación ≠ decisión, recuperación de errores, reinicio.
+- **Herramientas:** `carga:mesa`, `lectura:benchmark:concurrente`, `piloto:evaluar` y la carpeta `pilot-data/` (fuera de Git). Métricas EPS sin PII (incluye el modo sombra de candidatos).
 
 ### 0.17.9 — 27 de octubre de 2026
 

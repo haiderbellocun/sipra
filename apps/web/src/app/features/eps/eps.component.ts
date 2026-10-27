@@ -64,6 +64,7 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
     .sup table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); }
     .sup th, .sup td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--borde); }
     .sup .envoltura { overflow-x:auto; }
+    .aviso-trunc { border-left:3px solid var(--aviso); background:var(--aviso-suave); padding:var(--sp-2) var(--sp-3); border-radius:0 var(--r-sm) var(--r-sm) 0; font-size:var(--fs-sm); margin-bottom:var(--sp-2); }
     .error { border-left:3px solid var(--peligro); background:var(--peligro-suave); padding:var(--sp-2) var(--sp-3); border-radius:0 var(--r-sm) var(--r-sm) 0; }
   `],
   template: `
@@ -140,6 +141,9 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
     <div class="cuerpo" [class.ver-lista]="estado.vista() === 'lista'" [class.ver-detalle]="estado.vista() === 'detalle'">
       <section class="tarjeta lista-col" aria-labelledby="t-lista">
         <h2 id="t-lista">Casos @if (estado.listado(); as l) { <span class="pista">({{ l.total }})</span> }</h2>
+        @if (estado.listado()?.truncado) {
+          <div class="aviso-trunc" role="status">Hay más casos abiertos de los que la lista carga: se muestran los {{ estado.listado()?.mostrando }} más antiguos de {{ estado.listado()?.kpis?.abiertas }}. Use los filtros; «Tomar siguiente» siempre considera todos.</div>
+        }
         @if (estado.errorListado(); as e) {
           <div class="error" role="alert">{{ e }} <button type="button" class="boton compacto" (click)="estado.cargar()">Reintentar</button></div>
         } @else if (estado.cargando() && !estado.listado()) {

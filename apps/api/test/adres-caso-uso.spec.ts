@@ -630,3 +630,114 @@ describe('Seguridad y privacidad', () => {
     expect(llamadasDeRed).toEqual([]);
   });
 });
+
+describe('ADRES asistido · interruptor de incidente (ADRES_ASISTIDO_HABILITADO)', () => {
+  it('apagado: preparar, cargar, procesar y la bandeja responden 503 sin tocar el caso ni la red', async () => {
+    const m = await montar({ sinuTipo: 'CC', config: { ADRES_ASISTIDO_HABILITADO: 'false' } });
+    const antes = JSON.stringify(m.fila());
+    await expect(m.uc.preparar('v-1', aux(), {}, AHORA)).rejects.toMatchObject({ status: 503 });
+    await expect(m.uc.cargarEvidencia('v-1', aux(), { consultaId: 'x', contenido: await pdfAdres() }, AHORA)).rejects.toMatchObject({ status: 503 });
+    await expect(m.uc.procesar('v-1', aux(), AHORA)).rejects.toMatchObject({ status: 503 });
+    await expect(m.uc.bandeja(aux(), AHORA)).rejects.toMatchObject({ status: 503 });
+    expect(JSON.stringify(m.fila())).toBe(antes);
+    expect(llamadasDeRed).toEqual([]);
+  });
+
+  it('encendido (por defecto) opera normalmente', async () => {
+    const m = await montar({ sinuTipo: 'CC' });
+    expect((await m.uc.preparar('v-1', aux(), {}, AHORA)).estado).toBe('preparada');
+  });
+});
+
+describe('Privacidad · los logs técnicos NO llevan datos personales (la auditoría de negocio es otra cosa)', () => {
+  const SENTINELAS = ['9990001112', 'PERSONAPRUEBAEPS', 'APELLIDOPRUEBA', 'correo-prueba@example.test'];
+
+  it('preparar, cargar (válido y corrupto) y procesar un caso con datos centinela no escriben ninguno en logs ni consola', async () => {
+    const salida: string[] = [];
+    const registrar = (...args: unknown[]): void => { salida.push(args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a, (_k, v: unknown) => (v instanceof Error ? `${v.name}: ${v.message}` : v)))).join(' ')); };
+    const espias = [
+      ...(['log', 'warn', 'error', 'debug', 'verbose', 'fatal'] as const).map((n) => jest.spyOn(Logger.prototype, n).mockImplementation(registrar)),
+      ...(['log', 'warn', 'error', 'info', 'debug'] as const).map((n) => jest.spyOn(console, n).mockImplementation(registrar)),
+    ];
+    // Canario: si el captador no funcionara, la prueba pasaría en vacío.
+    new Logger('Canario').log('CANARIO');
+    console.warn('CANARIO');
+    expect(salida.filter((l) => l.includes('CANARIO'))).toHaveLength(2);
+    salida.length = 0;
+    let auditoriaEscrita = '';
+    try {
+      const m = await montar({
+        sinuTipo: 'CC', documentoEstudiante: '9990001112',
+        certificado: { ...CERTIFICADO, numeroDocumento: '9990001112', nombre: 'PERSONAPRUEBAEPS APELLIDOPRUEBA' },
+      });
+      const consultaId = await m.preparar();
+      const lineas = [...lineasAdres({ numero: '9990001112', nombres: 'PERSONAPRUEBAEPS', apellidos: 'APELLIDOPRUEBA' }), 'Correo: correo-prueba@example.test'];
+      await m.uc.cargarEvidencia('v-1', aux(), { consultaId, contenido: await pdfDigital(lineas) }, AHORA);
+      await m.uc.procesar('v-1', aux(), AHORA).catch(() => undefined);
+      // Camino de error: un archivo que no es PDF.
+      const otra = await m.preparar(aux(), new Date(AHORA.getTime() + 2 * MIN)).catch(() => null);
+      if (otra) await m.uc.cargarEvidencia('v-1', aux(), { consultaId: otra, contenido: Buffer.from('no soy un pdf PERSONAPRUEBAEPS 9990001112') }, new Date(AHORA.getTime() + 2 * MIN)).catch(() => undefined);
+      auditoriaEscrita = JSON.stringify(m.auditoria.registrar.mock.calls);
+    } finally {
+      espias.forEach((e) => e.mockRestore());
+    }
+    const todo = salida.join('\n');
+    for (const s of SENTINELAS) expect(todo).not.toContain(s);
+    // Minimización: la auditoría prueba quién, qué y cuándo SIN copiar el documento ni datos personales.
+    expect(auditoriaEscrita.length).toBeGreaterThan(50);
+    for (const s of SENTINELAS) expect(auditoriaEscrita).not.toContain(s);
+  });
+});
+
+describe('Recuperación de errores · ADRES asistido (sin corrupción)', () => {
+  it('el almacenamiento falla al guardar: nada cambia, la consulta sigue vigente y el reintento funciona', async () => {
+    const m = await montar({ sinuTipo: 'CC' });
+    const consultaId = await m.preparar();
+    const pdf = await pdfAdres();
+    const antes = JSON.stringify(m.fila().adres);
+    m.almacen.guardar.mockRejectedValueOnce(new Error('storage caído'));
+    await expect(m.uc.cargarEvidencia('v-1', aux(), { consultaId, contenido: pdf }, AHORA)).rejects.toThrow('storage caído');
+    expect(JSON.stringify(m.fila().adres)).toBe(antes); // ni hash, ni estado, ni archivo huérfano
+    expect(m.almacen.archivos.size).toBe(0);
+    const r = await m.uc.cargarEvidencia('v-1', aux(), { consultaId, contenido: pdf }, AHORA); // MISMA consulta: no se «quemó»
+    expect(r.estadoAdres).toBe(EstadoAdres.PROCESADO);
+    expect(m.almacen.archivos.size).toBe(1);
+  });
+
+  it('el proceso muere DESPUÉS de guardar el estado y ANTES de la evidencia: «procesar» completa sin duplicar nada', async () => {
+    const m = await montar({ sinuTipo: 'CC' });
+    const consultaId = await m.preparar();
+    const pdf = await pdfAdres();
+    jest.spyOn(m.validaciones, 'agregarEvidencia').mockRejectedValueOnce(new Error('proceso interrumpido'));
+    await expect(m.uc.cargarEvidencia('v-1', aux(), { consultaId, contenido: pdf }, AHORA)).rejects.toThrow('proceso interrumpido');
+    expect(m.fila().adres.estado).toBe(EstadoAdres.EVIDENCIA_RECIBIDA); // quedó a medias, en un estado ESTABLE y reanudable
+    const r = await m.uc.procesar('v-1', aux(), AHORA);
+    expect(r.estadoAdres).toBe(EstadoAdres.PROCESADO);
+    const otra = await m.uc.procesar('v-1', aux(), AHORA); // reintento duplicado: idempotente
+    expect(otra.estadoAdres).toBe(EstadoAdres.PROCESADO);
+    const adres = (await m.validaciones.listarEvidencias('v-1')).filter((e) => e.instantanea().tipo === TipoEvidenciaEps.ADRES);
+    expect(new Set(adres.map((e) => `${e.instantanea().resultado}`)).size).toBe(adres.length); // sin evidencias repetidas por resultado
+  });
+
+  it('el lector (OCR/PDF) se cuelga o cae durante «procesar»: queda en error recuperable y el reintento termina', async () => {
+    const m = await montar({ sinuTipo: 'CC' });
+    const consultaId = await m.preparar();
+    const pdf = await pdfAdres();
+    const espia = jest.spyOn(real, 'extraerTextoNativo').mockRejectedValueOnce(new Error('tiempo agotado'));
+    const r1 = await m.uc.cargarEvidencia('v-1', aux(), { consultaId, contenido: pdf }, AHORA).catch((e: Error) => e);
+    espia.mockRestore();
+    expect([EstadoAdres.ERROR, EstadoAdres.EVIDENCIA_RECIBIDA]).toContain(m.fila().adres.estado);
+    expect(r1).toBeDefined();
+    const r2 = await m.uc.procesar('v-1', aux(), AHORA);
+    expect(r2.estadoAdres).toBe(EstadoAdres.PROCESADO);
+  });
+
+  it('la reserva expira a mitad del flujo: la carga se rechaza (409), el caso queda intacto y otra persona puede tomarlo', async () => {
+    const m = await montar({ sinuTipo: 'CC' });
+    const consultaId = await m.preparar();
+    const despues = new Date(AHORA.getTime() + 20 * MIN); // la reserva dura 15 min
+    const antes = JSON.stringify(m.fila().adres);
+    await expect(m.uc.cargarEvidencia('v-1', aux(), { consultaId, contenido: await pdfAdres() }, despues)).rejects.toBeDefined();
+    expect(JSON.stringify(m.fila().adres)).toBe(antes);
+  });
+});

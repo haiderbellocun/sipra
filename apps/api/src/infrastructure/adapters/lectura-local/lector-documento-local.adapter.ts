@@ -9,6 +9,7 @@ import { OcrTesseractMotor } from './ocr-tesseract.motor';
 import { PdfTrabajador } from './pdfjs.lector';
 import { Semaforo } from './semaforo';
 import { cargarZxing } from './zxing.cargador';
+import { INTERRUPTORES_EPS, interruptorActivo } from '../../../domain/services/interruptores-eps';
 
 /**
  * Lector documental local: pdf.js (texto y rasterización), ZXing-WASM (QR) y
@@ -21,7 +22,7 @@ export class LectorDocumentoLocalAdapter implements LectorDocumentoLocalPort, On
   private readonly render: Semaforo;
   private readonly pdf = new PdfTrabajador();
 
-  constructor(@Optional() config?: ConfigService) {
+  constructor(@Optional() private readonly config?: ConfigService) {
     this.ocr = new OcrTesseractMotor(Number(config?.get('LECTURA_LOCAL_OCR_CONCURRENTES') ?? 1));
     this.render = new Semaforo(Number(config?.get('LECTURA_LOCAL_RENDER_CONCURRENTES') ?? 2));
   }
@@ -77,6 +78,8 @@ export class LectorDocumentoLocalAdapter implements LectorDocumentoLocalPort, On
   }
 
   ejecutarOcr(imagen: Buffer, pagina: number | null, limites: LimitesLecturaLocal): Promise<ResultadoOcrPagina> {
+    // Interruptor de incidente: sin OCR la lectura sigue con texto nativo y QR; lo ilegible pasa a revisión humana.
+    if (!interruptorActivo(this.config?.get(INTERRUPTORES_EPS.ocr), INTERRUPTORES_EPS.ocr)) return Promise.resolve({ pagina, texto: '', confianza: 0, giro: 0 });
     return this.ocr.reconocer(imagen, pagina, limites);
   }
 }

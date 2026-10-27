@@ -32,7 +32,12 @@ export interface ValidacionEpsRepositoryPort {
    * Todas las validaciones ABIERTAS (sin decisión humana) de la versión vigente de cada
    * certificado, dentro del alcance. Tope de seguridad: 2000.
    */
+  /** Hasta `TOPE_LISTADO_MESA` casos abiertos (los más antiguos). Si hay más, `contarAbiertasMesa` da el total real. */
   listarAbiertasMesa(ahora: Date, escuelasAlcance: string[] | null): Promise<FilaMesaRepo[]>;
+  /** Total REAL de casos abiertos (sin tope), para que los KPI no mientan cuando el listado se trunca. */
+  contarAbiertasMesa(escuelasAlcance: string[] | null): Promise<number>;
+  /** Conteos para métricas (un solo recorrido agregado). */
+  resumenMetricasEps(ahora: Date): Promise<ResumenMetricasEps>;
   /**
    * «Tomar siguiente»: elige y reserva, en UNA sentencia atómica (`FOR UPDATE SKIP LOCKED`), el
    * caso disponible de mayor prioridad. Dos personas a la vez reciben casos distintos.
@@ -83,4 +88,13 @@ export interface CriteriosSiguiente {
   /** Solo casos con la afiliación por contrastar (o con ADRES en estos estados). */
   estadosAdres?: string[];
 }
+/** Conteos agregados para las métricas operativas del flujo EPS (sin datos personales). */
+export interface ResumenMetricasEps {
+  abiertas: number; pendientesAdres: number; sinAsignar: number; candidatos: number;
+  procesamientoAtascado: number; procesamientoError: number;
+}
+
+/** Tope de filas que la bandeja carga en memoria (filtros y orden se aplican sobre ellas). «Tomar siguiente» NO tiene tope: es SQL. */
+export const TOPE_LISTADO_MESA = 2000;
+
 export const VALIDACION_EPS_REPOSITORY = Symbol('VALIDACION_EPS_REPOSITORY');

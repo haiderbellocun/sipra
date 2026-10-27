@@ -126,6 +126,29 @@ export class VariablesEntorno {
    */
   @IsInt() IA_TOPE_DIARIO_USD = 50;
 
+  // ── Flujo EPS: interruptores de incidente y políticas pendientes ─────
+  // Apagar una pieza no borra datos: el trabajo queda en espera (503 para quien opera).
+  @IsBoolean() EPS_VALIDACION_HABILITADA = true;
+  @IsBoolean() ADRES_ASISTIDO_HABILITADO = true;
+  @IsBoolean() EPS_OCR_HABILITADO = true;
+  /** Verificación por mecanismo OFICIAL: apagada hasta que exista un verificador aprobado. */
+  @IsBoolean() VERIFICACION_EPS_HABILITADA = false;
+  /**
+   * La autoaprobación de certificados NO está implementada ni autorizada: solo existe la etiqueta
+   * «candidato». Declararla en true impide el arranque en todos los ambientes.
+   */
+  @IsBoolean() EPS_AUTOAPROBACION_HABILITADA = false;
+  /**
+   * FRESCURA ADRES PENDIENTE DE DEFINICIÓN DEL PROCESO. Sin valor, SIPRA muestra «consultado hace X días»
+   * pero no declara vencida ninguna consulta.
+   */
+  @IsOptional() @IsInt() @Min(1) @Max(3650) ADRES_FRESCURA_DIAS?: number;
+  /**
+   * RETENCIÓN EPS PENDIENTE DE DEFINICIÓN INSTITUCIONAL. Capacidad de configuración solamente: hoy
+   * ningún proceso purga nada con este valor y la auditoría nunca se purga.
+   */
+  @IsOptional() @IsInt() @Min(1) @Max(36500) EPS_RETENCION_DIAS?: number;
+
   // ── Servicio Público de Empleo ───────────────────────────────────────
   @IsString() SPE_NIT_PRESTADOR = '000000000';
   /** Solo true cuando Extensión concilie la estructura contra el anexo técnico. */
@@ -155,10 +178,12 @@ export class VariablesEntorno {
 }
 
 const BOOLEANOS = new Set([
+  'EPS_VALIDACION_HABILITADA', 'ADRES_ASISTIDO_HABILITADO', 'EPS_OCR_HABILITADO', 'VERIFICACION_EPS_HABILITADA', 'EPS_AUTOAPROBACION_HABILITADA',
   'DB_SSL', 'METRICAS_HABILITADAS', 'SPE_ANEXO_CONFIRMADO', 'AUTH_ABIERTO_CONFIRMADO',
   'CONSENTIMIENTO_BLOQUEA_CARGUE',
 ]);
 const ENTEROS = new Set([
+  'ADRES_FRESCURA_DIAS', 'EPS_RETENCION_DIAS',
   'PORT', 'DB_PORT', 'REDIS_PORT', 'REDIS_TTL_SEGUNDOS',
   'GCS_ENLACE_FIRMADO_MINUTOS', 'DOC_TAMANO_MAXIMO_MB', 'IA_TOPE_DIARIO_USD',
   'OPENAI_TIEMPO_MAXIMO_MS', 'OPENAI_MAX_TOKENS_SALIDA',
@@ -169,6 +194,10 @@ export function validarEntorno(bruto: Record<string, unknown>): VariablesEntorno
   // Una variable declarada vacía (`METRICAS_TOKEN=`) equivale a no declararla.
   if (typeof normalizado.METRICAS_TOKEN === 'string' && normalizado.METRICAS_TOKEN.trim() === '') {
     delete normalizado.METRICAS_TOKEN;
+  }
+  // Declaradas vacías (`ADRES_FRESCURA_DIAS=`) equivalen a no declararlas: la política está pendiente.
+  for (const clave of ['ADRES_FRESCURA_DIAS', 'EPS_RETENCION_DIAS']) {
+    if (typeof normalizado[clave] === 'string' && normalizado[clave].trim() === '') delete normalizado[clave];
   }
   for (const clave of BOOLEANOS) {
     const valor = normalizado[clave];
@@ -229,6 +258,13 @@ export function ingresoAbiertoPermitido(config: {
 function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
   const errores: string[] = [];
   const ambientesCerrados: Ambiente[] = [Ambiente.PRE, Ambiente.PROD];
+
+  if (config.EPS_AUTOAPROBACION_HABILITADA) {
+    errores.push(
+      'EPS_AUTOAPROBACION_HABILITADA=true no está permitido: la autoaprobación de certificados de EPS no está ' +
+        'implementada ni autorizada institucionalmente; solo existe la etiqueta «candidato» y decide una persona.',
+    );
+  }
 
   if (config.AUTH_MODO === ModoAutenticacion.ABIERTO) {
     if (config.SIPRA_AMBIENTE !== Ambiente.DEV) {

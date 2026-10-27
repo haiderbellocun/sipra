@@ -34,6 +34,9 @@ jobs:
       - name: Pruebas unitarias y de dominio
         run: npm test
 
+      - name: Pruebas del frontend (servicios con signals y reglas de la Mesa EPS)
+        run: npm run test:web
+
       - name: Compilar API y frontend
         run: npm run build
 
@@ -95,6 +98,26 @@ jobs:
 
       - name: Cargar semillas sintéticas
         run: npm run seed
+
+      # Las pruebas unitarias no levantan AppModule: dos defectos de arranque (un import tardío
+      # y un @Inject faltante) las pasaron en verde. Esto carga el JS COMPILADO y consulta /salud.
+      - name: Smoke de arranque real del API (JS compilado)
+        run: |
+          npm run build --workspace=@sipra/api
+          npm run smoke:arranque
+
+      # Migraciones EPS (11–15): desde cero, reversión controlada (con la protección de la evidencia OCR de solo
+      # inserción) y upgrade desde una base PRE-EPS con datos sintéticos. Crea y elimina sus propias bases.
+      - name: Migraciones desde cero, reversión y upgrade pre-EPS
+        env:
+          DB_URL: postgres://sipra:sipra_ci@localhost:5432/postgres
+        run: npm run verificar:migraciones
+
+      # Concurrencia, reserva atómica y restricciones de la Mesa EPS contra PostgreSQL real.
+      - name: Concurrencia y restricciones EPS (PostgreSQL real)
+        env:
+          DB_URL: postgres://sipra:sipra_ci@localhost:5432/sipra_ci
+        run: npm run test:pg
 
       # El ingestor debe negarse a declarar completo lo que no lo está.
       - name: Verificar que un catálogo no pueda declararse completo sin serlo

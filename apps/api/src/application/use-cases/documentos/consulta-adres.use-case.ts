@@ -35,6 +35,7 @@ import {
   ConsultaAdresPreparadaDto, FilaBandejaAdresDto, ResultadoAdresDto,
 } from '../../dtos/validacion-eps.dto';
 import { Actor } from '../practicas/gestionar-practica.use-case';
+import { INTERRUPTORES_EPS, exigirInterruptorEps } from '../../services/interruptores-eps';
 
 /** Vida de una consulta preparada: un solo uso y corta, para que no se reutilice ni se adjunte a otro caso. */
 export const VIGENCIA_CONSULTA_ADRES_MS = 30 * 60_000;
@@ -284,6 +285,7 @@ export class ConsultaAdresUseCase {
 
   async bandeja(actor: Actor, ahora: Date = new Date()): Promise<FilaBandejaAdresDto[]> {
     if (!puedeOperarValidacionEps(actor.rol)) throw new ForbiddenException('Su perfil no opera la validación de EPS');
+    exigirInterruptorEps(this.config, INTERRUPTORES_EPS.adres, 'La consulta asistida de ADRES está suspendida temporalmente.');
     const casos = await this.validaciones.listarParaAdres(50);
     const filas: FilaBandejaAdresDto[] = [];
     for (const v of casos) {
@@ -316,6 +318,7 @@ export class ConsultaAdresUseCase {
    */
   private async cargarParaOperar(validacionId: string, actor: Actor, ahora: Date): Promise<ValidacionEps> {
     if (!puedeOperarValidacionEps(actor.rol)) throw new ForbiddenException('Su perfil no opera la validación de EPS');
+    exigirInterruptorEps(this.config, INTERRUPTORES_EPS.adres, 'La consulta asistida de ADRES está suspendida temporalmente.');
     const v = await this.validaciones.buscarPorId(validacionId);
     if (!v) throw new NotFoundException('Validación no encontrada');
     const practica = await this.practicas.buscarPorId(v.practicaId);

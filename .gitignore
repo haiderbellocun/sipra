@@ -23,3 +23,11 @@ out-tsc/
 
 # Netlify (ambiente puente): estado local de la CLI, no es código
 .netlify/
+
+# Caché del hook de diseño (se regenera en cada edición; no es código)
+**/.impeccable/hook.cache.json
+
+# Corpus del piloto EPS: NUNCA se versionan documentos (ni siquiera anonimizados). Solo la plantilla del manifiesto.
+pilot-data/*
+!pilot-data/.gitkeep
+!pilot-data/manifiesto-evaluacion.plantilla.csv

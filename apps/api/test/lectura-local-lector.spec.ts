@@ -366,3 +366,27 @@ describe('Seguridad de la lectura local', () => {
     expect(Object.keys(r)).not.toEqual(expect.arrayContaining(['afiliacion']));
   });
 });
+
+describe('Interruptor de incidente EPS_OCR_HABILITADO', () => {
+  it('con el OCR apagado una imagen NO se lee (queda para revisión humana) y nada lanza error', async () => {
+    const sinOcr = new LectorDocumentoLocalAdapter({ get: (k: string) => (k === 'EPS_OCR_HABILITADO' ? 'false' : undefined) } as never);
+    try {
+      const r = await new LecturaLocalEpsService(sinOcr).leer(await imagenCertificado(), 'image/png');
+      expect(r.campos.documento_afiliado.valor).toBeNull();
+      expect(r.campos.nombre_afiliado.valor).toBeNull();
+      expect(r.resumen.ocr.confianzaMedia ?? 0).toBe(0);
+    } finally {
+      await sinOcr.onModuleDestroy();
+    }
+  });
+
+  it('con el OCR apagado un PDF digital SIGUE leyéndose por su texto nativo', async () => {
+    const sinOcr = new LectorDocumentoLocalAdapter({ get: (k: string) => (k === 'EPS_OCR_HABILITADO' ? 'false' : undefined) } as never);
+    try {
+      const r = await new LecturaLocalEpsService(sinOcr).leer(await pdfDigital(), 'application/pdf');
+      expect(r.campos.documento_afiliado.valor).toMatch(/1\.032\.456\.786/);
+    } finally {
+      await sinOcr.onModuleDestroy();
+    }
+  });
+});

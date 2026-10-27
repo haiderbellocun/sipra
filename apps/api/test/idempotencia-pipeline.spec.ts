@@ -275,7 +275,7 @@ describe('Documento · protección de decisiones y resultados', () => {
 // ── Trabajo completo: sin efectos duplicados ───────────────────────────────
 
 describe('ProcesarTrabajoUseCase · el reintento no duplica avisos, métricas ni validación', () => {
-  function trabajo(tipo: TipoDocumento, extraccion: () => Promise<ResultadoExtraccion>, local?: ExtraccionIaPort) {
+  function trabajo(tipo: TipoDocumento, extraccion: () => Promise<ResultadoExtraccion>, local?: ExtraccionIaPort, config?: Record<string, unknown>) {
     const extractor = new Extractor(extraccion);
     const base = montar(datos(tipo), extractor, { local });
     const notificaciones = { notificar: jest.fn().mockResolvedValue(undefined) };
@@ -297,6 +297,8 @@ describe('ProcesarTrabajoUseCase · el reintento no duplica avisos, métricas ni
       notificaciones as never,
       metricas as never,
       validacionesEps as never,
+      undefined,
+      (config ? { get: (k: string) => config[k] } : undefined) as never,
     );
     return { ...base, uso, extractor, notificaciones, metricas, validacionesEps };
   }
@@ -338,6 +340,18 @@ describe('ProcesarTrabajoUseCase · el reintento no duplica avisos, métricas ni
     await expect(t.uso.ejecutar({ ...JOB })).rejects.toBeInstanceOf(ProcesamientoEnCursoError);
     expect(t.extractor.llamadas).toBe(0);
     expect(t.notificaciones.notificar).not.toHaveBeenCalled();
+  });
+
+  it('interruptor EPS apagado: el certificado queda cargado y SIN validación; al reencender el reintento la completa', async () => {
+    const local = new Extractor(() => Promise.resolve(extraccionBuena(TipoDocumento.CERTIFICADO_EPS)));
+    const apagado = trabajo(TipoDocumento.CERTIFICADO_EPS, () => Promise.reject(new Error('no debe llamarse')), local, { EPS_VALIDACION_HABILITADA: 'false' });
+    await apagado.uso.ejecutar({ ...JOB });
+    expect(apagado.validacionesEps.registrarProcesamiento).not.toHaveBeenCalled();
+    expect(apagado.actual()).toBeDefined(); // el documento sigue ahí: nada se pierde
+
+    const encendido = trabajo(TipoDocumento.CERTIFICADO_EPS, () => Promise.reject(new Error('no debe llamarse')), local, { EPS_VALIDACION_HABILITADA: 'true' });
+    await encendido.uso.ejecutar({ ...JOB });
+    expect(encendido.validacionesEps.registrarProcesamiento).toHaveBeenCalledTimes(1);
   });
 
   it('certificado de EPS: la validación se completa aunque el pipeline ya hubiera corrido (reintento tras un fallo)', async () => {

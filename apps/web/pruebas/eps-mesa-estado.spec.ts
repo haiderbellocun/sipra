@@ -14,7 +14,7 @@ import { EpsMesaEstado } from '../src/app/features/eps/eps-mesa.estado';
 
 const listado = (n = 2): ListadoMesa => ({
   kpis: { abiertas: n, pendientes: n, enRevision: 0, pendientesAdres: 0, conDiscrepancias: 0, candidatos: 0, asignadosAMi: 0, misPorVencer: 0 },
-  total: n, pagina: 1, limite: 25, generadoEn: '2026-10-26T12:00:00Z',
+  total: n, pagina: 1, limite: 25, truncado: false, mostrando: n, generadoEn: '2026-10-26T12:00:00Z',
   filtrosDisponibles: { periodos: [], programas: [], modalidades: [] },
   filas: Array.from({ length: n }, (_, i) => ({
     validacionId: `v${i + 1}`, documentoId: `d${i + 1}`, estudiante: { nombre: `Estudiante ${i + 1}`, documentoEnmascarado: '••••0001' },
@@ -34,7 +34,7 @@ const detalle = (reserva: ReservaMesa, esMia: boolean): DetalleMesa => ({
   acceso: { puedeVerValores: esMia, esMia, reserva, puedeDecidir: esMia, puedeConsultarAdres: esMia, motivoSinAcceso: null },
   certificado: { nombreOriginal: 'c.pdf', mime: 'application/pdf', tamanoBytes: 1, version: 1, cargadoEn: '2026-10-20T12:00:00Z', estadoDocumento: 'recibido', metodoExtraccion: 'texto_nativo', vigencia: 'vigente', campos: [] },
   autenticidad: { estado: 'no_evaluada', metodo: 'ninguno', verificador: null, verificadoEn: null, qrHallados: 0, explicacion: '' },
-  afiliacion: { estado: 'no_contrastada', fuente: 'ninguna', consultadoEn: null, fuenteActualizadaEn: null, estadoAdres: 'pendiente', frescura: { politicaDefinida: false, dias: null, vencida: null } },
+  afiliacion: { estado: 'no_contrastada', fuente: 'ninguna', consultadoEn: null, fuenteActualizadaEn: null, estadoAdres: 'pendiente', frescura: { politicaDefinida: false, dias: null, vencida: null, diasDesdeConsulta: null } },
   comparacion: [], discrepancias: [], recomendacion: { codigo: 'pendiente_adres', titulo: 'Falta ADRES', explicacion: '', esDecision: false },
   adres: { estado: 'pendiente', tipoDocumento: null, error: null, cargadaEn: null }, evidencias: [], historial: [], versiones: [],
   metricas: { recibidaEn: null, primeraRevisionEn: null, decididoEn: null, horasHastaDecision: null, reenvios: 0 },
@@ -98,6 +98,14 @@ describe('EpsMesaEstado · bandeja y filtros', () => {
     assert.equal(ctx.estado.filas().length, 2);
     assert.equal(ctx.estado.errorListado(), null);
     assert.equal(ctx.estado.cargando(), false);
+  });
+
+  it('si la bandeja está truncada (más casos que el tope) el estado lo expone y los KPI traen el total real', async () => {
+    ctx.api.listadoActual = { ...listado(3), truncado: true, mostrando: 3, kpis: { ...listado(3).kpis, abiertas: 12000 } };
+    await ctx.estado.cargar();
+    assert.equal(ctx.estado.listado()?.truncado, true);
+    assert.equal(ctx.estado.listado()?.kpis.abiertas, 12000);
+    assert.equal(ctx.estado.filas().length, 3);
   });
 
   it('un error de la API se traduce y no deja la pantalla cargando', async () => {

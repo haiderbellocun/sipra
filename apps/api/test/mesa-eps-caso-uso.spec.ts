@@ -11,6 +11,8 @@ import {
 } from '../src/domain/entities/validacion-eps.entity';
 import { MotivoDevolucionEps, MENSAJES_DEVOLUCION_EPS } from '../src/domain/services/mesa-eps.domain-service';
 import { Rol } from '../src/domain/value-objects/rol.vo';
+import { TOPE_LISTADO_MESA } from '../src/domain/ports/out/validacion-eps.port';
+import { MetricasService } from '../src/infrastructure/observability/metricas.service';
 import { ESC_A, ESC_B, actorDe, documentoDe, practicaDe, usuarioDe } from './soporte-autorizacion';
 import { ValidacionesEnMemoria } from './soporte-validacion-eps';
 
@@ -55,7 +57,7 @@ interface OpcionesCaso {
   reservaPara?: string; reservaVence?: Date; mime?: string; candidato?: boolean;
 }
 
-function montar(config: Record<string, unknown> = {}) {
+function montar(config: Record<string, unknown> = {}, metricas?: MetricasService) {
   const validaciones = new ValidacionesEnMemoria();
   const documentos = new DocumentosEnMemoria();
   const auditoria = new AuditoriaEnMemoria();
@@ -74,6 +76,7 @@ function montar(config: Record<string, unknown> = {}) {
   const mesa = new MesaEpsUseCase(
     validaciones, documentos as never, practicas as never, usuarios as never, auditoria as never, almacen as never, gestionar,
     { get: (k: string) => config[k] } as never,
+    metricas,
   );
 
   const crear = async (o: OpcionesCaso): Promise<void> => {
@@ -414,7 +417,8 @@ describe('Mesa EPS · detalle del caso', () => {
     m.validaciones.filas.set('c1', { ...f, adres: { ...f.adres, consultadoEn: new Date('2026-09-01T12:00:00Z'), fuenteActualizadaEn: new Date('2026-08-31T12:00:00Z') } });
     const a = (await m.mesa.detalle('c1', coord(), AHORA)).afiliacion;
     expect(a).toMatchObject({ estado: 'activa', fuente: 'adres_bdua', consultadoEn: '2026-09-01T12:00:00.000Z', fuenteActualizadaEn: '2026-08-31T12:00:00.000Z' });
-    expect(a.frescura).toEqual({ politicaDefinida: false, dias: null, vencida: null });
+    expect(a.frescura).toMatchObject({ politicaDefinida: false, dias: null, vencida: null });
+    expect(a.frescura.diasDesdeConsulta).toBe(55); // 1-sep 12:00 → 26-oct 15:00: «consultada hace 55 días», sin declarar vencida
   });
 
   it('con un plazo de frescura configurado (futuro) lo aplica', async () => {
@@ -422,7 +426,7 @@ describe('Mesa EPS · detalle del caso', () => {
     await m.crear({ id: 'c1', afiliacion: AfiliacionEps.ACTIVA });
     const f = m.fila('c1');
     m.validaciones.filas.set('c1', { ...f, adres: { ...f.adres, consultadoEn: new Date('2026-08-01T12:00:00Z') } });
-    expect((await m.mesa.detalle('c1', coord(), AHORA)).afiliacion.frescura).toEqual({ politicaDefinida: true, dias: 30, vencida: true });
+    expect((await m.mesa.detalle('c1', coord(), AHORA)).afiliacion.frescura).toEqual({ politicaDefinida: true, dias: 30, vencida: true, diasDesdeConsulta: 86 });
   });
 
   it('muestra la recomendación COMO recomendación (no como decisión) y las discrepancias críticas aparte', async () => {
@@ -675,5 +679,220 @@ describe('Mesa EPS · supervisión', () => {
     const s = await m.mesa.supervision(coord(), AHORA);
     expect(s).toMatchObject({ abiertas: 4, sinAsignar: 1 });
     expect(s.funcionarios.map((f) => [f.nombre, f.reservasVigentes]).sort()).toEqual([['Ana', 2], ['Beto', 1]]);
+  });
+});
+
+describe('Mesa EPS · interruptor de incidente (EPS_VALIDACION_HABILITADA)', () => {
+  it('apagado: todas las operaciones de la Mesa responden 503 y no cambian ningún dato', async () => {
+    const m = montar({ EPS_VALIDACION_HABILITADA: 'false' });
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id: 'a' });
+    const antes = JSON.stringify([...m.validaciones.filas.entries()]);
+    await expect(m.mesa.listar(coord(), {}, AHORA)).rejects.toMatchObject({ status: 503 });
+    await expect(m.mesa.tomarSiguiente(coord(), {}, AHORA)).rejects.toMatchObject({ status: 503 });
+    await expect(m.mesa.detalle('a', coord(), AHORA)).rejects.toMatchObject({ status: 503 });
+    await expect(m.mesa.decidir('a', coord(), { decision: 'aprobar' }, AHORA)).rejects.toMatchObject({ status: 503 });
+    await expect(m.mesa.supervision(coord(), AHORA)).rejects.toMatchObject({ status: 503 });
+    expect(JSON.stringify([...m.validaciones.filas.entries()])).toBe(antes); // apagar NO borra ni reasigna nada
+  });
+
+  it('el permiso se evalúa antes que el interruptor: un perfil sin acceso sigue recibiendo 403', async () => {
+    const m = montar({ EPS_VALIDACION_HABILITADA: 'false' });
+    await expect(m.mesa.listar(actorDe(Rol.ESTUDIANTE), {}, AHORA)).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('reencendido (valor ausente o true) vuelve a operar con los mismos datos', async () => {
+    for (const config of [{}, { EPS_VALIDACION_HABILITADA: true }, { EPS_VALIDACION_HABILITADA: 'true' }]) {
+      const m = montar(config);
+      await m.crear({ id: 'a' });
+      expect((await m.mesa.listar(coord(), {}, AHORA)).total).toBe(1);
+    }
+  });
+});
+
+describe('Mesa EPS · la recomendación NO es la decisión', () => {
+  async function candidato(id = 'cand') {
+    const m = montar();
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id, reservaPara: 'f1', reservaVence: new Date(AHORA.getTime() + 10 * MIN), autenticidad: AutenticidadEps.VERIFICADA, afiliacion: AfiliacionEps.ACTIVA });
+    return m;
+  }
+
+  it('un candidato a autoaprobación sigue PENDIENTE de una persona, por más que se liste, abra o recalcule', async () => {
+    const m = await candidato();
+    expect((await m.mesa.listar(aux('f1'), {}, AHORA)).kpis.candidatos).toBe(1);
+    for (let i = 0; i < 3; i += 1) {
+      const d = await m.mesa.detalle('cand', aux('f1'), AHORA);
+      expect(d.recomendacion).toMatchObject({ codigo: RecomendacionEps.CANDIDATO_AUTOAPROBACION, esDecision: false });
+    }
+    expect(m.fila('cand').decision).toBe(DecisionEps.CANDIDATO_AUTOAPROBACION); // solo etiqueta
+    expect(m.fila('cand').decididoPor).toBeNull();
+    expect(m.auditoria.registros.some((r) => r.accion === AccionAuditada.DECISION_DOCUMENTO || r.accion === AccionAuditada.DECISION_EPS_CONTEXTO)).toBe(false);
+    expect(DecisionEps.APROBADO_AUTOMATICO).toBe('aprobado_automatico');
+    expect(m.fila('cand').decision).not.toBe(DecisionEps.APROBADO_AUTOMATICO);
+  });
+
+  it('recomendación «candidato» → la persona DEVUELVE: se respeta, sin justificación reforzada', async () => {
+    const m = await candidato();
+    const r = await m.mesa.decidir('cand', aux('f1'), { decision: 'devolver', motivo: MotivoDevolucionEps.FALTA_INFORMACION }, AHORA);
+    expect(r.estado).toBe(EstadoDocumento.DEVUELTO);
+    expect(m.fila('cand')).toMatchObject({ decision: DecisionEps.DEVUELTO, decididoPor: 'f1' });
+    expect(m.auditoria.registros.find((x) => x.accion === AccionAuditada.DECISION_EPS_CONTEXTO)?.metadatos)
+      .toMatchObject({ recomendacion: RecomendacionEps.CANDIDATO_AUTOAPROBACION, decision: 'devolver', apartaDeRecomendacion: false });
+  });
+
+  it('recomendación «revisión documental» → la persona APRUEBA con justificación normal', async () => {
+    const m = montar();
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id: 'rev', reservaPara: 'f1', reservaVence: new Date(AHORA.getTime() + 10 * MIN), adres: EstadoAdres.PROCESADO, afiliacion: AfiliacionEps.ACTIVA });
+    const d = await m.mesa.detalle('rev', aux('f1'), AHORA);
+    expect(d.recomendacion.codigo).not.toBe(RecomendacionEps.CANDIDATO_AUTOAPROBACION);
+    await m.mesa.decidir('rev', aux('f1'), { decision: 'aprobar', justificacion: 'Revisé el documento completo.' }, AHORA);
+    expect(m.fila('rev').decision).toBe(DecisionEps.APROBADO_MANUAL);
+  });
+
+  it('recomendación «crítica»: aprobarla es posible SOLO con justificación reforzada y queda constancia; rechazarla no exige más', async () => {
+    const m = montar();
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id: 'crit', reservaPara: 'f1', reservaVence: new Date(AHORA.getTime() + 10 * MIN), critica: true });
+    expect((await m.mesa.detalle('crit', aux('f1'), AHORA)).recomendacion.codigo).toBe(RecomendacionEps.DISCREPANCIA_CRITICA);
+    await m.mesa.decidir('crit', aux('f1'), { decision: 'rechazar', justificacion: 'El documento no coincide.' }, AHORA);
+    expect(m.fila('crit').decision).toBe(DecisionEps.RECHAZADO);
+  });
+
+  it('el candidato no se aprueba solo ni por el mero paso del tiempo: sin decidir(), nada cambia entre dos lecturas distantes', async () => {
+    const m = await candidato();
+    const antes = JSON.stringify(m.fila('cand'));
+    await m.mesa.listar(aux('f1'), {}, AHORA);
+    await m.mesa.listar(aux('f1'), {}, new Date(AHORA.getTime() + 30 * 24 * 3_600_000));
+    expect(JSON.stringify(m.fila('cand'))).toBe(antes);
+  });
+});
+
+describe('Mesa EPS · matriz de autorización por perfil (regresión Fase 6)', () => {
+  const OPERADORES = new Set([Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR]);
+  const SUPERVISORES = new Set([Rol.COORDINADOR, Rol.ADMINISTRADOR]);
+  const actor = (rol: Rol) => actorDe(rol, { id: `${rol}-1`, correo: `${rol}@cun.edu.co`, escuelas: rol === Rol.COORDINADOR ? [ESC_A] : [] });
+  const esProhibido = async (p: Promise<unknown>): Promise<boolean> => p.then(() => false, (e: unknown) => e instanceof ForbiddenException);
+
+  it.each(Object.values(Rol))('%s: acceso a cada operación de la Mesa según su perfil', async (rol) => {
+    const m = montar();
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id: 'c1', reservaPara: 'f1', reservaVence: new Date(AHORA.getTime() + 10 * MIN) });
+    const antes = JSON.stringify([...m.validaciones.filas.entries()]);
+    const a = actor(rol);
+    const resultados = {
+      listar: await esProhibido(m.mesa.listar(a, {}, AHORA)),
+      detalle: await esProhibido(m.mesa.detalle('c1', a, AHORA)),
+      certificado: await esProhibido(m.mesa.certificado('c1', a, AHORA)),
+      decidir: await esProhibido(m.mesa.decidir('c1', a, { decision: 'aprobar' }, AHORA)),
+      siguiente: await esProhibido(m.mesa.tomarSiguiente(a, {}, AHORA)),
+      supervision: await esProhibido(m.mesa.supervision(a, AHORA)),
+    };
+    const operaba = OPERADORES.has(rol);
+    expect(resultados).toEqual({
+      listar: !operaba, detalle: !operaba, certificado: !operaba, decidir: !operaba, siguiente: !operaba, supervision: !SUPERVISORES.has(rol),
+    });
+    if (!operaba) expect(JSON.stringify([...m.validaciones.filas.entries()])).toBe(antes); // un perfil sin acceso no cambia nada
+  });
+
+  it('IDOR: la coordinación de una escuela no alcanza un caso de OTRA por id (404 en detalle, certificado y decisión) y no lo altera', async () => {
+    const m = montar();
+    await m.crear({ id: 'ajeno', escuela: ESC_B });
+    const antes = JSON.stringify(m.fila('ajeno'));
+    await expect(m.mesa.detalle('ajeno', coord(), AHORA)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(m.mesa.certificado('ajeno', coord(), AHORA)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(m.mesa.decidir('ajeno', coord(), { decision: 'aprobar' }, AHORA)).rejects.toBeInstanceOf(NotFoundException);
+    expect((await m.mesa.listar(coord(), {}, AHORA)).total).toBe(0);
+    expect(JSON.stringify(m.fila('ajeno'))).toBe(antes);
+  });
+
+  it('IDOR: un id inexistente y uno ajeno responden IGUAL (no confirma qué casos existen)', async () => {
+    const m = montar();
+    await m.crear({ id: 'ajeno', escuela: ESC_B });
+    const ajeno = await m.mesa.detalle('ajeno', coord(), AHORA).catch((e: Error) => e);
+    const inexistente = await m.mesa.detalle('no-existe', coord(), AHORA).catch((e: Error) => e);
+    expect(ajeno).toBeInstanceOf(NotFoundException);
+    expect(inexistente).toBeInstanceOf(NotFoundException);
+    expect((ajeno as Error).message).toBe((inexistente as Error).message);
+  });
+
+  it('IDOR: un funcionario que NO tiene el caso no ve valores personales ni abre el certificado, aunque conozca el id', async () => {
+    const m = montar();
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id: 'c1', reservaPara: 'f1', reservaVence: new Date(AHORA.getTime() + 10 * MIN) });
+    const d = await m.mesa.detalle('c1', aux('f2'), AHORA);
+    expect(d.acceso.puedeVerValores).toBe(false);
+    expect(JSON.stringify(d)).not.toContain('1032456786');
+    await expect(m.mesa.certificado('c1', aux('f2'), AHORA)).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('Mesa EPS · bandeja con más casos que el tope (regresión Fase 6)', () => {
+  it('sobre el tope: los KPI usan el total REAL, la bandeja avisa que está truncada y «tomar siguiente» alcanza todos', async () => {
+    const m = montar();
+    const TOPE = TOPE_LISTADO_MESA;
+    for (let i = 0; i < TOPE + 25; i += 1) await m.crear({ id: `c${i}`, recibidaHace: 1 + (i % 20) });
+    const l = await m.mesa.listar(aux('f1'), {}, AHORA);
+    expect(l.truncado).toBe(true);
+    expect(l.mostrando).toBe(TOPE);
+    expect(l.kpis.abiertas).toBe(TOPE + 25); // antes de la corrección decía 2.000
+    expect(l.total).toBeLessThanOrEqual(TOPE);
+    const siguiente = await m.mesa.tomarSiguiente(aux('f1'), {}, AHORA);
+    expect(siguiente.estado).toBe('tomado');
+  });
+
+  it('bajo el tope: no se marca truncada y el total coincide', async () => {
+    const m = montar();
+    for (let i = 0; i < 12; i += 1) await m.crear({ id: `c${i}` });
+    const l = await m.mesa.listar(aux('f1'), {}, AHORA);
+    expect(l).toMatchObject({ truncado: false, mostrando: 12, total: 12 });
+    expect(l.kpis.abiertas).toBe(12);
+  });
+});
+
+describe('Mesa EPS · métricas operativas (sin PII)', () => {
+  const lineas = async (met: MetricasService, prefijo: string): Promise<string[]> => (await met.exponer()).split('\n').filter((l) => l.startsWith(prefijo));
+
+  it('los gauges salen de la base en cada lectura: pendientes, ADRES, sin asignar y candidatos (modo sombra)', async () => {
+    const met = new MetricasService();
+    const m = montar({}, met);
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id: 'a', adres: EstadoAdres.PENDIENTE });
+    await m.crear({ id: 'b', reservaPara: 'f1', reservaVence: new Date(Date.now() + 10 * MIN) });
+    await m.crear({ id: 'cand', autenticidad: AutenticidadEps.VERIFICADA, afiliacion: AfiliacionEps.ACTIVA });
+    m.mesa.onModuleInit();
+    const texto = await met.exponer();
+    expect(texto).toMatch(/^sipra_eps_pendientes_revision 3$/m);
+    expect(texto).toMatch(/^sipra_eps_pendientes_adres [1-9]\d*$/m);
+    expect(texto).toMatch(/^sipra_eps_candidatos_autoaprobacion 1$/m); // se mide; NO se aprueba
+    expect(texto).toMatch(/^sipra_eps_procesamiento_atascado 0$/m);
+    expect(m.fila('cand').decision).toBe(DecisionEps.CANDIDATO_AUTOAPROBACION);
+  });
+
+  it('cada decisión cuenta (con o sin apartarse de la recomendación) y mide el tiempo hasta decidir', async () => {
+    const met = new MetricasService();
+    const m = montar({}, met);
+    m.registrarPersona('f1', 'Ana');
+    await m.crear({ id: 'a', reservaPara: 'f1', reservaVence: new Date(AHORA.getTime() + 10 * MIN), recibidaHace: 3 });
+    await m.mesa.decidir('a', aux('f1'), { decision: 'devolver', motivo: MotivoDevolucionEps.FALTA_INFORMACION }, AHORA);
+    const decisiones = await lineas(met, 'sipra_eps_decisiones_total');
+    expect(decisiones).toEqual(['sipra_eps_decisiones_total{decision="devolver",aparta_de_recomendacion="false"} 1']);
+    expect((await lineas(met, 'sipra_eps_tiempo_revision_horas_count'))[0]).toMatch(/ 1$/);
+  });
+
+  it('ninguna métrica EPS lleva datos personales: solo etiquetas de una lista acotada y valores numéricos', async () => {
+    const met = new MetricasService();
+    const m = montar({}, met);
+    m.registrarPersona('f1', 'Ana Persona');
+    await m.crear({ id: 'a', reservaPara: 'f1', reservaVence: new Date(AHORA.getTime() + 10 * MIN), nombre: 'PERSONAPRUEBAEPS', documento: '9990001112' });
+    m.mesa.onModuleInit();
+    await m.mesa.decidir('a', aux('f1'), { decision: 'aprobar' }, AHORA);
+    const eps = (await met.exponer()).split('\n').filter((l) => l.startsWith('sipra_eps_'));
+    expect(eps.length).toBeGreaterThan(8);
+    const texto = eps.join('\n');
+    for (const s of ['PERSONAPRUEBAEPS', '9990001112', 'Ana Persona', 'f1', 'a@', '@cun']) expect(texto).not.toContain(s);
+    const etiquetas = new Set(eps.flatMap((l) => [...l.matchAll(/(\w+)="/g)].map((x) => x[1])));
+    expect([...etiquetas].every((e) => ['decision', 'aparta_de_recomendacion', 'ruta', 'ocr', 'le'].includes(e))).toBe(true);
   });
 });

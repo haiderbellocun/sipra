@@ -568,7 +568,7 @@ export interface KpisMesa {
 }
 
 export interface ListadoMesa {
-  kpis: KpisMesa; total: number; pagina: number; limite: number; filas: FilaMesa[];
+  kpis: KpisMesa; total: number; pagina: number; limite: number; truncado: boolean; mostrando: number; filas: FilaMesa[];
   filtrosDisponibles: { periodos: string[]; programas: string[]; modalidades: string[] }; generadoEn: string;
 }
 
@@ -607,7 +607,7 @@ export interface DetalleMesa {
   afiliacion: {
     estado: string; fuente: 'adres_bdua' | 'verificador_oficial' | 'ninguna'; consultadoEn: string | null;
     fuenteActualizadaEn: string | null; estadoAdres: EstadoAdres;
-    frescura: { politicaDefinida: boolean; dias: number | null; vencida: boolean | null };
+    frescura: { politicaDefinida: boolean; dias: number | null; vencida: boolean | null; diasDesdeConsulta: number | null };
   };
   comparacion: ComparacionTriple[];
   discrepancias: DiscrepanciaLegible[];

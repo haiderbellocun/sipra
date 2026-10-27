@@ -1,0 +1,10 @@
+# PLANTILLA del manifiesto de evaluación del piloto EPS. NO contiene datos personales.
+# Copiar como pilot-data/manifiesto-evaluacion.csv (ignorado por Git) y poner los archivos en pilot-data/documentos/.
+# hash_documento / hash_nombre: SHA-256 del valor normalizado, calculado con
+#   printf '<cédula>' | npm run piloto:evaluar --workspace=@sipra/api -- --hash-documento
+#   printf '<nombre>' | npm run piloto:evaluar --workspace=@sipra/api -- --hash-nombre
+# (no escriba cédulas ni nombres en este archivo). formato: pdf|png|jpeg · tiene_qr: si|no · estado_esperado: activo|inactivo|suspendido|retirado
+# regimen_esperado: contributivo|subsidiado|especial · fecha_expedicion_esperada: AAAA-MM-DD · observaciones: texto libre SIN datos personales
+caso_id,archivo,formato,tipo_documento,tiene_qr,hash_documento,hash_nombre,eps_esperada,regimen_esperado,estado_esperado,fecha_expedicion_esperada,observaciones
+P001,P001.pdf,pdf,pdf_digital,si,80a7cd0ffb78b364089257b612609ae24a9e886a2513ee0b3a7dc67b828c8c3c,a28535ed3a431c2625f4117640f5367ba240c0c9fdbc1f06787b06436dbe75ff,NUEVA EPS,contributivo,activo,2026-10-20,ejemplo sintético: reemplazar
+P002,P002.png,png,imagen,no,80a7cd0ffb78b364089257b612609ae24a9e886a2513ee0b3a7dc67b828c8c3c,a28535ed3a431c2625f4117640f5367ba240c0c9fdbc1f06787b06436dbe75ff,SANITAS,subsidiado,activo,2026-10-20,ejemplo sintético: foto con baja iluminación

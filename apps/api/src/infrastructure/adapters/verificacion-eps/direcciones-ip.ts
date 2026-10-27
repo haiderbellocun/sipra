@@ -25,6 +25,7 @@ function esIpv4Privada(b: number[]): boolean {
   if (a === 172 && c >= 16 && c <= 31) return true; // 172.16/12
   if (a === 192 && c === 0 && d === 0) return true; // 192.0.0/24
   if (a === 192 && c === 0 && d === 2) return true; // documentación
+  if (a === 192 && c === 88 && d === 99) return true; // 192.88.99/24 (relé 6to4, en desuso)
   if (a === 192 && c === 168) return true; // 192.168/16
   if (a === 198 && (c === 18 || c === 19)) return true; // 198.18/15
   if (a === 198 && c === 51 && d === 100) return true; // documentación
@@ -78,6 +79,12 @@ function esIpv6Privada(b: number[]): boolean {
   if (todosCero(0, 10) && b[10] === 0xff && b[11] === 0xff) return esIpv4Privada(b.slice(12)); // ::ffff:a.b.c.d
   if (todosCero(0, 12)) return true; // ::a.b.c.d (compatible IPv4, obsoleta)
   if (b[0] === 0x00 && b[1] === 0x64 && b[2] === 0xff && b[3] === 0x9b && todosCero(4, 12)) return esIpv4Privada(b.slice(12)); // NAT64
+  // Mecanismos de transición que EMBEBEN una IPv4 (podría ser interna): ningún verificador oficial vive ahí → se bloquean.
+  if (b[0] === 0x00 && b[1] === 0x64 && b[2] === 0xff && b[3] === 0x9b && b[4] === 0x00 && b[5] === 0x01) return true; // 64:ff9b:1::/48 (NAT64 de uso local)
+  if (todosCero(0, 8) && b[8] === 0xff && b[9] === 0xff && b[10] === 0 && b[11] === 0) return true; // ::ffff:0:a.b.c.d (SIIT)
+  if (b[0] === 0x20 && b[1] === 0x02) return true; // 2002::/16 (6to4)
+  if (b[0] === 0x20 && b[1] === 0x01 && b[2] < 0x02) return true; // 2001::/23 (Teredo y asignaciones del protocolo)
+  if (b[0] === 0x01 && b[1] === 0x00 && todosCero(2, 8)) return true; // 100::/64 (descarte)
   if ((b[0] & 0xfe) === 0xfc) return true; // fc00::/7 (ULA)
   if (b[0] === 0xfe && (b[1] & 0xc0) === 0x80) return true; // fe80::/10
   if (b[0] === 0xfe && (b[1] & 0xc0) === 0xc0) return true; // fec0::/10 (site-local)

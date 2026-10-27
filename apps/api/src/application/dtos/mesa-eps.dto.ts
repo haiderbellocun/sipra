@@ -57,6 +57,9 @@ export class ListadoMesaDto {
   @ApiProperty() total!: number;
   @ApiProperty() pagina!: number;
   @ApiProperty() limite!: number;
+  /** true si hay más casos abiertos que los que la bandeja carga: se muestran los más antiguos; los KPI usan el total real. */
+  @ApiProperty() truncado!: boolean;
+  @ApiProperty() mostrando!: number;
   @ApiProperty({ type: [FilaMesaDto] }) filas!: FilaMesaDto[];
   @ApiProperty() filtrosDisponibles!: { periodos: string[]; programas: string[]; modalidades: string[] };
   @ApiProperty() generadoEn!: string;
@@ -124,7 +127,7 @@ export class DetalleMesaDto {
   };
   @ApiProperty() afiliacion!: {
     estado: string; fuente: 'adres_bdua' | 'verificador_oficial' | 'ninguna'; consultadoEn: string | null; fuenteActualizadaEn: string | null;
-    estadoAdres: string; frescura: { politicaDefinida: boolean; dias: number | null; vencida: boolean | null };
+    estadoAdres: string; frescura: { politicaDefinida: boolean; dias: number | null; vencida: boolean | null; diasDesdeConsulta: number | null };
   };
   @ApiProperty({ type: [ComparacionTripleDto] }) comparacion!: ComparacionTripleDto[];
   @ApiProperty({ type: [DiscrepanciaLegibleDto] }) discrepancias!: DiscrepanciaLegibleDto[];

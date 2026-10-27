@@ -213,13 +213,19 @@ describe('Motivos de devolución', () => {
 describe('Frescura de la consulta ADRES (sin política definida)', () => {
   it('sin plazo configurado NADA se marca vencido', () => {
     for (const dias of [null, undefined, 0, -3, Number.NaN]) {
-      expect(evaluarFrescuraAdres(hace(400), dias as number | null, AHORA)).toEqual({ politicaDefinida: false, dias: null, vencida: null });
+      // Sin política: se informa cuántos días pasaron, pero NUNCA se declara vencida una consulta.
+      expect(evaluarFrescuraAdres(hace(400), dias as number | null, AHORA)).toEqual({ politicaDefinida: false, dias: null, vencida: null, diasDesdeConsulta: 400 });
     }
+    expect(evaluarFrescuraAdres(null, null, AHORA)).toEqual({ politicaDefinida: false, dias: null, vencida: null, diasDesdeConsulta: null });
   });
 
   it('con un plazo configurado (futuro), vence pasado el plazo; sin fecha de consulta no se concluye', () => {
-    expect(evaluarFrescuraAdres(hace(10), 30, AHORA)).toEqual({ politicaDefinida: true, dias: 30, vencida: false });
-    expect(evaluarFrescuraAdres(hace(31), 30, AHORA)).toEqual({ politicaDefinida: true, dias: 30, vencida: true });
-    expect(evaluarFrescuraAdres(null, 30, AHORA)).toEqual({ politicaDefinida: true, dias: 30, vencida: null });
+    expect(evaluarFrescuraAdres(hace(10), 30, AHORA)).toEqual({ politicaDefinida: true, dias: 30, vencida: false, diasDesdeConsulta: 10 });
+    expect(evaluarFrescuraAdres(hace(31), 30, AHORA)).toEqual({ politicaDefinida: true, dias: 30, vencida: true, diasDesdeConsulta: 31 });
+    expect(evaluarFrescuraAdres(null, 30, AHORA)).toEqual({ politicaDefinida: true, dias: 30, vencida: null, diasDesdeConsulta: null });
+  });
+
+  it('una consulta con fecha futura (reloj desfasado) no da días negativos', () => {
+    expect(evaluarFrescuraAdres(new Date(AHORA.getTime() + 86_400_000), null, AHORA).diasDesdeConsulta).toBe(0);
   });
 });

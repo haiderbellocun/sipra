@@ -9,7 +9,7 @@ import {
   DecisionEps, DiscrepanciaEps, EstadoProcesamientoEps, RutaValidacionEps, ValidacionEps, VigenciaCertificado,
 } from '../../../../domain/entities/validacion-eps.entity';
 import {
-  CriteriosSiguiente, FilaMesaRepo, ResumenSupervisionRepo, ValidacionEpsRepositoryPort,
+  CriteriosSiguiente, FilaMesaRepo, ResumenMetricasEps, ResumenSupervisionRepo, TOPE_LISTADO_MESA, ValidacionEpsRepositoryPort,
 } from '../../../../domain/ports/out/validacion-eps.port';
 import { ESTADOS_ADRES_ABIERTOS, PESOS_PRIORIDAD } from '../../../../domain/services/mesa-eps.domain-service';
 import {
@@ -291,6 +291,40 @@ export class ValidacionEpsRepositoryAdapter implements ValidacionEpsRepositoryPo
     return Array.isArray(r) ? (r as Array<Record<string, unknown>>) : [];
   }
 
+  async resumenMetricasEps(ahora: Date): Promise<ResumenMetricasEps> {
+    const abiertosAdres = ESTADOS_ADRES_ABIERTOS.map((e) => `'${e}'`).join(',');
+    const [a] = await this.consultar(`
+      SELECT count(*)::int AS abiertas,
+             count(*) FILTER (WHERE v.adres_estado IN (${abiertosAdres}))::int AS pendientes_adres,
+             count(*) FILTER (WHERE v.asignado_a IS NULL OR v.reserva_hasta <= $1)::int AS sin_asignar,
+             count(*) FILTER (WHERE v.decision = 'candidato_autoaprobacion')::int AS candidatos
+      FROM validaciones_eps v
+      JOIN documentos d ON d.id = v.documento_id
+      JOIN practicas p ON p.id = v.practica_id
+      WHERE ${ValidacionEpsRepositoryAdapter.ABIERTA}`, [ahora]);
+    const [b] = await this.consultar(`
+      SELECT count(*) FILTER (WHERE estado_procesamiento = 'procesando' AND actualizada_en < $1::timestamptz - interval '30 minutes')::int AS atascado,
+             count(*) FILTER (WHERE estado_procesamiento = 'error')::int AS con_error
+      FROM validaciones_eps WHERE decision IN ('pendiente','candidato_autoaprobacion')`, [ahora]);
+    return {
+      abiertas: Number(a?.abiertas ?? 0), pendientesAdres: Number(a?.pendientes_adres ?? 0), sinAsignar: Number(a?.sin_asignar ?? 0),
+      candidatos: Number(a?.candidatos ?? 0), procesamientoAtascado: Number(b?.atascado ?? 0), procesamientoError: Number(b?.con_error ?? 0),
+    };
+  }
+
+  async contarAbiertasMesa(escuelasAlcance: string[] | null): Promise<number> {
+    const params: unknown[] = [];
+    let escuela = '';
+    if (escuelasAlcance && escuelasAlcance.length > 0) { params.push(escuelasAlcance); escuela = 'AND p.escuela_id = ANY($1)'; }
+    const [fila] = await this.consultar(`
+      SELECT count(*)::int AS n
+      FROM validaciones_eps v
+      JOIN documentos d ON d.id = v.documento_id
+      JOIN practicas p ON p.id = v.practica_id
+      WHERE ${ValidacionEpsRepositoryAdapter.ABIERTA} ${escuela}`, params);
+    return Number(fila?.n ?? 0);
+  }
+
   async listarAbiertasMesa(ahora: Date, escuelasAlcance: string[] | null): Promise<FilaMesaRepo[]> {
     const params: unknown[] = [ahora];
     let escuela = '';
@@ -308,7 +342,7 @@ export class ValidacionEpsRepositoryAdapter implements ValidacionEpsRepositoryPo
       LEFT JOIN usuarios r ON r.id = v.asignado_a AND v.reserva_hasta > $1
       WHERE ${ValidacionEpsRepositoryAdapter.ABIERTA} ${escuela}
       ORDER BY COALESCE(v.recibida_en, v.creada_en) ASC
-      LIMIT 2000`, params));
+      LIMIT ${TOPE_LISTADO_MESA}`, params));
     if (filas.length === 0) return [];
     const entidades = await this.repo.find({ where: { id: In(filas.map((f) => f.validacion_id as string)) } });
     const porId = new Map(entidades.map((e) => [e.id, e]));

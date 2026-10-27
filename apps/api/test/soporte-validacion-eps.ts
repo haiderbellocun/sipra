@@ -1,7 +1,7 @@
 import { DatosEvidenciaEps, EvidenciaEps } from '../src/domain/entities/evidencia-validacion-eps.entity';
 import { DecisionEps, DatosValidacionEps, EstadoProcesamientoEps, ValidacionEps } from '../src/domain/entities/validacion-eps.entity';
 import {
-  CriteriosSiguiente, FilaMesaRepo, ResumenSupervisionRepo, ValidacionEpsRepositoryPort,
+  CriteriosSiguiente, FilaMesaRepo, ResumenMetricasEps, ResumenSupervisionRepo, TOPE_LISTADO_MESA, ValidacionEpsRepositoryPort,
 } from '../src/domain/ports/out/validacion-eps.port';
 import { ESTADOS_ADRES_ABIERTOS, calcularPrioridad, tieneDiscrepanciaCriticaPersistida } from '../src/domain/services/mesa-eps.domain-service';
 
@@ -73,6 +73,28 @@ export class ValidacionesEnMemoria implements ValidacionEpsRepositoryPort {
     return ['pendiente', 'candidato_autoaprobacion'].includes(f.decision) && this.contexto.has(f.id);
   }
 
+  /** Emula el tope de la bandeja (el real por defecto); las pruebas lo bajan para no crear miles de filas. */
+  topeListado = TOPE_LISTADO_MESA;
+
+  async resumenMetricasEps(ahora: Date): Promise<ResumenMetricasEps> {
+    const todas = [...this.filas.values()];
+    const abiertas = todas.filter((f) => this.abierta(f));
+    return {
+      abiertas: abiertas.length,
+      pendientesAdres: abiertas.filter((f) => ESTADOS_ADRES_ABIERTOS.includes(f.adres.estado)).length,
+      sinAsignar: abiertas.filter((f) => f.asignadoA === null || (f.reservaHasta?.getTime() ?? 0) <= ahora.getTime()).length,
+      candidatos: abiertas.filter((f) => f.decision === DecisionEps.CANDIDATO_AUTOAPROBACION).length,
+      procesamientoAtascado: todas.filter((f) => f.estadoProcesamiento === EstadoProcesamientoEps.PROCESANDO && f.actualizadaEn.getTime() < ahora.getTime() - 30 * 60_000).length,
+      procesamientoError: todas.filter((f) => f.estadoProcesamiento === EstadoProcesamientoEps.ERROR).length,
+    };
+  }
+
+  async contarAbiertasMesa(escuelasAlcance: string[] | null): Promise<number> {
+    const t = this.topeListado;
+    this.topeListado = Infinity;
+    try { return (await this.listarAbiertasMesa(new Date(), escuelasAlcance)).length; } finally { this.topeListado = t; }
+  }
+
   listarAbiertasMesa(ahora: Date, escuelasAlcance: string[] | null): Promise<FilaMesaRepo[]> {
     return Promise.resolve([...this.filas.values()]
       .filter((f) => this.abierta(f) && (!escuelasAlcance?.length || escuelasAlcance.includes((this.contexto.get(f.id) as { practica: { escuelaId: string } }).practica.escuelaId)))
@@ -80,7 +102,8 @@ export class ValidacionesEnMemoria implements ValidacionEpsRepositoryPort {
         const c = this.contexto.get(f.id) as Omit<FilaMesaRepo, 'validacion' | 'responsableNombre'>;
         const vigente = f.asignadoA !== null && f.reservaHasta !== null && f.reservaHasta.getTime() > ahora.getTime();
         return { ...c, validacion: ValidacionEps.desde({ ...f }), responsableNombre: vigente ? (this.nombresDeUsuarios.get(f.asignadoA as string) ?? f.asignadoA) : null };
-      }));
+      })
+      .slice(0, this.topeListado));
   }
 
   /** Emula la sentencia atómica: elegir y reservar sin ceder el control entre una cosa y la otra. */

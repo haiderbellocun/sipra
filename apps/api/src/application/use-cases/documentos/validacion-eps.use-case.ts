@@ -1,6 +1,7 @@
 import {
-  ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException,
+  ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, Optional,
 } from '@nestjs/common';
+import { MetricasService } from '../../../infrastructure/observability/metricas.service';
 import { randomUUID } from 'node:crypto';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import { Documento, EstadoDocumento, SeveridadBandera, TipoDocumento } from '../../../domain/entities/documento.entity';
@@ -63,6 +64,7 @@ export class ValidacionEpsUseCase {
     @Inject(USUARIO_REPOSITORY) private readonly usuarios: UsuarioRepositoryPort,
     @Inject(AUDITORIA_REPOSITORY) private readonly auditoria: AuditoriaRepositoryPort,
     private readonly parametros: ParametrosUseCase,
+    @Optional() private readonly metricas?: MetricasService,
   ) {}
 
   // ── Procesamiento (lo invoca el worker) ──────────────────────────────────
@@ -137,6 +139,8 @@ export class ValidacionEpsUseCase {
       ocr: resumen?.ocr.ejecutado ?? false,
       qrHallados: resumen?.qr.hallazgos.length ?? 0,
     });
+    this.metricas?.epsDocumentosProcesados.inc({ ruta: validacion.ruta, ocr: String(resumen?.ocr.ejecutado ?? false) });
+    if (resumen?.ocr.ejecutado) this.metricas?.epsOcr.inc();
     for (const evidencia of evidencias) {
       const e = evidencia.instantanea();
       await this.auditar(AccionAuditada.EVIDENCIA_EPS_REGISTRADA, validacion.id, { tipo: e.tipo, fuente: e.fuente });
