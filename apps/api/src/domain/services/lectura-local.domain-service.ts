@@ -61,12 +61,17 @@ export function evaluarTextoNativo(paginas: number, porPagina: readonly TextoNat
 /**
  * ¿Hace falta OCR? Solo como recurso: el texto nativo va primero.
  *  · sin texto utilizable en el documento → OCR de las páginas leídas;
- *  · con texto utilizable → OCR únicamente si faltan campos clave Y hay
- *    páginas leídas sin texto (podrían ser imágenes con el dato faltante).
+ *  · con texto utilizable → OCR únicamente si faltan campos clave. Entonces se leen las páginas sin
+ *    texto (podrían ser imágenes con el dato faltante) y también las páginas CON texto: una capa de
+ *    texto dañada, desordenada o superpuesta puede no dar los datos que la persona sí ve en la página.
+ *    Es lectura local (Tesseract); si el texto digital alcanza, no se paga OCR.
  */
-export function paginasParaOcr(metricas: MetricasTextoNativo, faltanCamposClave: boolean): number[] {
+export function paginasParaOcr(
+  metricas: MetricasTextoNativo, faltanCamposClave: boolean, paginasLeidas: readonly number[] = [],
+): number[] {
   if (!metricas.utilizable) return metricas.paginasSinTexto;
-  return faltanCamposClave ? metricas.paginasSinTexto : [];
+  if (!faltanCamposClave) return [];
+  return [...new Set([...metricas.paginasSinTexto, ...paginasLeidas])].sort((a, b) => a - b);
 }
 
 // ── Contenido de QR ─────────────────────────────────────────────────────────

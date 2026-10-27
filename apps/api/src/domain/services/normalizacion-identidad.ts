@@ -29,7 +29,7 @@ export function normalizarTexto(valor: string | null | undefined): string {
 
 // ── Documento ───────────────────────────────────────────────────────────────
 
-export type TipoDocumentoIdentidad = 'CC' | 'TI' | 'CE' | 'PA';
+export type TipoDocumentoIdentidad = 'CC' | 'TI' | 'CE' | 'PA' | 'RC';
 
 export interface DocumentoNormalizado {
   /** Tipo si el texto lo declara («C.C. 123», «Cédula de ciudadanía 123»); si no, `null`. */
@@ -42,8 +42,9 @@ export interface DocumentoNormalizado {
 const FIN_PREFIJO = '(?=[\\s.:#°ºN\\d-]|$)';
 const PREFIJOS_DOCUMENTO: readonly [RegExp, TipoDocumentoIdentidad][] = [
   [new RegExp(`^(?:C\\.?\\s?E\\.?|CEDULA DE EXTRANJERIA)${FIN_PREFIJO}`), 'CE'],
-  [new RegExp(`^(?:C\\.?\\s?C\\.?|CEDULA DE CIUDADANIA|CEDULA)${FIN_PREFIJO}`), 'CC'],
+  [new RegExp(`^(?:C\\.?\\s?C\\.?|CEDULA(?: DE)? CIUDADANIA|CEDULA)${FIN_PREFIJO}`), 'CC'],
   [new RegExp(`^(?:T\\.?\\s?I\\.?|TARJETA DE IDENTIDAD)${FIN_PREFIJO}`), 'TI'],
+  [new RegExp(`^(?:R\\.?\\s?C\\.?|REGISTRO CIVIL(?: DE NACIMIENTO)?|NUIP)${FIN_PREFIJO}`), 'RC'],
   [new RegExp(`^(?:P\\.?\\s?A\\.?|PASAPORTE)${FIN_PREFIJO}`), 'PA'],
 ];
 
@@ -62,7 +63,8 @@ export function normalizarDocumento(valor: string | null | undefined): Documento
     const coincidencia = texto.match(patron);
     if (coincidencia) {
       tipo = codigo;
-      resto = texto.slice(coincidencia[0].length).replace(/^[\s:.\-#N°º]+/, '');
+      // «CEDULA DE CIUDADANIA NUMERO 123»: la palabra «número» no es parte del número.
+      resto = texto.slice(coincidencia[0].length).replace(/^(?:[\s:.\-#°º]|NUMERO\b|NRO\b|NO\b|N(?=[\s.:°º\d]))+/, '');
       break;
     }
   }
@@ -196,10 +198,10 @@ export type EstadoReportado = 'ACTIVO' | 'INACTIVO' | 'SUSPENDIDO' | 'RETIRADO';
 export function normalizarEstadoReportado(valor: string | null | undefined): EstadoReportado | null {
   const texto = normalizarTexto(valor);
   if (!texto) return null;
-  if (/INACTIV|CANCELAD|TERMINAD/.test(texto)) return 'INACTIVO';
+  if (/INACTIV|CANCELAD|TERMINAD|NO VIGENTE/.test(texto)) return 'INACTIVO';
   if (/SUSPEND/.test(texto)) return 'SUSPENDIDO';
   if (/RETIRAD/.test(texto)) return 'RETIRADO';
-  if (/ACTIV/.test(texto)) return 'ACTIVO';
+  if (/ACTIV|VIGENTE/.test(texto)) return 'ACTIVO';
   return null;
 }
 

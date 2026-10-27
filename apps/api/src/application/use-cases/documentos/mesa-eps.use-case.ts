@@ -19,10 +19,12 @@ import {
 } from '../../../domain/ports/out/validacion-eps.port';
 import { compararTriple } from '../../../domain/services/adres-resultado.domain-service';
 import {
-  ESTADOS_ADRES_ABIERTOS, MotivoDevolucionEps, calcularPrioridad, construirDiscrepancias, evaluarApartamiento,
-  evaluarFrescuraAdres, mensajeDevolucion, recomendacionActual, tieneDiscrepanciaCriticaPersistida, DiscrepanciaLegible,
-  JUSTIFICACION_MINIMA,
+  ESTADOS_ADRES_ABIERTOS, MotivoDevolucionEps, calcularPrioridad, condicionesRecomendacion, construirDiscrepancias, evaluarApartamiento,
+  evaluarFrescuraAdres, mensajeDevolucion, recomendacionActual, tieneDiscrepanciaCriticaPersistida, veredictoCertificadoVsSipra,
+  ContextoMesa, DiscrepanciaLegible, JUSTIFICACION_MINIMA,
 } from '../../../domain/services/mesa-eps.domain-service';
+import { diasDesdeExpedicion } from '../../../domain/services/comparacion-eps.domain-service';
+import { ParametrosUseCase } from '../administracion/parametros.use-case';
 import { normalizarDocumento } from '../../../domain/services/normalizacion-identidad';
 import {
   esSupervisorEps, puedeDecidirDocumento, puedeOperarValidacionEps,
@@ -49,7 +51,8 @@ const DATOS_ADRES_VACIOS: DatosAdres = {
 
 const ETIQUETAS_CAMPO: Record<string, string> = {
   entidad_emisora: 'Entidad emisora', nombre_afiliado: 'Nombre del afiliado', documento_afiliado: 'Documento del afiliado',
-  fecha_expedicion: 'Fecha de expedición', estado_afiliacion: 'Estado que declara el certificado', regimen: 'Régimen',
+  fecha_expedicion: 'Fecha de expedición (generación)', estado_afiliacion: 'Estado que declara el certificado', regimen: 'Régimen',
+  tipo_afiliado: 'Tipo de afiliado',
 };
 
 const TEXTO_RECOMENDACION: Record<RecomendacionEps, { titulo: string; explicacion: string }> = {
@@ -68,6 +71,14 @@ const TEXTO_RECOMENDACION: Record<RecomendacionEps, { titulo: string; explicacio
   [RecomendacionEps.DISCREPANCIA_CRITICA]: {
     titulo: 'Discrepancia crítica entre fuentes',
     explicacion: 'Hay datos de identidad o de entidad que no coinciden entre SIPRA, el certificado y ADRES. Revise las discrepancias antes de decidir.',
+  },
+  [RecomendacionEps.DOCUMENTO_INCORRECTO]: {
+    titulo: 'El documento no es un certificado de afiliación a EPS',
+    explicacion: 'El análisis del archivo indica que no corresponde a un certificado de afiliación. Revise el documento y, si es el caso, devuélvalo al estudiante.',
+  },
+  [RecomendacionEps.CERTIFICADO_VENCIDO]: {
+    titulo: 'Certificado vencido',
+    explicacion: 'La fecha de expedición supera la vigencia institucional. Es información para su decisión: no se rechaza automáticamente.',
   },
   [RecomendacionEps.PENDIENTE_ADRES]: {
     titulo: 'Falta contrastar con ADRES',
@@ -125,7 +136,18 @@ export class MesaEpsUseCase {
     private readonly gestionar: GestionarDocumentoUseCase,
     @Optional() private readonly config?: ConfigService,
     @Optional() private readonly metricas?: MetricasService,
+    @Optional() private readonly parametros?: ParametrosUseCase,
   ) {}
+
+  /** Vigencia institucional del certificado (`arl.dias_vigencia_eps`). Si no se puede leer, no se inventa: `null`. */
+  private async diasVigencia(): Promise<number | null> {
+    try {
+      const v = await this.parametros?.numero('arl.dias_vigencia_eps');
+      return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
+    } catch {
+      return null;
+    }
+  }
 
   onModuleInit(): void {
     this.metricas?.registrarFuenteEps(() => this.validaciones.resumenMetricasEps(new Date()));
@@ -320,9 +342,13 @@ export class MesaEpsUseCase {
     const evidencias = await this.validaciones.listarEvidencias(d.id);
 
     const tripleCompleta = this.triple(d, { documento: numero, nombre });
-    const discrepancias = construirDiscrepancias(d, tripleCompleta);
+    const diasVigencia = await this.diasVigencia();
+    const tipoIncorrecto = doc.banderas.some((b) => b.codigo === 'C2_TIPO_INCORRECTO');
+    const contexto: ContextoMesa = { ahora, diasVigencia, tipoIncorrecto };
+    const discrepancias = construirDiscrepancias(d, tripleCompleta, contexto);
     const hayCritica = discrepancias.some((x) => x.severidad === 'critica') || tieneDiscrepanciaCriticaPersistida(d);
-    const recomendacion = recomendacionActual(d, hayCritica);
+    const recomendacion = recomendacionActual(d, hayCritica, contexto);
+    const tambien = condicionesRecomendacion(d, hayCritica, contexto).filter((c) => c !== recomendacion);
     const abierta = [DecisionEps.PENDIENTE, DecisionEps.CANDIDATO_AUTOAPROBACION].includes(d.decision);
     const prioridad = calcularPrioridad({
       recibidaEn: d.recibidaEn ?? d.creadaEn, fechaInicioPractica: p.fechaInicio, version: doc.version,
@@ -353,6 +379,11 @@ export class MesaEpsUseCase {
       certificado: {
         nombreOriginal: doc.nombreOriginal, mime: doc.mimeReal, tamanoBytes: doc.tamanoBytes, version: doc.version, cargadoEn: doc.cargadoEn.toISOString(),
         estadoDocumento: doc.estado, metodoExtraccion, vigencia: d.vigenciaCertificado, campos,
+        vigenciaDetalle: {
+          fechaExpedicion: d.datosExtraidos?.fechaExpedicion ?? null,
+          diasTranscurridos: diasDesdeExpedicion(d.datosExtraidos?.fechaExpedicion ?? null, ahora),
+          diasVigencia,
+        },
       },
       autenticidad: {
         estado: d.autenticidad, metodo: d.verificadorCodigo ? 'verificador_oficial' : 'ninguno', verificador: d.verificadorCodigo,
@@ -363,11 +394,14 @@ export class MesaEpsUseCase {
         fuenteActualizadaEn: d.adres.fuenteActualizadaEn?.toISOString() ?? null, estadoAdres: d.adres.estado,
         frescura: evaluarFrescuraAdres(d.adres.consultadoEn, this.frescuraDias, ahora),
       },
-      comparacion: tripleCompleta.map((c) => (valores ? c : { ...c, sipra: null, certificado: null, adres: null })).map((c) => ({
-        ...c, adres: tieneAdres || c.adres === null ? c.adres : null,
-      })),
+      comparacion: tripleCompleta.map((c) => ({ ...c, certificadoVsSipra: veredictoCertificadoVsSipra(c) ?? undefined }))
+        .map((c) => (valores ? c : { ...c, sipra: null, certificado: null, adres: null }))
+        .map((c) => ({ ...c, adres: tieneAdres || c.adres === null ? c.adres : null })),
       discrepancias,
-      recomendacion: { codigo: recomendacion, ...TEXTO_RECOMENDACION[recomendacion], esDecision: false },
+      recomendacion: {
+        codigo: recomendacion, ...TEXTO_RECOMENDACION[recomendacion], esDecision: false,
+        tambien: tambien.map((c) => ({ codigo: c, titulo: TEXTO_RECOMENDACION[c].titulo })),
+      },
       adres: { estado: d.adres.estado, tipoDocumento: d.adres.tipoDocumento, error: d.adres.error, cargadaEn: d.adres.cargadaEn?.toISOString() ?? null },
       evidencias: evidencias.map((e): EvidenciaMesaDto => {
         const x = e.instantanea();
@@ -398,6 +432,7 @@ export class MesaEpsUseCase {
       campo('fecha_expedicion', x?.fechaExpedicion ?? null),
       campo('estado_afiliacion', x?.estadoReportadoCertificado ?? null),
       campo('regimen', x?.regimen ? `${x.regimen}${x.tipoAfiliado ? ` · ${x.tipoAfiliado}` : ''}` : null),
+      campo('tipo_afiliado', x?.tipoAfiliado ?? null),
     ];
   }
 

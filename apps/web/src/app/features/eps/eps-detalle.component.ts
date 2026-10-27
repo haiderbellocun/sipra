@@ -6,7 +6,8 @@ import { EpsDecisionComponent } from './eps-decision.component';
 import { EpsMesaEstado } from './eps-mesa.estado';
 import { EpsVisorComponent } from './eps-visor.component';
 import {
-  AFILIACION, AUTENTICIDAD, ESTADO_RESERVA, FUENTE_AFILIACION, FUENTE_CAMPO, METODO_EXTRACCION, RECOMENDACION, diaCorto, fechaCorta, textoRestante,
+  AFILIACION, AUTENTICIDAD, ESTADO_RESERVA, FUENTE_AFILIACION, FUENTE_CAMPO, METODO_EXTRACCION, RECOMENDACION, SEVERIDAD_DISCREPANCIA,
+  diaCorto, fechaCorta, fechaIso, textoRestante,
 } from './eps.util';
 
 /**
@@ -99,6 +100,14 @@ import {
           <span class="etiqueta etiqueta--icono etiqueta--{{ recomendacion(d).tono }}"><span aria-hidden="true">{{ recomendacion(d).icono }}</span> {{ d.recomendacion.titulo }}</span>
         </p>
         <p style="margin:0">{{ d.recomendacion.explicacion }}</p>
+        @if (d.recomendacion.tambien.length > 0) {
+          <p style="margin:var(--sp-2) 0 0"><strong>También aplica:</strong></p>
+          <ul class="lista">
+            @for (t of d.recomendacion.tambien; track t.codigo) {
+              <li><span class="etiqueta etiqueta--icono etiqueta--{{ rotuloRecomendacion(t.codigo).tono }}"><span aria-hidden="true">{{ rotuloRecomendacion(t.codigo).icono }}</span> {{ t.titulo }}</span></li>
+            }
+          </ul>
+        }
         <p class="pista" style="margin:var(--sp-1) 0 0">Es una ayuda para quien revisa: no es una decisión. La decisión final es de una persona.</p>
       </section>
 
@@ -109,7 +118,7 @@ import {
           <ul class="lista">
             @for (x of d.discrepancias; track $index) {
               <li>
-                <span class="etiqueta etiqueta--icono etiqueta--{{ x.severidad === 'critica' ? 'peligro' : 'info' }}"><span aria-hidden="true">{{ x.severidad === 'critica' ? '!' : 'i' }}</span> {{ x.severidad === 'critica' ? 'Crítica' : 'Informativa' }}</span>
+                <span class="etiqueta etiqueta--icono etiqueta--{{ severidad(x.severidad).tono }}"><span aria-hidden="true">{{ severidad(x.severidad).icono }}</span> {{ severidad(x.severidad).texto }}</span>
                 <strong> {{ x.titulo }}</strong><br />{{ x.explicacion }}
               </li>
             }
@@ -141,7 +150,20 @@ import {
 
       <section class="panel tarjeta" aria-labelledby="p-dat">
         <h3 id="p-dat">Datos extraídos del certificado</h3>
-        <p class="pista">Método: {{ metodo(d.certificado.metodoExtraccion) }} · vigencia {{ d.certificado.vigencia === 'vigente' ? 'vigente' : d.certificado.vigencia === 'vencido' ? 'vencida' : 'no determinada' }}</p>
+        <p class="pista">Método: {{ metodo(d.certificado.metodoExtraccion) }}</p>
+        @if (d.certificado.vigencia === 'vencido') {
+          <div class="aviso" role="status" data-vigencia="vencido">
+            <strong>CERTIFICADO VENCIDO.</strong>
+            Expedido el {{ fechaIso(d.certificado.vigenciaDetalle.fechaExpedicion) }}
+            @if (d.certificado.vigenciaDetalle.diasTranscurridos !== null) { (hace {{ d.certificado.vigenciaDetalle.diasTranscurridos }} días) }.
+            @if (d.certificado.vigenciaDetalle.diasVigencia !== null) { Regla institucional: no más de {{ d.certificado.vigenciaDetalle.diasVigencia }} días desde la expedición. }
+            Es información para su decisión: no se rechaza automáticamente.
+          </div>
+        } @else if (d.certificado.vigencia === 'vigente') {
+          <p class="pista" data-vigencia="vigente">Vigente: expedido el {{ fechaIso(d.certificado.vigenciaDetalle.fechaExpedicion) }}@if (d.certificado.vigenciaDetalle.diasTranscurridos !== null) { (hace {{ d.certificado.vigenciaDetalle.diasTranscurridos }} días) }.</p>
+        } @else {
+          <p class="pista" data-vigencia="no_determinada">Vigencia no determinada: no se pudo leer la fecha de expedición (generación).</p>
+        }
         @if (!d.acceso.puedeVerValores) {
           <p class="pista">Los datos personales se muestran cuando usted tiene el caso tomado.</p>
         } @else {
@@ -150,7 +172,7 @@ import {
               <thead><tr><th scope="col">Campo</th><th scope="col">Valor</th><th scope="col">Fuente</th></tr></thead>
               <tbody>
                 @for (c of d.certificado.campos; track c.campo) {
-                  <tr><th scope="row">{{ c.etiqueta }}</th><td>{{ c.valor ?? '—' }}</td><td>{{ c.fuente ? fuenteCampo(c.fuente) : '—' }}</td></tr>
+                  <tr><th scope="row">{{ c.etiqueta }}</th><td>{{ c.campo === 'fecha_expedicion' ? fechaIso(c.valor) : (c.valor ?? '—') }}</td><td>{{ c.fuente ? fuenteCampo(c.fuente) : '—' }}</td></tr>
                 }
               </tbody>
             </table>
@@ -263,6 +285,9 @@ export class EpsDetalleComponent {
   autenticidad(d: NonNullable<ReturnType<EpsMesaEstado['detalle']>>) { return AUTENTICIDAD[d.autenticidad.estado] ?? AUTENTICIDAD['no_evaluada']; }
   afiliacion(d: NonNullable<ReturnType<EpsMesaEstado['detalle']>>) { return AFILIACION[d.afiliacion.estado] ?? AFILIACION['no_contrastada']; }
   recomendacion(d: NonNullable<ReturnType<EpsMesaEstado['detalle']>>) { return RECOMENDACION[d.recomendacion.codigo] ?? RECOMENDACION['informacion_insuficiente']; }
+  rotuloRecomendacion(codigo: string) { return RECOMENDACION[codigo] ?? RECOMENDACION['informacion_insuficiente']; }
+  severidad(s: string) { return SEVERIDAD_DISCREPANCIA[s] ?? SEVERIDAD_DISCREPANCIA['informativa']; }
+  fechaIso(iso: string | null): string { return fechaIso(iso); }
   fuenteAfiliacion(f: string): string { return FUENTE_AFILIACION[f] ?? f; }
   fuenteCampo(f: string): string { return FUENTE_CAMPO[f] ?? f; }
   metodo(m: string): string { return METODO_EXTRACCION[m] ?? m; }

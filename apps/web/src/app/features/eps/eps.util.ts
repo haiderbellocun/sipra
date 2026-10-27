@@ -40,8 +40,17 @@ export const RECOMENDACION: Record<string, Rotulo> = {
   recomendar_revision_documental: { texto: 'Revisar el documento', icono: '?', tono: 'aviso' },
   recomendar_revision_rechazo: { texto: 'Revisar: posible rechazo', icono: '!', tono: 'peligro' },
   discrepancia_critica: { texto: 'Discrepancia crítica', icono: '!', tono: 'peligro' },
+  documento_incorrecto: { texto: 'Documento incorrecto', icono: '!', tono: 'peligro' },
+  certificado_vencido: { texto: 'Certificado vencido', icono: '!', tono: 'aviso' },
   pendiente_adres: { texto: 'Falta ADRES', icono: '○', tono: 'info' },
   informacion_insuficiente: { texto: 'Información insuficiente', icono: '?', tono: 'neutra' },
+};
+
+/** Certificado frente a SIPRA: un dato que falta es «información insuficiente», nunca «coincide». */
+export const CERTIFICADO_VS_SIPRA: Record<string, Rotulo> = {
+  coincide: { texto: 'Coincide', icono: '✓', tono: 'ok' },
+  diferente: { texto: 'Diferente', icono: '✗', tono: 'peligro' },
+  insuficiente: { texto: 'Información insuficiente', icono: '?', tono: 'aviso' },
 };
 
 export const RESULTADO_COMPARACION: Record<string, Rotulo> = {
@@ -82,7 +91,9 @@ export const JUSTIFICACION_REFORZADA = 40;
 
 /** Ver `evaluarApartamiento` en la API: aquí solo se anticipa al funcionario; el servidor decide. */
 export function apartaDeRecomendacion(decision: 'aprobar' | 'devolver' | 'rechazar', recomendacion: string): boolean {
-  if (decision === 'aprobar') return recomendacion === 'discrepancia_critica' || recomendacion === 'recomendar_revision_rechazo';
+  if (decision === 'aprobar') {
+    return recomendacion === 'discrepancia_critica' || recomendacion === 'recomendar_revision_rechazo' || recomendacion === 'documento_incorrecto';
+  }
   if (decision === 'rechazar') return recomendacion === 'candidato_autoaprobacion';
   return false;
 }
@@ -127,6 +138,18 @@ export function fechaCorta(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+
+/** «2014-01-13» → «13/01/2014». Una fecha sin hora no pasa por `Date`: así no se corre un día por la zona horaria. */
+export function fechaIso(iso: string | null): string {
+  const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '—';
+}
+
+export const SEVERIDAD_DISCREPANCIA: Record<string, Rotulo> = {
+  critica: { texto: 'Crítica', icono: '!', tono: 'peligro' },
+  informativa: { texto: 'Informativa', icono: 'i', tono: 'info' },
+  insuficiente: { texto: 'Información insuficiente', icono: '?', tono: 'aviso' },
+};
 
 export function diaCorto(iso: string | null): string {
   if (!iso) return '—';

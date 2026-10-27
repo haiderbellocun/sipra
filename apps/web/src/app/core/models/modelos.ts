@@ -524,6 +524,8 @@ export type EstadoAdres =
 export interface ComparacionTriple {
   campo: string; sipra: string | null; certificado: string | null; adres: string | null;
   resultado: 'coincide' | 'diferente' | 'no_disponible'; conflictos: string[]; critico: boolean;
+  /** Certificado frente a SIPRA en campos de identidad; un dato ausente es «insuficiente», nunca «coincide». */
+  certificadoVsSipra?: 'coincide' | 'diferente' | 'insuficiente';
 }
 
 export interface FilaBandejaAdres {
@@ -579,7 +581,7 @@ export interface FiltrosMesa {
 }
 
 export interface DiscrepanciaLegible {
-  severidad: 'critica' | 'informativa'; campo: string; titulo: string; explicacion: string;
+  severidad: 'critica' | 'informativa' | 'insuficiente'; campo: string; titulo: string; explicacion: string;
 }
 
 export interface EventoHistorial { fecha: string; tipo: string; titulo: string; actor: string | null; detalle: string | null }
@@ -598,6 +600,7 @@ export interface DetalleMesa {
   certificado: {
     nombreOriginal: string; mime: string; tamanoBytes: number; version: number; cargadoEn: string; estadoDocumento: string;
     metodoExtraccion: 'texto_nativo' | 'ocr' | 'mixto' | 'desconocido'; vigencia: string;
+    vigenciaDetalle: { fechaExpedicion: string | null; diasTranscurridos: number | null; diasVigencia: number | null };
     campos: Array<{ campo: string; etiqueta: string; valor: string | null; fuente: 'texto_nativo' | 'ocr' | 'qr' | null }>;
   };
   autenticidad: {
@@ -611,7 +614,11 @@ export interface DetalleMesa {
   };
   comparacion: ComparacionTriple[];
   discrepancias: DiscrepanciaLegible[];
-  recomendacion: { codigo: string; titulo: string; explicacion: string; esDecision: false };
+  recomendacion: {
+    codigo: string; titulo: string; explicacion: string; esDecision: false;
+    /** Las demás condiciones que también aplican, en orden de importancia. */
+    tambien: Array<{ codigo: string; titulo: string }>;
+  };
   adres: { estado: EstadoAdres; tipoDocumento: string | null; error: string | null; cargadaEn: string | null };
   evidencias: Array<{ id: string; tipo: string; fuente: string; metodo: string; resultado: string; fecha: string; error: string | null }>;
   historial: EventoHistorial[];

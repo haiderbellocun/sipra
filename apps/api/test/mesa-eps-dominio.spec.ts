@@ -5,8 +5,8 @@ import {
 import { compararTriple } from '../src/domain/services/adres-resultado.domain-service';
 import {
   ESTADOS_ADRES_ABIERTOS, JUSTIFICACION_MINIMA, JUSTIFICACION_REFORZADA, MENSAJES_DEVOLUCION_EPS, MotivoDevolucionEps, PESOS_PRIORIDAD,
-  calcularPrioridad, construirDiscrepancias, evaluarApartamiento, evaluarFrescuraAdres, mensajeDevolucion, recomendacionActual,
-  tieneDiscrepanciaCriticaPersistida,
+  calcularPrioridad, camposClaveFaltantes, condicionesRecomendacion, construirDiscrepancias, evaluarApartamiento, evaluarFrescuraAdres,
+  explicacionVencido, mensajeDevolucion, recomendacionActual, tieneDiscrepanciaCriticaPersistida, veredictoCertificadoVsSipra,
 } from '../src/domain/services/mesa-eps.domain-service';
 
 /** Prioridad, discrepancias legibles, recomendación, justificación reforzada, motivos y frescura de la Mesa de EPS. Dominio puro. */
@@ -134,7 +134,7 @@ describe('Discrepancias en lenguaje claro', () => {
 
 describe('Recomendación vigente del sistema', () => {
   it('afiliación sin contrastar con ADRES por hacer: «pendiente de ADRES»', () => {
-    const d = validacion({ adres: { ...adresInicial(), estado: EstadoAdres.PENDIENTE } });
+    const d = validacion({ datosExtraidos: CERT, adres: { ...adresInicial(), estado: EstadoAdres.PENDIENTE } });
     expect(recomendacionActual(d, false)).toBe(RecomendacionEps.PENDIENTE_ADRES);
   });
 
@@ -144,13 +144,13 @@ describe('Recomendación vigente del sistema', () => {
   });
 
   it('con todo en regla es candidato; sin autenticidad verificada, revisión documental', () => {
-    const d = validacion({ afiliacion: AfiliacionEps.ACTIVA, afiliacionFuente: 'adres_bdua', autenticidad: AutenticidadEps.VERIFICADA });
+    const d = validacion({ datosExtraidos: CERT, afiliacion: AfiliacionEps.ACTIVA, afiliacionFuente: 'adres_bdua', autenticidad: AutenticidadEps.VERIFICADA });
     expect(recomendacionActual(d, false)).toBe(RecomendacionEps.CANDIDATO_AUTOAPROBACION);
     expect(recomendacionActual({ ...d, autenticidad: AutenticidadEps.NO_VERIFICABLE }, false)).toBe(RecomendacionEps.REVISION_DOCUMENTAL);
   });
 
   it('afiliación inactiva: revisión / posible rechazo', () => {
-    expect(recomendacionActual(validacion({ afiliacion: AfiliacionEps.INACTIVA, afiliacionFuente: 'adres_bdua' }), false)).toBe(RecomendacionEps.REVISION_RECHAZO);
+    expect(recomendacionActual(validacion({ datosExtraidos: CERT, afiliacion: AfiliacionEps.INACTIVA, afiliacionFuente: 'adres_bdua' }), false)).toBe(RecomendacionEps.REVISION_RECHAZO);
   });
 
   it('es una recomendación, no una decisión: nunca produce un valor de decisión', () => {
@@ -227,5 +227,101 @@ describe('Frescura de la consulta ADRES (sin política definida)', () => {
 
   it('una consulta con fecha futura (reloj desfasado) no da días negativos', () => {
     expect(evaluarFrescuraAdres(new Date(AHORA.getTime() + 86_400_000), null, AHORA).diasDesdeConsulta).toBe(0);
+  });
+});
+
+// ── Certificado con datos faltantes, de otra persona y vencido (prueba manual con un certificado antiguo) ──────────
+
+const OTRA_PERSONA = { ...CERT, tipoDocumento: 'RC', numeroDocumento: '1099887766', nombre: 'SAMUEL ANDRES FICTICIO PRUEBA', fechaExpedicion: '2014-01-13' };
+const CTX = { ahora: AHORA, diasVigencia: 30 };
+
+describe('Datos faltantes: información insuficiente, nunca «coincide»', () => {
+  it('procesado sin ningún dato leído: tres faltantes explícitos y recomendación de información insuficiente', () => {
+    const d = validacion({ datosExtraidos: null, coincidencia: CoincidenciaEps.INSUFICIENTE, adres: { ...adresInicial(), estado: EstadoAdres.PENDIENTE } });
+    expect(camposClaveFaltantes(d)).toEqual(['numero_documento', 'nombre', 'fecha_expedicion']);
+    const lista = construirDiscrepancias(d, compararTriple(ADRES, SIPRA, null), CTX);
+    expect(lista.map((x) => x.severidad)).toEqual(['insuficiente', 'insuficiente', 'insuficiente']);
+    expect(lista.map((x) => x.campo)).toEqual(['numero_documento', 'nombre', 'fecha_expedicion']);
+    expect(recomendacionActual(d, false)).toBe(RecomendacionEps.INFORMACION_INSUFICIENTE); // y ADRES pendiente NO lo oculta
+  });
+
+  it('solo falta el documento: se señala ese campo y no se declara coincidencia', () => {
+    const d = validacion({ datosExtraidos: { ...CERT, numeroDocumento: null, tipoDocumento: null }, coincidencia: CoincidenciaEps.INSUFICIENTE });
+    expect(camposClaveFaltantes(d)).toEqual(['numero_documento']);
+    expect(recomendacionActual(d, false)).toBe(RecomendacionEps.INFORMACION_INSUFICIENTE);
+  });
+
+  it('antes de procesar no se afirma que falte algo (todavía no se sabe qué se leyó)', () => {
+    const d = validacion({ datosExtraidos: null, estadoProcesamiento: 'pendiente' as never });
+    expect(camposClaveFaltantes(d)).toEqual([]);
+    expect(construirDiscrepancias(d, compararTriple(ADRES, SIPRA, null), CTX)).toEqual([]);
+  });
+
+  it('el veredicto «certificado vs SIPRA»: ausente = insuficiente; igual = coincide; distinto = diferente', () => {
+    const fila = (campo: 'numero_documento' | 'nombre' | 'eps', cert: typeof CERT | null) => compararTriple(ADRES, SIPRA, cert).find((f) => f.campo === campo)!;
+    expect(veredictoCertificadoVsSipra(fila('numero_documento', null))).toBe('insuficiente');
+    expect(veredictoCertificadoVsSipra(fila('numero_documento', CERT))).toBe('coincide');
+    expect(veredictoCertificadoVsSipra(fila('numero_documento', OTRA_PERSONA))).toBe('diferente');
+    expect(veredictoCertificadoVsSipra(fila('nombre', OTRA_PERSONA))).toBe('diferente');
+    expect(veredictoCertificadoVsSipra(fila('eps', CERT))).toBeNull(); // SIPRA no conoce la EPS del estudiante
+  });
+});
+
+describe('Certificado de otra persona y vencido', () => {
+  const d = validacion({ datosExtraidos: OTRA_PERSONA, coincidencia: CoincidenciaEps.DISCREPANCIA, vigenciaCertificado: 'vencido', adres: { ...adresInicial(), estado: EstadoAdres.PENDIENTE } });
+  const triple = compararTriple(ADRES, SIPRA, OTRA_PERSONA);
+
+  it('documento y nombre distintos son discrepancias CRÍTICAS', () => {
+    const criticas = construirDiscrepancias(d, triple, CTX).filter((x) => x.severidad === 'critica');
+    expect(criticas.map((x) => x.campo)).toEqual(expect.arrayContaining(['numero_documento', 'nombre']));
+  });
+
+  it('el vencimiento muestra fecha de expedición, antigüedad y la regla institucional, sin volverse crítico', () => {
+    const v = construirDiscrepancias(d, triple, CTX).find((x) => x.titulo === 'Certificado vencido')!;
+    expect(v.severidad).toBe('informativa');
+    expect(v.explicacion).toContain('13/01/2014');
+    expect(v.explicacion).toContain('hace 4669 días');
+    expect(v.explicacion).toContain('no más de 30 días');
+    expect(v.explicacion).toContain('no se rechaza automáticamente');
+  });
+
+  it('sin contexto, el texto del vencimiento sigue siendo claro (no inventa cifras)', () => {
+    expect(explicacionVencido('2014-01-13')).toBe('La fecha de expedición del certificado supera la vigencia institucional.');
+    expect(explicacionVencido('2014-01-13', { ahora: AHORA, diasVigencia: null })).not.toContain('regla institucional exige');
+  });
+
+  it('la recomendación respeta el orden y muestra AMBAS condiciones; ADRES no oculta nada', () => {
+    expect(recomendacionActual(d, true)).toBe(RecomendacionEps.DISCREPANCIA_CRITICA);
+    expect(condicionesRecomendacion(d, true)).toEqual([RecomendacionEps.DISCREPANCIA_CRITICA, RecomendacionEps.CERTIFICADO_VENCIDO]);
+  });
+});
+
+describe('Orden de la recomendación', () => {
+  const ok = validacion({ datosExtraidos: CERT, adres: { ...adresInicial(), estado: EstadoAdres.PENDIENTE } });
+
+  it('1) documento incorrecto > 2) discrepancia crítica > 3) vencido > 4) insuficiente > 5) autenticidad > 6) ADRES', () => {
+    const todo = validacion({
+      datosExtraidos: null, coincidencia: CoincidenciaEps.INSUFICIENTE, vigenciaCertificado: 'vencido',
+      autenticidad: AutenticidadEps.INVALIDA, adres: { ...adresInicial(), estado: EstadoAdres.PENDIENTE },
+    });
+    expect(condicionesRecomendacion(todo, true, { tipoIncorrecto: true })).toEqual([
+      RecomendacionEps.DOCUMENTO_INCORRECTO, RecomendacionEps.DISCREPANCIA_CRITICA, RecomendacionEps.CERTIFICADO_VENCIDO,
+      RecomendacionEps.INFORMACION_INSUFICIENTE, RecomendacionEps.REVISION_RECHAZO,
+    ]);
+    expect(recomendacionActual(todo, true, { tipoIncorrecto: true })).toBe(RecomendacionEps.DOCUMENTO_INCORRECTO);
+    expect(recomendacionActual(todo, true)).toBe(RecomendacionEps.DISCREPANCIA_CRITICA);
+    expect(recomendacionActual(todo, false)).toBe(RecomendacionEps.CERTIFICADO_VENCIDO);
+    expect(recomendacionActual({ ...todo, vigenciaCertificado: 'vigente' }, false)).toBe(RecomendacionEps.INFORMACION_INSUFICIENTE);
+    expect(recomendacionActual({ ...todo, vigenciaCertificado: 'vigente', datosExtraidos: CERT, coincidencia: CoincidenciaEps.COINCIDE }, false)).toBe(RecomendacionEps.REVISION_RECHAZO);
+  });
+
+  it('un certificado vencido manda sobre «falta ADRES»; vigente y completo sí queda en ADRES', () => {
+    expect(recomendacionActual({ ...ok, vigenciaCertificado: 'vencido' }, false)).toBe(RecomendacionEps.CERTIFICADO_VENCIDO);
+    expect(recomendacionActual(ok, false)).toBe(RecomendacionEps.PENDIENTE_ADRES);
+  });
+
+  it('aprobar contra «documento incorrecto» exige justificación reforzada; el vencido no rechaza solo', () => {
+    expect(evaluarApartamiento('aprobar', RecomendacionEps.DOCUMENTO_INCORRECTO)).toMatchObject({ apartaDeRecomendacion: true, minimoJustificacion: JUSTIFICACION_REFORZADA });
+    expect(evaluarApartamiento('aprobar', RecomendacionEps.CERTIFICADO_VENCIDO).apartaDeRecomendacion).toBe(false);
   });
 });

@@ -36,6 +36,10 @@ export enum RecomendacionEps {
   REVISION_RECHAZO = 'recomendar_revision_rechazo',
   /** EPS, documento o nombre en conflicto entre fuentes. */
   DISCREPANCIA_CRITICA = 'discrepancia_critica',
+  /** Solo la Mesa la calcula (no se guarda): el archivo no es un certificado de afiliación a EPS. */
+  DOCUMENTO_INCORRECTO = 'documento_incorrecto',
+  /** Solo la Mesa la calcula (no se guarda): la fecha de expedición supera la vigencia institucional. */
+  CERTIFICADO_VENCIDO = 'certificado_vencido',
   /** Falta el resultado ADRES. */
   PENDIENTE_ADRES = 'pendiente_adres',
   /** Hay resultado, pero no se pudo interpretar con seguridad. */
@@ -82,6 +86,11 @@ export interface ComparacionTripleCampo {
   adres: string | null;
   /** Veredicto de la comparación (ADRES contra lo demás). */
   resultado: ResultadoCampoTriple;
+  /**
+   * Certificado frente a SIPRA, campo de identidad: `coincide`, `diferente` o `insuficiente`
+   * (falta alguno de los dos valores; un dato ausente NUNCA cuenta como coincidencia).
+   */
+  certificadoVsSipra?: 'coincide' | 'diferente' | 'insuficiente';
   /** Entre qué pares hay conflicto. */
   conflictos: Array<'sipra_vs_adres' | 'certificado_vs_adres' | 'sipra_vs_certificado'>;
   /** Un conflicto en un campo de identidad o de entidad es crítico. */

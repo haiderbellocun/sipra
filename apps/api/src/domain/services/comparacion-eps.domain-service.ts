@@ -55,7 +55,7 @@ export function construirDatosExtraidosEps(campos: Readonly<Record<string, Campo
     eps,
     epsClave: claveEps(eps),
     regimen: regimen.regimen,
-    tipoAfiliado: regimen.tipoAfiliado,
+    tipoAfiliado: regimen.tipoAfiliado ?? normalizarRegimen(leer('tipo_afiliado')).tipoAfiliado,
     estadoReportadoCertificado: normalizarEstadoReportado(leer('estado_afiliacion')),
     fechaExpedicion: fechaIsoDe(leer('fecha_expedicion')),
     ...(Object.keys(fuentes).length > 0 ? { fuentes } : {}),
@@ -80,17 +80,26 @@ export interface ResultadoComparacionEps {
   vigencia: VigenciaCertificado;
 }
 
-/** Días completos entre la fecha de expedición y hoy (día de Colombia). */
+/**
+ * Días completos entre la fecha de expedición y hoy (día de Colombia). `null` si no hay fecha, no se
+ * entiende o es futura (dato inconsistente). Es la fecha de EXPEDICIÓN/GENERACIÓN del certificado:
+ * nunca la fecha de ingreso a la EPS.
+ */
+export function diasDesdeExpedicion(fechaExpedicion: string | null, ahora: Date): number | null {
+  if (!fechaExpedicion) return null;
+  const expedicion = Date.parse(`${fechaExpedicion}T00:00:00Z`);
+  if (Number.isNaN(expedicion)) return null;
+  const dias = Math.floor((inicioDelDiaEnColombia(ahora).getTime() - expedicion) / 86_400_000);
+  return dias < 0 ? null : dias;
+}
+
 export function evaluarVigenciaCertificado(
   fechaExpedicion: string | null,
   ahora: Date,
   diasVigencia: number,
 ): VigenciaCertificado {
-  if (!fechaExpedicion) return 'no_determinada';
-  const expedicion = Date.parse(`${fechaExpedicion}T00:00:00Z`);
-  if (Number.isNaN(expedicion)) return 'no_determinada';
-  const dias = Math.floor((inicioDelDiaEnColombia(ahora).getTime() - expedicion) / 86_400_000);
-  if (dias < 0) return 'no_determinada'; // fecha futura: el dato es inconsistente, no vigente
+  const dias = diasDesdeExpedicion(fechaExpedicion, ahora);
+  if (dias === null) return 'no_determinada';
   return dias <= diasVigencia ? 'vigente' : 'vencido';
 }
 

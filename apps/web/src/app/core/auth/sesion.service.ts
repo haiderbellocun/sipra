@@ -106,10 +106,24 @@ export class SesionService {
     }
   }
 
+  /**
+   * Cierra la sesión: el token no tiene estado en el servidor, así que cerrar es olvidarlo
+   * aquí (señal y almacenamiento) y volver al ingreso. Las rutas protegidas exigen ingresar de nuevo.
+   */
   salir(): void {
     this._sesion.set(null);
-    localStorage.removeItem(CLAVE_SESION);
+    try {
+      localStorage.removeItem(CLAVE_SESION);
+    } catch {
+      /* sin almacenamiento no hay nada persistido que limpiar */
+    }
+    this.descartarStateTemporal();
     void this.router.navigate(['/ingreso']);
+  }
+
+  /** Cambio de usuario (ambiente de pruebas): descarta la sesión y abre el selector de perfil. */
+  cambiarUsuario(): void {
+    this.salir();
   }
 
   private establecer(sesion: Sesion): void {

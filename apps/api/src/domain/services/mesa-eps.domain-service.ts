@@ -1,8 +1,9 @@
 import { ComparacionTripleCampo, EstadoAdres, RecomendacionEps } from '../entities/adres';
 import {
-  AfiliacionEps, AutenticidadEps, CoincidenciaEps, DatosValidacionEps,
+  AfiliacionEps, AutenticidadEps, CoincidenciaEps, DatosValidacionEps, EstadoProcesamientoEps,
 } from '../entities/validacion-eps.entity';
 import { recomendarEps } from './adres-resultado.domain-service';
+import { diasDesdeExpedicion } from './comparacion-eps.domain-service';
 
 /**
  * Reglas de la Mesa operativa de EPS. Todas son determinísticas y explicables;
@@ -67,8 +68,70 @@ export function calcularPrioridad(e: EntradaPrioridad, ahora: Date): Prioridad {
 
 // ── Discrepancias legibles ──────────────────────────────────────────────────
 
+/** Lo que la Mesa sabe del momento y de la política para explicar el caso con cifras. */
+export interface ContextoMesa {
+  ahora: Date;
+  /** Vigencia institucional del certificado (`arl.dias_vigencia_eps`); `null` si no se pudo leer. */
+  diasVigencia: number | null;
+  /** El análisis del archivo marcó que no es un certificado de afiliación a EPS. */
+  tipoIncorrecto?: boolean;
+}
+
+export type CampoClaveFaltante = 'numero_documento' | 'nombre' | 'fecha_expedicion';
+
+/**
+ * Datos sin los cuales no se puede decir si el certificado es de la persona ni si está vigente.
+ * Solo se evalúa con el certificado ya procesado: antes de eso no se sabe qué se leyó.
+ * Un dato ausente NUNCA equivale a «coincide»: es información insuficiente.
+ */
+export function camposClaveFaltantes(d: DatosValidacionEps): CampoClaveFaltante[] {
+  if (d.estadoProcesamiento !== EstadoProcesamientoEps.PROCESADO) return [];
+  const x = d.datosExtraidos;
+  const faltan: CampoClaveFaltante[] = [];
+  if (!x?.numeroDocumento) faltan.push('numero_documento');
+  if (!x?.nombre) faltan.push('nombre');
+  if (!x?.fechaExpedicion) faltan.push('fecha_expedicion');
+  return faltan;
+}
+
+const EXPLICACION_FALTANTE: Record<CampoClaveFaltante, { titulo: string; explicacion: string }> = {
+  numero_documento: {
+    titulo: 'Información insuficiente: número de documento',
+    explicacion: 'No se pudo leer el número de documento del certificado, así que no es posible confirmar que pertenece al estudiante. No se da por coincidente.',
+  },
+  nombre: {
+    titulo: 'Información insuficiente: nombre del afiliado',
+    explicacion: 'No se pudo leer el nombre del afiliado en el certificado, así que no se puede compararlo con el del estudiante. No se da por coincidente.',
+  },
+  fecha_expedicion: {
+    titulo: 'Información insuficiente: fecha de expedición',
+    explicacion: 'No se pudo leer la fecha de expedición (generación) del certificado, así que no se puede evaluar su vigencia.',
+  },
+};
+
+const fechaLegible = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
+/** Detalle del vencimiento: fecha de expedición, antigüedad y regla institucional. */
+export function explicacionVencido(fechaExpedicion: string | null, ctx?: ContextoMesa): string {
+  const base = 'La fecha de expedición del certificado supera la vigencia institucional.';
+  if (!ctx || !fechaExpedicion) return base;
+  const dias = diasDesdeExpedicion(fechaExpedicion, ctx.ahora);
+  if (dias === null) return base;
+  const regla = ctx.diasVigencia !== null
+    ? ` La regla institucional exige un certificado de no más de ${ctx.diasVigencia} días, contados desde la expedición (no desde el ingreso a la EPS).`
+    : '';
+  return `Expedido el ${fechaLegible(fechaExpedicion)}, hace ${dias} ${dias === 1 ? 'día' : 'días'}.${regla} Es un dato para su decisión: no se rechaza automáticamente.`;
+}
+
+/** Resultado del certificado frente a SIPRA en un campo de identidad. Un valor ausente es «insuficiente», nunca «coincide». */
+export function veredictoCertificadoVsSipra(fila: ComparacionTripleCampo): 'coincide' | 'diferente' | 'insuficiente' | null {
+  if (!['numero_documento', 'tipo_documento', 'nombre'].includes(fila.campo)) return null;
+  if (fila.sipra === null || fila.certificado === null) return 'insuficiente';
+  return fila.conflictos.includes('sipra_vs_certificado') ? 'diferente' : 'coincide';
+}
+
 export interface DiscrepanciaLegible {
-  severidad: 'critica' | 'informativa';
+  severidad: 'critica' | 'informativa' | 'insuficiente';
   campo: string;
   titulo: string;
   explicacion: string;
@@ -91,7 +154,9 @@ function textoPar(par: ComparacionTripleCampo['conflictos'][number], campo: Comp
  * entiende, separando lo CRÍTICO de lo informativo. Cada texto explica qué pasa y
  * qué fuentes chocan; no hay códigos técnicos sueltos.
  */
-export function construirDiscrepancias(d: DatosValidacionEps, triple: readonly ComparacionTripleCampo[]): DiscrepanciaLegible[] {
+export function construirDiscrepancias(
+  d: DatosValidacionEps, triple: readonly ComparacionTripleCampo[], ctx?: ContextoMesa,
+): DiscrepanciaLegible[] {
   const salida: DiscrepanciaLegible[] = [];
   for (const fila of triple) {
     for (const par of fila.conflictos) {
@@ -121,10 +186,13 @@ export function construirDiscrepancias(d: DatosValidacionEps, triple: readonly C
       explicacion: 'El análisis del archivo dejó una alerta crítica que debe revisarse en el documento.',
     });
   }
+  for (const faltante of camposClaveFaltantes(d)) {
+    salida.push({ severidad: 'insuficiente', campo: faltante, ...EXPLICACION_FALTANTE[faltante] });
+  }
   if (d.vigenciaCertificado === 'vencido') {
     salida.push({
       severidad: 'informativa', campo: 'fecha_expedicion', titulo: 'Certificado vencido',
-      explicacion: 'La fecha de expedición del certificado supera la vigencia institucional.',
+      explicacion: explicacionVencido(d.datosExtraidos?.fechaExpedicion ?? null, ctx),
     });
   }
   for (const x of d.discrepancias) {
@@ -146,12 +214,35 @@ export function construirDiscrepancias(d: DatosValidacionEps, triple: readonly C
 
 // ── Recomendación vigente ───────────────────────────────────────────────────
 
-/** Recomendación a mostrar HOY (se recalcula con los ejes actuales; no es una decisión). */
-export function recomendacionActual(d: DatosValidacionEps, hayDiscrepanciaCritica: boolean): RecomendacionEps {
-  const adresAbierto = ESTADOS_ADRES_ABIERTOS.includes(d.adres.estado);
-  if (d.afiliacion === AfiliacionEps.NO_CONTRASTADA && adresAbierto && !hayDiscrepanciaCritica && d.autenticidad !== AutenticidadEps.INVALIDA) {
-    return RecomendacionEps.PENDIENTE_ADRES;
+/**
+ * Todo lo que aplica al caso, en el ORDEN de importancia: 1) documento o tipo incorrecto, 2) discrepancia
+ * crítica de identidad, 3) certificado vencido, 4) información insuficiente (ilegible o incompleto),
+ * 5) autenticidad o afiliación inválidas. ADRES pendiente va después y no oculta nada de lo anterior.
+ */
+export function condicionesRecomendacion(
+  d: DatosValidacionEps, hayDiscrepanciaCritica: boolean, ctx?: Pick<ContextoMesa, 'tipoIncorrecto'>,
+): RecomendacionEps[] {
+  const condiciones: RecomendacionEps[] = [];
+  if (ctx?.tipoIncorrecto) condiciones.push(RecomendacionEps.DOCUMENTO_INCORRECTO);
+  if (hayDiscrepanciaCritica) condiciones.push(RecomendacionEps.DISCREPANCIA_CRITICA);
+  if (d.vigenciaCertificado === 'vencido') condiciones.push(RecomendacionEps.CERTIFICADO_VENCIDO);
+  const incompleto = camposClaveFaltantes(d).length > 0
+    || (d.estadoProcesamiento === EstadoProcesamientoEps.PROCESADO && d.coincidencia === CoincidenciaEps.INSUFICIENTE);
+  if (incompleto) condiciones.push(RecomendacionEps.INFORMACION_INSUFICIENTE);
+  if (d.autenticidad === AutenticidadEps.INVALIDA || d.afiliacion === AfiliacionEps.INACTIVA) {
+    condiciones.push(RecomendacionEps.REVISION_RECHAZO);
   }
+  return condiciones;
+}
+
+/** Recomendación a mostrar HOY (se recalcula con los ejes actuales; no es una decisión). */
+export function recomendacionActual(
+  d: DatosValidacionEps, hayDiscrepanciaCritica: boolean, ctx?: Pick<ContextoMesa, 'tipoIncorrecto'>,
+): RecomendacionEps {
+  const [principal] = condicionesRecomendacion(d, hayDiscrepanciaCritica, ctx);
+  if (principal) return principal;
+  const adresAbierto = ESTADOS_ADRES_ABIERTOS.includes(d.adres.estado);
+  if (d.afiliacion === AfiliacionEps.NO_CONTRASTADA && adresAbierto) return RecomendacionEps.PENDIENTE_ADRES;
   return recomendarEps({
     afiliacion: d.afiliacion, autenticidad: d.autenticidad, coincidenciaCertificado: d.coincidencia,
     vigencia: d.vigenciaCertificado, hayBanderaCritica: d.hayBanderaCritica, hayDiscrepanciaCritica,
@@ -166,7 +257,8 @@ export const JUSTIFICACION_REFORZADA = 40;
 export function evaluarApartamiento(
   decision: 'aprobar' | 'devolver' | 'rechazar', recomendacion: RecomendacionEps,
 ): { apartaDeRecomendacion: boolean; minimoJustificacion: number; motivo: string | null } {
-  const negativa = recomendacion === RecomendacionEps.DISCREPANCIA_CRITICA || recomendacion === RecomendacionEps.REVISION_RECHAZO;
+  const negativa = recomendacion === RecomendacionEps.DISCREPANCIA_CRITICA || recomendacion === RecomendacionEps.REVISION_RECHAZO
+    || recomendacion === RecomendacionEps.DOCUMENTO_INCORRECTO;
   if (decision === 'aprobar' && negativa) {
     return { apartaDeRecomendacion: true, minimoJustificacion: JUSTIFICACION_REFORZADA, motivo: 'Aprueba aunque el sistema recomienda revisar o rechazar' };
   }

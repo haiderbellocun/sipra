@@ -30,7 +30,11 @@ const CLAVE_TEMA = 'sipra.tema';
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, AvisosComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.con-cinta]': "sesion.sesion()?.modo === 'abierto'" },
+  host: {
+    '[class.con-cinta]': "sesion.sesion()?.modo === 'abierto'",
+    '(document:click)': 'menuCuenta.set(false)',
+    '(document:keydown.escape)': 'menuCuenta.set(false)',
+  },
   styles: [`
     :host { display: block; min-height: 100dvh; }
     .sprite { display: none; }
@@ -109,6 +113,18 @@ const CLAVE_TEMA = 'sipra.tema';
     .appbar .der { margin-left: auto; display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
     .appbar .quien-movil { font-size: var(--fs-xs); color: var(--texto-tenue); }
     @media (width >= 1024px) { .appbar .solo-movil { display: none; } }
+    .cuenta { position: relative; }
+    .cuenta-boton { display: inline-flex; align-items: center; max-width: 16rem; }
+    .cuenta-boton .cuenta-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cuenta-menu {
+      position: absolute; right: 0; top: calc(100% + var(--sp-2)); z-index: 40; min-width: 15rem;
+      display: grid; gap: var(--sp-1); padding: var(--sp-3);
+      background: var(--superficie); border: 1px solid var(--borde); border-radius: 8px;
+      box-shadow: 0 8px 24px rgb(0 0 0 / .18);
+    }
+    .cuenta-menu .quien { font-weight: 600; }
+    .cuenta-menu .rol { color: var(--texto-tenue); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em; margin-bottom: var(--sp-2); }
+    .cuenta-menu .boton { justify-content: flex-start; width: 100%; }
     @media (width < 600px) { .solo-escritorio { display: none; } }
     main { padding: var(--sp-5) var(--sp-4) var(--sp-7); max-width: 78rem; width: 100%; }
     @media (width >= 1024px) { main { padding-inline: var(--sp-6); } }
@@ -189,7 +205,6 @@ const CLAVE_TEMA = 'sipra.tema';
         <header class="appbar">
           <h2>{{ titulo() }}</h2>
           <div class="der">
-            <span class="quien-movil solo-movil">{{ sesion.sesion()?.nombre }}</span>
             <button type="button" class="boton compacto tema" (click)="alternarTema($event)"
                     [attr.aria-label]="'Tema: ' + etiquetaTema() + '. Cambiar'">
               @if (tema() === 'oscuro') {
@@ -199,7 +214,22 @@ const CLAVE_TEMA = 'sipra.tema';
               }
               <span class="solo-escritorio">{{ etiquetaTema() }}</span>
             </button>
-            <button type="button" class="boton compacto solo-movil" (click)="sesion.salir()">Salir</button>
+            <div class="cuenta">
+              <button type="button" class="boton compacto cuenta-boton" aria-haspopup="menu"
+                      [attr.aria-expanded]="menuCuenta()" (click)="alternarMenuCuenta($event)">
+                <span class="cuenta-nombre">{{ sesion.sesion()?.nombre }}</span>
+              </button>
+              @if (menuCuenta()) {
+                <div class="cuenta-menu" role="menu" aria-label="Cuenta">
+                  <div class="quien">{{ sesion.sesion()?.nombre }}</div>
+                  <div class="rol">{{ etiquetaRol() }}</div>
+                  @if (sesion.sesion()?.modo === 'abierto') {
+                    <button type="button" class="boton compacto" role="menuitem" (click)="sesion.cambiarUsuario()">Cambiar usuario</button>
+                  }
+                  <button type="button" class="boton compacto" role="menuitem" (click)="sesion.salir()">Cerrar sesión</button>
+                </div>
+              }
+            </div>
           </div>
         </header>
         <main><router-outlet /></main>
@@ -306,6 +336,14 @@ export class ShellComponent {
     const base = rol ? (etiquetas[rol] ?? rol) : '';
     return this.sesion.sesion()?.permiso === 'consulta' ? `${base} · consulta` : base;
   });
+
+  // ── Cuenta ────────────────────────────────────────────────────────────────
+  readonly menuCuenta = signal(false);
+
+  alternarMenuCuenta(evento: Event): void {
+    evento.stopPropagation();
+    this.menuCuenta.update((abierto) => !abierto);
+  }
 
   // ── Tema ──────────────────────────────────────────────────────────────────
   readonly tema = signal<ModoTema>(this.temaGuardado());

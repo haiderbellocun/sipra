@@ -66,7 +66,7 @@ export class ListadoMesaDto {
 }
 
 export class DiscrepanciaLegibleDto {
-  @ApiProperty({ enum: ['critica', 'informativa'] }) severidad!: 'critica' | 'informativa';
+  @ApiProperty({ enum: ['critica', 'informativa', 'insuficiente'] }) severidad!: 'critica' | 'informativa' | 'insuficiente';
   @ApiProperty() campo!: string;
   @ApiProperty() titulo!: string;
   @ApiProperty() explicacion!: string;
@@ -106,6 +106,20 @@ export class VersionCertificadoDto {
   @ApiProperty() esEsta!: boolean;
 }
 
+export class CondicionRecomendacionDto {
+  @ApiProperty() codigo!: string;
+  @ApiProperty() titulo!: string;
+}
+
+export class RecomendacionMesaDto {
+  @ApiProperty() codigo!: string;
+  @ApiProperty() titulo!: string;
+  @ApiProperty() explicacion!: string;
+  @ApiProperty() esDecision!: false;
+  /** Las demás condiciones que también aplican, en orden de importancia (la principal es `codigo`). */
+  @ApiProperty({ type: [CondicionRecomendacionDto] }) tambien!: CondicionRecomendacionDto[];
+}
+
 export class DetalleMesaDto {
   @ApiProperty() caso!: {
     validacionId: string; documentoId: string; practicaId: string;
@@ -120,6 +134,8 @@ export class DetalleMesaDto {
   @ApiProperty() certificado!: {
     nombreOriginal: string; mime: string; tamanoBytes: number; version: number; cargadoEn: string; estadoDocumento: string;
     metodoExtraccion: 'texto_nativo' | 'ocr' | 'mixto' | 'desconocido'; vigencia: string; campos: CampoCertificadoDto[];
+    /** Vigencia explicada: fecha de expedición, antigüedad y regla institucional (días). */
+    vigenciaDetalle: { fechaExpedicion: string | null; diasTranscurridos: number | null; diasVigencia: number | null };
   };
   @ApiProperty() autenticidad!: {
     estado: string; metodo: 'verificador_oficial' | 'ninguno'; verificador: string | null; verificadoEn: string | null;
@@ -131,7 +147,7 @@ export class DetalleMesaDto {
   };
   @ApiProperty({ type: [ComparacionTripleDto] }) comparacion!: ComparacionTripleDto[];
   @ApiProperty({ type: [DiscrepanciaLegibleDto] }) discrepancias!: DiscrepanciaLegibleDto[];
-  @ApiProperty() recomendacion!: { codigo: string; titulo: string; explicacion: string; esDecision: false };
+  @ApiProperty({ type: RecomendacionMesaDto }) recomendacion!: RecomendacionMesaDto;
   @ApiProperty() adres!: { estado: string; tipoDocumento: string | null; error: string | null; cargadaEn: string | null };
   @ApiProperty({ type: [EvidenciaMesaDto] }) evidencias!: EvidenciaMesaDto[];
   @ApiProperty({ type: [EventoHistorialDto] }) historial!: EventoHistorialDto[];

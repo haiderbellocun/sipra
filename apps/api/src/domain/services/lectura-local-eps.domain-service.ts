@@ -146,7 +146,9 @@ export class LecturaLocalEpsService {
       : null;
     if (camposNativos) lecturas.push(camposNativos);
 
-    const paginasOcr = new Set(paginasParaOcr(metricas, camposNativos ? faltanCamposClave(camposNativos) : true));
+    const paginasOcr = new Set(paginasParaOcr(
+      metricas, camposNativos ? faltanCamposClave(camposNativos) : true, nativo.porPagina.map((p) => p.pagina),
+    ));
     const textosOcr: string[] = [];
     const confianzas: number[] = [];
 

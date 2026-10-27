@@ -1337,6 +1337,38 @@ Los interruptores se leen en cada uso (no se cachean). Apagar no borra ni reasig
 
 1. Brechas de SSRF en rangos de transición IPv6/IPv4 (§7.21.6). 2. La supervisión de la Mesa no pasaba por el interruptor. 3. Con > 2.000 casos abiertos los KPI mentían (§7.21.7). 4. CI no corría las pruebas del frontend, ni el arranque real, ni las migraciones EPS, ni `test:pg`. 5. `FRESCURA` solo se mostraba como «sin plazo»: ahora informa los días desde la consulta sin declarar nada vencido. 6. Faltaba prueba de que ninguna purga automática alcance los datos EPS. 7. Cache del hook de diseño (`.impeccable/hook.cache.json`) ignorada en Git; `.impeccable/config.json` (ya versionado) trae una ruta absoluta de la máquina local y un ignore de `broken-image` para el visor: **se recomienda dejar de versionarlo** (decisión del propietario).
 
+#### 7.21.12 Prueba manual con certificados reales: formato de tabla, datos faltantes y visor
+
+La prueba manual con un certificado antiguo de EPS (el archivo vive fuera del repositorio) encontró cinco problemas. Ninguno cambió
+la arquitectura ni las reglas de seguridad (lectura 100 % local, blob autenticado, auditoría `DOCUMENTO_VISUALIZADO`, P‑73 sin reabrir).
+
+1. **Extracción incompleta — causa.** pdf.js entrega el texto en el orden en que el generador dibujó cada fragmento, y el lector deja cada fragmento en su
+   línea. En las tablas de los certificados reales las **etiquetas van juntas en un bloque y los valores en otro**, sin «Etiqueta: valor»; la fecha de
+   generación queda varias líneas después de su etiqueta; y algunas fuentes traen el mapa de caracteres dañado (la tilde sale como otro carácter:
+   «AFILIACIYN», «generaci:n», «NZMERO»). El extractor solo reconocía frases y «Etiqueta: valor», así que únicamente salió la entidad del encabezado.
+   `RC` (registro civil) tampoco existía como tipo de documento y «VIGENTE» no se normalizaba como activo.
+2. **Extracción — cambio.** `extraccion-eps-lineas.domain-service.ts` (dominio puro) lee **por la forma del valor**: un tipo y número de documento (también con el tipo en
+   palabras junto al número), un nombre propio junto al documento o tras la etiqueta, una palabra de estado, el tipo de afiliado y la fecha que sigue a la
+   etiqueta de *generación/expedición*, con etiquetas tolerantes a un carácter dañado donde iría una tilde. Reconstruye las líneas visuales del texto nativo (palabra por
+   palabra). Corre **después** de las reglas por frase. Campos nuevos: `tipo_afiliado`; `RC` en `normalizarDocumento`; «cédula ciudadanía», `el(la)/señor(a)`, el año «2.026» y «NÚMERO» dentro del documento.
+   La **fecha de ingreso a la EPS nunca se usa** como fecha del certificado; sin etiqueta de generación/expedición la vigencia queda «no determinada».
+   **OCR de respaldo:** si el texto digital no da los campos clave (capa superpuesta, desordenada o dañada), se hace también OCR local de las páginas con texto
+   (antes solo de las páginas sin texto); la misma EPS escrita distinto por el texto y por el OCR no se toma por conflicto.
+3. **Comparación.** Un dato ausente **nunca** es «coincide»: la Mesa muestra una discrepancia de severidad `insuficiente` por cada dato clave sin leer (documento, nombre, fecha de expedición;
+   solo con el certificado ya procesado) y la comparación trae «Certificado vs SIPRA» (`coincide` / `diferente` / `insuficiente`). Documento o nombre distintos siguen siendo **críticos**.
+4. **Recomendación.** Orden: 1) documento/tipo incorrecto (`documento_incorrecto`, bandera `C2_TIPO_INCORRECTO`), 2) discrepancia crítica de identidad, 3) certificado vencido
+   (`certificado_vencido`), 4) información insuficiente, 5) autenticidad o afiliación inválidas, 6) ADRES pendiente. «Falta ADRES» ya no oculta nada anterior; la Mesa muestra la principal y «También aplica» con las demás.
+   Son códigos que **solo calcula la Mesa** (no se guardan: sin migración). Aprobar contra «documento incorrecto» exige la justificación reforzada; el vencimiento no la exige ni rechaza solo.
+5. **Vigencia.** Con la fecha de **expedición/generación** y `arl.dias_vigencia_eps`: «CERTIFICADO VENCIDO», fecha, días transcurridos y la regla institucional (30 días de fábrica). Es información para la
+   decisión humana, no un rechazo.
+6. **Visor.** Solo el visor (la Mesa no cambia): vista previa de ≥ 480 px **sin la barra del visor nativo** (no se duplican controles) y «Ampliar documento» abre un diálogo modal
+   casi a pantalla completa (1280 px de ancho máximo; pantalla completa en móvil) con la barra nativa (zoom, páginas, descarga e impresión), «Cerrar» y Esc. Ampliar **reutiliza el mismo blob**: no vuelve a pedir
+   el archivo ni genera otra visualización auditada. Las imágenes tienen zoom propio.
+
+**Límites conocidos.** Si la fuente del PDF trae el mapa de caracteres dañado, el texto digital puede traer letras cambiadas en el nombre (p. ej. «Ñ» leída como «D»): la persona
+debe confirmar el nombre en el visor. Un PDF con fragmentos superpuestos (varias capas del mismo texto) solo se resuelve con el OCR de respaldo.
+**Reproceso.** El pipeline es idempotente por contenido: para volver a leer un certificado hay que cargar una **nueva versión con contenido distinto**; una copia idéntica no se vuelve a leer.
+
 <!-- FIN_PILOTO_EPS -->
 
 ---
@@ -2923,6 +2955,18 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.11 — 27 de octubre de 2026
+
+Prueba manual con certificados reales de EPS (§7.21.12). Sin despliegue y sin migraciones nuevas:
+
+- **Extractor local** por líneas para certificados tipo tabla, con tildes dañadas y texto fragmentado; `tipo_afiliado` y `RC`; la fecha de ingreso a la EPS nunca se toma por la de expedición; OCR local de respaldo cuando el texto digital no da los campos clave.
+- **Comparación:** dato ausente = «información insuficiente», nunca «coincide»; columna «Certificado vs SIPRA».
+- **Recomendación** con orden explícito (incorrecto > crítica > vencido > insuficiente > autenticidad > ADRES) y «También aplica».
+- **Vigencia** explicada (fecha de expedición, días y regla institucional).
+- **Visor:** vista previa grande sin barra duplicada y vista ampliada modal.
+- **Sesión:** menú de cuenta en el encabezado con «Cambiar usuario» y «Cerrar sesión».
+- **Pruebas nuevas:** formatos reales (12 casos), PDF sintético real por pdf.js, OCR de respaldo, orden de la recomendación, sesión.
 
 ### 0.17.10 — 27 de octubre de 2026
 

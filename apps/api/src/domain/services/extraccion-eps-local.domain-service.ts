@@ -1,5 +1,9 @@
 import {
-  compararDocumentos, compararNombres, normalizarTexto,
+  FECHA_PATRON, documentoPorLineas, estadoPorLineas, fechaGeneracionPorLineas, lineasVisuales, nombrePorLineas, simple,
+  tipoAfiliadoPorLineas,
+} from './extraccion-eps-lineas.domain-service';
+import {
+  compararDocumentos, compararNombres, mismaEps, normalizarTexto,
 } from './normalizacion-identidad';
 
 /**
@@ -21,7 +25,7 @@ export type CamposEpsLeidos = Record<string, CampoEpsLeido>;
 
 export const CAMPOS_EPS = [
   'entidad_emisora', 'nombre_afiliado', 'documento_afiliado',
-  'fecha_expedicion', 'estado_afiliacion', 'regimen',
+  'fecha_expedicion', 'estado_afiliacion', 'regimen', 'tipo_afiliado',
 ] as const;
 
 /** Sin estos no hay comparación de identidad: si faltan en el texto nativo, se intenta OCR en páginas sin texto. */
@@ -32,7 +36,7 @@ export const CONFIANZA_TEXTO_NATIVO = 0.92;
 export const CONFIANZA_MAXIMA_OCR = 0.85;
 
 const NOMBRE = "[A-ZÁÉÍÓÚÑÜ][A-Za-zÁÉÍÓÚÑÜáéíóúñü'.]*(?:\\s+[A-ZÁÉÍÓÚÑÜa-záéíóúñü][A-Za-zÁÉÍÓÚÑÜáéíóúñü'.]*){1,6}";
-const FECHA = '(\\d{1,2}[/\\-.]\\d{1,2}[/\\-.]\\d{2,4}|\\d{4}-\\d{2}-\\d{2}|\\d{1,2}\\s+de\\s+[a-záéíóú]+\\s+de(?:l)?\\s+\\d{4})';
+const FECHA = FECHA_PATRON;
 
 const sinValor = (): CampoEpsLeido => ({ valor: null, confianza: 0, evidencia: null, fuente: null });
 
@@ -58,7 +62,7 @@ function primera(texto: string, patrones: readonly RegExp[], grupo = 1): { valor
 }
 
 function documentoDe(texto: string): { valor: string; evidencia: string } | null {
-  const TIPO = '(?:(?:c\\.?\\s?c\\.?|t\\.?\\s?i\\.?|c\\.?\\s?e\\.?|p\\.?\\s?a\\.?|c[ée]dula(?:\\s+de\\s+(?:ciudadan[ií]a|extranjer[ií]a))?|tarjeta\\s+de\\s+identidad|pasaporte)[\\s.:°ºno]*)?';
+  const TIPO = '(?:(?:c\\.?\\s?c\\.?|t\\.?\\s?i\\.?|c\\.?\\s?e\\.?|r\\.?\\s?c\\.?|p\\.?\\s?a\\.?|c[ée]dula(?:\\s+(?:de\\s+)?(?:ciudadan[ií]a|extranjer[ií]a))?|registro\\s+civil|tarjeta\\s+de\\s+identidad|pasaporte)[\\s.:°ºno]*)?';
   // El número puede ir precedido de «No.», «N°», «Nro.» o «número».
   const NUM = '(?:(?:n[úu]mero|n[°º]|nro\\.?|no\\.)\\s*:?\\s*)?(\\d[\\d.,\\s]{4,16}\\d)';
   const hallado = primera(texto, [
@@ -66,12 +70,13 @@ function documentoDe(texto: string): { valor: string; evidencia: string } | null
     new RegExp(`(?:n[úu]mero\\s+(?:de\\s+)?(?:documento|identificaci[oó]n|c[ée]dula)|documento(?:\\s+de\\s+identidad)?|identificaci[oó]n|c[ée]dula(?:\\s+de\\s+ciudadan[ií]a)?)\\s*[:\\-]?\\s*(${TIPO}${NUM})`, 'i'),
     new RegExp(`\\b(c\\.?\\s?c\\.?\\s*[:.]?\\s*${NUM})`, 'i'),
   ]);
-  return hallado ? { valor: limpiar(hastaOtraEtiqueta(hallado.valor)), evidencia: hallado.evidencia } : null;
+  // Los saltos de línea entre fragmentos de un mismo valor («Cedula» / «Ciudadania» / «123») no separan campos.
+  return hallado ? { valor: limpiar(hastaOtraEtiqueta(hallado.valor.replace(/\s*\n\s*/g, ' '))), evidencia: hallado.evidencia } : null;
 }
 
 function nombreDe(texto: string): { valor: string; evidencia: string } | null {
   const frase = texto.match(new RegExp(
-    `que\\s+(?:el|la)?\\s*(?:se[ñn]or(?:a)?|sr\\.?a?|usuari[oa]|afiliad[oa])?\\s*\\(?a?\\)?\\s*(${NOMBRE})\\s*,?\\s*identificad[oa]`, 'i'));
+    `que\\s+(?:el(?:\\s*\\(la\\))?|la)?\\s*(?:se[ñn]or(?:\\s*\\(a\\)|a)?|sr\\.?a?|usuari[oa]|afiliad[oa])?\\s*\\(?a?\\)?\\s*(${NOMBRE})\\s*,?\\s*identificad[oa]`, 'i'));
   if (frase?.[1] && !/\d/.test(frase[1])) return { valor: limpiar(frase[1]), evidencia: frase[0].slice(0, 120) };
   const etiquetado = texto.match(new RegExp(
     `(?:apellidos\\s+y\\s+nombres|nombres?\\s+y\\s+apellidos|nombre(?:s)?(?:\\s+completo)?(?:\\s+del\\s+(?:afiliado|usuario|cotizante|beneficiario|titular))?|afiliado|usuario|cotizante|titular)\\s*[:\\-]\\s*([^\\n:]{5,90})`, 'i'));
@@ -105,8 +110,9 @@ function fechaExpedicionDe(texto: string): { valor: string; evidencia: string } 
     new RegExp(`(?:expedid[oa]|generad[oa]|impres[oa])\\s+(?:el|en)[^\\n\\d]{0,40}${FECHA}`, 'i'),
   ]);
   if (hallada) return hallada;
-  const dias = texto.match(/a\s+los\s+(\d{1,2})\s+d[ií]as\s+del\s+mes\s+de\s+([a-záéíóú]+)\s+de(?:l)?\s+(\d{4})/i);
-  return dias ? { valor: `${dias[1]} de ${dias[2]} de ${dias[3]}`, evidencia: dias[0].slice(0, 120) } : null;
+  // «a los 26 días del mes de octubre de 2.026»: algunos sistemas escriben el año con separador de miles.
+  const dias = texto.match(/a\s+los\s+(\d{1,2})\s+d[ií]as\s+del\s+mes\s+de\s+([a-záéíóú]+)\s+de(?:l)?\s+(\d)[.,]?(\d{3})/i);
+  return dias ? { valor: `${dias[1]} de ${dias[2]} de ${dias[3]}${dias[4]}`, evidencia: dias[0].slice(0, 120) } : null;
 }
 
 function estadoDe(texto: string): { valor: string; evidencia: string } | null {
@@ -128,18 +134,36 @@ function regimenDe(texto: string): { valor: string; evidencia: string } | null {
   return { valor, evidencia: m[0].slice(0, 120) };
 }
 
+function tipoAfiliadoDe(texto: string): { valor: string; evidencia: string } | null {
+  const m = texto.match(/(?:tipo\s+de\s+afiliad[oa]|tipo\s+de\s+afiliaci[oó]n|calidad)\s*[:-]\s*(cotizante|beneficiari[oa]|adicional|pensionad[oa])/i);
+  return m?.[1] ? { valor: m[1], evidencia: m[0].slice(0, 120) } : null;
+}
+
+/** «Régimen: Contributivo - Beneficiario»: el tipo de afiliado viaja a veces dentro del régimen. */
+function tipoAfiliadoEnRegimen(texto: string): { valor: string; evidencia: string } | null {
+  const regimen = regimenDe(texto);
+  const m = regimen?.valor.match(/cotizante|beneficiari[oa]/i);
+  return regimen && m ? { valor: m[0], evidencia: regimen.evidencia } : null;
+}
+
 /**
  * Lee los campos del certificado de EPS de un texto. `confianzaBase` es la
  * confianza de la fuente (texto digital alto; OCR, derivada de la del motor).
  */
 export function extraerCamposEps(texto: string, fuente: FuenteCampo, confianzaBase: number): CamposEpsLeidos {
+  // Primero las reglas por frase («Etiqueta: valor», cartas); si no sirven, la lectura por líneas
+  // (tablas con etiquetas y valores separados, texto desordenado o con tildes dañadas).
+  const lineas = lineasVisuales(texto, fuente === 'texto_nativo');
+  const norm = lineas.map(simple);
+  const documentoLineas = documentoPorLineas(lineas, norm);
   const buscadores: Record<(typeof CAMPOS_EPS)[number], (t: string) => { valor: string; evidencia: string } | null> = {
     entidad_emisora: entidadDe,
-    nombre_afiliado: nombreDe,
-    documento_afiliado: documentoDe,
-    fecha_expedicion: fechaExpedicionDe,
-    estado_afiliacion: estadoDe,
+    nombre_afiliado: (t) => nombreDe(t) ?? nombrePorLineas(lineas, norm, documentoLineas?.indice ?? null),
+    documento_afiliado: (t) => documentoDe(t) ?? documentoLineas,
+    fecha_expedicion: (t) => fechaExpedicionDe(t) ?? fechaGeneracionPorLineas(lineas, norm),
+    estado_afiliacion: (t) => estadoDe(t) ?? estadoPorLineas(lineas, norm),
     regimen: regimenDe,
+    tipo_afiliado: (t) => tipoAfiliadoDe(t) ?? tipoAfiliadoPorLineas(lineas, norm) ?? tipoAfiliadoEnRegimen(t),
   };
   const salida: CamposEpsLeidos = {};
   for (const campo of CAMPOS_EPS) {
@@ -162,6 +186,8 @@ export interface DiscrepanciaFuentes {
 function mismoValor(campo: string, a: string, b: string): boolean {
   if (campo === 'documento_afiliado') return compararDocumentos(a, b) === 'igual';
   if (campo === 'nombre_afiliado') return ['igual', 'compatible'].includes(compararNombres(a, b));
+  // La misma EPS escrita distinto por el texto digital y por el OCR («EPS SURA» / «EPS |SUra =») no es un conflicto.
+  if (campo === 'entidad_emisora' && mismaEps(a, b) === true) return true;
   return normalizarTexto(a) === normalizarTexto(b);
 }
 
