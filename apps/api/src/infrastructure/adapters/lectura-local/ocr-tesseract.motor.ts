@@ -2,12 +2,13 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import {
-  LimiteLecturaLocalError, LimitesLecturaLocal, ResultadoOcrPagina,
+  LimiteLecturaLocalError, LimitesLecturaLocal, ResultadoOcrPagina, VarianteOcr,
 } from '../../../domain/ports/out/lector-documento-local.port';
-import { girarImagen, mejorarParaOcr } from './imagen-local';
+import { ampliarImagen, girarImagen, mejorarParaOcr } from './imagen-local';
 import { Semaforo, conTiempoLimite } from './semaforo';
 
 interface TrabajadorOcr {
+  setParameters(parametros: Record<string, string>): Promise<unknown>;
   recognize(imagen: Buffer): Promise<{ data: { text: string; confidence: number } }>;
   terminate(): Promise<unknown>;
 }
@@ -78,9 +79,11 @@ export class OcrTesseractMotor {
     if (t) await t.terminate().catch(() => undefined);
   }
 
-  private async leer(png: Buffer, limites: LimitesLecturaLocal): Promise<{ texto: string; confianza: number }> {
+  /** `psm`: segmentación de página de Tesseract (3 automática, 4 columnas, 6 bloque uniforme). Se fija en CADA lectura: el trabajador es compartido. */
+  private async leer(png: Buffer, limites: LimitesLecturaLocal, psm = '3'): Promise<{ texto: string; confianza: number }> {
     const trabajador = await this.obtener();
     try {
+      await trabajador.setParameters({ tessedit_pageseg_mode: psm });
       const r = await conTiempoLimite(trabajador.recognize(png), limites.timeoutMs, () =>
         new LimiteLecturaLocalError('tiempo', 'Se agotó el tiempo del OCR'));
       return { texto: r.data.text, confianza: r.data.confidence };
@@ -95,9 +98,17 @@ export class OcrTesseractMotor {
    * Lee la imagen; si el resultado es pobre prueba, en orden, la versión con
    * contraste mejorado y los giros de 90°, 180° y 270°, y se queda con la mejor.
    */
-  async reconocer(png: Buffer, pagina: number | null, limites: LimitesLecturaLocal): Promise<ResultadoOcrPagina> {
+  async reconocer(
+    png: Buffer, pagina: number | null, limites: LimitesLecturaLocal, variante: VarianteOcr = 'automatica',
+  ): Promise<ResultadoOcrPagina> {
     return this.semaforo.ejecutar(async () => {
       try {
+        // Variantes de UNA sola pasada: las pide quien ya vio que la automática no alcanzó (ver LecturaLocalEpsService).
+        if (variante === 'bloque') return { pagina, ...(await this.leer(png, limites, '6')), giro: 0 };
+        if (variante === 'reforzada') {
+          const grande = await ampliarImagen(await mejorarParaOcr(png), 1.5, limites.maxPixeles * 2);
+          return { pagina, ...(await this.leer(grande, limites, '4')), giro: 0 };
+        }
         const intentos: Array<{ texto: string; confianza: number; giro: number }> = [];
         const util = (r: { texto: string; confianza: number }): boolean =>
           r.confianza >= CONFIANZA_SUFICIENTE && r.texto.replace(/\s+/g, '').length >= CARACTERES_SUFICIENTES;

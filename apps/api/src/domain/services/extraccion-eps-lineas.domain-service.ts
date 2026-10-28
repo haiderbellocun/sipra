@@ -173,7 +173,7 @@ const VALOR_ESTADO = /^(?:afiliad[oa]\s+)?(?:no\s+)?(?:vigente|activ[oa]|inactiv
 const ETIQUETA_ESTADO = /^estado(?:\s+de\s+(?:la\s+)?afiliaci.n)?\s*:?\s*(.*)$/;
 const VALOR_TIPO_AFILIADO =
   /^(?:cotizante(?:\s+(?:dependiente|independiente|activo))?|beneficiari[oa]|adicional|pensionad[oa]|afiliad[oa]\s+(?:cotizante|beneficiari[oa]))$/;
-const ETIQUETA_TIPO_AFILIADO = /^(?:tipo\s+de\s+afiliad[oa]|tipo\s+de\s+afiliaci.n|calidad(?:\s+de\s+afiliad[oa])?)\s*:?\s*(.*)$/;
+const ETIQUETA_TIPO_AFILIADO = /^(?:tipo\s+(?:de\s+)?afiliad[oa]|tipo\s+de\s+afiliaci.n|calidad(?:\s+de\s+afiliad[oa])?)\s*:?\s*(.*)$/;
 
 function valorEtiquetado(
   lineas: readonly string[], norm: readonly string[], etiqueta: RegExp, valor: RegExp,

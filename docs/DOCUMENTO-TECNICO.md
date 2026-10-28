@@ -885,6 +885,20 @@ una lectura a la vez (`LECTURA_LOCAL_OCR_CONCURRENTES`, 1 por defecto). Si la le
 contraste mejorado y giros de 90°, 180° y 270°. La descarga de modelos en ejecución no existe: sin el
 modelo local el OCR falla cerrado (`OCR_DATOS_IDIOMA_DIR` permite otra copia local).
 
+**OCR escalonado y suficiencia (0.17.15).** La lectura no se da por buena porque salió texto, sino por los
+**campos clave** que el parser extrae (nombre, documento, entidad, estado, fecha de expedición): 0–1 insuficiente,
+2 débil, 3 o más procesable. La estrategia es determinística por página: pasada `automatica` (segmentación
+automática, PSM 3, con su respaldo de contraste y giros) → solo si faltan campos clave, `bloque` (PSM 6) → y,
+si todavía faltan, `reforzada` (grises con contraste, ampliada 1,5×, PSM 4); se queda con la pasada que más
+campos clave dio y se detiene al completarlos, si una pasada repite el texto o si una falla. Un certificado legible
+se resuelve en la primera pasada. La confianza de un campo de OCR es la media del motor (techo 0,85): con 70 llega
+a 0,70, el mínimo para compararlo (antes se multiplicaba por 0,9 y una lectura de 77/100 daba 0,69: **todos** los
+campos se descartaban aunque el OCR los hubiera leído). Medido sobre un escaneo real (fuera del repositorio):
+144 dpi basta; 300 dpi no mejora y 400 dpi empeora y tarda ×10; la binarización adaptativa empeora (confianza 50);
+ampliar 1,5× solo ayuda como tercera pasada. Estrategia futura (NO implementada): OCR local → si falla, revisión
+humana; un OCR externo solo con aprobación institucional y detrás de un interruptor, porque estos documentos
+contienen datos personales.
+
 **QR.** Se detectan todos (QRCode, también en PDF y en imágenes) y se registran todos; ninguno se elige
 como oficial. Su contenido es **dato no confiable**: se clasifica (`url`, `texto`, `otro`) sin abrirlo ni
 resolverlo ni consultar el dominio. De una URL solo se conserva protocolo, host y ruta (sin usuario,
@@ -2969,6 +2983,10 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.15 — 28 de octubre de 2026
+
+OCR de certificados escaneados. Causa: la confianza de los campos leídos por OCR (media × 0,9) quedaba bajo el mínimo de comparación (0,70) con medias de hasta 77, y `construirDatosExtraidosEps` descartaba todos los campos aunque la extracción los tuviera. Corregido (media, techo 0,85). Parser: tratamiento y paréntesis dañados («ElLa) Señora)»), `CERTIFICA QUE:`, logotipo partido («Alian Salud» / «eps»), firma «X EPS.», fecha en prosa («a los N días del mes de … del año AAAA»), «Tipo afiliado», etiquetas dañadas («Tipc de Aniado»); la fecha de afiliación nunca es la de expedición. OCR escalonado y determinístico con criterio de suficiencia por campos clave, segmentación automática explícita (PSM 3) y variantes `bloque` y `reforzada`. Pruebas: parser (variantes), estrategia (mock), regresión de la confianza y un escaneado sintético «ALIAN SALUD» de extremo a extremo.
 
 ### 0.17.14 — 28 de octubre de 2026
 

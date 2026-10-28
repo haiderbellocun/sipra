@@ -1,10 +1,10 @@
 import {
   DocumentoLocalIlegibleError, HallazgoQrCrudo, HallazgoQrRegistrado, LectorDocumentoLocalPort,
-  LimiteLecturaLocalError, LimitesLecturaLocal, ResumenLecturaLocal,
+  LimiteLecturaLocalError, LimitesLecturaLocal, ResultadoOcrPagina, ResumenLecturaLocal, VARIANTES_OCR,
 } from '../ports/out/lector-documento-local.port';
 import {
-  CAMPOS_EPS, CONFIANZA_MAXIMA_OCR, CONFIANZA_TEXTO_NATIVO, CamposEpsLeidos, combinarLecturas,
-  extraerCamposEps, faltanCamposClave,
+  CAMPOS_CLAVE_EPS, CAMPOS_EPS, CONFIANZA_MAXIMA_OCR, CONFIANZA_TEXTO_NATIVO, CamposEpsLeidos, combinarLecturas,
+  evaluarSuficienciaEps, extraerCamposEps, faltanCamposClave,
 } from './extraccion-eps-local.domain-service';
 import {
   LIMITES_LECTURA_EPS, clasificarContenidoQr, evaluarTextoNativo, paginasParaOcr,
@@ -166,15 +166,13 @@ export class LecturaLocalEpsService {
       qr.push(...await this.lector.detectarQr(imagen, pagina));
 
       if (paginasOcr.has(pagina)) {
-        try {
-          const r = await this.lector.ejecutarOcr(imagen, pagina, limites);
+        const r = await this.ocrEscalonado(imagen, pagina, limites, resumen, textosOcr);
+        if (r) {
           resumen.ocr.ejecutado = true;
           resumen.ocr.paginas.push(pagina);
           resumen.ocr.giros.push(r.giro);
           textosOcr.push(r.texto);
           confianzas.push(r.confianza);
-        } catch (error) {
-          resumen.errores.push(error instanceof LimiteLecturaLocalError ? 'ocr_tiempo_agotado' : 'ocr_fallido');
         }
       }
       imagen = null; // se suelta antes de la siguiente página
@@ -191,16 +189,46 @@ export class LecturaLocalEpsService {
     qr.push(...await this.lector.detectarQr(pagina.imagen, null));
     const textosOcr: string[] = [];
     const confianzas: number[] = [];
-    try {
-      const r = await this.lector.ejecutarOcr(pagina.imagen, null, limites);
+    const r = await this.ocrEscalonado(pagina.imagen, null, limites, resumen, textosOcr);
+    if (r) {
       resumen.ocr.ejecutado = true;
       resumen.ocr.giros.push(r.giro);
       textosOcr.push(r.texto);
       confianzas.push(r.confianza);
-    } catch (error) {
-      resumen.errores.push(error instanceof LimiteLecturaLocalError ? 'ocr_tiempo_agotado' : 'ocr_fallido');
     }
     this.cerrarOcr(resumen, textosOcr, confianzas, lecturas);
+  }
+
+  /**
+   * OCR de una página con estrategia DETERMINÍSTICA: la pasada automática primero y, solo si lo leído no basta, la de bloque y la
+   * reforzada, en ese orden. «Basta» = los campos clave que el parser logra extraer del texto (no que haya salido texto). Se queda con
+   * la pasada que más campos clave dio (a igualdad, la de mayor confianza) y se detiene en cuanto estén todos, si una pasada no cambia
+   * nada o si una falla. Un certificado legible se resuelve en la primera pasada: no se repite OCR costoso sin necesidad.
+   */
+  private async ocrEscalonado(
+    imagen: Buffer, pagina: number | null, limites: LimitesLecturaLocal, resumen: ResumenLecturaLocal, textosPrevios: readonly string[],
+  ): Promise<ResultadoOcrPagina | null> {
+    const leerCampos = (texto: string, confianza: number): CamposEpsLeidos =>
+      extraerCamposEps([...textosPrevios, texto].join('\n'), 'ocr', confianza / 100);
+    let mejor: { r: ResultadoOcrPagina; campos: number } | null = null;
+    let intentos = 0;
+    for (const variante of VARIANTES_OCR) {
+      let r: ResultadoOcrPagina;
+      try {
+        r = await this.lector.ejecutarOcr(imagen, pagina, limites, variante);
+      } catch (error) {
+        resumen.errores.push(error instanceof LimiteLecturaLocalError ? 'ocr_tiempo_agotado' : 'ocr_fallido');
+        break;
+      }
+      intentos += 1;
+      if (mejor && r.texto === mejor.r.texto) break; // la pasada no aportó nada distinto: no se sigue
+      const encontrados = evaluarSuficienciaEps(leerCampos(r.texto, r.confianza)).campos;
+      if (!mejor || encontrados > mejor.campos || (encontrados === mejor.campos && r.confianza > mejor.r.confianza)) mejor = { r, campos: encontrados };
+      const completos = leerCampos(mejor.r.texto, mejor.r.confianza);
+      if (CAMPOS_CLAVE_EPS.every((c) => completos[c]?.valor != null)) break;
+    }
+    resumen.ocr.intentos = Math.max(resumen.ocr.intentos ?? 0, intentos);
+    return mejor?.r ?? null;
   }
 
   private cerrarOcr(
@@ -209,9 +237,13 @@ export class LecturaLocalEpsService {
     if (confianzas.length === 0) return;
     const media = confianzas.reduce((a, b) => a + b, 0) / confianzas.length;
     resumen.ocr.confianzaMedia = Math.round(media * 10) / 10;
-    // La confianza del campo nunca iguala a la del texto digital: el OCR se equivoca de otra manera.
-    const confianzaCampo = Math.max(0, Math.min(CONFIANZA_MAXIMA_OCR, (media / 100) * 0.9));
-    lecturas.push(extraerCamposEps(textos.join('\n'), 'ocr', confianzaCampo));
+    // La confianza del campo nunca iguala a la del texto digital (techo CONFIANZA_MAXIMA_OCR: el OCR se equivoca de otra manera),
+    // pero SÍ cuenta: con la media del motor en 70 (su propio umbral de «lectura suficiente») el campo llega a 0,70, que es el mínimo
+    // para compararlo. Con el descuento anterior (×0,9) una lectura de 77/100 daba 0,69 y descartaba TODOS los campos del OCR.
+    const confianzaCampo = Math.max(0, Math.min(CONFIANZA_MAXIMA_OCR, media / 100));
+    const camposOcr = extraerCamposEps(textos.join('\n'), 'ocr', confianzaCampo);
+    resumen.ocr.suficiencia = evaluarSuficienciaEps(camposOcr).suficiencia;
+    lecturas.push(camposOcr);
   }
 }
 

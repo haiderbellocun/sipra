@@ -223,6 +223,39 @@ describe('Regresión · certificado sintético completo (EPS PRUEBA / PERSONA FI
     expect(x?.fuentes?.documento_afiliado).toBe('ocr');
   });
 
+  describe('escaneado SINTÉTICO tipo «ALIAN SALUD» (rasterizado: sin capa de texto) → render → OCR → parser → datosExtraidos → Mesa', () => {
+    const FICHA = [
+      'ALIAN SALUD EPS', 'CERTIFICA QUE:', 'PERSONA PRUEBA EJEMPLO', 'CC 123456789',
+      'Fecha de afiliación: 01/02/2024', 'Fecha de generación: 20/10/2026', 'Estado: ACTIVO', 'Tipo afiliado: COTIZANTE',
+    ];
+    const CARTA = [
+      'Alian Salud', 'EPS', 'CERTIFICA QUE:', 'El(La) Señor(a) PERSONA PRUEBA EJEMPLO identificado con CC 123456789',
+      'se encuentra afiliado(a) a nuestra EPS', 'Fecha de Afiliación: 01/02/2024', 'Estado: ACTIVO', 'Tipo de Afiliado: COTIZANTE',
+      'La presente certificación se expide a los 20 días del mes de octubre del año 2026', 'ALIAN SALUD EPS.',
+    ];
+
+    it.each([['ficha', FICHA], ['carta', CARTA]])('%s: sin capa de texto, con OCR local, y todos los campos clave llegan a la Mesa', async (_n, lineas) => {
+      const pdf = await pdfEscaneado([await imagenCertificado(lineas, { ancho: 1500, fuente: 30 })]);
+      const m = montar(pdf, 'application/pdf');
+      const { validacion } = await procesar(m);
+      // Es una imagen: no hay texto nativo y SÍ hubo OCR local.
+      expect(m.llamadas.ocr).toBeGreaterThanOrEqual(1);
+      expect(m.validaciones.evidencias.find((e) => e.tipo === TipoEvidenciaEps.TEXTO_PDF)?.resultado).toBe('sin_texto');
+      const ocr = m.validaciones.evidencias.find((e) => e.tipo === TipoEvidenciaEps.OCR)!;
+      expect(ocr.datosObtenidos).toMatchObject({ procesamiento: 'local', suficiencia: 'procesable' });
+      const x = validacion?.instantanea().datosExtraidos;
+      expect(x).toMatchObject({
+        nombre: 'PERSONA PRUEBA EJEMPLO', tipoDocumento: 'CC', numeroDocumento: '123456789', estadoReportadoCertificado: 'ACTIVO',
+        tipoAfiliado: 'cotizante', fechaExpedicion: '2026-10-20',
+      });
+      expect(x?.eps).toMatch(/ALIAN\s+SALUD/i);
+      // Mesa: método «ocr» (todas las fuentes son OCR) y la fecha de afiliación no se confunde con la de expedición.
+      expect(new Set(Object.values(x?.fuentes ?? {}))).toEqual(new Set(['ocr']));
+      expect(x?.fechaExpedicion).not.toBe('2024-02-01');
+      expect(m.externo.extraer).not.toHaveBeenCalled();
+    });
+  });
+
   it('archivo ya presentado en otros expedientes: el pipeline lo detiene ANTES de leer (causa de «datos vacíos»), sin inventar campos', async () => {
     const m = montar(await pdfDigital(LINEAS_SINTETICAS), 'application/pdf', { duplicados: 2 });
     const { validacion, documento } = await procesar(m);

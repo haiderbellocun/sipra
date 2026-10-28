@@ -74,10 +74,25 @@ function documentoDe(texto: string): { valor: string; evidencia: string } | null
   return hallado ? { valor: limpiar(hastaOtraEtiqueta(hallado.valor.replace(/\s*\n\s*/g, ' '))), evidencia: hallado.evidencia } : null;
 }
 
+/** Tratamientos que preceden al nombre en «Que el(la) señor(a) …»; el OCR a veces los deja con un paréntesis suelto. */
+const TRATAMIENTO = /[()]|^(?:el|la|se[ñn]or(?:a)?|sr\.?a?|usuari[oa]|afiliad[oa]|\W+)$/i;
+
+function sinTratamiento(nombre: string): string {
+  const palabras = nombre.split(/\s+/);
+  while (palabras.length > 2 && TRATAMIENTO.test(palabras[0])) palabras.shift();
+  return palabras.join(' ');
+}
+
 function nombreDe(texto: string): { valor: string; evidencia: string } | null {
   const frase = texto.match(new RegExp(
-    `que\\s+(?:el(?:\\s*\\(la\\))?|la)?\\s*(?:se[ñn]or(?:\\s*\\(a\\)|a)?|sr\\.?a?|usuari[oa]|afiliad[oa])?\\s*\\(?a?\\)?\\s*(${NOMBRE})\\s*,?\\s*identificad[oa]`, 'i'));
-  if (frase?.[1] && !/\d/.test(frase[1])) return { valor: limpiar(frase[1]), evidencia: frase[0].slice(0, 120) };
+    `que\\s*:?\\s*(?:el(?:\\s*\\(la\\))?|la)?\\s*(?:se[ñn]or(?:\\s*\\(a\\)|a)?|sr\\.?a?|usuari[oa]|afiliad[oa])?\\s*\\(?a?\\)?\\s*(${NOMBRE})\\s*,?\\s*identificad[oa]`, 'i'));
+  if (frase?.[1] && !/\d/.test(frase[1])) return { valor: limpiar(sinTratamiento(frase[1])), evidencia: frase[0].slice(0, 120) };
+  // «… CERTIFICA QUE:\nEl(La) Señor(a) NOMBRE identificado(a) con CC …»: lo que antecede a «identificado», sin el tratamiento.
+  const previo = texto.match(new RegExp(`certifica[^\\n]{0,8}\\n?\\s*([^\\n]{0,40}?)(${NOMBRE})\\s*,?\\s*identificad[oa]`, 'i'));
+  if (previo?.[2]) {
+    const valor = limpiar(sinTratamiento(`${previo[1] ?? ''}${previo[2]}`.replace(/\s+/g, ' ')));
+    if (!/\d/.test(valor) && valor.split(' ').length >= 2) return { valor, evidencia: previo[0].replace(/\s+/g, ' ').slice(0, 120) };
+  }
   const etiquetado = texto.match(new RegExp(
     `(?:apellidos\\s+y\\s+nombres|nombres?\\s+y\\s+apellidos|nombre(?:s)?(?:\\s+completo)?(?:\\s+del\\s+(?:afiliado|usuario|cotizante|beneficiario|titular))?|afiliado|usuario|cotizante|titular)\\s*[:\\-]\\s*([^\\n:]{5,90})`, 'i'));
   if (etiquetado?.[1]) {
@@ -93,13 +108,24 @@ function entidadDe(texto: string): { valor: string; evidencia: string } | null {
     const valor = limpiar(hastaOtraEtiqueta(etiquetada[1]));
     if (valor.length >= 3) return { valor, evidencia: etiquetada[0].slice(0, 120) };
   }
-  // Encabezado: la primera línea corta que nombra una EPS.
-  for (const linea of lineasDe(texto).slice(0, 15)) {
-    if (linea.length <= 90 && !linea.includes(':') && /\b(?:E\.?P\.?S\.?|entidad\s+promotora\s+de\s+salud)\b/i.test(linea)
-      && !/^certific/i.test(linea)) {
-      return { valor: limpiar(linea), evidencia: linea.slice(0, 120) };
+  // Encabezado: la primera línea corta que nombra una EPS. Una línea que es SOLO «EPS» es el final del logotipo partido
+  // en dos («Alian Salud» / «EPS»): se une con la anterior en lugar de devolver «eps».
+  const cabecera = lineasDe(texto).slice(0, 15);
+  for (const [i, linea] of cabecera.entries()) {
+    // Una frase («se encuentra afiliado(a) a nuestra EPS») no es el nombre de la entidad.
+    if (linea.length > 90 || linea.includes(':') || /^certific/i.test(linea) || /\b(?:se\s+encuentra|afiliad[oa]|nuestr[oa]|solicitud)\b/i.test(linea)) continue;
+    if (/^e\.?p\.?s\.?$/i.test(linea)) {
+      const anterior = cabecera[i - 1];
+      if (anterior && /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{4,40}$/.test(anterior) && !/^certific/i.test(anterior)) {
+        return { valor: `${limpiar(anterior)} EPS`, evidencia: `${anterior} ${linea}`.slice(0, 120) };
+      }
+      continue;
     }
+    if (/\b(?:E\.?P\.?S\.?|entidad\s+promotora\s+de\s+salud)\b/i.test(linea)) return { valor: limpiar(linea), evidencia: linea.slice(0, 120) };
   }
+  // Firma o pie: «ALIAN SALUD EPS.» en una línea sola.
+  const firma = lineasDe(texto).find((l) => /^[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,40}\sEPS\.?$/.test(l) && !/^certific/i.test(l));
+  if (firma) return { valor: limpiar(firma), evidencia: firma.slice(0, 120) };
   const frase = texto.match(/afiliad[oa]\s+a\s+(?:la\s+)?((?:[A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ.&]*\s+){0,5}(?:EPS|E\.P\.S\.?)(?:\s+S\.?A\.?S?\.?)?)/);
   return frase?.[1] ? { valor: limpiar(frase[1]), evidencia: frase[0].slice(0, 120) } : null;
 }
@@ -111,7 +137,7 @@ function fechaExpedicionDe(texto: string): { valor: string; evidencia: string } 
   ]);
   if (hallada) return hallada;
   // «a los 26 días del mes de octubre de 2.026»: algunos sistemas escriben el año con separador de miles.
-  const dias = texto.match(/a\s+los\s+(\d{1,2})\s+d[ií]as\s+del\s+mes\s+de\s+([a-záéíóú]+)\s+de(?:l)?\s+(\d)[.,]?(\d{3})/i);
+  const dias = texto.match(/a\s+los\s+(\d{1,2})\s+d[ií]as\s+del\s+mes\s+de\s+([a-záéíóú]+)\s+de(?:l)?\s+(?:a[ñn]o\s+)?(\d)[.,]?(\d{3})/i);
   return dias ? { valor: `${dias[1]} de ${dias[2]} de ${dias[3]}${dias[4]}`, evidencia: dias[0].slice(0, 120) } : null;
 }
 
@@ -135,7 +161,10 @@ function regimenDe(texto: string): { valor: string; evidencia: string } | null {
 }
 
 function tipoAfiliadoDe(texto: string): { valor: string; evidencia: string } | null {
-  const m = texto.match(/(?:tipo\s+de\s+afiliad[oa]|tipo\s+de\s+afiliaci[oó]n|calidad)\s*[:-]\s*(cotizante|beneficiari[oa]|adicional|pensionad[oa])/i);
+  const m = texto.match(/(?:tipo\s+(?:de\s+)?afiliad[oa]|tipo\s+de\s+afiliaci[oó]n|calidad)\s*[:-]\s*(cotizante|beneficiari[oa]|adicional|pensionad[oa])/i)
+    // Etiqueta dañada por el OCR («Tipc de Aniado:», «Taper de Añíumdo:»): empieza por «T…», es corta y su valor es una palabra
+    // de tipo de afiliado. No cualquier etiqueta: «Régimen: Contributivo - Beneficiario» no entra por aquí.
+    ?? texto.match(/\bt[a-z]{2,4}\s+de\s+[A-Za-zÁÉÍÓÚÑáéíóúñ]{4,10}\s*:\s*(cotizante|beneficiari[oa]|adicional|pensionad[oa])\b/i);
   return m?.[1] ? { valor: m[1], evidencia: m[0].slice(0, 120) } : null;
 }
 
@@ -219,6 +248,17 @@ export function combinarLecturas(lecturas: readonly CamposEpsLeidos[]): {
     }
   }
   return { campos, discrepancias };
+}
+
+/** Los cinco campos con los que se puede revisar un certificado a ojo y comparar con el estudiante. */
+export const CAMPOS_SUFICIENCIA_EPS = ['nombre_afiliado', 'documento_afiliado', 'entidad_emisora', 'estado_afiliacion', 'fecha_expedicion'] as const;
+
+export type SuficienciaLectura = 'insuficiente' | 'debil' | 'procesable';
+
+/** Cuántos campos clave tiene la lectura (no «cuánto texto salió»): 0–1 insuficiente, 2 débil, 3 o más procesable. */
+export function evaluarSuficienciaEps(campos: Readonly<CamposEpsLeidos>): { campos: number; suficiencia: SuficienciaLectura } {
+  const n = CAMPOS_SUFICIENCIA_EPS.filter((c) => campos[c]?.valor != null).length;
+  return { campos: n, suficiencia: n >= 3 ? 'procesable' : n === 2 ? 'debil' : 'insuficiente' };
 }
 
 export function faltanCamposClave(campos: Readonly<CamposEpsLeidos>): boolean {

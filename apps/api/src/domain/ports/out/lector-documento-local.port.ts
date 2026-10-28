@@ -62,6 +62,15 @@ export interface ResultadoOcrPagina {
 
 export type OrigenImagen = 'imagen' | 'pdf';
 
+/**
+ * Estrategia de OCR, de la más barata a la más costosa (determinística: siempre en este orden):
+ * - `automatica`: la imagen tal cual, segmentación automática (con su respaldo de contraste y giros si sale muy pobre).
+ * - `bloque`: la misma imagen como un bloque uniforme de texto (cartas con párrafos y datos sueltos).
+ * - `reforzada`: grises con contraste, ampliada 1,5× y segmentación por columnas.
+ */
+export type VarianteOcr = 'automatica' | 'bloque' | 'reforzada';
+export const VARIANTES_OCR: readonly VarianteOcr[] = ['automatica', 'bloque', 'reforzada'];
+
 export interface LectorDocumentoLocalPort {
   /** Texto de la capa nativa de un PDF. Lanza `DocumentoLocalIlegibleError` si el archivo no se puede abrir. */
   extraerTextoNativo(contenido: Buffer, limites: LimitesLecturaLocal): Promise<ResultadoTextoNativo>;
@@ -75,8 +84,8 @@ export interface LectorDocumentoLocalPort {
   /** QR de una imagen rasterizada. NO abre ni resuelve su contenido. */
   detectarQr(imagen: Buffer, pagina: number | null): Promise<HallazgoQrCrudo[]>;
 
-  /** OCR local de una imagen, con modelo de idioma empaquetado. */
-  ejecutarOcr(imagen: Buffer, pagina: number | null, limites: LimitesLecturaLocal): Promise<ResultadoOcrPagina>;
+  /** OCR local de una imagen, con modelo de idioma empaquetado. Sin `variante`, la automática. */
+  ejecutarOcr(imagen: Buffer, pagina: number | null, limites: LimitesLecturaLocal, variante?: VarianteOcr): Promise<ResultadoOcrPagina>;
 }
 export const LECTOR_DOCUMENTO_LOCAL = Symbol('LECTOR_DOCUMENTO_LOCAL');
 
@@ -126,7 +135,13 @@ export interface ResumenLecturaLocal {
     caracteres: number;
     utilizable: boolean;
   } | null;
-  ocr: { ejecutado: boolean; paginas: number[]; confianzaMedia: number | null; giros: number[] };
+  ocr: {
+    ejecutado: boolean; paginas: number[]; confianzaMedia: number | null; giros: number[];
+    /** Cuántas pasadas de OCR hizo falta dar (1 = la primera bastó). */
+    intentos?: number;
+    /** Cuántos campos clave salieron del OCR: 0–1 insuficiente, 2 débil, 3 o más procesable. */
+    suficiencia?: 'insuficiente' | 'debil' | 'procesable';
+  };
   qr: { paginasEscaneadas: number; hallazgos: HallazgoQrRegistrado[] };
   /** Campos cuyo valor difiere entre fuentes (texto nativo vs OCR). Sin los valores. */
   discrepanciasFuentes: { campo: string; fuentes: string[] }[];

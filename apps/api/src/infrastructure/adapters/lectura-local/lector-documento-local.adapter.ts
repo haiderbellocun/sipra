@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   HallazgoQrCrudo, LectorDocumentoLocalPort, LimitesLecturaLocal, PaginaRenderizada,
-  ResultadoOcrPagina, ResultadoTextoNativo,
+  ResultadoOcrPagina, ResultadoTextoNativo, VarianteOcr,
 } from '../../../domain/ports/out/lector-documento-local.port';
 import { normalizarImagen } from './imagen-local';
 import { OcrTesseractMotor } from './ocr-tesseract.motor';
@@ -77,9 +77,9 @@ export class LectorDocumentoLocalAdapter implements LectorDocumentoLocalPort, On
     }
   }
 
-  ejecutarOcr(imagen: Buffer, pagina: number | null, limites: LimitesLecturaLocal): Promise<ResultadoOcrPagina> {
+  ejecutarOcr(imagen: Buffer, pagina: number | null, limites: LimitesLecturaLocal, variante: VarianteOcr = 'automatica'): Promise<ResultadoOcrPagina> {
     // Interruptor de incidente: sin OCR la lectura sigue con texto nativo y QR; lo ilegible pasa a revisión humana.
     if (!interruptorActivo(this.config?.get(INTERRUPTORES_EPS.ocr), INTERRUPTORES_EPS.ocr)) return Promise.resolve({ pagina, texto: '', confianza: 0, giro: 0 });
-    return this.ocr.reconocer(imagen, pagina, limites);
+    return this.ocr.reconocer(imagen, pagina, limites, variante);
   }
 }

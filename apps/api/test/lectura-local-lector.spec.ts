@@ -194,10 +194,11 @@ describe('OCR local', () => {
     expect(r.resumen.qr.hallazgos).toHaveLength(1);
   });
 
-  it('imagen rotada 90°: el OCR la endereza y reporta el giro aplicado', async () => {
-    const r = await leer(await imagenCertificado(undefined, { grados: 90 }), 'image/png');
-    expect(r.resumen.ocr.giros.some((g) => g !== 0)).toBe(true);
+  // La segmentación automática (PSM 3) detecta la orientación por sí sola; el giro explícito queda como respaldo para lecturas pobres.
+  it.each([90, 180, 270])('imagen rotada %i°: el OCR la lee (por la segmentación automática o por su respaldo de giros)', async (grados) => {
+    const r = await leer(await imagenCertificado(undefined, { grados: grados as 90 }), 'image/png');
     expect(r.campos.documento_afiliado.valor).toMatch(/1\.032\.456\.786/);
+    expect(r.resumen.ocr.giros.length).toBeGreaterThan(0);
   });
 
   it('resolución baja: no se inventa nada (lo que se lea es correcto) y no falla', async () => {

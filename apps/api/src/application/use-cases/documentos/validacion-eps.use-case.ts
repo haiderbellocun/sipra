@@ -216,6 +216,7 @@ export class ValidacionEpsUseCase {
         resultado: leidosPor('ocr').length > 0 ? 'leido' : 'sin_lectura', origen: null,
         datosObtenidos: {
           paginas: resumen.ocr.paginas, confianzaMedia: resumen.ocr.confianzaMedia, giros: resumen.ocr.giros,
+          intentos: resumen.ocr.intentos ?? 1, suficiencia: resumen.ocr.suficiencia ?? null,
           camposLeidos: leidosPor('ocr'), procesamiento: 'local',
         },
       }));

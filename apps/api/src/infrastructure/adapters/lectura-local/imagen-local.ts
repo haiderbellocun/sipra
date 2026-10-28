@@ -103,6 +103,18 @@ export async function girarImagen(png: Buffer, grados: 90 | 180 | 270): Promise<
   return lienzo.toBuffer('image/png');
 }
 
+/** Amplía la imagen por `factor` sin pasar de `maxPixeles` (el OCR rinde mejor con trazos más gruesos; la RAM no se dispara). */
+export async function ampliarImagen(png: Buffer, factor: number, maxPixeles: number): Promise<Buffer> {
+  const origen = await canvas().loadImage(png);
+  const f = Math.min(factor, Math.sqrt(maxPixeles / (origen.width * origen.height)));
+  if (f <= 1.05) return png;
+  const lienzo = canvas().createCanvas(Math.round(origen.width * f), Math.round(origen.height * f));
+  const ctx = lienzo.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(origen, 0, 0, lienzo.width, lienzo.height);
+  return lienzo.toBuffer('image/png');
+}
+
 /** Escala de grises con estiramiento de contraste. Reorganiza valores existentes; no inventa información. */
 export async function mejorarParaOcr(png: Buffer): Promise<Buffer> {
   const origen = await canvas().loadImage(png);
