@@ -489,7 +489,9 @@ export class MesaEpsUseCase {
     d: DatosValidacionEps, documentos: Array<{ id: string }>, evidencias: Array<{ tipo: string; resultado: string; fechaVerificacion: Date }>, valores: boolean,
   ): Promise<EventoHistorialDto[]> {
     const registros: RegistroAuditoria[] = [...await this.auditoria.listar({ entidad: 'validacion_eps', entidadId: d.id, limite: 200 })];
-    for (const doc of documentos) registros.push(...await this.auditoria.listar({ entidad: 'documento', entidadId: doc.id, limite: 100 }));
+    // Solo los eventos del documento de ESTA versión: con las demás versiones del certificado el historial mezclaba cargas y decisiones
+    // (la v2 «aprobada» aparecía en la v1 devuelta y la devolución de la v1 en la v2). Las versiones se listan aparte, cada una con lo suyo.
+    for (const doc of documentos.filter((x) => x.id === d.documentoId)) registros.push(...await this.auditoria.listar({ entidad: 'documento', entidadId: doc.id, limite: 100 }));
     const eventos: EventoHistorialDto[] = [];
     for (const r of registros) {
       const titulo = TITULO_EVENTO[r.accion];

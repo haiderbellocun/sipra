@@ -653,6 +653,27 @@ describe('Mesa EPS · visor del certificado (contenido por sesión autenticada)'
     expect((await m.mesa.certificado('v1', coord(), AHORA)).contenido.toString()).toBe('contenido:ruta/v1');
     expect((await m.mesa.certificado('v2', coord(), AHORA)).contenido.toString()).toBe('contenido:ruta/v2');
   });
+  it('el historial de cada versión solo trae SUS eventos: la devolución de la v1 no aparece en la v2 ni la aprobación de la v2 en la v1', async () => {
+    const m = montar();
+    await m.crear({ id: 'v1', version: 1, practicaId: 'pra-x', estudianteId: 'est-x', recibidaHace: 6 });
+    await m.crear({ id: 'v2', version: 2, practicaId: 'pra-x', estudianteId: 'est-x' });
+    const evento = (doc: string, accion: AccionAuditada, minutos: number, metadatos: Record<string, unknown> = {}, justificacion: string | null = null): RegistroAuditoria => ({
+      actorId: 'a', actorCorreo: 'aux@cun.edu.co', actorRol: Rol.AUXILIAR, accion, entidad: 'documento', entidadId: doc, justificacion, metadatos,
+      ip: null, agenteUsuario: null, ocurridoEn: new Date(AHORA.getTime() + minutos * MIN),
+    });
+    m.auditoria.registros.push(
+      evento('doc-v1', AccionAuditada.DOCUMENTO_CARGADO, 1), evento('doc-v1', AccionAuditada.DECISION_DOCUMENTO, 2, { decision: 'devolver' }, 'Devuelto: documento incorrecto'),
+      evento('doc-v2', AccionAuditada.DOCUMENTO_CARGADO, 3), evento('doc-v2', AccionAuditada.DECISION_DOCUMENTO, 4, { decision: 'aprobar' }, 'Aprobado en la Mesa'),
+    );
+    const h1 = (await m.mesa.detalle('v1', coord(), AHORA)).historial;
+    const h2 = (await m.mesa.detalle('v2', coord(), AHORA)).historial;
+    expect(h1.filter((e) => e.tipo === 'documento_cargado')).toHaveLength(1);
+    expect(h2.filter((e) => e.tipo === 'documento_cargado')).toHaveLength(1);
+    expect(h1.filter((e) => e.tipo === 'decision_documento').map((e) => e.detalle).join('|')).toMatch(/Devuelto/);
+    expect(h1.map((e) => e.detalle ?? '').join('|')).not.toMatch(/Aprobado en la Mesa/);
+    expect(h2.filter((e) => e.tipo === 'decision_documento').map((e) => e.detalle).join('|')).toMatch(/Aprobado/);
+    expect(h2.map((e) => e.detalle ?? '').join('|')).not.toMatch(/Devuelto/);
+  });
 });
 
 // ── Decisiones ──────────────────────────────────────────────────────────────
