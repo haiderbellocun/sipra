@@ -15,7 +15,7 @@ interface Hito { clave: string; etiqueta: string; fecha: string | null; detalle:
   styles: [`
     :host { display:block; }
     .cab { display:flex; gap:var(--sp-2); align-items:baseline; flex-wrap:wrap; margin-bottom:var(--sp-2); }
-    .cab h3 { margin:0; font-size:var(--fs-md); } .cab .pista { flex:1; }
+    .cab h3 { margin:0; font-size:var(--fs-md); } .cab .pista { flex:1 1 12rem; }
     ol { list-style:none; margin:0; padding:0; display:grid; gap:0; }
     li { display:grid; grid-template-columns:14px minmax(0,1fr); gap:var(--sp-3); position:relative; padding-bottom:var(--sp-3); }
     li:last-child { padding-bottom:0; }

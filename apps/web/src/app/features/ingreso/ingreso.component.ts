@@ -40,7 +40,7 @@ import { ModoAutenticacion, PerfilDisponible } from '@core/models/modelos';
       display: grid; gap: var(--sp-2); font: inherit; color: inherit; min-height: 44px; align-content: start;
     }
     .perfil .quien { font-size: var(--fs-sm); color: var(--texto-tenue); margin-top: var(--sp-1); }
-    .perfil select { font: inherit; font-size: var(--fs-sm); color: var(--texto); background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; min-height: 40px; padding: 0 var(--sp-3); width: 100%; }
+    .perfil select { font: inherit; font-size: var(--fs-sm); color: var(--texto); background: var(--superficie); border: 1px solid var(--borde-campo); border-radius: 10px; min-height: 40px; padding: 0 var(--sp-3); width: 100%; }
     .perfil .boton { justify-self: start; margin-top: var(--sp-1); }
     .perfil.ocupado { opacity: .7; }
     .perfil .rol { font-weight: 700; font-size: var(--fs-base); color: var(--marca); }

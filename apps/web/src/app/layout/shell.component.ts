@@ -153,7 +153,8 @@ const CLAVE_TEMA = 'sipra.tema';
     .barra-inf a {
       flex: 1; display: grid; place-items: center; gap: 2px; min-height: 56px;
       color: var(--texto-tenue); font-size: 11px; line-height: 14px; font-weight: 500;
-      padding: var(--sp-1); text-decoration: none;
+      padding: var(--sp-1) 2px; min-width: 0; text-decoration: none; text-align: center;
+      overflow-wrap: normal; hyphens: auto;
     }
     .barra-inf svg { width: 24px; height: 24px; }
     .barra-inf a.activo { color: var(--marca); }

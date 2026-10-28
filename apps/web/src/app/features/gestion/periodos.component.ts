@@ -19,6 +19,9 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
   styles: [`
     .intro { margin-bottom:var(--sp-3); } .intro summary { cursor:pointer; font-weight:600; font-size:var(--fs-sm); min-height:36px; display:flex; align-items:center; width:fit-content; }
     /* Maestro / detalle: una lista de periodos y la configuración del elegido (antes, nueve periodos expandidos en una sola página). */
+    /* Cerrado es solo un botón; abierto, la tarjeta del formulario. */
+    details.crear:not([open]) { padding:0; border:0; background:none; box-shadow:none; }
+    details.crear summary::-webkit-details-marker { display:none; }
     .maestro-detalle { display:grid; gap:var(--sp-3); grid-template-columns:minmax(0,1fr); align-items:start; }
     @media (width >= 1000px) { .maestro-detalle { grid-template-columns:260px minmax(0,1fr); } .maestro { position:sticky; top:calc(var(--alto-cinta, 0px) + 62px + 12px); max-height:calc(100dvh - 140px); overflow:auto; } }
     .maestro { display:flex; flex-wrap:wrap; gap:var(--sp-1); }
@@ -31,21 +34,23 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
     .periodo { display:grid; gap:var(--sp-3); }
     .periodo header { display:flex; gap:var(--sp-2) var(--sp-4); align-items:center; flex-wrap:wrap; } .periodo header h2 { margin:0; flex:1 1 20rem; font-size:var(--fs-lg); }
     .marca { display:flex; gap:6px; align-items:center; font-size:var(--fs-sm); min-height:36px; }
-    .pestanas { display:flex; gap:2px; border-bottom:1px solid var(--borde); overflow-x:auto; }
+    .pestanas { display:flex; flex-wrap:wrap; gap:0 2px; border-bottom:1px solid var(--borde); }
     .pestanas button { flex:none; font:inherit; font-size:var(--fs-sm); font-weight:600; color:var(--texto-tenue); background:none; border:0; border-bottom:2px solid transparent; padding:var(--sp-2) var(--sp-3); min-height:44px; cursor:pointer; white-space:nowrap; }
     .pestanas button.activa { color:var(--marca); border-bottom-color:var(--marca); }
     .pestanas button:focus-visible { outline:2px solid var(--marca); outline-offset:-2px; }
     /* Cada ventana en UNA fila: nombre y estado, fechas y acciones. */
     .ventanas { display:grid; gap:var(--sp-1); }
     .ventana { border:1px solid var(--borde); border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-3); font-size:var(--fs-sm); display:grid; gap:var(--sp-2); align-items:center; }
-    @media (width >= 900px) { .ventana { grid-template-columns:minmax(14rem,1.1fr) minmax(0,1.2fr) auto; } }
+    /* En una fila (nombre · fechas · acciones) solo cuando el detalle es ancho: con el menú lateral y la lista de periodos hacen falta ~1400 px. */
+    @media (width >= 1400px) { .ventana { grid-template-columns:minmax(14rem,1.1fr) minmax(0,1.2fr) auto; } }
+    .ventana .acciones { display:flex; flex-wrap:wrap; gap:var(--sp-2); } .ventana .acciones .boton { white-space:nowrap; }
     .ventana .t { display:flex; gap:var(--sp-2); align-items:center; justify-content:space-between; flex-wrap:wrap; font-weight:600; } .ventana .t .etiqueta { flex:none; white-space:nowrap; }
-    .ventana input { font:inherit; font-size:var(--fs-xs); border:1px solid var(--borde); border-radius:var(--r-sm); padding:4px 6px; background:var(--superficie); color:inherit; min-height:32px; }
+    .ventana input { font:inherit; font-size:var(--fs-xs); border:1px solid var(--borde-campo); border-radius:var(--r-sm); padding:4px 6px; background:var(--superficie); color:inherit; min-height:32px; }
     .fechas { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-1); }
     .mods { display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-3); font-size:var(--fs-xs); } .mods label { display:flex; gap:4px; align-items:center; }
     .rej { display:grid; gap:0 var(--sp-3); grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr)); }
     .crono { display:grid; gap:var(--sp-3); grid-template-columns:1fr; } @media (width >= 900px) { .crono { grid-template-columns:minmax(0,1fr) 300px; align-items:start; } }
-    .crono input { font:inherit; font-size:var(--fs-xs); border:1px solid var(--borde); border-radius:var(--r-sm); padding:4px 6px; background:var(--superficie); color:inherit; min-height:32px; }
+    .crono input { font:inherit; font-size:var(--fs-xs); border:1px solid var(--borde-campo); border-radius:var(--r-sm); padding:4px 6px; background:var(--superficie); color:inherit; min-height:32px; }
     .crono .campo { margin:0; }
   `],
   template: `
@@ -59,7 +64,7 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
     </p>
     </details>
 
-    <details class="tarjeta" style="margin-bottom:var(--sp-4)">
+    <details class="tarjeta crear" style="margin-bottom:var(--sp-4)">
       <summary class="boton compacto" style="display:inline-flex">+ Crear periodo</summary>
       <div class="rej" style="margin-top:var(--sp-3)">
         <div class="campo"><label for="n-cod">Código</label><input id="n-cod" [(ngModel)]="n.codigo" placeholder="2027A o 27V01" /></div>

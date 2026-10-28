@@ -22,11 +22,11 @@ import { leerError } from '@shared/utils/errores';
   styles: [`
     .cab { display:flex; gap:var(--sp-3); align-items:flex-start; flex-wrap:wrap; margin-bottom:var(--sp-4); } .cab > div { flex:1 1 32ch; } .cab p { margin:0; }
     .buscar { display:flex; gap:var(--sp-2); align-items:center; margin-bottom:var(--sp-4); }
-    .buscar input { flex:1; min-width:0; font:inherit; font-size:var(--fs-md); padding:10px 14px; border:1px solid var(--borde); border-radius:var(--r-md); background:var(--superficie); color:inherit; }
+    .buscar input { flex:1; min-width:0; font:inherit; font-size:var(--fs-md); padding:var(--sp-2) var(--sp-4); min-height:44px; border:1px solid var(--borde-campo); border-radius:var(--r-sm); background:var(--superficie); color:inherit; }
     .dos { display:grid; gap:var(--sp-4); grid-template-columns:1fr; } @media (width >= 900px) { .dos { grid-template-columns:260px minmax(0,1fr); align-items:start; } }
     /* Índice de categorías: se queda a la vista mientras se lee la respuesta y se desplaza por dentro si es largo. */
     @media (width >= 900px) { .cats { position:sticky; top:calc(var(--alto-cinta, 0px) + 62px + 12px); max-height:calc(100dvh - 140px); overflow:auto; overscroll-behavior:contain; } }
-    @media (width < 900px) { .cats { flex-direction:row !important; flex-wrap:nowrap; overflow-x:auto; gap:var(--sp-1) !important; } .cats button { white-space:nowrap; flex:none; border:1px solid var(--borde); } }
+    @media (width < 900px) { .cats.cats { flex-direction:row; flex-wrap:nowrap; overflow-x:auto; gap:var(--sp-1); } .cats.cats button { white-space:nowrap; flex:none; border:1px solid var(--borde); min-height:44px; align-items:center; } }
     .mas { display:flex; justify-content:center; padding-top:var(--sp-3); }
     .cats { display:flex; flex-direction:column; gap:2px; } .cats button { all:unset; cursor:pointer; display:flex; justify-content:space-between; gap:var(--sp-2); padding:7px 10px; border-radius:var(--r-sm); font-size:var(--fs-sm); }
     .cats button:hover { background:var(--superficie-2); } .cats button.sel { background:var(--marca-suave); color:var(--marca); font-weight:600; }
@@ -47,7 +47,7 @@ import { leerError } from '@shared/utils/errores';
       </div>
     </div>
     <div class="buscar">
-      <input type="search" [ngModel]="texto()" (ngModelChange)="texto.set($event); buscar()" placeholder="Busque por palabra: ARL, carta, acta, nota, contrato…" aria-label="Buscar en la ayuda" />
+      <input type="search" [ngModel]="texto()" (ngModelChange)="texto.set($event); buscar()" placeholder="Busque: ARL, carta, acta, nota…" aria-label="Buscar en la ayuda" />
     </div>
     <div class="dos">
       <nav class="tarjeta cats escalonado" aria-label="Categorías">

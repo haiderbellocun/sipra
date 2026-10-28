@@ -37,15 +37,16 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
     .cifra.tono-aviso .n   { color: var(--aviso); }
     .cifra.tono-ok .n      { color: var(--ok); }
     .fila {
-      display: flex; align-items: center; gap: var(--sp-3);
+      display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3);
       padding: var(--sp-3) 0; border-bottom: 1px solid var(--borde);
     }
     .fila:last-child { border-bottom: none; padding-bottom: 0; }
-    .fila .quien { flex: 1; min-width: 0; }
+    /* El texto toma el ancho que necesita (18 rem) y las insignias bajan debajo en móvil, en vez de aplastarlo. */
+    .fila .quien { flex: 1 1 18rem; min-width: 0; }
     .fila .nombre { font-weight: 600; font-size: var(--fs-sm); }
     .fila .detalle { font-size: var(--fs-xs); color: var(--texto-tenue); margin-top: 1px; }
     .disparadores { font-size: var(--fs-xs); color: var(--peligro); margin-top: var(--sp-1); }
-    .estados { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; }
+    .estados { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; margin-inline-start: auto; }
     .cab { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-2); }
     .cab h2 { margin: 0; }
     .dosc { display:grid; gap:var(--sp-4); grid-template-columns:1fr; } @media (width >= 1000px) { .dosc { grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); align-items:start; } }

@@ -83,6 +83,8 @@
   --sombra-tinta: 160 20% 15%;
 }
 :root {
+  /* Borde de controles de formulario: ≥3:1 sobre fondo y superficie (WCAG 1.4.11), derivado de los tokens existentes. */
+  --borde-campo:   color-mix(in oklab, var(--borde) 35%, var(--texto-tenue));
   --marca-suave:   color-mix(in oklab, var(--marca) 14%, transparent);
   --ok-suave:      color-mix(in oklab, var(--ok) 14%, transparent);
   --aviso-suave:   color-mix(in oklab, var(--aviso) 16%, transparent);
@@ -242,11 +244,12 @@ code { font-family: var(--fuente-mono); font-size: .9em; }
 .campo input, .campo select, .campo textarea {
   font: inherit; font-size: var(--fs-base);
   color: var(--texto); background: var(--bg);
-  border: 1px solid var(--borde); border-radius: var(--r-sm);
+  border: 1px solid var(--borde-campo); border-radius: var(--r-sm);
   min-height: 44px; padding: var(--sp-2) var(--sp-4); width: 100%;
 }
 .campo input::placeholder, .campo textarea::placeholder { color: var(--texto-tenue); }
-.campo input:hover, .campo select:hover, .campo textarea:hover { border-color: color-mix(in oklab, var(--borde) 40%, var(--texto-tenue)); }
+.campo input { text-overflow: ellipsis; } /* un placeholder largo termina en «…» en lugar de cortarse a media palabra */
+.campo input:hover, .campo select:hover, .campo textarea:hover { border-color: var(--texto-tenue); }
 .campo input[aria-invalid="true"], .campo textarea[aria-invalid="true"] { border-color: var(--peligro); }
 .campo textarea { min-height: 112px; resize: vertical; }
 .campo input[type="file"] { padding: var(--sp-2) var(--sp-3); }
