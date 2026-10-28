@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { dirname, join, normalize, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import {
   AlmacenamientoPort, ContextoEnlaceDocumento,
 } from '../../../domain/ports/out/servicios-externos.port';
@@ -47,12 +47,23 @@ export class AlmacenamientoLocalAdapter implements AlmacenamientoPort {
     return firmarEnlaceDocumento(this.secreto, contexto, minutos);
   }
 
-  /** Impide salir del directorio raíz por rutas con `..`. */
+  /**
+   * Impide salir del directorio raíz, igual en Windows y en Linux. `/` y `\` se tratan SIEMPRE como
+   * separadores (en Linux `\` es un carácter válido de nombre y `..\x` no sería un salto para el SO,
+   * pero la misma ruta sí lo es si luego se sirve desde Windows). Se validan los segmentos —sin `..`,
+   * sin ruta absoluta (`/x`, `C:\x`, `\\servidor\x`), sin unidad ni bytes nulos— y solo entonces se
+   * resuelve contra la raíz y se comprueba pertenencia. No se decodifica nada: la ruta llega ya decodificada.
+   */
   private resolver(ruta: string): string {
-    const destino = resolve(join(this.raiz, normalize(ruta)));
-    if (destino !== this.raiz && !destino.startsWith(this.raiz + sep)) {
-      throw new NotFoundException('Documento no encontrado');
-    }
+    const rechazar = (): never => { throw new NotFoundException('Documento no encontrado'); };
+    if (typeof ruta !== 'string' || ruta.length === 0 || ruta.includes('\0')) rechazar();
+    const unificada = ruta.replace(/\\/g, '/');
+    if (unificada.startsWith('/') || /^[a-zA-Z]:/.test(unificada)) rechazar();
+    const segmentos = unificada.split('/').filter((s) => s !== '' && s !== '.');
+    if (segmentos.length === 0 || segmentos.some((s) => s === '..' || s.includes(':'))) rechazar();
+    const destino = resolve(this.raiz, ...segmentos);
+    const relativa = relative(this.raiz, destino);
+    if (relativa === '' || relativa === '..' || relativa.startsWith('..' + sep) || isAbsolute(relativa)) rechazar();
     return destino;
   }
 }

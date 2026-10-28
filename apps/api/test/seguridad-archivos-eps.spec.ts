@@ -32,7 +32,11 @@ describe('Almacenamiento local · rutas', () => {
   });
   afterEach(() => rmSync(afuera, { recursive: true, force: true }));
 
-  it.each(['../fuera.txt', '..\\fuera.txt', 'a/../../fuera.txt', 'practicas/../../fuera.txt', './../fuera.txt'])(
+  it.each([
+    '../fuera.txt', '..\\fuera.txt', 'a/../../fuera.txt', 'a\\..\\..\\fuera.txt',
+    'practicas/../../fuera.txt', 'practicas\\..\\..\\fuera.txt', './../fuera.txt', '.\\..\\fuera.txt',
+    'a/..\\../fuera.txt', 'a\\../..\\fuera.txt', '..', '..\\', 'practicas/../..',
+  ])(
     'una ruta que sale de la raíz se rechaza y NO escribe fuera: %s',
     async (ruta) => {
       await expect(almacen.guardar(ruta, Buffer.from('x'), 'application/pdf')).rejects.toBeInstanceOf(NotFoundException);
@@ -43,12 +47,25 @@ describe('Almacenamiento local · rutas', () => {
     },
   );
 
-  it.each(['/etc/passwd', 'C:\\Windows\\fuera.txt'])('una ruta ABSOLUTA no escapa: se re-ancla dentro de la raíz o falla, pero nada se escribe fuera (%s)', async (ruta) => {
-    await almacen.guardar(ruta, Buffer.from('x'), 'application/pdf').catch(() => undefined);
-    const base = readdirSync(afuera);
-    expect(base).toEqual(existsSync(raiz) ? ['raiz'] : []); // nada junto a la raíz
-    expect(existsSync('/etc/passwd.sipra') || existsSync('C:\\Windows\\fuera.txt')).toBe(false);
+  it.each([
+    '/etc/passwd', '\\etc\\passwd', 'C:\\Windows\\fuera.txt', 'C:/Windows/fuera.txt', 'c:fuera.txt',
+    '\\\\servidor\\recurso\\fuera.txt', '//servidor/recurso/fuera.txt', '/\\servidor/fuera.txt',
+    'practicas/C:\\fuera.txt', 'practicas\\a\0b', '', '.', './', 'practicas/%2e%2e/%2e%2e/fuera.txt/..',
+  ])('una ruta absoluta, UNC, con unidad o vacía se rechaza y nada se escribe fuera (%j)', async (ruta) => {
+    await expect(almacen.guardar(ruta, Buffer.from('x'), 'application/pdf')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(almacen.leer(ruta)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(almacen.eliminar(ruta)).rejects.toBeInstanceOf(NotFoundException);
+    expect(readdirSync(afuera)).toEqual(existsSync(raiz) ? ['raiz'] : []);
   });
+
+  it.each(['practicas/a/b', 'practicas\\a\\b', 'practicas/./a//b', 'practicas/%2e%2e/b', 'a..b/c'])(
+    'rutas internas con cualquier separador quedan DENTRO de la raíz (%s)', async (ruta) => {
+      await almacen.guardar(ruta, Buffer.from('x'), 'application/pdf');
+      expect((await almacen.leer(ruta)).toString()).toBe('x');
+      expect(readdirSync(afuera)).toEqual(['raiz']);
+      await almacen.eliminar(ruta);
+    },
+  );
 
   it('una ruta legítima (la que construye el servidor) guarda, lee y elimina dentro de la raíz', async () => {
     const ruta = `practicas/${'0'.repeat(8)}/certificado_eps/${'a'.repeat(32)}`;
