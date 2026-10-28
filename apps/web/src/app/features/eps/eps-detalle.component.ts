@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { DecisionMesa } from '@core/models/modelos';
 import { EpsAdresComponent } from './eps-adres.component';
 import { EpsComparacionComponent } from './eps-comparacion.component';
@@ -8,7 +9,7 @@ import { EpsMesaEstado } from './eps-mesa.estado';
 import { EpsVisorComponent } from './eps-visor.component';
 import {
   AFILIACION, AUTENTICIDAD, ESTADO_RESERVA, FUENTE_AFILIACION, FUENTE_CAMPO, METODO_EXTRACCION, RECOMENDACION, SEVERIDAD_DISCREPANCIA,
-  diaCorto, fechaCorta, fechaIso, textoRestante,
+  diaCorto, fechaCorta, fechaIso, fuenteEvidencia, resultadoEvidencia, textoRestante, tipoEvidencia,
 } from './eps.util';
 
 type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
@@ -23,7 +24,7 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
 @Component({
   selector: 'sipra-eps-detalle',
   standalone: true,
-  imports: [EpsVisorComponent, EpsComparacionComponent, EpsAdresComponent, EpsDecisionComponent, EpsHistorialComponent],
+  imports: [EpsVisorComponent, EpsComparacionComponent, EpsAdresComponent, EpsDecisionComponent, EpsHistorialComponent, EtiquetaPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host {
@@ -110,14 +111,17 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     /* ── Zona secundaria ── */
     .secundaria { padding-top:var(--sp-3); border-top:1px solid var(--borde); display:grid; gap:var(--sp-4); grid-template-columns:minmax(0, 1fr); }
     @container rev (min-width: 30rem) { .secundaria { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); align-items:start; } .secundaria .ancho { grid-column:1 / -1; } }
-    ul.versiones { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:var(--sp-2); }
-    ul.versiones li { display:inline-flex; align-items:center; gap:var(--sp-1); padding:2px var(--sp-3); border-radius:999px; background:var(--superficie-2); font-size:var(--fs-sm); font-weight:700; min-height:32px; }
-    ul.versiones li.vigente { background:var(--ok-suave); color:var(--ok); }
-    .nota-ver { margin:var(--sp-2) 0 0; font-size:var(--fs-sm); color:var(--texto-tenue); }
-    details.evid { margin-top:var(--sp-3); }
-    details.evid summary { cursor:pointer; font-size:var(--fs-sm); font-weight:700; min-height:36px; display:flex; align-items:center; width:fit-content; }
-    details.evid ul { margin-top:var(--sp-2); font-size:var(--fs-sm); }
-    details.evid li { display:flex; flex-wrap:wrap; gap:0 var(--sp-2); overflow-wrap:break-word; }
+    /* Zona secundaria en pestañas: solo se dibuja la que está abierta (versiones por defecto: lo más útil al decidir). */
+    .secundaria .pestanas { display:flex; gap:2px; border-bottom:1px solid var(--borde); margin-bottom:var(--sp-3); overflow-x:auto; }
+    .secundaria .pestanas button { flex:none; font:inherit; font-size:var(--fs-sm); font-weight:600; color:var(--texto-tenue); background:none; border:0; border-bottom:2px solid transparent; padding:var(--sp-2) var(--sp-3); min-height:44px; cursor:pointer; white-space:nowrap; }
+    .secundaria .pestanas button.activa { color:var(--marca); border-bottom-color:var(--marca); }
+    .secundaria .pestanas button:focus-visible { outline:2px solid var(--marca); outline-offset:-2px; }
+    .secundaria .pestanas .n { font-weight:400; font-variant-numeric:tabular-nums; color:var(--texto-tenue); }
+    ul.versiones, ul.evidencias { list-style:none; margin:0; padding:0; display:grid; gap:var(--sp-1); }
+    ul.versiones li { display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-1) var(--sp-3); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); background:var(--superficie-2); font-size:var(--fs-sm); }
+    ul.versiones li.vigente { background:var(--ok-suave); }
+    ul.evidencias li { display:flex; flex-wrap:wrap; gap:0 var(--sp-2); font-size:var(--fs-sm); padding:var(--sp-1) 0; border-bottom:1px solid var(--borde); overflow-wrap:break-word; }
+    ul.evidencias li:last-child { border-bottom:0; }
     /* Banda de tiempos: una línea de pares etiqueta/valor, no una tarjeta. */
     .tiempos { display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-5); margin:0; padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); background:var(--superficie-2); }
     .tiempos > div { min-width:0; display:grid; gap:0; }
@@ -329,33 +333,46 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
           </section>
 
       <div class="secundaria">
-        <section class="sec" aria-labelledby="p-ver">
-          <h3 id="p-ver">Versiones y evidencia</h3>
-          <ul class="versiones">
-            @for (v of d.versiones; track v.documentoId) {
-              <li [class.vigente]="v.esVigente" [attr.title]="fecha(v.cargadoEn) + ' · ' + v.estado"
-                  [attr.aria-label]="'Versión ' + v.version + (v.esVigente ? ', vigente' : '') + (v.esEsta ? ', la que está en pantalla' : '') + ', cargada ' + fecha(v.cargadoEn) + ', estado ' + v.estado">
-                v{{ v.version }}@if (v.esVigente) { <span> · vigente</span> }@if (v.esEsta) { <span aria-hidden="true"> ●</span> }
-              </li>
+        <section class="sec ancho" aria-label="Versiones, evidencia e historial">
+          <div class="pestanas" role="tablist" aria-label="Información secundaria del caso">
+            @for (t of pestanasSec(d); track t.clave) {
+              <button type="button" role="tab" [id]="'st-' + t.clave" [attr.aria-selected]="pestanaSec() === t.clave" [attr.aria-controls]="'sp-' + t.clave"
+                      [tabIndex]="pestanaSec() === t.clave ? 0 : -1" [class.activa]="pestanaSec() === t.clave"
+                      (click)="pestanaSec.set(t.clave)" (keydown)="teclaSec($event, d)">{{ t.texto }} <span class="n">{{ t.n }}</span></button>
             }
-          </ul>
-          <p class="nota-ver">El punto ● marca la versión que está en pantalla.</p>
-          <details class="evid">
-            <summary>Evidencia registrada ({{ d.evidencias.length }})</summary>
-            @if (d.evidencias.length === 0) { <p class="pista">Sin evidencias registradas.</p> }
-            @else {
-              <ul class="lista">
-                @for (v of d.evidencias; track v.id) {
-                  <li><strong>{{ v.tipo }}</strong> <span>{{ v.fuente }}</span> <span>· {{ v.resultado }}@if (v.error) { · {{ v.error }} }</span> <span class="pista" style="margin:0">· {{ fecha(v.fecha) }}</span></li>
+          </div>
+          @if (pestanaSec() === 'versiones') {
+            <div role="tabpanel" id="sp-versiones" aria-labelledby="st-versiones">
+              <ul class="versiones">
+                @for (v of d.versiones; track v.documentoId) {
+                  <li [class.vigente]="v.esVigente" [attr.aria-label]="'Versión ' + v.version + (v.esVigente ? ', vigente' : ', anterior') + (v.esEsta ? ', la que está en pantalla' : '') + ', cargada ' + fecha(v.cargadoEn) + ', estado ' + (v.estado | etiqueta)">
+                    <strong>v{{ v.version }}</strong>
+                    <span class="etiqueta etiqueta--{{ v.esVigente ? 'ok' : 'neutra' }}">{{ v.esVigente ? 'Vigente' : 'Anterior' }}</span>
+                    <span>{{ v.estado | etiqueta }}</span>
+                    <span class="pista" style="margin:0">{{ fecha(v.cargadoEn) }}</span>
+                    @if (v.esEsta) { <span class="etiqueta etiqueta--info">En pantalla</span> }
+                  </li>
                 }
               </ul>
-            }
-          </details>
-        </section>
-
-        <section class="sec" aria-labelledby="p-his">
-          <h3 id="p-his">Historial</h3>
-          <sipra-eps-historial [eventos]="d.historial" />
+            </div>
+          }
+          @if (pestanaSec() === 'evidencia') {
+            <div role="tabpanel" id="sp-evidencia" aria-labelledby="st-evidencia">
+              @if (d.evidencias.length === 0) { <p class="pista">Sin evidencias registradas.</p> }
+              @else {
+                <ul class="evidencias">
+                  @for (v of d.evidencias; track v.id) {
+                    <li><strong>{{ tipoEvidencia(v.tipo) }}</strong> <span>{{ fuenteEvidencia(v.fuente) }}</span> <span>· {{ resultadoEvidencia(v.resultado) }}@if (v.error) { · {{ v.error }} }</span> <span class="pista" style="margin:0">· {{ fecha(v.fecha) }}</span></li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+          @if (pestanaSec() === 'historial') {
+            <div role="tabpanel" id="sp-historial" aria-labelledby="st-historial">
+              <sipra-eps-historial [eventos]="d.historial" />
+            </div>
+          }
         </section>
 
         <section class="sec ancho" aria-labelledby="p-met">
@@ -390,6 +407,22 @@ export class EpsDetalleComponent {
   protected readonly estado = inject(EpsMesaEstado);
   private readonly decisionDialogo = viewChild<EpsDecisionComponent>('decision');
 
+  readonly pestanaSec = signal<'versiones' | 'evidencia' | 'historial'>('versiones');
+  readonly tipoEvidencia = tipoEvidencia; readonly fuenteEvidencia = fuenteEvidencia; readonly resultadoEvidencia = resultadoEvidencia;
+  pestanasSec(d: Detalle) {
+    return [
+      { clave: 'versiones', texto: 'Versiones', n: d.versiones.length }, { clave: 'evidencia', texto: 'Evidencia', n: d.evidencias.length },
+      { clave: 'historial', texto: 'Historial', n: d.historial.length },
+    ] as const;
+  }
+  /** Flechas, Inicio y Fin cambian de pestaña (patrón de pestañas del APG) y llevan el foco. */
+  teclaSec(e: KeyboardEvent, d: Detalle): void {
+    const claves = this.pestanasSec(d).map((t) => t.clave); const i = claves.indexOf(this.pestanaSec());
+    const sig = e.key === 'ArrowRight' ? (i + 1) % claves.length : e.key === 'ArrowLeft' ? (i - 1 + claves.length) % claves.length : e.key === 'Home' ? 0 : e.key === 'End' ? claves.length - 1 : -1;
+    if (sig < 0) return;
+    e.preventDefault(); this.pestanaSec.set(claves[sig]);
+    setTimeout(() => document.getElementById('st-' + claves[sig])?.focus(), 0);
+  }
   readonly puedeDecidir = computed(() => {
     const d = this.estado.detalle();
     return !!d && d.acceso.puedeDecidir && d.caso.esVersionVigente && this.estado.puedeActuar() && !this.estado.ocupado();

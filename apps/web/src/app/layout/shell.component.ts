@@ -56,6 +56,14 @@ const CLAVE_TEMA = 'sipra.tema';
       flex-wrap: wrap; text-align: center;
     }
     .cinta strong { font-weight: 650; }
+    /* Móvil: una línea («Ambiente de pruebas») y el detalle a un toque; en escritorio se ve completo. */
+    .cinta-mas { display: none; }
+    @media (width < 768px) {
+      .cinta { padding: var(--sp-1) var(--sp-3); }
+      .cinta-mas { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--sp-2); font: inherit; font-size: var(--fs-xs); font-weight: 600; color: inherit; background: transparent; border: 1px solid color-mix(in oklab, currentColor 40%, transparent); border-radius: var(--r-sm); cursor: pointer; }
+      .cinta .detalle { display: none; flex-basis: 100%; }
+      .cinta.abierta .detalle { display: block; }
+    }
     /* En escritorio la cinta cabe en una línea y se queda fija; el panel
        lateral y la barra superior descuentan su altura. En móvil puede
        ocupar dos líneas y simplemente se desplaza con la página. */
@@ -180,9 +188,10 @@ const CLAVE_TEMA = 'sipra.tema';
     </svg>
 
     @if (sesion.sesion()?.modo === 'abierto') {
-      <div class="cinta">
+      <div class="cinta" [class.abierta]="cintaAbierta()">
         <strong>Ambiente de pruebas</strong>
-        <span>ingreso sin contraseña · datos sintéticos · nada de lo que ve es real</span>
+        <button type="button" class="cinta-mas" [attr.aria-expanded]="cintaAbierta()" aria-controls="cinta-detalle" (click)="cintaAbierta.set(!cintaAbierta())">{{ cintaAbierta() ? 'Ocultar' : 'Detalle' }}</button>
+        <span class="detalle" id="cinta-detalle">ingreso sin contraseña · datos sintéticos · nada de lo que ve es real</span>
       </div>
     }
 
@@ -354,6 +363,7 @@ export class ShellComponent {
 
   // ── Cuenta ────────────────────────────────────────────────────────────────
   readonly menuCuenta = signal(false);
+  readonly cintaAbierta = signal(false);
 
   alternarMenuCuenta(evento: Event): void {
     evento.stopPropagation();

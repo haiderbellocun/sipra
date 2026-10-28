@@ -26,7 +26,10 @@ import { leerError } from '@shared/utils/errores';
   styles: [`
     .cab { display:flex; gap:var(--sp-3); align-items:flex-start; flex-wrap:wrap; margin-bottom:var(--sp-4); } .cab > div { flex:1 1 30ch; } .cab p { margin:0; }
     .dos { display:grid; gap:var(--sp-4); grid-template-columns:1fr; } @media (width >= 1000px) { .dos { grid-template-columns:1fr 1.3fr; align-items:start; } }
-    .rej { display:grid; gap:0 var(--sp-3); grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr)); }
+    .rej { display:grid; gap:0 var(--sp-3); grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr)); }
+    .requisitos { margin:var(--sp-2) 0 var(--sp-3); padding:var(--sp-3); border-radius:var(--r-sm); background:var(--superficie-2); font-size:var(--fs-sm); }
+    .requisitos strong { display:block; margin-bottom:var(--sp-1); } .requisitos ul { margin:0 0 var(--sp-2); padding-left:1.2em; }
+    details.no-acepta { margin:var(--sp-2) 0 var(--sp-3); } details.no-acepta summary { cursor:pointer; font-size:var(--fs-sm); font-weight:600; min-height:36px; display:flex; align-items:center; width:fit-content; }
     .fila { display:flex; gap:var(--sp-3); align-items:center; padding:var(--sp-2) 0; border-bottom:1px solid var(--borde); font-size:var(--fs-sm); cursor:pointer; }
     .fila:last-child { border-bottom:0; } .fila:hover { background:var(--superficie-2); } .fila.sel { background:var(--marca-suave); }
     .fila .q { flex:1; min-width:0; } .fila .n { font-weight:600; }
@@ -63,8 +66,16 @@ import { leerError } from '@shared/utils/errores';
             } @else if (p.arlVerificada) {
               <div class="aviso aviso--ok">Su práctica ya tiene la afiliación a ARL registrada.</div>
             } @else {
-              <p class="pista">Práctica: <strong>{{ p.modalidad | etiqueta }}</strong> · {{ p.periodoAcademico }} · del {{ p.fechaInicio | date: 'd MMM' }} al {{ p.fechaFin | date: 'd MMM y' }}.
-                Los soportes se toman de su expediente; cárguelos antes: <em>certificado de EPS, documento de identificación</em> y el <em>acta de inicio</em> (o RUT y Cámara si es CUNbre).</p>
+              <p class="pista" style="margin-bottom:0">Práctica: <strong>{{ p.modalidad | etiqueta }}</strong> · {{ p.periodoAcademico }} · del {{ p.fechaInicio | date: 'd MMM' }} al {{ p.fechaFin | date: 'd MMM y' }}.</p>
+              <div class="requisitos">
+                <strong>Antes de radicar, tenga cargado en su expediente:</strong>
+                <ul>
+                  <li>Certificado de EPS</li>
+                  <li>Documento de identificación</li>
+                  <li>Acta de inicio (o RUT y Cámara de Comercio si es CUNbre)</li>
+                </ul>
+                <a [routerLink]="['/practicas', p.id]">Ir a mi expediente →</a>
+              </div>
               <div class="rej">
                 <div class="campo"><label for="a-tid">Tipo de identificación</label><select id="a-tid" [(ngModel)]="r.tipoIdentificacion"><option value="CC">Cédula de ciudadanía</option><option value="TI">Tarjeta de identidad</option><option value="CE">Cédula de extranjería</option><option value="PA">Pasaporte</option></select></div>
                 <div class="campo"><label for="a-nid">Número</label><input id="a-nid" [(ngModel)]="r.numeroIdentificacion" /></div>
@@ -76,7 +87,10 @@ import { leerError } from '@shared/utils/errores';
                   @if (practica()?.modalidad === 'cunbre_consolidado') { <div class="campo"><label for="a-fcam">Expedición de la Cámara de Comercio</label><input id="a-fcam" type="date" [(ngModel)]="r.fechaExpedicionCamara" /></div> }
                 }
               </div>
-              <p class="pista">No se aceptan: documentos borrosos o con contraseña, certificado del Sisbén o de ADRES, EPS con más de 30 días, planillas ni soportes de aportes o novedades.</p>
+              <details class="no-acepta">
+                <summary>Qué documentos no se aceptan</summary>
+                <p class="pista" style="margin:0">Documentos borrosos o con contraseña, certificado del Sisbén o de ADRES, EPS con más de 30 días, planillas ni soportes de aportes o novedades.</p>
+              </details>
               <button type="button" class="boton boton--primario" [class.cargando]="guardando()" [disabled]="guardando()" (click)="radicar()">Radicar solicitud</button>
             }
           }

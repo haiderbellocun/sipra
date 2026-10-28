@@ -17,6 +17,7 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
 import { formatearEntero, formatearUsd } from '@shared/utils/moneda';
 import { guiaDocumento, lineaVersionAnterior } from './guia-documento';
+import { textoBandera } from './banderas';
 
 type Pestana = 'documentos' | 'bitacora' | 'datos';
 
@@ -192,10 +193,10 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                       <div class="pista">{{ doc.nombreOriginal }} · {{ doc.cargadoEn | date: 'd MMM y, HH:mm' }}@if (doc.puntaje !== null) { · {{ doc.puntaje }}/100 }</div>
                       @if (doc.motivoDevolucion) { <div class="aviso aviso--info" style="margin-top:var(--sp-1)">{{ doc.motivoDevolucion }}</div> }
                       @for (b of doc.banderas ?? []; track b.codigo) {
-                        <div class="bandera" [class.critica]="b.severidad === 'critica'" [class.alta]="b.severidad === 'alta'"><strong class="mono">{{ b.codigo }}</strong> · {{ b.mensaje }}</div>
+                        <div class="bandera" [class.critica]="b.severidad === 'critica'" [class.alta]="b.severidad === 'alta'"><span [attr.title]="'Código: ' + b.codigo">{{ textoBandera(b.codigo, b.mensaje) }}</span></div>
                       }
                       @if (doc.estado === 'en_revision' || doc.estado === 'ilegible') {
-                        <div class="revision" role="status"><svg aria-hidden="true"><use href="#sipra-alerta" /></svg>{{ doc.estado === 'ilegible' ? 'Ilegible · revisión manual o nuevo cargue' : 'Revisión manual requerida' }}</div>
+                        <div class="revision" role="status"><svg aria-hidden="true"><use href="#sipra-alerta" /></svg>{{ doc.estado === 'ilegible' ? 'No se pudo leer: hace falta una persona que lo revise o un nuevo archivo' : 'Pendiente de revisión por una persona' }}</div>
                       }
                       @if (doc.lectura; as l) {
                         <details class="lectura">
@@ -475,6 +476,7 @@ export class ExpedienteComponent implements OnInit {
   ultimoDe(tipo: string): Documento | null {
     return this.documentos().filter((d) => d.tipo === tipo).sort((a, b) => b.version - a.version)[0] ?? null;
   }
+  readonly textoBandera = textoBandera;
   readonly esEstudiante = computed(() => this.sesion.rol() === 'estudiante');
   /** Tipos cuyo último documento necesita corrección: se avisa arriba, sin obligar a buscarlo entre los momentos. */
   readonly pendientesCorreccion = computed(() => {

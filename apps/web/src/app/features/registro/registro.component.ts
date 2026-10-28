@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
@@ -25,7 +25,7 @@ import { leerError } from '@shared/utils/errores';
     .pasos { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; align-items: start; }
     @media (width >= 1100px) { .pasos { grid-template-columns: 1fr 1.6fr; } }
     .paso-n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--marca); color: var(--marca-contraste); font-size: var(--fs-xs); font-weight: 700; margin-right: var(--sp-2); }
-    .rej { display: grid; gap: 0 var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+    .rej { display: grid; gap: 0 var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
     .rej .ancho { grid-column: 1 / -1; }
     .modal-desc { font-size: var(--fs-sm); color: var(--texto-tenue); margin: var(--sp-1) 0 var(--sp-3); }
     .momentos { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); margin: var(--sp-2) 0 var(--sp-3); }
@@ -99,6 +99,7 @@ import { leerError } from '@shared/utils/errores';
         </p>
 
         <form (ngSubmit)="registrar()" #formulario="ngForm">
+          <p class="pista" style="margin:0 0 var(--sp-3)">Todos los campos son obligatorios, salvo los marcados como opcionales.</p>
           <div class="rej">
             @if (!esEstudiante()) {
               <div class="campo">
@@ -160,7 +161,7 @@ import { leerError } from '@shared/utils/errores';
             <div class="campo"><label for="r-ciudad">Ciudad</label><input id="r-ciudad" name="ciudad" [(ngModel)]="fur.ciudad" required /></div>
           </div>
 
-          <h3>Vacante</h3>
+          <h3>Datos de la práctica</h3>
           <div class="rej">
             <div class="campo"><label for="r-area">Área</label><input id="r-area" name="area" [(ngModel)]="fur.area" required /></div>
             <div class="campo"><label for="r-cargo">Cargo</label><input id="r-cargo" name="cargo" [(ngModel)]="fur.cargo" required /></div>
@@ -174,11 +175,18 @@ import { leerError } from '@shared/utils/errores';
               <div class="campo"><label for="r-salario">Salario o apoyo (COP)</label><input id="r-salario" name="salario" type="number" min="0" [(ngModel)]="fur.salario" /></div>
             }
             <div class="campo"><label for="r-horario">Horario</label><input id="r-horario" name="horario" [(ngModel)]="fur.horario" required placeholder="Lunes a viernes, 8:00 a 17:00" /></div>
-            <div class="campo"><label for="r-inicio">Fecha de inicio</label><input id="r-inicio" name="fechaInicio" type="date" [(ngModel)]="fur.fechaInicio" required /></div>
-            <div class="campo"><label for="r-fin">Fecha de finalización</label><input id="r-fin" name="fechaFin" type="date" [(ngModel)]="fur.fechaFin" required /></div>
-            <div class="campo ancho"><label for="r-func">Funciones relevantes</label><textarea id="r-func" name="funcionesRelevantes" [(ngModel)]="fur.funcionesRelevantes" required minlength="20"></textarea></div>
           </div>
-          <p class="pista">Las fechas van dentro del periodo y no pueden caer en sábado ni domingo.</p>
+
+          <h3>Fechas</h3>
+          <div class="rej">
+            <div class="campo"><label for="r-inicio">Fecha de inicio</label><input id="r-inicio" name="fechaInicio" type="date" [(ngModel)]="fur.fechaInicio" required aria-describedby="r-fechas-ayuda" /></div>
+            <div class="campo"><label for="r-fin">Fecha de finalización</label><input id="r-fin" name="fechaFin" type="date" [(ngModel)]="fur.fechaFin" required aria-describedby="r-fechas-ayuda" /></div>
+          </div>
+          <p class="pista" id="r-fechas-ayuda">Las fechas van dentro del periodo y no pueden caer en sábado ni domingo.</p>
+
+          <h3>Funciones</h3>
+          <div class="campo ancho"><label for="r-func">Funciones relevantes</label><textarea id="r-func" name="funcionesRelevantes" [(ngModel)]="fur.funcionesRelevantes" required minlength="20" aria-describedby="r-func-ayuda"></textarea>
+            <span class="pista" id="r-func-ayuda">Describa en pocas líneas qué hará (mínimo 20 caracteres).</span></div>
 
           <h3>Jefe inmediato</h3>
           <div class="rej">
@@ -194,6 +202,9 @@ import { leerError } from '@shared/utils/errores';
               en PDF sin contraseña, las firmas son manuscritas o digitales, y la modalidad y las fechas quedan fijas al registrar.</span>
           </label>
 
+          @if (faltantes(formulario); as falta) {
+            @if (falta.length > 0) { <p class="pista" role="status" style="margin:0 0 var(--sp-2)">Para registrar falta completar: {{ falta.join(', ') }}.</p> }
+          }
           <div class="acciones">
             <button type="submit" class="boton boton--primario" [disabled]="formulario.invalid || guardando()">
               {{ guardando() ? 'Registrando…' : 'Registrar la práctica' }}
@@ -268,6 +279,18 @@ export class RegistroComponent implements OnInit {
       await this.cargarCartas();
       return 'Carta generada. Puede descargarla en PDF cuantas veces necesite: siempre sale idéntica.';
     });
+  }
+
+  /** Etiquetas de los campos del formulario que todavía no están completos: dice qué falta en lugar de dejar el botón apagado sin explicación. */
+  faltantes(f: NgForm): string[] {
+    const etiquetas: Record<string, string> = {
+      estudianteDocumento: 'Documento del estudiante', periodoAcademico: 'Periodo académico', modalidad: 'Modalidad', empresaRazonSocial: 'Razón social',
+      empresaNit: 'NIT', ciudad: 'Ciudad', area: 'Área', cargo: 'Cargo', tipoRemuneracion: 'Remuneración', horario: 'Horario', fechaInicio: 'Fecha de inicio',
+      fechaFin: 'Fecha de finalización', funcionesRelevantes: 'Funciones relevantes', jefeInmediatoNombre: 'Jefe inmediato: nombre',
+      jefeInmediatoCargo: 'Jefe inmediato: cargo', jefeInmediatoCorreo: 'Jefe inmediato: correo', jefeInmediatoTelefono: 'Jefe inmediato: teléfono',
+      aceptaTerminos: 'Aceptar los términos',
+    };
+    return Object.entries(f?.controls ?? {}).filter(([, c]) => c.invalid).map(([n]) => etiquetas[n] ?? n);
   }
 
   async registrar(): Promise<void> {

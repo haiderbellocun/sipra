@@ -155,3 +155,19 @@ export function diaCorto(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+// ── Evidencia registrada: lo que ve quien revisa, sin los códigos internos ──
+
+const TIPO_EVIDENCIA: Record<string, string> = {
+  texto_pdf: 'Texto del PDF', ocr: 'Lectura por OCR', qr: 'Código QR', adres: 'Resultado de ADRES', revision_humana: 'Decisión de una persona', respuesta_eps: 'Respuesta de la EPS',
+};
+const FUENTE_EVIDENCIA: Record<string, string> = {
+  certificado: 'Certificado', qr_oficial: 'QR oficial', eps_oficial: 'EPS (fuente oficial)', adres: 'ADRES', revision_humana: 'Revisión humana',
+};
+const RESULTADO_EVIDENCIA: Record<string, string> = {
+  leido: 'leído', sin_texto: 'sin texto digital', sin_lectura: 'no se leyó ningún dato', no_encontrado: 'no se encontró', detectado: 'detectado', cargada: 'cargada',
+  procesada: 'procesada', procesado: 'procesada', error: 'con error', aprobado_manual: 'aprobado', rechazado: 'rechazado', devuelto: 'devuelto',
+};
+export function tipoEvidencia(tipo: string): string { return TIPO_EVIDENCIA[tipo] ?? tipo.replace(/_/g, ' '); }
+export function fuenteEvidencia(fuente: string): string { return FUENTE_EVIDENCIA[fuente] ?? fuente.replace(/_/g, ' '); }
+export function resultadoEvidencia(resultado: string): string { return RESULTADO_EVIDENCIA[resultado] ?? resultado.replace(/_/g, ' '); }

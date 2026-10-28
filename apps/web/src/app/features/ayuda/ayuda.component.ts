@@ -24,6 +24,10 @@ import { leerError } from '@shared/utils/errores';
     .buscar { display:flex; gap:var(--sp-2); align-items:center; margin-bottom:var(--sp-4); }
     .buscar input { flex:1; min-width:0; font:inherit; font-size:var(--fs-md); padding:10px 14px; border:1px solid var(--borde); border-radius:var(--r-md); background:var(--superficie); color:inherit; }
     .dos { display:grid; gap:var(--sp-4); grid-template-columns:1fr; } @media (width >= 900px) { .dos { grid-template-columns:260px minmax(0,1fr); align-items:start; } }
+    /* Índice de categorías: se queda a la vista mientras se lee la respuesta y se desplaza por dentro si es largo. */
+    @media (width >= 900px) { .cats { position:sticky; top:calc(var(--alto-cinta, 0px) + 62px + 12px); max-height:calc(100dvh - 140px); overflow:auto; overscroll-behavior:contain; } }
+    @media (width < 900px) { .cats { flex-direction:row !important; flex-wrap:nowrap; overflow-x:auto; gap:var(--sp-1) !important; } .cats button { white-space:nowrap; flex:none; border:1px solid var(--borde); } }
+    .mas { display:flex; justify-content:center; padding-top:var(--sp-3); }
     .cats { display:flex; flex-direction:column; gap:2px; } .cats button { all:unset; cursor:pointer; display:flex; justify-content:space-between; gap:var(--sp-2); padding:7px 10px; border-radius:var(--r-sm); font-size:var(--fs-sm); }
     .cats button:hover { background:var(--superficie-2); } .cats button.sel { background:var(--marca-suave); color:var(--marca); font-weight:600; }
     .cats button:focus-visible { outline:2px solid var(--marca); } .cats .n { color:var(--texto-tenue); font-variant-numeric:tabular-nums; font-size:var(--fs-xs); white-space:nowrap; flex:none; }
@@ -57,11 +61,14 @@ import { leerError } from '@shared/utils/errores';
         @else if (resultados().length === 0) { <div class="vacio"><img src="assets/ilustraciones/sinresultados.svg" alt="" width="600" height="360" /><strong>Sin resultados</strong><span>Ninguna pregunta coincide. Pruebe con otra palabra o <a routerLink="/pqrs">radique su consulta</a>.</span><button type="button" class="boton compacto" (click)="texto.set(''); elegir('')">Limpiar la búsqueda</button></div> }
         @else {
           <p class="pista" style="margin:0 0 var(--sp-2)">{{ resultados().length }} {{ resultados().length === 1 ? 'pregunta' : 'preguntas' }}@if (categoria()) { · {{ etiqueta(categoria()) }} }</p>
-          @for (p of resultados(); track p.numero) {
+          @for (p of visibles(); track p.numero) {
             <details class="preg" [open]="resultados().length <= 3 || destacada() === p.numero">
               <summary><span>{{ p.pregunta }}</span>@if (!categoria()) { <span class="c">{{ etiqueta(p.categoria) }}</span> }</summary>
               <div class="r">{{ p.respuesta }}</div>
             </details>
+          }
+          @if (visibles().length < resultados().length) {
+            <div class="mas"><button type="button" class="boton" (click)="limite.set(limite() + PASO)">Mostrar más ({{ resultados().length - visibles().length }} restantes)</button></div>
           }
         }
       </section>
@@ -81,6 +88,10 @@ export class AyudaComponent implements OnInit {
   readonly texto = signal('');
   readonly destacada = signal<number | null>(null);
   readonly cargando = signal(true);
+  /** Sin categoría ni búsqueda, la lista completa (más de cien preguntas) se muestra por tandas, no de golpe. */
+  readonly PASO = 15;
+  readonly limite = signal(15);
+  readonly visibles = computed(() => (this.categoria() || this.texto().trim() ? this.resultados() : this.resultados().slice(0, this.limite())));
   readonly total = computed(() => this.todas().length);
   readonly conteo = computed(() => this.todas().reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.categoria]: (acc[p.categoria] ?? 0) + 1 }), {}));
   readonly puedeRadicar = computed(() => this.sesion.rol() === 'estudiante');
@@ -95,12 +106,14 @@ export class AyudaComponent implements OnInit {
     try {
       const [categorias, todas] = await Promise.all([firstValueFrom(this.api.categoriasAyuda()), firstValueFrom(this.api.buscarPreguntas(''))]);
       this.categorias.set(categorias); this.todas.set(todas);
+      // Sin pedir un tema, se abre en la primera categoría: una lista corta y un índice, no 123 preguntas seguidas.
+      if (!this.categoria() && !this.texto() && categorias.length > 0) this.categoria.set(categorias[0].clave);
       await this.consultar();
     } catch (error) { this.avisos.error(leerError(error)); }
     finally { this.cargando.set(false); }
   }
 
-  elegir(clave: string): void { this.categoria.set(clave); void this.consultar(); }
+  elegir(clave: string): void { this.categoria.set(clave); this.limite.set(this.PASO); void this.consultar(); }
 
   buscar(): void {
     if (this.temporizador) clearTimeout(this.temporizador);
