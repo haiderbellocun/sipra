@@ -1023,7 +1023,7 @@ certificado de EPS (ADRES no lo expide) y no prueba su autenticidad.
 **Revisión de la fuente pública (26 de octubre de 2026).** Solo se leyeron páginas públicas oficiales de
 ADRES (resultados de búsqueda; la lectura directa de la página falló con «Socket is closed»). Lo que ADRES
 publica: el servicio «Consulte su EPS (Afiliación en la BDUA)»
-(`https://www.adres.gov.co/tramites/ciudadania/consulta-afiliacion`) pide **tipo y número de documento**,
+(`https://www.adres.gov.co/consulte-su-eps`, la página que SIPRA abre; antes se usó `/tramites/ciudadania/consulta-afiliacion`) pide **tipo y número de documento**,
 muestra **EPS actual, régimen, estado (vigente / no vigente) y fecha de afiliación**, es gratuito y está
 disponible 24 horas; el resultado se puede **imprimir o guardar como PDF desde el navegador**; los datos se
 **actualizan mensualmente** (carga de la BDUA); **ADRES no expide el certificado de afiliación** (genera un
@@ -1055,8 +1055,7 @@ infiere del número** ni se toma del certificado (solo se muestra como sugerenci
 queda pendiente de información (`requiere_tipo_documento`). Catálogo: CC, TI, CE, PA.
 
 **Preparar** (`POST validaciones-eps/:id/adres/preparar`): exige tener el caso reservado; devuelve tipo,
-número (solo a quien opera; jamás en una URL), el enlace público del portal oficial (`ADRES_PORTAL_URL`
-solo se acepta si es https de `adres.gov.co`) y un identificador de **un solo uso, 30 min, ligado a la
+número (solo a quien opera; jamás en una URL), el enlace público del portal oficial (**única fuente de verdad:** la constante `PORTAL_ADRES_OFICIAL` = `https://www.adres.gov.co/consulte-su-eps`; no hay variable de entorno que la sustituya, y `portalAdresValido()` exige https, host de `adres.gov.co`, sin credenciales ni query ni fragmento) y un identificador de **un solo uso, 30 min, ligado a la
 validación y a la persona** (anti-reutilización: una evidencia no puede adjuntarse a otro estudiante
 cambiando un id). El servidor nunca llama a ADRES; el frontend abre el portal con un enlace
 `target=_blank rel=noopener`.
@@ -1381,6 +1380,8 @@ Rediseño de la **experiencia y el layout** del detalle de la Mesa; no cambia ex
 - **Responsive:** 1024-1199 px, lista o detalle (como en móvil) con el documento arriba y la revisión debajo; 390 px, una columna sin sticky ni scroll horizontal.
 - **ADRES** conserva el flujo (se abre fuera de SIPRA; sin iframe). El visor, el blob autenticado y el modal ampliado no cambian.
 - Cabecera de la Mesa más baja (KPI en una línea, filtros plegados), lista de casos más compacta. Sin tokens ni dependencias nuevas; funciona en los temas oscuro y claro.
+- **Segunda pasada: aprovechar el ancho.** La medida de lectura del armazón (`main` a 78 rem) dejaba hasta 440 px vacíos a la derecha a 1920 px. `/eps` es ahora una vista de trabajo ancha (`main.ancho`, hasta 150 rem y con relleno lateral de 16 px); las demás pantallas conservan su medida. Desde 1200 px la bandeja (240–288 px, fija y con desplazamiento propio) va junto al detalle, que recibe todo el resto: certificado ≈ 40 % y revisión ≈ 60 %. «Ocultar» la bandeja (preferencia por navegador) devuelve su ancho al caso.
+- La revisión es a su vez un contenedor (*container query* `rev`): discrepancias como lista estructurada (severidad | título y explicación), datos extraídos junto a autenticidad y afiliación cuando hay ≥ 46 rem, comparación como tabla Campo | SIPRA | Certificado | ADRES | Resultado desde 40 rem y como filas compactas por debajo, versiones/evidencia e historial en dos columnas desde 30 rem, tiempos en una banda de una línea y los pasos de ADRES plegados (`<details>`). El flujo ADRES no cambia (sin iframe).
 
 <!-- FIN_PILOTO_EPS -->
 
@@ -2968,6 +2969,15 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.17.14 — 28 de octubre de 2026
+
+- **ADRES:** «Abrir el portal oficial» apunta a `https://www.adres.gov.co/consulte-su-eps`. La URL vive solo en `PORTAL_ADRES_OFICIAL` (se retiró `ADRES_PORTAL_URL`); el validador rechaza http, dominios que imiten a ADRES, credenciales, query y fragmento.
+- **Mesa, «Datos extraídos» vacíos:** la causa fue un archivo idéntico a otro ya presentado (`C0_HASH_DUPLICADO`): el pipeline lo detiene antes de leerlo y la validación queda «procesada» con todos los campos nulos, que la Mesa pintaba como «—» y «Método de lectura: Sin determinar». El detalle devuelve ahora `certificado.lectura` (`leida` · `sin_lectura` · `pendiente` · `fallida`, con motivo) y la Mesa muestra «Procesamiento pendiente», «Procesamiento fallido» o «Certificado sin lectura» con su causa, sin rejilla vacía. No se copian datos de otra versión ni se cambia la extracción.
+
+### 0.17.13 — 28 de octubre de 2026
+
+Mesa EPS, segunda pasada de UX (§7.21.13), solo presentación: variante de contenido ancho para `/eps` en el armazón, bandeja compacta fija junto al detalle (240–288 px), revisión adaptable por *container queries* (comparación en tabla con ancho suficiente), secundarias y tiempos más compactos, pasos de ADRES plegados. Sin cambios de backend ni de lógica.
 
 ### 0.17.12 — 27 de octubre de 2026
 

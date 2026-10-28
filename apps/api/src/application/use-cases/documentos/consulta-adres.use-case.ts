@@ -40,13 +40,18 @@ import { INTERRUPTORES_EPS, exigirInterruptorEps } from '../../services/interrup
 /** Vida de una consulta preparada: un solo uso y corta, para que no se reutilice ni se adjunte a otro caso. */
 export const VIGENCIA_CONSULTA_ADRES_MS = 30 * 60_000;
 export const TAMANO_MAXIMO_ADRES_MB = 5;
-/** Portal OFICIAL de la consulta ciudadana (página pública de ADRES). Configurable, pero solo hosts de adres.gov.co. */
-export const PORTAL_ADRES_OFICIAL = 'https://www.adres.gov.co/tramites/ciudadania/consulta-afiliacion';
+/**
+ * Página oficial de ADRES a la que la PERSONA va a consultar. ÚNICA fuente de verdad: no hay variable de entorno
+ * que la sustituya (así ningún ambiente puede apuntar a otro sitio), y el enlace nunca lleva datos del estudiante.
+ */
+export const PORTAL_ADRES_OFICIAL = 'https://www.adres.gov.co/consulte-su-eps';
 
-function portalPermitido(url: string): boolean {
+/** https, host de adres.gov.co (no un dominio que lo imite), sin credenciales y sin query ni fragmento (ahí podría viajar un documento). */
+export function portalAdresValido(url: string): boolean {
   try {
     const u = new URL(url);
-    return u.protocol === 'https:' && !u.username && !u.password && (u.hostname === 'adres.gov.co' || u.hostname.endsWith('.adres.gov.co'));
+    return u.protocol === 'https:' && !u.username && !u.password && !u.search && !u.hash
+      && (u.hostname === 'adres.gov.co' || u.hostname.endsWith('.adres.gov.co'));
   } catch { return false; }
 }
 
@@ -81,11 +86,6 @@ export class ConsultaAdresUseCase {
     @Optional() private readonly config?: ConfigService,
   ) {
     this.lectura = new LecturaLocalAdresService(lector);
-  }
-
-  private get portalUrl(): string {
-    const configurado = this.config?.get<string>('ADRES_PORTAL_URL');
-    return configurado && portalPermitido(configurado) ? configurado : PORTAL_ADRES_OFICIAL;
   }
 
   // ── Preparar la consulta ────────────────────────────────────────────────────
@@ -133,7 +133,7 @@ export class ConsultaAdresUseCase {
     }
     await this.auditar(AccionAuditada.CONSULTA_ADRES_PREPARADA, v.id, { consultaId, origenTipoDocumento: origen }, actor);
     return {
-      estado: 'preparada', consultaId, tipoDocumento: tipo, numeroDocumento: numero, portalUrl: this.portalUrl, venceEn: venceEn.toISOString(),
+      estado: 'preparada', consultaId, tipoDocumento: tipo, numeroDocumento: numero, portalUrl: PORTAL_ADRES_OFICIAL, venceEn: venceEn.toISOString(),
       instrucciones: [
         'Abra el portal oficial de ADRES en una pestaña nueva.',
         'Seleccione el tipo de documento e ingrese el número que se muestra aquí.',

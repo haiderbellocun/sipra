@@ -45,19 +45,17 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     .aviso.peligro { background:var(--peligro-suave); }
 
     /* ── Composición: certificado | revisión ── */
-    .est { display:grid; gap:var(--sp-4) var(--sp-5); grid-template-columns:minmax(0, 1fr); }
+    .est { display:grid; gap:var(--sp-4); grid-template-columns:minmax(0, 1fr); }
     .col-cert { min-width:0; }
-    .col-rev { min-width:0; display:grid; gap:var(--sp-4); align-content:start; }
+    /* La revisión es también un contenedor: sus secciones se acomodan al ancho que de verdad tienen. */
+    .col-rev { min-width:0; display:grid; gap:var(--sp-4); align-content:start; container-type:inline-size; container-name:rev; }
     @container det (min-width: 720px) {
-      .est { grid-template-columns:minmax(340px, 45%) minmax(0, 1fr); gap:var(--sp-4); align-items:start; }
-    }
-    @container det (min-width: 1000px) {
-      .est { grid-template-columns:minmax(380px, 42%) minmax(0, 1fr); gap:var(--sp-5); }
+      .est { grid-template-columns:minmax(320px, 40%) minmax(0, 1fr); align-items:start; }
     }
     /* El certificado queda a la vista mientras se revisa lo demás (solo con ventana de escritorio). */
     @media (width >= 1024px) {
       @container det (min-width: 720px) {
-        .col-cert { position:sticky; top:var(--sticky-top); height:calc(100dvh - var(--sticky-top) - 84px); min-height:360px; --visor-min:0px; }
+        .col-cert { position:sticky; top:var(--sticky-top); height:calc(100dvh - var(--sticky-top) - 84px); min-height:360px; max-height:1000px; --visor-min:0px; }
       }
     }
 
@@ -77,10 +75,17 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     .rec .nota { margin:0; font-size:var(--fs-sm); color:var(--texto-tenue); }
 
     ul.lista { list-style:none; margin:0; padding:0; display:grid; gap:var(--sp-2); }
-    ul.disc li { display:flex; flex-wrap:wrap; gap:2px var(--sp-2); align-items:center; padding:var(--sp-2); border-radius:var(--r-sm); background:var(--superficie-2); }
+    ul.disc { gap:2px; grid-template-columns:fit-content(9.5rem) minmax(0, 1fr); }
+    ul.disc li { grid-column:1 / -1; display:grid; grid-template-columns:subgrid; gap:0 var(--sp-3); align-items:start; padding:var(--sp-1) var(--sp-2); border-radius:var(--r-sm); background:var(--superficie-2); }
     ul.disc li.critica { background:var(--peligro-suave); }
-    ul.disc .titulo { flex:1 1 14ch; font-weight:700; overflow-wrap:break-word; }
-    ul.disc .exp { flex:1 1 100%; font-size:var(--fs-sm); color:var(--texto); overflow-wrap:break-word; }
+    ul.disc .etiqueta { grid-row:1 / span 2; justify-self:start; white-space:normal; max-width:100%; }
+    ul.disc .titulo { grid-column:2; font-weight:700; overflow-wrap:break-word; }
+    ul.disc .exp { grid-column:2; font-size:var(--fs-sm); color:var(--texto); overflow-wrap:break-word; }
+    @container rev (max-width: 24rem) {
+      ul.disc { grid-template-columns:minmax(0, 1fr); }
+      ul.disc li { grid-template-columns:minmax(0, 1fr); }
+      ul.disc .etiqueta { grid-row:auto; } ul.disc .titulo, ul.disc .exp { grid-column:1; }
+    }
 
     dl.campos { margin:0; display:grid; gap:var(--sp-2) var(--sp-4); grid-template-columns:repeat(auto-fit, minmax(10.5rem, 1fr)); }
     dl.campos > div { min-width:0; }
@@ -90,6 +95,8 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     .vigencia { margin:var(--sp-2) 0 var(--sp-3); font-size:var(--fs-sm); }
     .vigencia.vencido { background:var(--aviso-suave); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); }
 
+    .par { display:grid; gap:var(--sp-4); grid-template-columns:minmax(0, 1fr); }
+    @container rev (min-width: 46rem) { .par { grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); align-items:start; } .par .dos { grid-template-columns:minmax(0, 1fr); } }
     .dos { display:grid; gap:var(--sp-3) var(--sp-4); grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
     .dos h4 { margin:0 0 var(--sp-1); font-size:var(--fs-base); }
     .dos dl { margin:var(--sp-2) 0 0; display:grid; gap:var(--sp-1); font-size:var(--fs-sm); }
@@ -99,8 +106,8 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     .dos p { margin:var(--sp-2) 0 0; font-size:var(--fs-sm); color:var(--texto-tenue); }
 
     /* ── Zona secundaria ── */
-    .secundaria { margin-top:var(--sp-5); padding-top:var(--sp-4); border-top:1px solid var(--borde); display:grid; gap:var(--sp-5) var(--sp-5); grid-template-columns:repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
-    .secundaria .ancho { grid-column:1 / -1; }
+    .secundaria { padding-top:var(--sp-3); border-top:1px solid var(--borde); display:grid; gap:var(--sp-4); grid-template-columns:minmax(0, 1fr); }
+    @container rev (min-width: 30rem) { .secundaria { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); align-items:start; } .secundaria .ancho { grid-column:1 / -1; } }
     ul.versiones { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:var(--sp-2); }
     ul.versiones li { display:inline-flex; align-items:center; gap:var(--sp-1); padding:2px var(--sp-3); border-radius:999px; background:var(--superficie-2); font-size:var(--fs-sm); font-weight:700; min-height:32px; }
     ul.versiones li.vigente { background:var(--ok-suave); color:var(--ok); }
@@ -109,10 +116,12 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     details.evid summary { cursor:pointer; font-size:var(--fs-sm); font-weight:700; min-height:36px; display:flex; align-items:center; width:fit-content; }
     details.evid ul { margin-top:var(--sp-2); font-size:var(--fs-sm); }
     details.evid li { display:flex; flex-wrap:wrap; gap:0 var(--sp-2); overflow-wrap:break-word; }
-    .tiempos { display:grid; gap:var(--sp-2) var(--sp-5); grid-template-columns:repeat(auto-fit, minmax(8.5rem, 1fr)); margin:0; }
-    .tiempos > div { min-width:0; }
-    .tiempos dd { font-weight:700; }
-    .retencion { font-size:var(--fs-sm); color:var(--texto-tenue); margin:var(--sp-3) 0 0; }
+    /* Banda de tiempos: una línea de pares etiqueta/valor, no una tarjeta. */
+    .tiempos { display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-5); margin:0; padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); background:var(--superficie-2); }
+    .tiempos > div { min-width:0; display:grid; gap:0; }
+    .tiempos dt { font-size:var(--fs-xs); line-height:1.3; }
+    .tiempos dd { font-weight:700; font-size:var(--fs-sm); white-space:nowrap; }
+    .retencion { font-size:var(--fs-xs); color:var(--texto-tenue); margin:var(--sp-1) 0 0; }
 
     /* ── Acciones: siempre al alcance cuando se termina de revisar ── */
     .barra-decision {
@@ -206,9 +215,15 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
             }
           </section>
 
+          <div class="par">
           <section class="sec" aria-labelledby="p-dat">
             <h3 id="p-dat">Datos extraídos del certificado</h3>
-            @if (d.certificado.vigencia === 'vencido') {
+            @if (d.certificado.lectura.estado !== 'leida') {
+              <p class="sin-lectura aviso" [class.peligro]="d.certificado.lectura.estado !== 'pendiente'" role="status" [attr.data-lectura]="d.certificado.lectura.estado">
+                <strong>{{ tituloLectura(d.certificado.lectura.estado) }}.</strong>
+                {{ d.certificado.lectura.motivo }}
+              </p>
+            } @else if (d.certificado.vigencia === 'vencido') {
               <p class="vigencia vencido" role="status" data-vigencia="vencido">
                 <strong>CERTIFICADO VENCIDO</strong> · expedido el {{ fechaIso(d.certificado.vigenciaDetalle.fechaExpedicion) }}
                 @if (d.certificado.vigenciaDetalle.diasTranscurridos !== null) { (hace {{ d.certificado.vigenciaDetalle.diasTranscurridos }} días) }
@@ -219,7 +234,9 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
             } @else {
               <p class="vigencia" data-vigencia="no_determinada">Vigencia no determinada: no se pudo leer la fecha de expedición (generación).</p>
             }
-            @if (!d.acceso.puedeVerValores) {
+            @if (d.certificado.lectura.estado !== 'leida') {
+              <!-- Sin lectura no hay campos ni «método de lectura» que mostrar: «—» en todo sería un resultado inventado. -->
+            } @else if (!d.acceso.puedeVerValores) {
               <p class="pista">Los datos personales se muestran cuando usted tiene el caso tomado.</p>
             } @else {
               <dl class="campos">
@@ -264,6 +281,7 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
               </div>
             </div>
           </section>
+          </div>
 
           <section class="sec" aria-labelledby="p-cmp">
             <h3 id="p-cmp">Comparación SIPRA · certificado · ADRES</h3>
@@ -278,8 +296,6 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
               [puedeConsultar]="d.acceso.puedeConsultarAdres && estado.puedeActuar()"
               (cambio)="estado.refrescarDetalle()" />
           </section>
-        </div>
-      </div>
 
       <div class="secundaria">
         <section class="sec" aria-labelledby="p-ver">
@@ -312,18 +328,20 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
         </section>
 
         <section class="sec ancho" aria-labelledby="p-met">
-          <h3 id="p-met">Tiempos</h3>
+          <h3 id="p-met" class="sr-only">Tiempos</h3>
           <dl class="tiempos">
             <div><dt>Recibido</dt><dd>{{ dia(d.metricas.recibidaEn) }}</dd></div>
             <div><dt>Primera revisión</dt><dd>{{ dia(d.metricas.primeraRevisionEn) }}</dd></div>
             <div><dt>Decidido</dt><dd>{{ dia(d.metricas.decididoEn) }}</dd></div>
-            <div><dt>Tiempo hasta decidir</dt><dd>{{ d.metricas.horasHastaDecision !== null ? d.metricas.horasHastaDecision + ' h' : '—' }}</dd></div>
+            <div><dt>Tiempo</dt><dd>{{ d.metricas.horasHastaDecision !== null ? d.metricas.horasHastaDecision + ' h' : '—' }}</dd></div>
             <div><dt>Reenvíos</dt><dd>{{ d.metricas.reenvios }}</dd></div>
-            <div><dt>Prioridad</dt><dd>{{ d.prioridad.puntaje }} pts</dd></div>
+            <div [attr.title]="d.prioridad.razones.join(' · ')"><dt>Prioridad</dt><dd>{{ d.prioridad.puntaje }} pts</dd></div>
           </dl>
-          @if (d.prioridad.razones.length) { <p class="pista" style="margin:var(--sp-2) 0 0">{{ d.prioridad.razones.join(' · ') }}</p> }
+          @if (d.prioridad.razones.length) { <p class="retencion">Prioridad: {{ d.prioridad.razones.join(' · ') }}</p> }
           <p class="retencion">{{ d.retencion }}</p>
         </section>
+      </div>
+        </div>
       </div>
 
       <div class="barra-decision decisiones" role="group" aria-label="Decisión sobre el certificado">
@@ -367,6 +385,9 @@ export class EpsDetalleComponent {
   fechaIso(iso: string | null): string { return fechaIso(iso); }
   fuenteAfiliacion(f: string): string { return FUENTE_AFILIACION[f] ?? f; }
   fuenteCampo(f: string): string { return FUENTE_CAMPO[f] ?? f; }
+  tituloLectura(estado: string): string {
+    return ({ pendiente: 'Procesamiento pendiente', fallida: 'Procesamiento fallido', sin_lectura: 'Certificado sin lectura' } as Record<string, string>)[estado] ?? 'Certificado sin lectura';
+  }
   metodo(m: string): string { return METODO_EXTRACCION[m] ?? m; }
   fecha(iso: string | null): string { return fechaCorta(iso); }
   dia(iso: string | null): string { return diaCorto(iso); }

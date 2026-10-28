@@ -3,7 +3,7 @@ import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
 import {
-  ConsultaAdresUseCase, PORTAL_ADRES_OFICIAL, VIGENCIA_CONSULTA_ADRES_MS,
+  ConsultaAdresUseCase, PORTAL_ADRES_OFICIAL, portalAdresValido, VIGENCIA_CONSULTA_ADRES_MS,
 } from '../src/application/use-cases/documentos/consulta-adres.use-case';
 import { EstadoAdres, RecomendacionEps } from '../src/domain/entities/adres';
 import { AccionAuditada } from '../src/domain/entities/auditoria.entity';
@@ -200,13 +200,33 @@ describe('Preparar la consulta ADRES', () => {
     await expect(m.uc.preparar('v-1', aux(), {}, AHORA)).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('el portal configurado solo vale si es de adres.gov.co; si no, se usa el oficial', async () => {
-    const malo = await montar({ sinuTipo: 'CC', config: { ADRES_PORTAL_URL: 'https://adres.gov.co.atacante.test/consulta' } });
-    expect((await malo.uc.preparar('v-1', aux(), {}, AHORA)).portalUrl).toBe(PORTAL_ADRES_OFICIAL);
-    const http = await montar({ sinuTipo: 'CC', config: { ADRES_PORTAL_URL: 'http://www.adres.gov.co/x' } });
-    expect((await http.uc.preparar('v-1', aux(), {}, AHORA)).portalUrl).toBe(PORTAL_ADRES_OFICIAL);
-    const bueno = await montar({ sinuTipo: 'CC', config: { ADRES_PORTAL_URL: 'https://www.adres.gov.co/otra-ruta' } });
-    expect((await bueno.uc.preparar('v-1', aux(), {}, AHORA)).portalUrl).toBe('https://www.adres.gov.co/otra-ruta');
+  it('el portal es EXACTAMENTE la página oficial «consulte-su-eps», aunque haya una variable de entorno heredada', async () => {
+    expect(PORTAL_ADRES_OFICIAL).toBe('https://www.adres.gov.co/consulte-su-eps');
+    expect(portalAdresValido(PORTAL_ADRES_OFICIAL)).toBe(true);
+    const m = await montar({ sinuTipo: 'CC', config: { ADRES_PORTAL_URL: 'https://www.adres.gov.co/tramites/ciudadania/consulta-afiliacion' } });
+    const r = await m.uc.preparar('v-1', aux(), {}, AHORA);
+    expect(r.portalUrl).toBe('https://www.adres.gov.co/consulte-su-eps');
+    expect(r.portalUrl).not.toMatch(/consulta-afiliacion|aplicaciones.adres/);
+    // El enlace no lleva el documento del estudiante ni su tipo.
+    expect(r.portalUrl).not.toContain(r.numeroDocumento as string);
+  });
+
+  it.each([
+    ['https://www.adres.gov.co/consulte-su-eps', true],
+    ['https://adres.gov.co/consulte-su-eps', true],
+    ['http://www.adres.gov.co/consulte-su-eps', false],
+    ['https://adres.gov.co.atacante.test/consulte-su-eps', false],
+    ['https://www.adres-gov.co/consulte-su-eps', false],
+    ['https://evil-adres.gov.co.example/consulte-su-eps', false],
+    ['https://www.atacante.test/adres.gov.co', false],
+    ['https://usuario:clave@www.adres.gov.co/consulte-su-eps', false],
+    ['https://www.adres.gov.co/consulte-su-eps?documento=123456789', false],
+    ['https://www.adres.gov.co/consulte-su-eps?tipo=CC', false],
+    ['https://www.adres.gov.co/consulte-su-eps#123456789', false],
+    ['javascript:alert(1)', false],
+    ['no es una url', false],
+  ])('portalAdresValido(%s) = %s', (url, esperado) => {
+    expect(portalAdresValido(url)).toBe(esperado);
   });
 
   it('una afiliación ya establecida por una fuente oficial no necesita ADRES: 409', async () => {

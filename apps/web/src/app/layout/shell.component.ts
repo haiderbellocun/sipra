@@ -128,6 +128,9 @@ const CLAVE_TEMA = 'sipra.tema';
     @media (width < 600px) { .solo-escritorio { display: none; } }
     main { padding: var(--sp-5) var(--sp-4) var(--sp-7); max-width: 78rem; width: 100%; }
     @media (width >= 1024px) { main { padding-inline: var(--sp-6); } }
+    /* Estación de trabajo (la Mesa de EPS): usa casi todo el ancho; las demás vistas conservan su medida de lectura. */
+    main.ancho { max-width: 150rem; margin-inline: auto; }
+    @media (width >= 1024px) { main.ancho { padding-inline: var(--sp-4); } }
 
     /* ── Barra inferior (móvil) ── */
     .barra-inf {
@@ -232,7 +235,7 @@ const CLAVE_TEMA = 'sipra.tema';
             </div>
           </div>
         </header>
-        <main><router-outlet /></main>
+        <main [class.ancho]="anchoCompleto()"><router-outlet /></main>
         <sipra-avisos />
         <nav class="barra-inf" aria-label="Principal">
           @for (entrada of menuMovil(); track entrada.ruta) {
@@ -320,6 +323,16 @@ export class ShellComponent {
       map(() => this.tituloDe(this.router.url)),
     ),
     { initialValue: '' },
+  );
+
+  /** Vistas de trabajo denso que piden todo el ancho útil (hoy, la Mesa de EPS). */
+  readonly anchoCompleto = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      startWith(null),
+      map(() => /^\/eps(?:[/?#]|$)/.test(this.router.url)),
+    ),
+    { initialValue: false },
   );
 
   readonly etiquetaRol = computed(() => {

@@ -36,9 +36,14 @@ const ERRORES: Record<string, string> = {
     .consulta { padding:var(--sp-3) var(--sp-4); background:var(--superficie-2); border-radius:var(--r-sm); margin-top:var(--sp-3); }
     .consulta > :first-child { margin-top:0; }
     .consulta .grande { font-size:var(--fs-lg, 1.25rem); font-weight:700; letter-spacing:.04em; font-variant-numeric:tabular-nums; overflow-wrap:break-word; }
-    .consulta ol { margin:0 0 var(--sp-3); padding-left:1.25rem; display:grid; gap:var(--sp-1); font-size:var(--fs-sm); }
-    .consulta h4 { margin:var(--sp-3) 0 var(--sp-2); font-size:var(--fs-base); }
-    .cargar { display:grid; gap:0 var(--sp-4); grid-template-columns:repeat(auto-fit, minmax(14rem, 1fr)); }
+    .consulta ol { margin:var(--sp-2) 0 0; padding-left:1.25rem; display:grid; gap:var(--sp-1); font-size:var(--fs-sm); }
+    .consulta details { margin-top:var(--sp-1); }
+    .consulta summary { cursor:pointer; font-size:var(--fs-sm); font-weight:700; min-height:36px; display:flex; align-items:center; width:fit-content; }
+    .consulta h4 { margin:var(--sp-2) 0 var(--sp-1); font-size:var(--fs-base); }
+    .abrir { display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-3); align-items:center; justify-content:space-between; }
+    .abrir p { margin:0; }
+    .cargar { display:grid; gap:var(--sp-1) var(--sp-3); grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr)); align-items:end; }
+    .cargar .campo { margin:0; }
     .error-texto { color:var(--peligro); }
   `],
   template: `
@@ -74,19 +79,28 @@ const ERRORES: Record<string, string> = {
 
     @if (consulta(); as c) {
       <div class="consulta">
-        <p>Consulte en ADRES este documento:</p>
-        <p class="grande">{{ c.tipoDocumento }} {{ c.numeroDocumento }}</p>
-        <ol>@for (i of c.instrucciones ?? []; track i) { <li>{{ i }}</li> }</ol>
-        <p>
-          <a class="boton boton--primario" [href]="c.portalUrl" target="_blank" rel="noopener noreferrer">Abrir el portal oficial de ADRES</a>
-          <span class="pista"> · la consulta vence a las {{ c.venceEn | date: 'HH:mm' }}</span>
-        </p>
+        <div class="abrir">
+          <div>
+            <p class="pista">Consulte en ADRES este documento:</p>
+            <p class="grande">{{ c.tipoDocumento }} {{ c.numeroDocumento }}</p>
+          </div>
+          <p>
+            <a class="boton boton--primario compacto" [href]="c.portalUrl" target="_blank" rel="noopener noreferrer">Abrir el portal oficial de ADRES</a>
+            <span class="pista"> · vence a las {{ c.venceEn | date: 'HH:mm' }}</span>
+          </p>
+        </div>
+        @if ((c.instrucciones ?? []).length > 0) {
+          <details>
+            <summary>Ver los pasos de la consulta ({{ (c.instrucciones ?? []).length }})</summary>
+            <ol>@for (i of c.instrucciones ?? []; track i) { <li>{{ i }}</li> }</ol>
+          </details>
+        }
         <h4>Cargar el resultado</h4>
         <div class="cargar">
           <div class="campo"><label for="a-arch">Resultado de ADRES (PDF)</label><input id="a-arch" type="file" accept="application/pdf,.pdf" (change)="elegirArchivo($event)" /></div>
           <div class="campo"><label for="a-fecha">Fecha de la consulta (opcional)</label><input id="a-fecha" type="date" [(ngModel)]="fechaConsulta" /></div>
+          <div><button type="button" class="boton boton--primario" [disabled]="!archivo() || ocupado()" (click)="subir(c)">Cargar y procesar</button></div>
         </div>
-        <button type="button" class="boton boton--primario" [disabled]="!archivo() || ocupado()" (click)="subir(c)">Cargar y procesar</button>
       </div>
     }
 

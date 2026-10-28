@@ -49,7 +49,7 @@ function contado(real: LectorDocumentoLocalPort) {
 const real = new LectorDocumentoLocalAdapter();
 afterAll(async () => { await real.onModuleDestroy(); });
 
-function montar(contenido: Buffer, mime: string) {
+function montar(contenido: Buffer, mime: string, opciones: { duplicados?: number } = {}) {
   const { lector, llamadas } = contado(real);
   const local = new ExtraccionLocalAdapter(lector, new ExtraccionSimuladaAdapter());
   const externo = { extraer: jest.fn() };
@@ -63,7 +63,7 @@ function montar(contenido: Buffer, mime: string) {
   const documentos = {
     buscarPorId: () => Promise.resolve(Documento.desde(almacenado)),
     listarPorPractica: () => Promise.resolve([]),
-    contarPorHash: () => Promise.resolve(0),
+    contarPorHash: () => Promise.resolve(opciones.duplicados ?? 0),
     listarHashesPerceptuales: () => Promise.resolve([]),
     ultimaVersion: () => Promise.resolve(1),
     guardar: (d: DatosDocumento) => { almacenado = d; return Promise.resolve(Documento.desde(d)); },
@@ -187,6 +187,57 @@ describe('Certificado escaneado → OCR como respaldo', () => {
     const m = montar(pdf.subarray(0, 200), 'application/pdf');
     const { documento } = await m.pipeline.procesar('doc-eps');
     expect(documento.estado).toBe(EstadoDocumento.ILEGIBLE);
+  });
+});
+
+// Regresión: «Datos extraídos» vacíos en la Mesa. Un certificado sintético legible DEBE terminar con todos sus campos.
+const LINEAS_SINTETICAS = [
+  'Entidad Promotora de Salud EPS PRUEBA S.A.',
+  'CERTIFICADO DE AFILIACION',
+  'Nombre: PERSONA FICTICIA',
+  'Documento: CC 123456789',
+  'Tipo de afiliado: COTIZANTE',
+  'Estado: ACTIVO',
+  'Fecha de expedición: 20/10/2026',
+];
+
+describe('Regresión · certificado sintético completo (EPS PRUEBA / PERSONA FICTICIA / CC 123456789)', () => {
+  const esperado = {
+    eps: expect.stringMatching(/EPS PRUEBA/), nombre: 'PERSONA FICTICIA', tipoDocumento: 'CC', numeroDocumento: '123456789',
+    estadoReportadoCertificado: 'ACTIVO', tipoAfiliado: 'cotizante', fechaExpedicion: '2026-10-20',
+  };
+
+  it('PDF con texto: todos los campos llegan a la validación', async () => {
+    const m = montar(await pdfDigital(LINEAS_SINTETICAS), 'application/pdf');
+    const { validacion } = await procesar(m);
+    expect(validacion?.instantanea().datosExtraidos).toMatchObject(esperado);
+    expect(m.llamadas.ocr).toBe(0);
+  });
+
+  it('PDF que requiere OCR: los campos llegan con fuente «ocr»', async () => {
+    const m = montar(await pdfEscaneado([await imagenCertificado(LINEAS_SINTETICAS)]), 'application/pdf');
+    const { validacion } = await procesar(m);
+    expect(m.llamadas.ocr).toBe(1);
+    const x = validacion?.instantanea().datosExtraidos;
+    expect(x).toMatchObject({ nombre: 'PERSONA FICTICIA', numeroDocumento: '123456789', estadoReportadoCertificado: 'ACTIVO' });
+    expect(x?.fuentes?.documento_afiliado).toBe('ocr');
+  });
+
+  it('archivo ya presentado en otros expedientes: el pipeline lo detiene ANTES de leer (causa de «datos vacíos»), sin inventar campos', async () => {
+    const m = montar(await pdfDigital(LINEAS_SINTETICAS), 'application/pdf', { duplicados: 2 });
+    const { validacion, documento } = await procesar(m);
+    expect(documento.banderas.map((b) => b.codigo)).toContain('C0_HASH_DUPLICADO');
+    const x = validacion?.instantanea().datosExtraidos;
+    expect(Object.entries(x ?? {}).filter(([k, v]) => k !== 'fuentes' && v !== null)).toEqual([]);
+    expect(m.llamadas.texto).toBe(0);
+  });
+
+  it('extracción fallida (PDF dañado): queda en revisión humana, con bandera, sin campos y sin aprobar', async () => {
+    const caido = montar(Buffer.from('%PDF-1.4\n'), 'application/pdf');
+    const { validacion, documento } = await procesar(caido);
+    expect([EstadoDocumento.ILEGIBLE, EstadoDocumento.EN_REVISION]).toContain(documento.estado);
+    expect(validacion === null || validacion.decision === DecisionEps.PENDIENTE).toBe(true);
+    expect(Object.values(validacion?.instantanea().datosExtraidos ?? {}).filter((v) => typeof v === 'string' && v !== '')).toEqual([]);
   });
 });
 

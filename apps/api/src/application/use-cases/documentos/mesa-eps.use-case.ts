@@ -358,6 +358,7 @@ export class MesaEpsUseCase {
     const campos = valores ? this.camposCertificado(d) : [];
     const fuentes = new Set(Object.values(d.datosExtraidos?.fuentes ?? {}));
     const metodoExtraccion = fuentes.has('texto_nativo') && fuentes.has('ocr') ? 'mixto' : fuentes.has('ocr') ? 'ocr' : fuentes.has('texto_nativo') ? 'texto_nativo' : 'desconocido';
+    const lectura = this.estadoDeLectura(d, doc.banderas.some((b) => b.codigo === 'C0_HASH_DUPLICADO'));
     const qrHallados = evidencias.filter((e) => e.instantanea().tipo === TipoEvidenciaEps.QR && e.instantanea().resultado === 'detectado').length;
     const tieneAdres = d.adres.datos !== null;
 
@@ -378,7 +379,7 @@ export class MesaEpsUseCase {
       },
       certificado: {
         nombreOriginal: doc.nombreOriginal, mime: doc.mimeReal, tamanoBytes: doc.tamanoBytes, version: doc.version, cargadoEn: doc.cargadoEn.toISOString(),
-        estadoDocumento: doc.estado, metodoExtraccion, vigencia: d.vigenciaCertificado, campos,
+        estadoDocumento: doc.estado, metodoExtraccion, lectura, vigencia: d.vigenciaCertificado, campos,
         vigenciaDetalle: {
           fechaExpedicion: d.datosExtraidos?.fechaExpedicion ?? null,
           diasTranscurridos: diasDesdeExpedicion(d.datosExtraidos?.fechaExpedicion ?? null, ahora),
@@ -434,6 +435,24 @@ export class MesaEpsUseCase {
       campo('regimen', x?.regimen ? `${x.regimen}${x.tipoAfiliado ? ` · ${x.tipoAfiliado}` : ''}` : null),
       campo('tipo_afiliado', x?.tipoAfiliado ?? null),
     ];
+  }
+
+  /**
+   * ¿Llegó a leerse el certificado? Solo describe lo ya guardado (no lee ni completa nada): un caso «procesado» sin un
+   * solo dato extraído no es una lectura válida con campos vacíos, es una ausencia de lectura, y se dice con su causa.
+   */
+  private estadoDeLectura(d: DatosValidacionEps, archivoDuplicado: boolean): { estado: 'leida' | 'sin_lectura' | 'pendiente' | 'fallida'; motivo: string | null } {
+    if (d.estadoProcesamiento === EstadoProcesamientoEps.ERROR) return { estado: 'fallida', motivo: 'El procesamiento del certificado falló. Pida reprocesarlo o revise el archivo.' };
+    if (d.estadoProcesamiento !== EstadoProcesamientoEps.PROCESADO) return { estado: 'pendiente', motivo: 'El certificado todavía se está procesando.' };
+    const x = d.datosExtraidos;
+    const hayDatos = !!x && [x.eps, x.nombre, x.numeroDocumento, x.fechaExpedicion, x.estadoReportadoCertificado, x.regimen, x.tipoAfiliado, x.tipoDocumento].some((v) => v !== null && v !== undefined && v !== '');
+    if (hayDatos) return { estado: 'leida', motivo: null };
+    return {
+      estado: 'sin_lectura',
+      motivo: archivoDuplicado
+        ? 'Este archivo ya se había presentado en otro expediente: el sistema lo detuvo antes de leerlo. Revise el certificado a ojo o pida un archivo distinto.'
+        : 'No se pudo leer ningún dato del certificado (PDF sin texto legible o ilegible). Revíselo a ojo.',
+    };
   }
 
   private explicarAutenticidad(d: DatosValidacionEps): string {

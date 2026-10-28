@@ -600,6 +600,8 @@ export interface DetalleMesa {
   certificado: {
     nombreOriginal: string; mime: string; tamanoBytes: number; version: number; cargadoEn: string; estadoDocumento: string;
     metodoExtraccion: 'texto_nativo' | 'ocr' | 'mixto' | 'desconocido'; vigencia: string;
+    /** Si el certificado llegó a leerse: una ausencia de lectura no es un resultado con campos vacíos. */
+    lectura: { estado: 'leida' | 'sin_lectura' | 'pendiente' | 'fallida'; motivo: string | null };
     vigenciaDetalle: { fechaExpedicion: string | null; diasTranscurridos: number | null; diasVigencia: number | null };
     campos: Array<{ campo: string; etiqueta: string; valor: string | null; fuente: 'texto_nativo' | 'ocr' | 'qr' | null }>;
   };

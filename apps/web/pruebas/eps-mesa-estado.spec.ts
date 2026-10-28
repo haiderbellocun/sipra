@@ -32,7 +32,7 @@ const detalle = (reserva: ReservaMesa, esMia: boolean): DetalleMesa => ({
     decision: 'pendiente', decididoEn: null,
   },
   acceso: { puedeVerValores: esMia, esMia, reserva, puedeDecidir: esMia, puedeConsultarAdres: esMia, motivoSinAcceso: null },
-  certificado: { nombreOriginal: 'c.pdf', mime: 'application/pdf', tamanoBytes: 1, version: 1, cargadoEn: '2026-10-20T12:00:00Z', estadoDocumento: 'recibido', metodoExtraccion: 'texto_nativo', vigencia: 'vigente', vigenciaDetalle: { fechaExpedicion: null, diasTranscurridos: null, diasVigencia: 30 }, campos: [] },
+  certificado: { nombreOriginal: 'c.pdf', mime: 'application/pdf', tamanoBytes: 1, version: 1, cargadoEn: '2026-10-20T12:00:00Z', estadoDocumento: 'recibido', metodoExtraccion: 'texto_nativo', lectura: { estado: 'leida', motivo: null }, vigencia: 'vigente', vigenciaDetalle: { fechaExpedicion: null, diasTranscurridos: null, diasVigencia: 30 }, campos: [] },
   autenticidad: { estado: 'no_evaluada', metodo: 'ninguno', verificador: null, verificadoEn: null, qrHallados: 0, explicacion: '' },
   afiliacion: { estado: 'no_contrastada', fuente: 'ninguna', consultadoEn: null, fuenteActualizadaEn: null, estadoAdres: 'pendiente', frescura: { politicaDefinida: false, dias: null, vencida: null, diasDesdeConsulta: null } },
   comparacion: [], discrepancias: [], recomendacion: { codigo: 'pendiente_adres', titulo: 'Falta ADRES', explicacion: '', esDecision: false, tambien: [] },

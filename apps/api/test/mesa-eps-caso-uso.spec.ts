@@ -5,7 +5,7 @@ import { MesaEpsUseCase, AVISO_RETENCION_EPS } from '../src/application/use-case
 import { ValidacionEpsUseCase } from '../src/application/use-cases/documentos/validacion-eps.use-case';
 import { EstadoAdres, RecomendacionEps } from '../src/domain/entities/adres';
 import { AccionAuditada, RegistroAuditoria } from '../src/domain/entities/auditoria.entity';
-import { DatosDocumento, Documento, EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
+import { DatosDocumento, Documento, EstadoDocumento, SeveridadBandera, TipoDocumento } from '../src/domain/entities/documento.entity';
 import {
   AfiliacionEps, AutenticidadEps, CoincidenciaEps, DatosExtraidosEps, DecisionEps, ValidacionEps,
 } from '../src/domain/entities/validacion-eps.entity';
@@ -383,6 +383,77 @@ describe('Mesa EPS · detalle del caso', () => {
     expect(con.certificado.campos.find((c) => c.campo === 'nombre_afiliado')).toMatchObject({ valor: 'LAURA SOFIA RAMIREZ ORTIZ', fuente: 'texto_nativo' });
     expect(con.certificado.campos.find((c) => c.campo === 'entidad_emisora')?.fuente).toBe('ocr');
     expect(con.certificado.metodoExtraccion).toBe('mixto');
+  });
+
+  describe('lectura del certificado: una ausencia de lectura no se presenta como un resultado', () => {
+    const SINTETICO: DatosExtraidosEps = {
+      tipoDocumento: 'CC', numeroDocumento: '123456789', nombre: 'PERSONA FICTICIA', eps: 'EPS PRUEBA', epsClave: 'PRUEBA',
+      regimen: null, tipoAfiliado: 'cotizante', estadoReportadoCertificado: 'ACTIVO', fechaExpedicion: '2026-10-20',
+      fuentes: { entidad_emisora: 'texto_nativo', nombre_afiliado: 'texto_nativo', documento_afiliado: 'texto_nativo', fecha_expedicion: 'texto_nativo', estado_afiliacion: 'texto_nativo', tipo_afiliado: 'texto_nativo' },
+    };
+    const VACIO: DatosExtraidosEps = {
+      tipoDocumento: null, numeroDocumento: null, nombre: null, eps: null, epsClave: null, regimen: null, tipoAfiliado: null,
+      estadoReportadoCertificado: null, fechaExpedicion: null,
+    };
+
+    it('certificado sintético con datos (PDF con texto): la Mesa los devuelve todos y la lectura es «leída»', async () => {
+      const m = montar();
+      await m.crear({ id: 'c1', nombre: 'Persona Ficticia', documento: '123456789' });
+      m.validaciones.filas.set('c1', { ...m.fila('c1'), datosExtraidos: SINTETICO });
+      const d = await m.mesa.detalle('c1', coord(), AHORA);
+      expect(d.certificado.lectura).toEqual({ estado: 'leida', motivo: null });
+      expect(d.certificado.metodoExtraccion).toBe('texto_nativo');
+      const valor = (c: string) => d.certificado.campos.find((x) => x.campo === c)?.valor;
+      expect(valor('entidad_emisora')).toBe('EPS PRUEBA');
+      expect(valor('nombre_afiliado')).toBe('PERSONA FICTICIA');
+      expect(valor('documento_afiliado')).toBe('CC 123456789');
+      expect(valor('fecha_expedicion')).toBe('2026-10-20');
+      expect(valor('estado_afiliacion')).toBe('ACTIVO');
+      expect(valor('tipo_afiliado')).toBe('cotizante');
+    });
+
+    it('certificado leído por OCR: la lectura es «leída» y el método es OCR', async () => {
+      const m = montar();
+      await m.crear({ id: 'c1' });
+      m.validaciones.filas.set('c1', { ...m.fila('c1'), datosExtraidos: { ...SINTETICO, fuentes: { entidad_emisora: 'ocr', nombre_afiliado: 'ocr', documento_afiliado: 'ocr' } } });
+      const d = await m.mesa.detalle('c1', coord(), AHORA);
+      expect(d.certificado.lectura.estado).toBe('leida');
+      expect(d.certificado.metodoExtraccion).toBe('ocr');
+    });
+
+    it('procesado pero sin un solo dato: «sin lectura» con su causa; NO se rellena con datos de otra versión', async () => {
+      const m = montar();
+      await m.crear({ id: 'c1' });
+      m.validaciones.filas.set('c1', { ...m.fila('c1'), datosExtraidos: VACIO });
+      const d = await m.mesa.detalle('c1', coord(), AHORA);
+      expect(d.certificado.lectura.estado).toBe('sin_lectura');
+      expect(d.certificado.lectura.motivo).toMatch(/No se pudo leer ningún dato/);
+      expect(d.certificado.metodoExtraccion).toBe('desconocido');
+      expect(d.certificado.campos.every((c) => c.valor === null)).toBe(true);
+    });
+
+    it('archivo duplicado que el pipeline detuvo antes de leer: «sin lectura» y la causa lo dice', async () => {
+      const m = montar();
+      await m.crear({ id: 'c1' });
+      m.validaciones.filas.set('c1', { ...m.fila('c1'), datosExtraidos: VACIO });
+      const doc = m.documentos.filas.get('doc-c1') as DatosDocumento;
+      m.documentos.filas.set('doc-c1', { ...doc, banderas: [{ codigo: 'C0_HASH_DUPLICADO', capa: 0, severidad: SeveridadBandera.CRITICA, mensaje: 'duplicado', mensajeUsuario: 'duplicado' }] });
+      const d = await m.mesa.detalle('c1', coord(), AHORA);
+      expect(d.certificado.lectura.estado).toBe('sin_lectura');
+      expect(d.certificado.lectura.motivo).toMatch(/ya se había presentado/);
+    });
+
+    it.each([['pendiente', 'pendiente', /todavía se está procesando/], ['procesando', 'pendiente', /todavía se está procesando/], ['error', 'fallida', /falló/]])(
+      'procesamiento «%s»: la lectura es «%s», no un resultado vacío', async (procesamiento, estado, motivo) => {
+        const m = montar();
+        await m.crear({ id: 'c1' });
+        m.validaciones.filas.set('c1', { ...m.fila('c1'), estadoProcesamiento: procesamiento as never, datosExtraidos: null });
+        const d = await m.mesa.detalle('c1', coord(), AHORA);
+        expect(d.certificado.lectura.estado).toBe(estado);
+        expect(d.certificado.lectura.motivo).toMatch(motivo);
+        expect(d.acceso.puedeDecidir).toBe(false);
+      },
+    );
   });
 
   it('coordinación y administración ven los valores sin tomar el caso (supervisión)', async () => {

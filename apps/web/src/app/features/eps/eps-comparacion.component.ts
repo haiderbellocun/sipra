@@ -25,9 +25,28 @@ import { CAMPO_COMPARACION, CERTIFICADO_VS_SIPRA, RESULTADO_COMPARACION } from '
     dt { font-size:var(--fs-sm); color:var(--texto-tenue); }
     dd { margin:0; font-weight:600; overflow-wrap:break-word; font-variant-numeric:tabular-nums; }
     .vacio-valor { color:var(--texto-tenue); font-weight:400; }
+    .encabezado { display:none; }
+    .corto { display:none; }
+    /* Con ancho de sobra (el de la columna de revisión, no el de la ventana): tabla Campo | SIPRA | Certificado | ADRES | Resultado. */
+    @container rev (min-width: 40rem) {
+      ul { gap:2px; }
+      .encabezado, li { display:grid; grid-template-columns:minmax(0, .9fr) repeat(3, minmax(0, 1.2fr)) minmax(0, 1.4fr); gap:0 var(--sp-3); align-items:start; }
+      .encabezado { padding:0 var(--sp-3) var(--sp-1); font-size:var(--fs-sm); color:var(--texto-tenue); font-weight:700; }
+      li { padding:var(--sp-1) var(--sp-3); }
+      .cab, dl { display:contents; }
+      .cab h4 { grid-column:1; grid-row:1; font-size:var(--fs-sm); }
+      dl > div:nth-child(1) { grid-column:2; grid-row:1; }
+      dl > div:nth-child(2) { grid-column:3; grid-row:1; }
+      dl > div:nth-child(3) { grid-column:4; grid-row:1; }
+      .res { grid-column:5; grid-row:1; flex-direction:column; align-items:flex-start; }
+      .res .etiqueta { white-space:normal; display:inline-flex; align-items:flex-start; gap:4px; border-radius:var(--r-sm); }
+      .largo { display:none; } .corto { display:inline; }
+      dt { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    }
   `],
   template: `
     <p class="pista" style="margin-top:0">Cada campo se compara entre lo que tiene SIPRA, lo que dice el certificado y lo que muestra ADRES.</p>
+    <div class="encabezado" aria-hidden="true"><span>Campo</span><span>SIPRA</span><span>Certificado</span><span>ADRES</span><span>Resultado</span></div>
     <ul>
       @for (c of filas(); track c.campo) {
         <li [class.critico]="c.critico">
@@ -35,7 +54,7 @@ import { CAMPO_COMPARACION, CERTIFICADO_VS_SIPRA, RESULTADO_COMPARACION } from '
             <h4>{{ campo(c.campo) }}</h4>
             <span class="res">
               @if (c.certificadoVsSipra; as v) {
-                <span class="etiqueta etiqueta--icono etiqueta--{{ vsSipra(v).tono }}"><span aria-hidden="true">{{ vsSipra(v).icono }}</span> Certificado vs SIPRA: {{ vsSipra(v).texto }}</span>
+                <span class="etiqueta etiqueta--icono etiqueta--{{ vsSipra(v).tono }}"><span aria-hidden="true">{{ vsSipra(v).icono }}</span> <span class="largo">Certificado vs SIPRA: </span><span class="corto">vs SIPRA: </span>{{ vsSipra(v).texto }}</span>
               }
               @if (c.resultado !== 'no_disponible' || !c.certificadoVsSipra) {
                 <span class="etiqueta etiqueta--icono etiqueta--{{ rotulo(c).tono }}"><span aria-hidden="true">{{ rotulo(c).icono }}</span> ADRES: {{ rotulo(c).texto }}</span>

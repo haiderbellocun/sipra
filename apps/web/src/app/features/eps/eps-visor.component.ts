@@ -29,8 +29,10 @@ type EstadoVisor = 'cerrado' | 'cargando' | 'listo' | 'error';
     /* Llena la columna que lo contiene (en escritorio, la columna fija del certificado). La altura mínima la
        fija quien lo aloja con --visor-min; sin eso, una vista previa cómoda. */
     :host { display:flex; flex-direction:column; height:100%; min-height:0; }
-    .barra { display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; margin-bottom:var(--sp-2); }
-    .barra .meta { flex:1 1 7rem; font-size:var(--fs-sm); color:var(--texto-tenue); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* Una sola línea: el nombre cede (elipsis, el completo va en el title) y los botones no se parten. */
+    .barra { display:flex; gap:var(--sp-2); flex-wrap:nowrap; align-items:center; margin-bottom:var(--sp-2); }
+    .barra .boton { flex:none; white-space:nowrap; }
+    .barra .meta { flex:1 1 0; font-size:var(--fs-sm); color:var(--texto-tenue); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .barra .meta strong { color:var(--texto); }
     .marco { border:1px solid var(--borde); border-radius:var(--r-sm); background:var(--superficie-2); overflow:auto; flex:1 1 auto; min-height:0; display:grid; }
     .marco.previa { display:block; min-height:var(--visor-min, clamp(420px, 70dvh, 820px)); }

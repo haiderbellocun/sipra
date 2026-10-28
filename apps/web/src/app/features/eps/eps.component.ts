@@ -18,8 +18,8 @@ const KPIS: TarjetaKpi[] = [
 ];
 
 const CLAVE_LISTA = 'sipra.mesa.lista';
-function leerListaFijada(): boolean {
-  try { return localStorage.getItem(CLAVE_LISTA) === 'si'; } catch { return false; }
+function leerListaVisible(): boolean {
+  try { return localStorage.getItem(CLAVE_LISTA) !== 'no'; } catch { return true; }
 }
 
 const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
@@ -46,29 +46,35 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
     .cab { display:flex; gap:var(--sp-2) var(--sp-4); justify-content:space-between; align-items:center; flex-wrap:wrap; }
     .cab > div:first-child { flex:1 1 24rem; min-width:0; }
     .cab h1 { margin:0; } .cab p { margin:0; }
-    .kpis { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin:var(--sp-3) 0; }
-    .kpi { flex:0 1 auto; display:flex; align-items:baseline; gap:var(--sp-2); text-align:left; white-space:nowrap; border:1px solid var(--borde); border-radius:var(--r-sm); background:var(--superficie); padding:var(--sp-2); min-height:44px; cursor:pointer; color:inherit; font:inherit; }
+    .kpis { display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-2); margin:var(--sp-2) 0; }
+    .kpi { flex:0 1 auto; display:flex; align-items:baseline; gap:var(--sp-1); text-align:left; white-space:nowrap; border:1px solid var(--borde); border-radius:var(--r-sm); background:var(--superficie); padding:var(--sp-1) var(--sp-2); min-height:44px; cursor:pointer; color:inherit; font:inherit; }
     .kpi:hover { background:var(--superficie-2); }
     .kpi[aria-pressed='true'] { border-color:var(--marca); background:var(--marca-suave); }
-    .kpi .n { font-size:1.25rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums; }
-    .kpi .t { font-size:var(--fs-sm); color:var(--texto-tenue); line-height:1.2; }
+    .kpi .n { font-size:1.125rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums; }
+    .kpi .t { font-size:var(--fs-xs); color:var(--texto-tenue); line-height:1.2; }
     .vistas { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-3); align-items:center; }
     .vistas button[aria-pressed='true'] { border-color:var(--marca); background:var(--marca-suave); }
     .filtros { display:grid; gap:var(--sp-2); grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); align-items:end; margin-bottom:var(--sp-3); }
     .filtros .campo { margin:0; }
     .filtros[hidden] { display:none; }
-    .cuerpo { display:grid; gap:var(--sp-4); grid-template-columns:1fr; align-items:start; }
-    @media (width >= 1200px) { .cuerpo { grid-template-columns:248px minmax(0,1fr); } }
+    .cuerpo { display:grid; gap:var(--sp-3); grid-template-columns:1fr; align-items:start; --sticky-top:calc(var(--alto-cinta, 0px) + 62px + 12px); }
+    /* Bandeja compacta (240–288 px) y todo el resto para el caso; ambas columnas con min-width:0 para no desbordar. */
+    @media (width >= 1200px) { .cuerpo { grid-template-columns:clamp(240px, 16.5vw, 288px) minmax(0,1fr); } }
     @media (width >= 1200px) { .cuerpo.sin-lista { grid-template-columns:minmax(0,1fr); } .cuerpo.sin-lista .lista-col { display:none; } }
-    .detalle-col { min-width:0; padding:var(--sp-4); }
-    @media (width < 600px) { .detalle-col { padding:var(--sp-3); } }
+    .detalle-col { min-width:0; padding:var(--sp-3); }
+    @media (width < 600px) { .detalle-col { padding:var(--sp-2); } }
     .solo-escritorio { display:none; }
     @media (width >= 1200px) { .solo-escritorio { display:inline-flex; } }
     .lista-cab { display:flex; align-items:center; justify-content:space-between; gap:var(--sp-2); margin-bottom:var(--sp-2); }
     .lista-cab h2 { margin:0; }
     @media (width < 1200px) { .cuerpo.ver-detalle .lista-col { display:none; } .cuerpo.ver-lista .detalle-col { display:none; } }
     .lista { list-style:none; margin:0; padding:0; max-height:calc(100dvh - 320px); min-height:240px; overflow:auto; }
-    .caso { display:block; width:100%; text-align:left; background:transparent; border:0; border-bottom:1px solid var(--borde); padding:var(--sp-2) var(--sp-2); cursor:pointer; color:inherit; font:inherit; }
+    /* La bandeja acompaña el desplazamiento y se recorre por dentro, como el certificado. */
+    @media (width >= 1200px) {
+      .lista-col { position:sticky; top:var(--sticky-top); padding:var(--sp-3); }
+      .lista-col .lista { max-height:calc(100dvh - var(--sticky-top) - 120px); }
+    }
+    .caso { display:block; width:100%; text-align:left; background:transparent; border:0; border-bottom:1px solid var(--borde); padding:var(--sp-2) var(--sp-1); cursor:pointer; color:inherit; font:inherit; line-height:1.3; }
     .caso:hover { background:var(--superficie-2); }
     .caso[aria-current='true'] { background:var(--marca-suave); }
     .caso .l1 { display:flex; gap:var(--sp-2); align-items:baseline; justify-content:space-between; }
@@ -76,7 +82,7 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
     .caso .prio { flex:none; font-size:var(--fs-sm); font-weight:700; color:var(--texto-tenue); font-variant-numeric:tabular-nums; }
     .caso .meta { display:block; font-size:var(--fs-sm); color:var(--texto-tenue); overflow-wrap:break-word; }
     .caso .etiquetas { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
-    .caso .etiqueta { font-size:var(--fs-xs); padding:2px 8px; }
+    .caso .etiqueta { font-size:var(--fs-xs); padding:1px 6px; line-height:1.4; white-space:normal; max-width:100%; }
     .pagina { display:flex; gap:var(--sp-1) var(--sp-2); flex-wrap:wrap; align-items:center; justify-content:space-between; margin-top:var(--sp-2); font-size:var(--fs-sm); }
     .pagina .boton { white-space:nowrap; padding:0 var(--sp-3); }
     .sup table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); }
@@ -179,10 +185,10 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
                     <span class="n">{{ f.estudiante.nombre }}</span>
                     <span class="prio" [attr.title]="f.prioridad.razones.join(' · ')">P{{ f.prioridad.puntaje }}</span>
                   </span>
-                  <span class="meta">{{ f.estudiante.documentoEnmascarado }} · {{ f.programa }} · recibido {{ dia(f.recibidaEn) }}@if (f.totalVersiones > 1) { · v{{ f.versionDocumento }} }</span>
+                  <span class="meta" [attr.title]="f.programa">{{ f.estudiante.documentoEnmascarado }} · {{ dia(f.recibidaEn) }}@if (f.totalVersiones > 1) { · v{{ f.versionDocumento }} }</span>
                   <span class="etiquetas">
                     <span class="etiqueta etiqueta--icono etiqueta--{{ reserva(f).tono }}"><span aria-hidden="true">{{ reserva(f).icono }}</span> {{ reserva(f).texto }}@if (f.reserva.estado === 'mia') { · {{ restante(f) }} }</span>
-                    @if (f.recomendacion !== 'pendiente_adres') {
+                    @if (f.recomendacion !== 'pendiente_adres' && f.recomendacion !== 'discrepancia_critica') {
                       <span class="etiqueta etiqueta--icono etiqueta--{{ rec(f).tono }}"><span aria-hidden="true">{{ rec(f).icono }}</span> {{ rec(f).texto }}</span>
                     }
                     <span class="etiqueta etiqueta--icono etiqueta--{{ adres(f).tono }}"><span aria-hidden="true">{{ adres(f).icono }}</span> {{ adres(f).texto }}</span>
@@ -240,10 +246,10 @@ export class EpsComponent implements OnInit {
   /** Los filtros empiezan plegados (su botón dice cuántos hay activos): el caso en revisión queda a la vista. */
   readonly filtrosAbiertos = signal(false);
   /**
-   * Solo escritorio: con un caso abierto la lista se oculta para darle todo el ancho al detalle (certificado y revisión);
-   * quien la prefiera al lado la fija. Es una comodidad por navegador, no un dato del caso.
+   * Solo escritorio: la bandeja compacta va junto al detalle; quien necesite todo el ancho para el caso la oculta
+   * (y se recuerda). Es una comodidad por navegador, no un dato del caso.
    */
-  readonly listaVisible = signal(leerListaFijada());
+  readonly listaVisible = signal(leerListaVisible());
   readonly filtrosActivos = computed(() => Object.keys(this.estado.filtros()).filter((k) => k !== 'pagina').length);
   readonly estadosAdres = Object.entries(ESTADO_ADRES).map(([k, v]) => [k, v.texto] as const);
   readonly autenticidades = Object.entries(AUTENTICIDAD).map(([k, v]) => [k, v.texto] as const);
