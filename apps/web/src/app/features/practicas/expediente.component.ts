@@ -16,6 +16,7 @@ import { EstadoComponent } from '@shared/components/estado.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
 import { formatearEntero, formatearUsd } from '@shared/utils/moneda';
+import { guiaDocumento, lineaVersionAnterior } from './guia-documento';
 
 type Pestana = 'documentos' | 'bitacora' | 'datos';
 
@@ -35,6 +36,10 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
     .cab .t { flex:1; min-width:240px; } .cab h1 { margin-bottom:2px; }
     .cab .chips { display:flex; gap:var(--sp-2); flex-wrap:wrap; }
     .progreso { display:grid; gap:var(--sp-3); grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); margin-bottom:var(--sp-4); }
+    /* Móvil: los dos avances lado a lado y el resto a todo el ancho; así los documentos no quedan a 1000 px del inicio. */
+    @media (width < 600px) { .progreso { grid-template-columns:1fr 1fr; } .progreso > :nth-child(n+3) { grid-column:1 / -1; } }
+    .atencion { display:flex; gap:var(--sp-3); align-items:center; flex-wrap:wrap; padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-4); border-radius:var(--r-sm); background:var(--aviso-suave); }
+    .atencion p { margin:0; flex:1 1 16rem; } .atencion strong { display:block; }
     .pct .n { font-size:var(--fs-xl); font-weight:600; font-variant-numeric:tabular-nums; }
     .pct .barra { height:6px; border-radius:3px; background:var(--superficie-2); overflow:hidden; margin-top:var(--sp-1); }
     .pct .barra span { display:block; height:100%; background:var(--marca); transform-origin:left; animation:crecer .9s var(--ease-out) both; transition:width var(--dur-5) var(--ease-out); } .pct.ok .barra span { background:var(--ok); }
@@ -49,6 +54,12 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
     .momento h3 .pista { font-weight:500; }
     .doc { padding:var(--sp-2) 0; border-bottom:1px solid var(--borde); } .doc:last-child { border-bottom:0; }
     .doc-cab { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; } .doc-cab .nombre { font-weight:600; flex:1; min-width:150px; font-size:var(--fs-sm); }
+    /* Quien estudia: qué pasó y qué hacer, con el motivo de una devolución como protagonista. */
+    .guia { margin:var(--sp-1) 0 0; font-size:var(--fs-sm); } .guia strong { font-weight:600; }
+    .devolucion { margin-top:var(--sp-2); padding:var(--sp-3); border-radius:var(--r-sm); background:var(--aviso-suave); display:grid; gap:var(--sp-1); }
+    .devolucion h4 { margin:0; font-size:var(--fs-base); } .devolucion p { margin:0; font-size:var(--fs-sm); overflow-wrap:break-word; }
+    .devolucion .rotulo { font-weight:700; } .devolucion .boton { justify-self:start; margin-top:var(--sp-1); }
+    .anteriores { list-style:none; margin:var(--sp-1) 0 0; padding:0; font-size:var(--fs-sm); color:var(--texto-tenue); }
     .bandera { font-size:var(--fs-xs); padding:var(--sp-1) var(--sp-2); border-radius:var(--r-sm); margin-top:var(--sp-1); background:var(--superficie-2); }
     .bandera.critica { background:var(--peligro-suave); color:var(--peligro); } .bandera.alta { background:var(--aviso-suave); color:var(--aviso); }
     .revision { display:inline-flex; gap:var(--sp-2); align-items:center; margin-top:var(--sp-1); padding:var(--sp-1) var(--sp-3); border-radius:30px; font-size:var(--fs-sm); font-weight:700; background:var(--aviso-suave); color:var(--aviso); border:1px solid color-mix(in oklab, var(--aviso) 45%, transparent); }
@@ -98,6 +109,12 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
       </div>
 
 
+      @for (t of pendientesCorreccion(); track t) {
+        <div class="atencion" role="status">
+          <p><strong>Tu {{ enMinuscula(t | etiqueta) }} necesita una corrección</strong>Mira el motivo y sube una nueva versión.</p>
+          <button type="button" class="boton boton--primario" (click)="corregir(t)">Corregir ahora</button>
+        </div>
+      }
       <div class="progreso">
         @if (veAvance()) {
         <div class="tarjeta compacto pct"><div class="t pista">Documentos cargados</div><div class="n">{{ p.avance.porcentajeCargado }} %</div>
@@ -143,11 +160,35 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                   <div class="doc">
                     <div class="doc-cab">
                       <span class="nombre">{{ d.tipo | etiqueta }}</span>
-                      @if (d.version) { <span class="pista">v{{ d.version }}</span> }
-                      @if (d.estado) { <sipra-estado [valor]="d.estado" /> } @else { <span class="etiqueta etiqueta--neutra">sin cargar</span> }
-                      @if (puedeCargar()) { <button type="button" class="boton compacto" (click)="tipoSeleccionado.set(d.tipo)">Cargar</button> }
+                      @if (esEstudiante()) {
+                        @if (d.version && d.version > 1) { <span class="pista">versión {{ d.version }}</span> }
+                        <span class="etiqueta etiqueta--{{ guia(d.tipo, d.estado).tono }}">{{ guia(d.tipo, d.estado).estado }}</span>
+                        @if (puedeCargar() && !d.estado) { <button type="button" class="boton compacto" (click)="tipoSeleccionado.set(d.tipo)">Cargar</button> }
+                      } @else {
+                        @if (d.version) { <span class="pista">v{{ d.version }}</span> }
+                        @if (d.estado) { <sipra-estado [valor]="d.estado" /> } @else { <span class="etiqueta etiqueta--neutra">sin cargar</span> }
+                        @if (puedeCargar()) { <button type="button" class="boton compacto" (click)="tipoSeleccionado.set(d.tipo)">Cargar</button> }
+                      }
                     </div>
-                    @if (ultimoDe(d.tipo); as doc) {
+                    @if (esEstudiante()) {
+                      <p class="guia">{{ guia(d.tipo, d.estado).que }} <strong>{{ guia(d.tipo, d.estado).hacer }}</strong></p>
+                      @if (ultimoDe(d.tipo); as ult) {
+                        <p class="pista" style="margin:2px 0 0">{{ ult.nombreOriginal }} · {{ ult.cargadoEn | date: 'd MMM y, HH:mm' }}</p>
+                        @if (guia(d.tipo, ult.estado).necesitaCorreccion) {
+                          <div class="devolucion" role="status">
+                            <h4>Tu {{ enMinuscula(d.tipo | etiqueta) }} necesita una corrección</h4>
+                            @if (ult.motivoDevolucion) { <p><span class="rotulo">Motivo:</span> {{ ult.motivoDevolucion }}</p> }
+                            <p><span class="rotulo">Qué debes hacer:</span> {{ guia(d.tipo, ult.estado).hacer }}</p>
+                            @if (puedeCargar()) { <button type="button" class="boton boton--primario" (click)="corregir(d.tipo)">Subir nueva versión</button> }
+                          </div>
+                        }
+                        @if (anteriores(d.tipo).length > 0) {
+                          <ul class="anteriores" aria-label="Versiones anteriores">
+                            @for (a of anteriores(d.tipo); track a.id) { <li>{{ lineaAnterior(a) }}</li> }
+                          </ul>
+                        }
+                      }
+                    } @else if (ultimoDe(d.tipo); as doc) {
                       <div class="pista">{{ doc.nombreOriginal }} · {{ doc.cargadoEn | date: 'd MMM y, HH:mm' }}@if (doc.puntaje !== null) { · {{ doc.puntaje }}/100 }</div>
                       @if (doc.motivoDevolucion) { <div class="aviso aviso--info" style="margin-top:var(--sp-1)">{{ doc.motivoDevolucion }}</div> }
                       @for (b of doc.banderas ?? []; track b.codigo) {
@@ -375,6 +416,7 @@ export class ExpedienteComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly avisos = inject(AvisosService);
   private readonly captura = inject(CapturaGuiadaService);
+  private readonly etiqueta = new EtiquetaPipe();
 
   readonly practica = signal<Practica | null>(null);
   readonly documentos = signal<Documento[]>([]);
@@ -433,6 +475,25 @@ export class ExpedienteComponent implements OnInit {
   ultimoDe(tipo: string): Documento | null {
     return this.documentos().filter((d) => d.tipo === tipo).sort((a, b) => b.version - a.version)[0] ?? null;
   }
+  readonly esEstudiante = computed(() => this.sesion.rol() === 'estudiante');
+  /** Tipos cuyo último documento necesita corrección: se avisa arriba, sin obligar a buscarlo entre los momentos. */
+  readonly pendientesCorreccion = computed(() => {
+    if (!this.esEstudiante()) return [] as string[];
+    const tipos = [...new Set(this.documentos().map((d) => d.tipo))];
+    return tipos.filter((t) => guiaDocumento(this.ultimoDe(t)?.estado, '').necesitaCorreccion);
+  });
+  guia(tipo: string, estado: string | null | undefined) { return guiaDocumento(estado, this.etiquetaTipo(tipo)); }
+  /** Versiones anteriores de un tipo (la última se muestra aparte), de la más reciente a la más antigua. */
+  anteriores(tipo: string): Documento[] { return this.documentos().filter((d) => d.tipo === tipo).sort((a, b) => b.version - a.version).slice(1); }
+  lineaAnterior(d: Documento): string { return lineaVersionAnterior(d.version, d.estado, this.etiquetaTipo(d.tipo)); }
+  /** «Subir nueva versión»: deja elegido el tipo y lleva a la zona de carga. */
+  corregir(tipo: string): void {
+    this.tipoSeleccionado.set(tipo);
+    setTimeout(() => { const zona = document.querySelector<HTMLElement>('.zona'); zona?.scrollIntoView({ block: 'center' }); zona?.focus(); }, 0);
+  }
+  /** «Certificado de EPS» → «certificado de EPS» (solo la inicial: las siglas se conservan). */
+  enMinuscula(texto: string): string { return texto ? texto.charAt(0).toLowerCase() + texto.slice(1) : texto; }
+  private etiquetaTipo(tipo: string): string { return this.etiqueta.transform(tipo); }
   decidible(doc: Documento): boolean { return !['aprobado', 'rechazado'].includes(doc.estado); }
   etiquetaCumple(cumple: 'si' | 'no' | 'no_determinable'): string {
     return cumple === 'si' ? 'cumple' : cumple === 'no' ? 'no cumple' : 'no determinable';

@@ -418,10 +418,16 @@ export class EpsDetalleComponent {
    */
   discrepancias(d: Detalle): Array<{ clave: string; severidad: string; titulo: string; explicaciones: string[] }> {
     const grupos = new Map<string, { clave: string; severidad: string; titulo: string; explicaciones: string[] }>();
+    const nombre: Record<string, string> = { sipra: 'SIPRA', certificado: 'Certificado', adres: 'ADRES', oficial: 'Fuente oficial', ocr: 'OCR', texto_nativo: 'Texto digital' };
+    const orden = ['sipra', 'certificado', 'adres', 'oficial', 'texto_nativo', 'ocr'];
     for (const x of d.discrepancias) {
       const clave = [x.campo, x.codigo ?? x.titulo, x.severidad].join('|');
       const g = grupos.get(clave) ?? { clave, severidad: x.severidad, titulo: x.titulo, explicaciones: [] };
-      if (!g.explicaciones.includes(x.explicacion)) g.explicaciones.push(x.explicacion);
+      // Una diferencia entre fuentes se dice como «SIPRA ↔ ADRES»; lo demás conserva su explicación.
+      const linea = x.codigo === 'diferencia' && (x.fuentes?.length ?? 0) === 2
+        ? [...x.fuentes as string[]].sort((a, b) => orden.indexOf(a) - orden.indexOf(b)).map((f) => nombre[f] ?? f).join(' ↔ ')
+        : x.explicacion;
+      if (!g.explicaciones.includes(linea)) g.explicaciones.push(linea);
       grupos.set(clave, g);
     }
     return [...grupos.values()];

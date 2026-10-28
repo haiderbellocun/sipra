@@ -21,6 +21,8 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
   imports: [EsqueletoComponent, RouterLink, FormsModule, DatePipe, EstadoComponent, EtiquetaPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
+    /* Columnas secundarias: con el ancho justo la tabla no se desborda ni esconde las columnas que importan (estado y avance). */
+    @media (width < 1500px) { .tabla .sec { display: none; } }
     .cab { display: flex; gap: var(--sp-3); align-items: flex-start; flex-wrap: wrap; margin-bottom: var(--sp-4); }
     .cab > div { flex: 1 1 30ch; }
     .cab p { margin: 0; }
@@ -159,22 +161,22 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
           <table class="tabla">
             <thead>
               <tr>
-                <th>FUR</th>
+                <th class="sec">FUR</th>
                 <th>Estudiante</th>
                 <th>Periodo</th>
                 <th>Modalidad</th>
                 <th>Empresa</th>
-                <th>Docente</th>
+                <th class="sec">Docente</th>
                 <th>Estado</th>
                 <th>Cargados / aprobados</th>
                 @if (sesion.esInterno()) { <th>Señal</th> }
-                <th>Último movimiento</th>
+                <th class="sec">Último movimiento</th>
               </tr>
             </thead>
             <tbody>
               @for (p of visibles(); track p.id) {
                 <tr>
-                  <td class="compacto fur">{{ p.numeroFur ?? '—' }}</td>
+                  <td class="compacto fur sec">{{ p.numeroFur ?? '—' }}</td>
                   <td>
                     <a [routerLink]="['/practicas', p.id]">{{ p.estudianteNombre }}</a>
                     <div class="pista">{{ p.programaId }} · {{ p.ciclo | etiqueta }}{{ p.regional ? ' · ' + p.regional : '' }}</div>
@@ -182,7 +184,7 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
                   <td class="compacto">{{ p.periodoAcademico }}</td>
                   <td>{{ p.modalidad | etiqueta }}</td>
                   <td>{{ p.empresaRazonSocial ?? '—' }}</td>
-                  <td>{{ p.tutorNombre ?? (veDocente() ? 'Sin asignación' : '—') }}</td>
+                  <td class="sec">{{ p.tutorNombre ?? (veDocente() ? 'Sin asignación' : '—') }}</td>
                   <td class="compacto"><sipra-estado [valor]="p.estado" /><div class="pista">{{ p.estadoSgp }}</div></td>
                   <td class="compacto num">
                     @if (veAvance()) {
@@ -192,7 +194,7 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
                     } @else { — }
                   </td>
                   @if (sesion.esInterno()) { <td class="compacto"><sipra-estado [valor]="p.senal" /></td> }
-                  <td class="compacto pista">{{ p.ultimaActividad | date: 'd MMM y' }}</td>
+                  <td class="compacto pista sec">{{ p.ultimaActividad | date: 'd MMM y' }}</td>
                 </tr>
               }
             </tbody>

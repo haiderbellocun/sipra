@@ -196,6 +196,9 @@ code { font-family: var(--fuente-mono); font-size: .9em; }
 }
 .boton--primario:hover:not(:disabled) { background: var(--marca-hover); }
 .boton--secundario { border-color: var(--marca); }
+/* Acción terciaria (ayuda, volver, ver más): sin borde ni relleno, para que no compita con la acción principal. */
+.boton--texto { background: transparent; border-color: transparent; color: var(--marca); font-weight: 600; }
+.boton--texto:hover:not(:disabled) { background: var(--marca-suave); }
 .boton--peligro {
   color: var(--peligro);
   border-color: color-mix(in oklab, var(--peligro) 50%, var(--borde));

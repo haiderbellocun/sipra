@@ -24,21 +24,15 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
   styles: [`
     .saludo { margin-bottom: var(--sp-5); display: flex; gap: var(--sp-4); align-items: flex-end; flex-wrap: wrap; }
     .saludo > div { flex: 1 1 32ch; }
-    .saludo h1 { font-size: var(--fs-2xl); margin-bottom: var(--sp-1); }
+    .saludo h1 { font-size: var(--fs-xl); margin-bottom: var(--sp-1); }
     .saludo p { color: var(--texto-tenue); max-width: 68ch; margin: 0; }
     .saludo .fecha { color: var(--texto-tenue); font-size: var(--fs-sm); }
+    .cifras[hidden] { display: none; }
     .cifras {
       display: grid; gap: var(--sp-3); margin-bottom: var(--sp-5);
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
     }
-    .cifra { position: relative; }
-    .cifra::before {
-      content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; border-radius: 3px 0 0 3px;
-      background: var(--borde);
-    }
-    .cifra.tono-peligro::before { background: var(--peligro); }
-    .cifra.tono-aviso::before   { background: var(--aviso); }
-    .cifra.tono-ok::before      { background: var(--ok); }
+    /* El tono va en la cifra y en su rótulo (no en una franja de color al borde). */
     .cifra.tono-peligro .n { color: var(--peligro); }
     .cifra.tono-aviso .n   { color: var(--aviso); }
     .cifra.tono-ok .n      { color: var(--ok); }
@@ -59,7 +53,7 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
   template: `
     <div class="saludo">
       <div>
-        <p class="et-sec">{{ etiquetaRol() }}</p>
+        <p class="et-sec">{{ etiquetaRol() }} · {{ hoy }}</p>
         <h1>Hola, {{ sesion.sesion()?.nombre }}</h1>
         @switch (sesion.rol()) {
           @case ('estudiante') {
@@ -82,7 +76,6 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
           }
         }
       </div>
-      <div class="fecha">{{ hoy }}</div>
     </div>
 
     @if (sesion.rol() === 'estudiante') {
@@ -90,8 +83,8 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
         <a routerLink="/registro" class="boton boton--primario">{{ practicas().length ? 'Carta y registro' : 'Registrar mi práctica' }}</a>
         @if (practicas()[0]; as p) { <a [routerLink]="['/practicas', p.id]" class="boton">Gestionar mi práctica</a> }
         <a routerLink="/arl" class="boton">Solicitud de ARL</a>
-        <a routerLink="/ayuda" class="boton">Centro de ayuda</a>
-        <a routerLink="/pqrs" class="boton">PQRS</a>
+        <a routerLink="/ayuda" class="boton boton--texto">Centro de ayuda</a>
+        <a routerLink="/pqrs" class="boton boton--texto">PQRS</a>
       </div>
     }
     @if (sesion.rol() === 'auxiliar') {
@@ -103,7 +96,7 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
     @if (cargando()) {
       <sipra-esqueleto tipo="cifras" [cantidad]="4" /><div style="height:var(--sp-5)"></div><div class="tarjeta"><sipra-esqueleto tipo="filas" [cantidad]="5" /></div>
     } @else {
-      <div class="cifras escalonado">
+      <div class="cifras escalonado" [hidden]="sesion.rol() === 'estudiante'">
         <div class="tarjeta cifra">
           <div class="n">{{ practicas().length }}</div>
           <div class="t">{{ sesion.rol() === 'estudiante' ? 'Mi práctica' : 'Expedientes en mi alcance' }}</div>

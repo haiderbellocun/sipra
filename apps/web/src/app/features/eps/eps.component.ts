@@ -82,6 +82,9 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
     .caso .prio { flex:none; font-size:var(--fs-sm); font-weight:700; color:var(--texto-tenue); font-variant-numeric:tabular-nums; }
     .caso .meta { display:block; font-size:var(--fs-sm); color:var(--texto-tenue); overflow-wrap:break-word; }
     .caso .etiquetas { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+    /* Estado y responsable en una línea de texto (con icono, no solo color): el problema es lo único que lleva insignia. */
+    .caso .estado-linea { display:block; margin-top:3px; font-size:var(--fs-xs); color:var(--texto-tenue); overflow-wrap:break-word; }
+    .caso .estado-linea .sep { display:inline-block; width:3px; height:3px; border-radius:50%; background:currentColor; margin:0 6px; vertical-align:middle; opacity:.6; }
     .caso .etiqueta { font-size:var(--fs-xs); padding:1px 6px; line-height:1.4; white-space:normal; max-width:100%; }
     .pagina { display:flex; gap:var(--sp-1) var(--sp-2); flex-wrap:wrap; align-items:center; justify-content:space-between; margin-top:var(--sp-2); font-size:var(--fs-sm); }
     .pagina .boton { white-space:nowrap; padding:0 var(--sp-3); }
@@ -175,7 +178,7 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
         } @else if (estado.cargando() && !estado.listado()) {
           <p class="pista" role="status">Cargando los casos…</p>
         } @else if (estado.filas().length === 0) {
-          <div class="vacio">No hay casos con estos criterios.</div>
+          <div class="vacio"><strong>No hay casos pendientes</strong><br />Todo está al día con los filtros actuales.</div>
         } @else {
           <ul class="lista" [attr.aria-busy]="estado.cargando()">
             @for (f of estado.filas(); track f.validacionId) {
@@ -186,13 +189,14 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
                     <span class="prio" [attr.title]="f.prioridad.razones.join(' · ')">P{{ f.prioridad.puntaje }}</span>
                   </span>
                   <span class="meta" [attr.title]="f.programa">{{ f.estudiante.documentoEnmascarado }} · {{ dia(f.recibidaEn) }}@if (f.totalVersiones > 1) { · v{{ f.versionDocumento }} }</span>
-                  <span class="etiquetas">
-                    <span class="etiqueta etiqueta--icono etiqueta--{{ reserva(f).tono }}"><span aria-hidden="true">{{ reserva(f).icono }}</span> {{ reserva(f).texto }}@if (f.reserva.estado === 'mia') { · {{ restante(f) }} }</span>
-                    @if (f.recomendacion !== 'pendiente_adres' && f.recomendacion !== 'discrepancia_critica') {
-                      <span class="etiqueta etiqueta--icono etiqueta--{{ rec(f).tono }}"><span aria-hidden="true">{{ rec(f).icono }}</span> {{ rec(f).texto }}</span>
-                    }
-                    <span class="etiqueta etiqueta--icono etiqueta--{{ adres(f).tono }}"><span aria-hidden="true">{{ adres(f).icono }}</span> {{ adres(f).texto }}</span>
-                    @if (f.discrepancias.criticas > 0) { <span class="etiqueta etiqueta--icono etiqueta--peligro"><span aria-hidden="true">!</span> {{ f.discrepancias.criticas }} crítica{{ f.discrepancias.criticas > 1 ? 's' : '' }}</span> }
+                  @if (problema(f); as pr) {
+                    <span class="etiquetas">
+                      <span class="etiqueta etiqueta--icono etiqueta--{{ pr.tono }}"><span aria-hidden="true">{{ pr.icono }}</span> {{ pr.texto }}</span>
+                    </span>
+                  }
+                  <span class="estado-linea">
+                    <span aria-hidden="true">{{ reserva(f).icono }}</span> {{ reserva(f).texto }}@if (f.reserva.estado === 'mia') { · {{ restante(f) }} }
+                    <span class="sep" aria-hidden="true"></span>ADRES: {{ adres(f).texto }}
                   </span>
                 </button>
               </li>
@@ -213,7 +217,7 @@ const VISTAS: Array<{ valor: VistaRapida; texto: string }> = [
           <button type="button" class="boton compacto solo-escritorio" style="margin-bottom:var(--sp-3)" (click)="mostrarLista(true)">← Mostrar la lista de casos</button>
         }
         @if (estado.seleccionId()) { <sipra-eps-detalle /> }
-        @else { <div class="vacio">Elija un caso de la lista o pulse «Tomar siguiente».</div> }
+        @else { <div class="vacio"><strong>Elija un caso</strong><br />Selecciónelo en la lista o pulse «Tomar siguiente» para empezar la revisión.</div> }
       </section>
     </div>
 
@@ -281,6 +285,16 @@ export class EpsComponent implements OnInit {
   }
 
   reserva(f: FilaMesa) { return ESTADO_RESERVA[f.reserva.estado]; }
+  /**
+   * El PROBLEMA del caso, en una sola insignia: la recomendación del sistema (con el número de críticas cuando aporta) o, si no
+   * hay nada que señalar, nada. «Pendiente de ADRES» no es un problema: ya va en la línea de estado.
+   */
+  problema(f: FilaMesa): { texto: string; icono: string; tono: string } | null {
+    if (f.recomendacion === 'pendiente_adres') return f.discrepancias.criticas > 0 ? { texto: `${f.discrepancias.criticas} crítica${f.discrepancias.criticas > 1 ? 's' : ''}`, icono: '!', tono: 'peligro' } : null;
+    const r = this.rec(f);
+    const criticas = f.recomendacion === 'discrepancia_critica' && f.discrepancias.criticas > 1 ? ` · ${f.discrepancias.criticas}` : '';
+    return { texto: `${r.texto}${criticas}`, icono: r.icono, tono: r.tono };
+  }
   rec(f: FilaMesa) { return RECOMENDACION[f.recomendacion] ?? RECOMENDACION['informacion_insuficiente']; }
   adres(f: FilaMesa) { return ESTADO_ADRES[f.estadoAdres] ?? ESTADO_ADRES['no_determinable']; }
   restante(f: FilaMesa): string { return textoRestante(f.reserva.hasta, this.estado.ahora()); }

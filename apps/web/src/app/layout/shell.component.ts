@@ -70,9 +70,10 @@ const CLAVE_TEMA = 'sipra.tema';
 
     /* ── Panel lateral ── */
     .lateral {
-      display: none; flex-direction: column; gap: var(--sp-5);
+      display: none; flex-direction: column; gap: var(--sp-4);
       background: var(--superficie); border-right: 1px solid var(--borde);
-      padding: var(--sp-4); position: sticky; top: 0; height: 100dvh;
+      padding: var(--sp-4) var(--sp-4) 0; position: sticky; top: var(--alto-cinta, 0px); height: calc(100dvh - var(--alto-cinta, 0px));
+      overflow-y: auto; overscroll-behavior: contain;
     }
     @media (width >= 1024px) { .lateral { display: flex; } }
     .logo {
@@ -87,19 +88,21 @@ const CLAVE_TEMA = 'sipra.tema';
     .nav { display: flex; flex-direction: column; gap: 2px; }
     .nav a {
       display: flex; gap: var(--sp-3); align-items: center;
-      padding: var(--sp-2) var(--sp-3); min-height: 44px; border-radius: var(--r-sm);
+      padding: var(--sp-1) var(--sp-3); min-height: 40px; border-radius: var(--r-sm);
       color: var(--texto-tenue); font-size: var(--fs-sm); text-decoration: none;
     }
     .nav a:hover { background: var(--superficie-2); color: var(--texto); }
     .nav a.activo { background: var(--marca-suave); color: var(--marca); font-weight: 700; }
     .nav svg { width: 20px; height: 20px; flex: none; }
+    /* El pie queda siempre a la vista: la lista de navegación cede (y se desplaza) antes que el cierre de sesión. */
     .actor {
-      margin-top: auto; border-top: 1px solid var(--borde); padding-top: var(--sp-4);
-      font-size: var(--fs-sm); display: grid; gap: var(--sp-1);
+      margin-top: auto; border-top: 1px solid var(--borde); padding: var(--sp-3) 0 var(--sp-4);
+      font-size: var(--fs-sm); display: flex; gap: var(--sp-2); align-items: center; justify-content: space-between;
+      position: sticky; bottom: 0; background: var(--superficie);
     }
     .actor .quien { font-weight: 600; }
-    .actor .rol { color: var(--texto-tenue); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em; }
-    .actor .boton { margin-top: var(--sp-2); justify-self: start; }
+    .actor .rol { color: var(--texto-tenue); font-size: var(--fs-xs); line-height: 1.3; }
+    .actor .boton { flex: none; }
 
     /* ── Contenido ── */
     .contenido { display: flex; flex-direction: column; min-width: 0; }
@@ -198,8 +201,7 @@ const CLAVE_TEMA = 'sipra.tema';
           }
         </nav>
         <div class="actor">
-          <div class="quien">{{ sesion.sesion()?.nombre }}</div>
-          <div class="rol">{{ etiquetaRol() }}</div>
+          <div class="rol" [attr.title]="sesion.sesion()?.nombre">{{ etiquetaRol() }}</div>
           <button type="button" class="boton compacto" (click)="sesion.salir()">Cerrar sesión</button>
         </div>
       </aside>
