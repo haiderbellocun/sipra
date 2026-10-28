@@ -150,7 +150,16 @@ export class DetalleMesaDto {
   @ApiProperty({ type: [ComparacionTripleDto] }) comparacion!: ComparacionTripleDto[];
   @ApiProperty({ type: [DiscrepanciaLegibleDto] }) discrepancias!: DiscrepanciaLegibleDto[];
   @ApiProperty({ type: RecomendacionMesaDto }) recomendacion!: RecomendacionMesaDto;
-  @ApiProperty() adres!: { estado: string; tipoDocumento: string | null; error: string | null; cargadaEn: string | null };
+  @ApiProperty() adres!: {
+    estado: string; tipoDocumento: string | null; error: string | null; cargadaEn: string | null;
+    /** Los campos leídos del resultado de ADRES (`null` si aún no hay resultado leído). */
+    resultado: {
+      tipoDocumento: string | null; numeroDocumento: string | null; nombre: string | null; entidad: string | null; regimen: string | null;
+      estado: string | null; tipoAfiliado: string | null; fechaAfiliacion: string | null; fechaFinalizacion: string | null;
+      /** La fecha de finalización es 31/12/2999: ADRES dice así que la afiliación continúa. */
+      afiliacionContinua: boolean; fechaConsulta: string | null;
+    } | null;
+  };
   @ApiProperty({ type: [EvidenciaMesaDto] }) evidencias!: EvidenciaMesaDto[];
   @ApiProperty({ type: [EventoHistorialDto] }) historial!: EventoHistorialDto[];
   @ApiProperty({ type: [VersionCertificadoDto] }) versiones!: VersionCertificadoDto[];

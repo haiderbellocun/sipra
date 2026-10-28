@@ -92,6 +92,7 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     dt { font-size:var(--fs-sm); color:var(--texto-tenue); }
     dd { margin:0; font-weight:600; overflow-wrap:break-word; font-variant-numeric:tabular-nums; }
     dd .fuente { font-weight:400; color:var(--texto-tenue); font-size:var(--fs-sm); }
+    dl.adres-leido { margin-top:var(--sp-3); }
     .vigencia { margin:var(--sp-2) 0 var(--sp-3); font-size:var(--fs-sm); }
     .vigencia.vencido { background:var(--aviso-suave); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm); }
 
@@ -295,6 +296,22 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
               [validacionId]="d.caso.validacionId" [estado]="d.adres.estado" [errorPrevio]="d.adres.error"
               [puedeConsultar]="d.acceso.puedeConsultarAdres && estado.puedeActuar()"
               (cambio)="estado.refrescarDetalle()" />
+            @if (d.adres.resultado; as r) {
+              <dl class="campos adres-leido" aria-label="Datos leídos del resultado de ADRES">
+                <div><dt>Documento</dt><dd>{{ r.tipoDocumento ?? '—' }} {{ r.numeroDocumento ?? '—' }}</dd></div>
+                <div><dt>Nombre</dt><dd>{{ r.nombre ?? (d.acceso.puedeVerValores ? '—' : 'Oculto') }}</dd></div>
+                <div><dt>Entidad</dt><dd>{{ r.entidad ?? '—' }}</dd></div>
+                <div><dt>Régimen</dt><dd>{{ r.regimen ?? '—' }}</dd></div>
+                <div><dt>Estado</dt><dd>{{ r.estado ?? '—' }}</dd></div>
+                <div><dt>Tipo de afiliado</dt><dd>{{ r.tipoAfiliado ?? '—' }}</dd></div>
+                <div><dt>Afiliación efectiva</dt><dd>{{ r.fechaAfiliacion ? fechaIso(r.fechaAfiliacion) : '—' }}</dd></div>
+                <div><dt>Finalización</dt><dd>
+                  @if (r.afiliacionContinua) { Sin finalización <span class="fuente">(ADRES: 31/12/2999, la afiliación continúa)</span> }
+                  @else { {{ r.fechaFinalizacion ? fechaIso(r.fechaFinalizacion) : '—' }} }
+                </dd></div>
+                <div><dt>Consulta</dt><dd>{{ r.fechaConsulta ? fechaIso(r.fechaConsulta) : '—' }}</dd></div>
+              </dl>
+            }
           </section>
 
       <div class="secundaria">

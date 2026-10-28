@@ -17,7 +17,7 @@ import { ALMACENAMIENTO, AlmacenamientoPort } from '../../../domain/ports/out/se
 import {
   FilaMesaRepo, TOPE_LISTADO_MESA, VALIDACION_EPS_REPOSITORY, ValidacionEpsRepositoryPort,
 } from '../../../domain/ports/out/validacion-eps.port';
-import { compararTriple } from '../../../domain/services/adres-resultado.domain-service';
+import { compararTriple, esFechaDeContinuidadAdres } from '../../../domain/services/adres-resultado.domain-service';
 import {
   ESTADOS_ADRES_ABIERTOS, MotivoDevolucionEps, calcularPrioridad, condicionesRecomendacion, construirDiscrepancias, evaluarApartamiento,
   evaluarFrescuraAdres, mensajeDevolucion, recomendacionActual, tieneDiscrepanciaCriticaPersistida, veredictoCertificadoVsSipra,
@@ -403,7 +403,20 @@ export class MesaEpsUseCase {
         codigo: recomendacion, ...TEXTO_RECOMENDACION[recomendacion], esDecision: false,
         tambien: tambien.map((c) => ({ codigo: c, titulo: TEXTO_RECOMENDACION[c].titulo })),
       },
-      adres: { estado: d.adres.estado, tipoDocumento: d.adres.tipoDocumento, error: d.adres.error, cargadaEn: d.adres.cargadaEn?.toISOString() ?? null },
+      adres: {
+        estado: d.adres.estado, tipoDocumento: d.adres.tipoDocumento, error: d.adres.error, cargadaEn: d.adres.cargadaEn?.toISOString() ?? null,
+        // Lo que se leyó del resultado, campo por campo. El documento y el nombre son datos personales: solo con el caso tomado.
+        resultado: tieneAdres ? {
+          tipoDocumento: d.adres.datos?.tipoDocumento ?? null,
+          numeroDocumento: valores ? (d.adres.datos?.numeroDocumento ?? null) : (d.adres.datos?.numeroDocumento ? enmascarar(d.adres.datos.numeroDocumento) : null),
+          nombre: valores ? (d.adres.datos?.nombre ?? null) : null,
+          entidad: d.adres.datos?.eps ?? null, regimen: d.adres.datos?.regimen ?? null, estado: d.adres.datos?.estadoAfiliacion ?? null,
+          tipoAfiliado: d.adres.datos?.tipoAfiliado ?? null,
+          fechaAfiliacion: d.adres.datos?.fechaAfiliacion ?? null, fechaFinalizacion: d.adres.datos?.fechaFinalizacion ?? null,
+          afiliacionContinua: d.adres.datos?.afiliacionContinua ?? esFechaDeContinuidadAdres(d.adres.datos?.fechaFinalizacion ?? null),
+          fechaConsulta: d.adres.datos?.fechaConsulta ?? null,
+        } : null,
+      },
       evidencias: evidencias.map((e): EvidenciaMesaDto => {
         const x = e.instantanea();
         return { id: x.id, tipo: x.tipo, fuente: x.fuente, metodo: x.metodo, resultado: x.resultado, fecha: x.fechaVerificacion.toISOString(), error: x.errorCodigo };

@@ -62,6 +62,9 @@ export interface DatosAdres {
   tipoDocumento: string | null;
   numeroDocumento: string | null;
   nombre: string | null;
+  /** Por separado, tal como los entrega ADRES; `nombre` es su unión (la que se compara). */
+  nombres?: string | null;
+  apellidos?: string | null;
   eps: string | null;
   regimen: string | null;
   /** Estado TAL COMO lo muestra la fuente. */
@@ -70,6 +73,10 @@ export interface DatosAdres {
   fechaAfiliacion: string | null;
   /** Fecha de finalización de la afiliación, si la trae (AAAA-MM-DD). */
   fechaFinalizacion: string | null;
+  /** `true` cuando la fecha de finalización es 31/12/2999, el valor con que ADRES dice «la afiliación continúa». */
+  afiliacionContinua?: boolean;
+  /** COTIZANTE / BENEFICIARIO…, tal como lo muestra la fuente. */
+  tipoAfiliado?: string | null;
   /** Fecha/hora de la CONSULTA que muestra el resultado (AAAA-MM-DD), si la trae. */
   fechaConsulta: string | null;
   /** Fecha hasta la cual la BDUA estaba actualizada (corte), si la trae. No es la fecha de consulta. */

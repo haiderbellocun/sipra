@@ -621,7 +621,15 @@ export interface DetalleMesa {
     /** Las demás condiciones que también aplican, en orden de importancia. */
     tambien: Array<{ codigo: string; titulo: string }>;
   };
-  adres: { estado: EstadoAdres; tipoDocumento: string | null; error: string | null; cargadaEn: string | null };
+  adres: {
+    estado: EstadoAdres; tipoDocumento: string | null; error: string | null; cargadaEn: string | null;
+    /** Lo leído del resultado de ADRES; `null` mientras no haya resultado leído. */
+    resultado: {
+      tipoDocumento: string | null; numeroDocumento: string | null; nombre: string | null; entidad: string | null; regimen: string | null;
+      estado: string | null; tipoAfiliado: string | null; fechaAfiliacion: string | null; fechaFinalizacion: string | null;
+      afiliacionContinua: boolean; fechaConsulta: string | null;
+    } | null;
+  };
   evidencias: Array<{ id: string; tipo: string; fuente: string; metodo: string; resultado: string; fecha: string; error: string | null }>;
   historial: EventoHistorial[];
   versiones: Array<{ documentoId: string; version: number; cargadoEn: string; estado: string; esVigente: boolean; esEsta: boolean }>;

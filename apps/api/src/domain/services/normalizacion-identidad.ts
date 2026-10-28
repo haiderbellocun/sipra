@@ -145,7 +145,9 @@ export function claveEps(
   alias: Readonly<Record<string, string>> = {},
 ): string | null {
   const texto = normalizarTexto(nombre)
-    .replace(/ENTIDAD PROMOTORA DE SALUD/g, ' ')
+    .replace(/ENTIDAD PROMOTORA DE SALUD|EMPRESA PROMOTORA DE SALUD/g, ' ')
+    // ADRES escribe la figura jurídica de las cajas («CAJA DE COMPENSACIÓN FAMILIAR COMPENSAR») donde el certificado dice «EPS Compensar».
+    .replace(/CAJA DE COMPENSACION FAMILIAR|CAJA DE COMPENSACION/g, ' ')
     .replace(/[^A-Z0-9 ]/g, ' ');
   const clave = texto.split(' ').filter((t) => t.length > 0 && !RUIDO_EPS.has(t)).join(' ');
   if (!clave) return null;

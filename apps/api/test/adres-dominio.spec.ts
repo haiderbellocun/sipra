@@ -38,7 +38,8 @@ describe('Lectura del resultado de ADRES', () => {
   it('lee los campos de un resultado «etiqueta: valor» y no confunde fecha de consulta con fecha de corte', () => {
     const l = extraerDatosAdres(TEXTO_CAMPOS);
     expect(l.pareceResultadoAdres).toBe(true);
-    expect(l.datos).toEqual({
+    // `toMatchObject`: el resultado ahora trae además nombres/apellidos por separado, tipo de afiliado y la marca de continuidad.
+    expect(l.datos).toMatchObject({
       tipoDocumento: 'CC', numeroDocumento: '1032456786', nombre: 'LAURA SOFIA RAMIREZ ORTIZ', eps: 'EPS SINTETICA',
       regimen: 'CONTRIBUTIVO', estadoAfiliacion: 'ACTIVO', fechaAfiliacion: '2024-02-05', fechaFinalizacion: null,
       fechaConsulta: '2026-10-26', fuenteActualizadaEn: '2026-09-30',
