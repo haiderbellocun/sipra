@@ -582,6 +582,8 @@ export interface FiltrosMesa {
 
 export interface DiscrepanciaLegible {
   severidad: 'critica' | 'informativa' | 'insuficiente'; campo: string; titulo: string; explicacion: string;
+  /** Causa lógica y fuentes enfrentadas (ver `claveDiscrepancia` en el API). */
+  codigo?: string; fuentes?: string[];
 }
 
 export interface EventoHistorial { fecha: string; tipo: string; titulo: string; actor: string | null; detalle: string | null }

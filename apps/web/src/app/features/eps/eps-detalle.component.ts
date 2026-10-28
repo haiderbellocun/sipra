@@ -78,13 +78,14 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
     ul.disc { gap:2px; grid-template-columns:fit-content(9.5rem) minmax(0, 1fr); }
     ul.disc li { grid-column:1 / -1; display:grid; grid-template-columns:subgrid; gap:0 var(--sp-3); align-items:start; padding:var(--sp-1) var(--sp-2); border-radius:var(--r-sm); background:var(--superficie-2); }
     ul.disc li.critica { background:var(--peligro-suave); }
-    ul.disc .etiqueta { grid-row:1 / span 2; justify-self:start; white-space:normal; max-width:100%; }
-    ul.disc .titulo { grid-column:2; font-weight:700; overflow-wrap:break-word; }
-    ul.disc .exp { grid-column:2; font-size:var(--fs-sm); color:var(--texto); overflow-wrap:break-word; }
+    ul.disc .etiqueta { justify-self:start; white-space:normal; max-width:100%; }
+    ul.disc .cuerpo-disc { min-width:0; display:grid; gap:0; }
+    ul.disc .titulo { font-weight:700; overflow-wrap:break-word; }
+    ul.disc .exp { font-size:var(--fs-sm); color:var(--texto); overflow-wrap:break-word; }
     @container rev (max-width: 24rem) {
       ul.disc { grid-template-columns:minmax(0, 1fr); }
       ul.disc li { grid-template-columns:minmax(0, 1fr); }
-      ul.disc .etiqueta { grid-row:auto; } ul.disc .titulo, ul.disc .exp { grid-column:1; }
+
     }
 
     dl.campos { margin:0; display:grid; gap:var(--sp-2) var(--sp-4); grid-template-columns:repeat(auto-fit, minmax(10.5rem, 1fr)); }
@@ -205,11 +206,13 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
             @if (d.discrepancias.length === 0) { <p class="pista">No se encontraron discrepancias.</p> }
             @else {
               <ul class="lista disc">
-                @for (x of d.discrepancias; track $index) {
+                @for (x of discrepancias(d); track x.clave) {
                   <li [class.critica]="x.severidad === 'critica'">
                     <span class="etiqueta etiqueta--icono etiqueta--{{ severidad(x.severidad).tono }}"><span aria-hidden="true">{{ severidad(x.severidad).icono }}</span> {{ severidad(x.severidad).texto }}</span>
-                    <span class="titulo">{{ x.titulo }}</span>
-                    <span class="exp">{{ x.explicacion }}</span>
+                    <span class="cuerpo-disc">
+                      <span class="titulo">{{ x.titulo }}</span>
+                      @for (e of x.explicaciones; track e) { <span class="exp">{{ e }}</span> }
+                    </span>
                   </li>
                 }
               </ul>
@@ -398,6 +401,20 @@ export class EpsDetalleComponent {
   afiliacion(d: Detalle) { return AFILIACION[d.afiliacion.estado] ?? AFILIACION['no_contrastada']; }
   recomendacion(d: Detalle) { return RECOMENDACION[d.recomendacion.codigo] ?? RECOMENDACION['informacion_insuficiente']; }
   rotuloRecomendacion(codigo: string) { return RECOMENDACION[codigo] ?? RECOMENDACION['informacion_insuficiente']; }
+  /**
+   * Una entrada por discrepancia lógica (campo + causa + severidad): si dos fuentes distintas chocan en el mismo dato, el título
+   * aparece UNA vez con una línea por par de fuentes. El API ya no manda duplicados exactos; esto solo evita repetir el título.
+   */
+  discrepancias(d: Detalle): Array<{ clave: string; severidad: string; titulo: string; explicaciones: string[] }> {
+    const grupos = new Map<string, { clave: string; severidad: string; titulo: string; explicaciones: string[] }>();
+    for (const x of d.discrepancias) {
+      const clave = [x.campo, x.codigo ?? x.titulo, x.severidad].join('|');
+      const g = grupos.get(clave) ?? { clave, severidad: x.severidad, titulo: x.titulo, explicaciones: [] };
+      if (!g.explicaciones.includes(x.explicacion)) g.explicaciones.push(x.explicacion);
+      grupos.set(clave, g);
+    }
+    return [...grupos.values()];
+  }
   severidad(s: string) { return SEVERIDAD_DISCREPANCIA[s] ?? SEVERIDAD_DISCREPANCIA['informativa']; }
   fechaIso(iso: string | null): string { return fechaIso(iso); }
   fuenteAfiliacion(f: string): string { return FUENTE_AFILIACION[f] ?? f; }

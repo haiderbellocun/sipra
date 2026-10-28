@@ -2984,6 +2984,10 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.17.17 — 28 de octubre de 2026
+
+Discrepancias de la Mesa: cada una aparece una sola vez. Con tres fuentes que difieren hay hasta tres pares legítimos (SIPRA–ADRES, certificado–ADRES, SIPRA–certificado) con el mismo título, y parecían repetidas. `construirDiscrepancias` añade `codigo` y `fuentes` a cada una y las deduplica con una clave determinística (campo · causa · fuentes ordenadas · severidad; nunca el texto visible), de modo que el mismo par por dos caminos o escrito al revés cuenta una vez y pares distintos se conservan. La Mesa agrupa en pantalla el mismo campo y causa bajo un solo título, con una línea por par.
+
 ### 0.17.16 — 28 de octubre de 2026
 
 Resultado de ADRES (PDF de la consulta BDUA) leído como TABLA. Causa: pdf.js entrega cada celda como fragmentos sueltos y las etiquetas salen partidas («TIPO DE» / «IDENTIFICACIÓN»); el parser tomaba «IDENTIFICACIÓN» como la etiqueta del número y leía «CC» como su valor (sin documento), y «REGIMEN» leía «FECHA DE» (otro fragmento de etiqueta). Además la tabla de afiliación es HORIZONTAL (encabezados y luego la fila de datos). Ahora `extraerDatosAdres`: (1) normaliza líneas, (2) reconstruye etiquetas partidas (hasta 4 líneas, gana la conocida más larga), (3) lee la tabla vertical (etiqueta → valor) y la horizontal (encabezados → datos en el mismo orden), (4) valida cada valor por su FORMA (tipo CC/TI/CE/RC/PA, número, estado, régimen, fechas, tipo de afiliado; un valor que no la tiene queda `null` y no desplaza a los demás), (5) reconstruye la entidad de varias líneas y arma `nombre` = nombres + apellidos (se conservan por separado). `31/12/2999` en la finalización = la afiliación continúa (`afiliacionContinua`; la fecha original se conserva). La fecha de impresión se lee en MM/DD/AAAA si el día no cabe como mes. `claveEps` ignora «CAJA DE COMPENSACIÓN FAMILIAR» (ADRES) para reconocer «EPS Compensar». La Mesa muestra los campos leídos (`adres.resultado`; documento y nombre solo con el caso tomado).

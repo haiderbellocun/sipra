@@ -135,6 +135,31 @@ export interface DiscrepanciaLegible {
   campo: string;
   titulo: string;
   explicacion: string;
+  /** Causa lógica (p. ej. `diferencia`, `afiliacion_inactiva`, `campo_faltante`): junto con campo, fuentes y severidad identifica la discrepancia. */
+  codigo: string;
+  /** Fuentes enfrentadas, en orden alfabético (`['adres', 'sipra']`); vacío si la discrepancia no enfrenta fuentes. */
+  fuentes: string[];
+}
+
+/**
+ * Clave DETERMINÍSTICA de una discrepancia: campo + causa + fuentes implicadas (sin importar el orden del par) + severidad.
+ * No usa el texto visible: dos redacciones de la misma discrepancia son una sola, y el mismo texto con otras fuentes son dos.
+ */
+export function claveDiscrepancia(x: Pick<DiscrepanciaLegible, 'campo' | 'codigo' | 'fuentes' | 'severidad'>): string {
+  return [x.campo, x.codigo, [...x.fuentes].sort().join('+'), x.severidad].join('|');
+}
+
+/** Cada discrepancia lógica una sola vez (se conserva la primera, que es la de mayor prioridad al construir la lista). */
+export function deduplicarDiscrepancias(lista: readonly DiscrepanciaLegible[]): DiscrepanciaLegible[] {
+  const vistas = new Set<string>();
+  const salida: DiscrepanciaLegible[] = [];
+  for (const x of lista) {
+    const k = claveDiscrepancia(x);
+    if (vistas.has(k)) continue;
+    vistas.add(k);
+    salida.push(x);
+  }
+  return salida;
 }
 
 const NOMBRE_CAMPO: Record<ComparacionTripleCampo['campo'], string> = {
@@ -164,52 +189,53 @@ export function construirDiscrepancias(
       salida.push({
         severidad: critico ? 'critica' : 'informativa', campo: fila.campo,
         titulo: `Diferencia en ${NOMBRE_CAMPO[fila.campo]}`, explicacion: textoPar(par, fila.campo),
+        codigo: 'diferencia', fuentes: par.split('_vs_').sort(),
       });
     }
   }
   if (d.afiliacion === AfiliacionEps.INACTIVA) {
     salida.push({
-      severidad: 'critica', campo: 'afiliacion', titulo: 'Afiliación no vigente',
+      severidad: 'critica', campo: 'afiliacion', titulo: 'Afiliación no vigente', codigo: 'afiliacion_inactiva', fuentes: [],
       explicacion: d.afiliacionFuente === 'adres_bdua'
         ? 'ADRES indica que la afiliación del estudiante no está vigente.' : 'La fuente consultada indica que la afiliación no está vigente.',
     });
   }
   if (d.autenticidad === AutenticidadEps.INVALIDA) {
     salida.push({
-      severidad: 'critica', campo: 'autenticidad', titulo: 'Certificado no auténtico',
+      severidad: 'critica', campo: 'autenticidad', titulo: 'Certificado no auténtico', codigo: 'autenticidad_invalida', fuentes: [],
       explicacion: 'La fuente oficial no confirma el certificado o contradice su contenido.',
     });
   }
   if (d.hayBanderaCritica) {
     salida.push({
-      severidad: 'critica', campo: 'documento', titulo: 'Alerta crítica del documento',
+      severidad: 'critica', campo: 'documento', titulo: 'Alerta crítica del documento', codigo: 'alerta_documento', fuentes: [],
       explicacion: 'El análisis del archivo dejó una alerta crítica que debe revisarse en el documento.',
     });
   }
   for (const faltante of camposClaveFaltantes(d)) {
-    salida.push({ severidad: 'insuficiente', campo: faltante, ...EXPLICACION_FALTANTE[faltante] });
+    salida.push({ severidad: 'insuficiente', campo: faltante, codigo: 'campo_faltante', fuentes: [], ...EXPLICACION_FALTANTE[faltante] });
   }
   if (d.vigenciaCertificado === 'vencido') {
     salida.push({
-      severidad: 'informativa', campo: 'fecha_expedicion', titulo: 'Certificado vencido',
+      severidad: 'informativa', campo: 'fecha_expedicion', titulo: 'Certificado vencido', codigo: 'vencido', fuentes: [],
       explicacion: explicacionVencido(d.datosExtraidos?.fechaExpedicion ?? null, ctx),
     });
   }
   for (const x of d.discrepancias) {
     if (x.resultado === 'fuentes_distintas') {
       salida.push({
-        severidad: 'informativa', campo: x.campo, titulo: 'Lecturas distintas del mismo documento',
+        severidad: 'informativa', campo: x.campo, titulo: 'Lecturas distintas del mismo documento', codigo: 'lecturas_distintas', fuentes: ['ocr', 'texto_nativo'],
         explicacion: 'El texto digital y el OCR leyeron valores diferentes en este campo; se dejó sin valor para que una persona lo revise.',
       });
     } else if (x.comparacion === 'oficial_vs_certificado') {
       const critico = ['numero_documento', 'nombre', 'eps', 'fecha_expedicion'].includes(x.campo);
       salida.push({
-        severidad: critico ? 'critica' : 'informativa', campo: x.campo, titulo: 'El verificador oficial contradice el certificado',
+        severidad: critico ? 'critica' : 'informativa', campo: x.campo, titulo: 'El verificador oficial contradice el certificado', codigo: 'oficial_vs_certificado', fuentes: ['certificado', 'oficial'],
         explicacion: 'La fuente oficial muestra un valor distinto al del certificado en este dato.',
       });
     }
   }
-  return salida;
+  return deduplicarDiscrepancias(salida);
 }
 
 // ── Recomendación vigente ───────────────────────────────────────────────────

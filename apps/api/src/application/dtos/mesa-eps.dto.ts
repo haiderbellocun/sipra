@@ -70,6 +70,10 @@ export class DiscrepanciaLegibleDto {
   @ApiProperty() campo!: string;
   @ApiProperty() titulo!: string;
   @ApiProperty() explicacion!: string;
+  /** Causa lógica (`diferencia`, `campo_faltante`…); con campo, fuentes y severidad identifica la discrepancia. */
+  @ApiProperty() codigo!: string;
+  /** Fuentes enfrentadas, en orden alfabético; vacío si no enfrenta fuentes. */
+  @ApiProperty({ type: [String] }) fuentes!: string[];
 }
 
 export class CampoCertificadoDto {
