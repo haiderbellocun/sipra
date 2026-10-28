@@ -98,6 +98,13 @@ export interface DatosExtraidosEps {
   fechaExpedicion: string | null;
   /** De qué fuente salió cada dato (`texto_nativo`, `ocr`, `qr`), por nombre de campo del certificado. */
   fuentes?: Record<string, 'texto_nativo' | 'ocr' | 'qr'>;
+  /**
+   * Qué tipo de documento parece ser por su CONTENIDO (clasificación local previa a ADRES). Ausente en validaciones anteriores a la
+   * clasificación. `no_determinable` = no se pudo leer o no alcanza; NO equivale a «incorrecto».
+   */
+  tipoDocumentoDetectado?: 'certificado_eps_probable' | 'documento_incorrecto' | 'no_determinable';
+  /** Códigos de motivo de la clasificación (sin texto del documento). */
+  motivosClasificacion?: string[];
 }
 
 /**
@@ -639,6 +646,9 @@ export class ValidacionEps {
     const a = this.datos.adres;
     const necesita = this.datos.estadoProcesamiento === EstadoProcesamientoEps.PROCESADO && !this.estaDecidida
       && this.datos.afiliacionFuente === null
+      // ADRES solo tiene sentido para un certificado de afiliación EPS probable (o anterior a la clasificación): un documento
+      // incorrecto o no determinable no queda «pendiente de ADRES» ni se consulta hasta que una persona lo revise.
+      && [undefined, 'certificado_eps_probable'].includes(this.datos.datosExtraidos?.tipoDocumentoDetectado)
       && [AfiliacionEps.NO_CONTRASTADA, AfiliacionEps.NO_DETERMINABLE].includes(this.datos.afiliacion);
     if (necesita && a.estado === EstadoAdres.NO_REQUERIDO) a.estado = EstadoAdres.PENDIENTE;
     if (!necesita && a.estado === EstadoAdres.PENDIENTE) a.estado = EstadoAdres.NO_REQUERIDO;

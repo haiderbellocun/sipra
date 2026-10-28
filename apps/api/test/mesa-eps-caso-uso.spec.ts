@@ -456,6 +456,51 @@ describe('Mesa EPS · detalle del caso', () => {
     );
   });
 
+  describe('documento incorrecto (clasificación por contenido)', () => {
+    it('la Mesa muestra «documento incorrecto» como recomendación única, la lectura como correcta y ADRES como no aplicable', async () => {
+      const m = montar();
+      m.registrarPersona('aux-1', 'Ana');
+      await m.crear({ id: 'c1' });
+      const f = m.fila('c1');
+      m.validaciones.filas.set('c1', {
+        ...f, datosExtraidos: { ...(f.datosExtraidos as DatosExtraidosEps), tipoDocumentoDetectado: 'documento_incorrecto', motivosClasificacion: ['contiene_indicadores_laborales'] },
+        adres: { ...f.adres, estado: EstadoAdres.NO_REQUERIDO },
+      });
+      await m.mesa.tomarSiguiente(aux('aux-1'), {}, AHORA);
+      const d = await m.mesa.detalle('c1', aux('aux-1'), AHORA);
+      expect(d.recomendacion).toMatchObject({ codigo: 'documento_incorrecto', tambien: [] });
+      expect(d.discrepancias).toHaveLength(1);
+      expect(d.discrepancias[0]).toMatchObject({ titulo: 'Documento incorrecto', severidad: 'critica' });
+      expect(d.certificado.lectura).toEqual({ estado: 'leida', motivo: null }); // se leyó: lo incorrecto es el tipo, no la lectura
+      expect(d.certificado.clasificacion).toEqual({ tipo: 'documento_incorrecto', motivos: ['contiene_indicadores_laborales'] });
+      expect(d.acceso.puedeConsultarAdres).toBe(false);
+      expect(d.adres.estado).toBe('no_requerido');
+    });
+
+    it('en la bandeja el caso tampoco aparece pendiente de ADRES y su recomendación es «documento incorrecto»', async () => {
+      const m = montar();
+      await m.crear({ id: 'c1' });
+      const f = m.fila('c1');
+      m.validaciones.filas.set('c1', { ...f, datosExtraidos: { ...(f.datosExtraidos as DatosExtraidosEps), tipoDocumentoDetectado: 'documento_incorrecto' }, adres: { ...f.adres, estado: EstadoAdres.NO_REQUERIDO } });
+      const l = await m.mesa.listar(aux(), {}, AHORA);
+      expect(l.filas[0]).toMatchObject({ recomendacion: 'documento_incorrecto', estadoAdres: 'no_requerido' });
+    });
+
+    it('no determinable NO es documento incorrecto: la lectura sigue sin lectura y la recomendación es información insuficiente', async () => {
+      const m = montar();
+      await m.crear({ id: 'c1' });
+      const f = m.fila('c1');
+      m.validaciones.filas.set('c1', {
+        ...f, datosExtraidos: { tipoDocumento: null, numeroDocumento: null, nombre: null, eps: null, epsClave: null, regimen: null, tipoAfiliado: null, estadoReportadoCertificado: null, fechaExpedicion: null, tipoDocumentoDetectado: 'no_determinable' },
+        adres: { ...f.adres, estado: EstadoAdres.NO_REQUERIDO },
+      });
+      const d = await m.mesa.detalle('c1', coord(), AHORA);
+      expect(d.certificado.clasificacion.tipo).toBe('no_determinable');
+      expect(d.certificado.lectura.estado).toBe('sin_lectura');
+      expect(d.recomendacion.codigo).toBe('informacion_insuficiente');
+    });
+  });
+
   it('coordinación y administración ven los valores sin tomar el caso (supervisión)', async () => {
     const m = montar();
     await m.crear({ id: 'c1' });

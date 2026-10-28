@@ -102,7 +102,10 @@ export class ValidacionEpsUseCase {
     const lectura = datos.extraccion as { campos?: Record<string, CampoLeido>; lecturaLocal?: ResumenLecturaLocal } | null;
     const campos = lectura?.campos ?? {};
     const resumen = lectura?.lecturaLocal ?? null;
-    const extraidos = construirDatosExtraidosEps(campos);
+    const extraidos = {
+      ...construirDatosExtraidosEps(campos),
+      ...(resumen?.clasificacion ? { tipoDocumentoDetectado: resumen.clasificacion.tipo, motivosClasificacion: resumen.clasificacion.motivos } : {}),
+    };
     const comparacion = compararCertificadoEps(
       extraidos,
       { numeroDocumento: estudiante?.instantanea().documento ?? null, nombre: estudiante?.nombre ?? null },
@@ -188,13 +191,16 @@ export class ValidacionEpsUseCase {
     const leidosPor = (fuente: string): string[] =>
       Object.entries(campos).filter(([, c]) => c.valor !== null && c.fuente === fuente).map(([n]) => n);
     const salida: EvidenciaEps[] = [];
+    // Veredicto de la clasificación documental (solo código y motivos; nunca texto del documento) junto a cada evidencia de lectura.
+    const clasificacion = resumen?.clasificacion
+      ? { clasificacionDocumental: resumen.clasificacion.tipo, motivosClasificacion: resumen.clasificacion.motivos } : {};
 
     if (!resumen) {
       const leidos = Object.entries(campos).filter(([, c]) => c.valor !== null).map(([n]) => n);
       salida.push(EvidenciaEps.crear({
         ...base, id: randomUUID(), tipo: TipoEvidenciaEps.TEXTO_PDF, metodo: 'extraccion_local_texto_pdf',
         resultado: leidos.length > 0 ? 'leido' : 'sin_lectura', origen: null,
-        datosObtenidos: { camposLeidos: leidos, camposEsperados: Object.keys(campos).length, procesamiento: 'local' },
+        datosObtenidos: { camposLeidos: leidos, camposEsperados: Object.keys(campos).length, procesamiento: 'local', ...clasificacion },
       }));
       return salida;
     }
@@ -206,7 +212,7 @@ export class ValidacionEpsUseCase {
         resultado: t.utilizable ? 'leido' : 'sin_texto', origen: null,
         datosObtenidos: {
           paginas: t.paginas, paginasLeidas: t.paginasLeidas, paginasConTexto: t.paginasConTexto, caracteres: t.caracteres,
-          camposLeidos: leidosPor('texto_nativo'), procesamiento: 'local',
+          camposLeidos: leidosPor('texto_nativo'), procesamiento: 'local', ...clasificacion,
         },
       }));
     }
@@ -216,7 +222,7 @@ export class ValidacionEpsUseCase {
         resultado: leidosPor('ocr').length > 0 ? 'leido' : 'sin_lectura', origen: null,
         datosObtenidos: {
           paginas: resumen.ocr.paginas, confianzaMedia: resumen.ocr.confianzaMedia, giros: resumen.ocr.giros,
-          intentos: resumen.ocr.intentos ?? 1, suficiencia: resumen.ocr.suficiencia ?? null,
+          intentos: resumen.ocr.intentos ?? 1, suficiencia: resumen.ocr.suficiencia ?? null, ...clasificacion,
           camposLeidos: leidosPor('ocr'), procesamiento: 'local',
         },
       }));

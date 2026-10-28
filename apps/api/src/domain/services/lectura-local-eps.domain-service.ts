@@ -6,6 +6,7 @@ import {
   CAMPOS_CLAVE_EPS, CAMPOS_EPS, CONFIANZA_MAXIMA_OCR, CONFIANZA_TEXTO_NATIVO, CamposEpsLeidos, combinarLecturas,
   evaluarSuficienciaEps, extraerCamposEps, faltanCamposClave,
 } from './extraccion-eps-local.domain-service';
+import { clasificarDocumentoEps } from './clasificacion-documental-eps.domain-service';
 import {
   LIMITES_LECTURA_EPS, clasificarContenidoQr, evaluarTextoNativo, paginasParaOcr,
 } from './lectura-local.domain-service';
@@ -67,12 +68,14 @@ export class LecturaLocalEpsService {
     const resumen = resumenVacio();
     const qr: HallazgoQrCrudo[] = [];
     const lecturas: CamposEpsLeidos[] = [];
+    // Texto del documento (nativo y OCR), solo en memoria y solo para clasificarlo: no sale de este método.
+    const textos: string[] = [];
     let ilegible = false;
     let motivoIlegible: string | null = null;
 
     try {
-      if (mime === 'application/pdf') await this.leerPdf(contenido, limites, resumen, qr, lecturas);
-      else if (MIMES_IMAGEN.includes(mime)) await this.leerImagen(contenido, mime, limites, resumen, qr, lecturas);
+      if (mime === 'application/pdf') await this.leerPdf(contenido, limites, resumen, qr, lecturas, textos);
+      else if (MIMES_IMAGEN.includes(mime)) await this.leerImagen(contenido, mime, limites, resumen, qr, lecturas, textos);
       else resumen.errores.push('tipo_de_archivo_no_soportado');
     } catch (error) {
       if (error instanceof DocumentoLocalIlegibleError) {
@@ -86,6 +89,7 @@ export class LecturaLocalEpsService {
     }
 
     const { campos, discrepancias } = combinarLecturas(lecturas);
+    resumen.clasificacion = this.clasificar(textos, campos, ilegible);
     resumen.discrepanciasFuentes = discrepancias;
     resumen.limitesAplicados = [...new Set(resumen.limitesAplicados)];
     resumen.errores = [...new Set(resumen.errores)];
@@ -122,6 +126,19 @@ export class LecturaLocalEpsService {
     return qr;
   }
 
+  /**
+   * Veredicto documental por contenido. Un documento que no se pudo abrir es `no_determinable`, no «incorrecto». Si las señales no
+   * alcanzan pero el parser sí sacó los campos clave de un certificado (nombre, documento, entidad…), ya hay evidencia de que lo es.
+   */
+  private clasificar(textos: readonly string[], campos: Readonly<CamposEpsLeidos>, ilegible: boolean): NonNullable<ResumenLecturaLocal['clasificacion']> {
+    if (ilegible) return { tipo: 'no_determinable', motivos: ['archivo_ilegible'], puntajeEps: 0, puntajeOtro: 0 };
+    const c = clasificarDocumentoEps(textos.join('\n'));
+    if (c.tipo === 'no_determinable' && c.motivos[0] !== 'texto_insuficiente' && evaluarSuficienciaEps(campos).suficiencia === 'procesable') {
+      return { ...c, tipo: 'certificado_eps_probable', motivos: ['campos_clave_extraidos', ...c.motivos.filter((m) => m !== 'senales_insuficientes')] };
+    }
+    return c;
+  }
+
   private codigoDeLimite(error: LimiteLecturaLocalError): string {
     return error.limite === 'paginas' ? 'documento_excede_paginas'
       : error.limite === 'pixeles' ? 'pagina_excede_pixeles' : 'tiempo_agotado';
@@ -129,9 +146,10 @@ export class LecturaLocalEpsService {
 
   private async leerPdf(
     contenido: Buffer, limites: LimitesLecturaLocal, resumen: ResumenLecturaLocal,
-    qr: HallazgoQrCrudo[], lecturas: CamposEpsLeidos[],
+    qr: HallazgoQrCrudo[], lecturas: CamposEpsLeidos[], textos: string[],
   ): Promise<void> {
     const nativo = await this.lector.extraerTextoNativo(contenido, limites);
+    textos.push(...nativo.porPagina.map((p) => p.texto));
     const metricas = evaluarTextoNativo(nativo.paginas, nativo.porPagina);
     resumen.textoNativo = {
       paginas: metricas.paginas, paginasLeidas: metricas.paginasLeidas, paginasConTexto: metricas.paginasConTexto,
@@ -166,8 +184,9 @@ export class LecturaLocalEpsService {
       qr.push(...await this.lector.detectarQr(imagen, pagina));
 
       if (paginasOcr.has(pagina)) {
-        const r = await this.ocrEscalonado(imagen, pagina, limites, resumen, textosOcr);
+        const r = await this.ocrEscalonado(imagen, pagina, limites, resumen, textosOcr, textos);
         if (r) {
+          textos.push(r.texto);
           resumen.ocr.ejecutado = true;
           resumen.ocr.paginas.push(pagina);
           resumen.ocr.giros.push(r.giro);
@@ -182,15 +201,16 @@ export class LecturaLocalEpsService {
 
   private async leerImagen(
     contenido: Buffer, mime: string, limites: LimitesLecturaLocal, resumen: ResumenLecturaLocal,
-    qr: HallazgoQrCrudo[], lecturas: CamposEpsLeidos[],
+    qr: HallazgoQrCrudo[], lecturas: CamposEpsLeidos[], textos: string[],
   ): Promise<void> {
     const pagina = await this.lector.prepararImagen(contenido, mime, limites);
     resumen.qr.paginasEscaneadas = 1;
     qr.push(...await this.lector.detectarQr(pagina.imagen, null));
     const textosOcr: string[] = [];
     const confianzas: number[] = [];
-    const r = await this.ocrEscalonado(pagina.imagen, null, limites, resumen, textosOcr);
+    const r = await this.ocrEscalonado(pagina.imagen, null, limites, resumen, textosOcr, textos);
     if (r) {
+      textos.push(r.texto);
       resumen.ocr.ejecutado = true;
       resumen.ocr.giros.push(r.giro);
       textosOcr.push(r.texto);
@@ -207,6 +227,7 @@ export class LecturaLocalEpsService {
    */
   private async ocrEscalonado(
     imagen: Buffer, pagina: number | null, limites: LimitesLecturaLocal, resumen: ResumenLecturaLocal, textosPrevios: readonly string[],
+    contextoDocumento: readonly string[] = [],
   ): Promise<ResultadoOcrPagina | null> {
     const leerCampos = (texto: string, confianza: number): CamposEpsLeidos =>
       extraerCamposEps([...textosPrevios, texto].join('\n'), 'ocr', confianza / 100);
@@ -226,6 +247,8 @@ export class LecturaLocalEpsService {
       if (!mejor || encontrados > mejor.campos || (encontrados === mejor.campos && r.confianza > mejor.r.confianza)) mejor = { r, campos: encontrados };
       const completos = leerCampos(mejor.r.texto, mejor.r.confianza);
       if (CAMPOS_CLAVE_EPS.every((c) => completos[c]?.valor != null)) break;
+      // Si ya se lee con claridad que es OTRO tipo de documento no hay nada más que sacarle: no se gasta más OCR en él.
+      if (clasificarDocumentoEps([...contextoDocumento, mejor.r.texto].join('\n')).tipo === 'documento_incorrecto') break;
     }
     resumen.ocr.intentos = Math.max(resumen.ocr.intentos ?? 0, intentos);
     return mejor?.r ?? null;

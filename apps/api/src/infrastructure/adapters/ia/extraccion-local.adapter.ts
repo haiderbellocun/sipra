@@ -46,7 +46,8 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
         `qr=${lectura.resumen.qr.hallazgos.length}, ${lectura.resumen.duracionMs} ms`,
     );
     return {
-      tipoDetectado: campos.entidad_emisora.valor ? TipoDocumento.CERTIFICADO_EPS : null,
+      // Nombrar una EPS no basta para decir que es un certificado de EPS (una EPS también emite cartas laborales).
+      tipoDetectado: campos.entidad_emisora.valor && lectura.resumen.clasificacion?.tipo !== 'documento_incorrecto' ? TipoDocumento.CERTIFICADO_EPS : null,
       campos,
       ilegible: lectura.ilegible,
       motivoIlegible: lectura.motivoIlegible,

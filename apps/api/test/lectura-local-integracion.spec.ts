@@ -49,14 +49,14 @@ function contado(real: LectorDocumentoLocalPort) {
 const real = new LectorDocumentoLocalAdapter();
 afterAll(async () => { await real.onModuleDestroy(); });
 
-function montar(contenido: Buffer, mime: string, opciones: { duplicados?: number } = {}) {
+function montar(contenido: Buffer, mime: string, opciones: { duplicados?: number; nombre?: string } = {}) {
   const { lector, llamadas } = contado(real);
   const local = new ExtraccionLocalAdapter(lector, new ExtraccionSimuladaAdapter());
   const externo = { extraer: jest.fn() };
   const ahora = new Date();
   let almacenado: DatosDocumento = {
     id: 'doc-eps', practicaId: 'practica-1', tipo: TipoDocumento.CERTIFICADO_EPS, version: 1, estado: EstadoDocumento.RECIBIDO,
-    nombreOriginal: 'eps', mimeReal: mime, tamanoBytes: contenido.length, hashSha256: 'a'.repeat(64), hashPerceptual: null,
+    nombreOriginal: opciones.nombre ?? 'eps', mimeReal: mime, tamanoBytes: contenido.length, hashSha256: 'a'.repeat(64), hashPerceptual: null,
     rutaAlmacenamiento: 'ruta/eps', calidadCaptura: null, banderas: [], puntaje: null, banda: null, extraccion: null,
     decididoPor: null, justificacionDecision: null, motivoDevolucion: null, cargadoEn: ahora, actualizadoEn: ahora, purgarDespuesDe: null,
   };
@@ -270,7 +270,100 @@ describe('Regresión · certificado sintético completo (EPS PRUEBA / PERSONA FI
     const { validacion, documento } = await procesar(caido);
     expect([EstadoDocumento.ILEGIBLE, EstadoDocumento.EN_REVISION]).toContain(documento.estado);
     expect(validacion === null || validacion.decision === DecisionEps.PENDIENTE).toBe(true);
-    expect(Object.values(validacion?.instantanea().datosExtraidos ?? {}).filter((v) => typeof v === 'string' && v !== '')).toEqual([]);
+    // Ningún dato del certificado (la clasificación documental no es un dato extraído: aquí queda «no determinable», no «incorrecto»).
+    const datos = (validacion?.instantanea().datosExtraidos ?? {}) as Record<string, unknown>;
+    expect(Object.entries(datos).filter(([k, v]) => k !== 'tipoDocumentoDetectado' && typeof v === 'string' && v !== '')).toEqual([]);
+    expect(datos['tipoDocumentoDetectado']).toBe('no_determinable');
+  });
+});
+
+describe('Clasificación documental: del archivo a la Mesa (por contenido, antes de ADRES)', () => {
+  const LABORAL = [
+    'EMPRESA EJEMPLO S.A.S. NIT 900.000.000-1', 'CERTIFICA QUE:', 'PERSONA PRUEBA EJEMPLO laboró en la empresa desde el 01/02/2020',
+    'Cargo: Analista de Operaciones', 'Salario: 3.500.000 mensuales', 'Tipo de contrato: Termino Indefinido', 'Fecha de inicio del contrato: 01/02/2020',
+    'La presente certificación laboral se expide a solicitud del interesado',
+  ];
+  const LABORAL_DE_UNA_EPS = [
+    'FUNDACION EJEMPLO EPS', 'Representante Legal de FUNDACION EJEMPLO EPS NIT 900.000.000-1', 'CERTIFICA:',
+    'Que las personas relacionadas tienen o tuvieron vinculacion laboral para el ano gravable 2022',
+    'con FUNDACION EJEMPLO EPS haciendo parte del personal directivo asi', 'Valor causado ano 2022 Tipo de contrato Termino Indefinido',
+    'La presente certificacion se expide con destino a la Direccion de Impuestos y Aduanas Nacionales',
+  ];
+  const clasif = async (m: ReturnType<typeof montar>) => {
+    const { validacion, documento } = await procesar(m);
+    const x = validacion?.instantanea();
+    return { tipo: x?.datosExtraidos?.tipoDocumentoDetectado, adres: x?.adres.estado, banderas: documento.banderas.map((b) => b.codigo), motivos: x?.datosExtraidos?.motivosClasificacion ?? [], x };
+  };
+
+  it('certificado EPS con texto → probable, y ADRES queda pendiente', async () => {
+    const r = await clasif(montar(await pdfDigital(), 'application/pdf'));
+    expect(r.tipo).toBe('certificado_eps_probable');
+    expect(r.adres).toBe('pendiente');
+    expect(r.banderas).not.toContain('C2_TIPO_INCORRECTO');
+  });
+
+  it('certificado EPS ESCANEADO (OCR) → probable', async () => {
+    const r = await clasif(montar(await pdfEscaneado([await imagenCertificado()]), 'application/pdf'));
+    expect(r.tipo).toBe('certificado_eps_probable');
+    expect(r.adres).toBe('pendiente');
+  });
+
+  it('certificación laboral (con texto) → documento incorrecto: bandera de tipo incorrecto, sin ADRES', async () => {
+    const r = await clasif(montar(await pdfDigital(LABORAL), 'application/pdf'));
+    expect(r.tipo).toBe('documento_incorrecto');
+    expect(r.adres).toBe('no_requerido');
+    expect(r.banderas).toContain('C2_TIPO_INCORRECTO');
+    expect(r.motivos).toEqual(expect.arrayContaining(['contiene_indicadores_laborales', 'faltan_indicadores_afiliacion']));
+  });
+
+  it('certificación laboral ESCANEADA (OCR) → documento incorrecto', async () => {
+    const r = await clasif(montar(await pdfEscaneado([await imagenCertificado(LABORAL, { ancho: 1500, fuente: 30 })]), 'application/pdf'));
+    expect(r.tipo).toBe('documento_incorrecto');
+    expect(r.adres).toBe('no_requerido');
+  });
+
+  it('carta laboral de una entidad cuya razón social contiene «EPS» → documento incorrecto (no se deja engañar por la sigla)', async () => {
+    const r = await clasif(montar(await pdfDigital(LABORAL_DE_UNA_EPS), 'application/pdf'));
+    expect(r.tipo).toBe('documento_incorrecto');
+    expect(r.adres).toBe('no_requerido');
+    expect(r.x?.datosExtraidos?.eps).toBeTruthy(); // la sigla SÍ se leyó como entidad: por eso no basta
+  });
+
+  it('la clasificación NO depende del nombre del archivo', async () => {
+    const laboralConNombreDeEps = await clasif(montar(await pdfDigital(LABORAL), 'application/pdf', { nombre: 'certificado_afiliacion_eps.pdf' }));
+    const epsConNombreLaboral = await clasif(montar(await pdfDigital(), 'application/pdf', { nombre: 'carta_laboral.pdf' }));
+    expect(laboralConNombreDeEps.tipo).toBe('documento_incorrecto');
+    expect(epsConNombreLaboral.tipo).toBe('certificado_eps_probable');
+  });
+
+  it('PDF vacío (sin texto ni imagen) → no determinable, NO documento incorrecto', async () => {
+    const r = await clasif(montar(await pdfDigital([]), 'application/pdf'));
+    expect(r.tipo).toBe('no_determinable');
+    expect(r.adres).toBe('no_requerido');
+    expect(r.banderas).not.toContain('C2_TIPO_INCORRECTO');
+  });
+
+  it('OCR ilegible → no determinable', async () => {
+    const r = await clasif(montar(await imagenCertificado(['Hoja en blanco con una nota ilegible'], { fuente: 20 }), 'image/png'));
+    expect(r.tipo).toBe('no_determinable');
+    expect(r.banderas).not.toContain('C2_TIPO_INCORRECTO');
+  });
+
+  it('documento ambiguo (se lee, pero no dice qué es) → no determinable', async () => {
+    const r = await clasif(montar(await pdfDigital([
+      'Oficina de atencion al ciudadano', 'Se certifica que la persona mencionada es conocida de esta oficina',
+      'y que la presente constancia se expide a solicitud del interesado para los fines que estime convenientes',
+    ]), 'application/pdf'));
+    expect(r.tipo).toBe('no_determinable');
+  });
+
+  it('el veredicto queda en la evidencia (solo código y motivos) y no se guarda el texto del documento', async () => {
+    const m = montar(await pdfDigital(LABORAL), 'application/pdf');
+    await procesar(m);
+    const lectura = m.validaciones.evidencias.find((e) => e.tipo === TipoEvidenciaEps.TEXTO_PDF)!;
+    expect(lectura.datosObtenidos).toMatchObject({ clasificacionDocumental: 'documento_incorrecto' });
+    const todo = JSON.stringify(m.validaciones.evidencias);
+    for (const texto of ['Analista de Operaciones', 'PERSONA PRUEBA', '3.500.000']) expect(todo).not.toContain(texto);
   });
 });
 

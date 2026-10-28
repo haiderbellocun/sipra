@@ -73,8 +73,8 @@ const TEXTO_RECOMENDACION: Record<RecomendacionEps, { titulo: string; explicacio
     explicacion: 'Hay datos de identidad o de entidad que no coinciden entre SIPRA, el certificado y ADRES. Revise las discrepancias antes de decidir.',
   },
   [RecomendacionEps.DOCUMENTO_INCORRECTO]: {
-    titulo: 'El documento no es un certificado de afiliación a EPS',
-    explicacion: 'El análisis del archivo indica que no corresponde a un certificado de afiliación. Revise el documento y, si es el caso, devuélvalo al estudiante.',
+    titulo: 'Documento incorrecto',
+    explicacion: 'El archivo no parece corresponder a un certificado de afiliación EPS: se detectaron indicadores de otro tipo de certificación. Revise el documento y, si corresponde, devuélvalo al estudiante.',
   },
   [RecomendacionEps.CERTIFICADO_VENCIDO]: {
     titulo: 'Certificado vencido',
@@ -359,6 +359,7 @@ export class MesaEpsUseCase {
     const fuentes = new Set(Object.values(d.datosExtraidos?.fuentes ?? {}));
     const metodoExtraccion = fuentes.has('texto_nativo') && fuentes.has('ocr') ? 'mixto' : fuentes.has('ocr') ? 'ocr' : fuentes.has('texto_nativo') ? 'texto_nativo' : 'desconocido';
     const lectura = this.estadoDeLectura(d, doc.banderas.some((b) => b.codigo === 'C0_HASH_DUPLICADO'));
+    const clasificacion = { tipo: d.datosExtraidos?.tipoDocumentoDetectado ?? null, motivos: d.datosExtraidos?.motivosClasificacion ?? [] };
     const qrHallados = evidencias.filter((e) => e.instantanea().tipo === TipoEvidenciaEps.QR && e.instantanea().resultado === 'detectado').length;
     const tieneAdres = d.adres.datos !== null;
 
@@ -379,7 +380,7 @@ export class MesaEpsUseCase {
       },
       certificado: {
         nombreOriginal: doc.nombreOriginal, mime: doc.mimeReal, tamanoBytes: doc.tamanoBytes, version: doc.version, cargadoEn: doc.cargadoEn.toISOString(),
-        estadoDocumento: doc.estado, metodoExtraccion, lectura, vigencia: d.vigenciaCertificado, campos,
+        estadoDocumento: doc.estado, metodoExtraccion, lectura, clasificacion, vigencia: d.vigenciaCertificado, campos,
         vigenciaDetalle: {
           fechaExpedicion: d.datosExtraidos?.fechaExpedicion ?? null,
           diasTranscurridos: diasDesdeExpedicion(d.datosExtraidos?.fechaExpedicion ?? null, ahora),
@@ -457,6 +458,8 @@ export class MesaEpsUseCase {
   private estadoDeLectura(d: DatosValidacionEps, archivoDuplicado: boolean): { estado: 'leida' | 'sin_lectura' | 'pendiente' | 'fallida'; motivo: string | null } {
     if (d.estadoProcesamiento === EstadoProcesamientoEps.ERROR) return { estado: 'fallida', motivo: 'El procesamiento del certificado falló. Pida reprocesarlo o revise el archivo.' };
     if (d.estadoProcesamiento !== EstadoProcesamientoEps.PROCESADO) return { estado: 'pendiente', motivo: 'El certificado todavía se está procesando.' };
+    // Se LEYÓ y es de otro tipo: la lectura fue correcta; lo incorrecto es el tipo documental (eso lo dice la clasificación).
+    if (d.datosExtraidos?.tipoDocumentoDetectado === 'documento_incorrecto') return { estado: 'leida', motivo: null };
     const x = d.datosExtraidos;
     const hayDatos = !!x && [x.eps, x.nombre, x.numeroDocumento, x.fechaExpedicion, x.estadoReportadoCertificado, x.regimen, x.tipoAfiliado, x.tipoDocumento].some((v) => v !== null && v !== undefined && v !== '');
     if (hayDatos) return { estado: 'leida', motivo: null };

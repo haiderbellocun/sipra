@@ -343,7 +343,18 @@ export class PipelineValidacionUseCase {
           mensajeUsuario: 'Su documento quedó en revisión del docente.',
         });
       }
-      if (extraido.tipoDetectado && extraido.tipoDetectado !== datos.tipo) {
+      // Clasificación documental local: se LEYÓ y trae señales de otro tipo de documento (no es lo mismo que no poder leerlo).
+      if (datos.tipo === TipoDocumento.CERTIFICADO_EPS && extraido.lecturaLocal?.clasificacion?.tipo === 'documento_incorrecto') {
+        banderas.push({
+          codigo: 'C2_TIPO_INCORRECTO',
+          capa: 2,
+          severidad: SeveridadBandera.ALTA,
+          mensaje: 'El archivo no parece un certificado de afiliación a EPS: se detectaron indicadores de otro tipo de certificación',
+          mensajeUsuario:
+            'El archivo cargado no corresponde al documento solicitado. ' +
+            `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,
+        });
+      } else if (extraido.tipoDetectado && extraido.tipoDetectado !== datos.tipo) {
         banderas.push({
           codigo: 'C2_TIPO_INCORRECTO',
           capa: 2,

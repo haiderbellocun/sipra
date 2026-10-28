@@ -57,7 +57,10 @@ async function abrir(id, datos, limites) {
       useSystemFonts: false,
       disableFontFace: true,
       verbosity: 0,
-      maxImageSize: limites.maxPixeles,
+      // Tope de píxeles de una imagen INCRUSTADA que pdf.js decodifica; por encima NO la dibuja y la página sale en blanco (un
+      // escaneo a 300 dpi trae ~8 Mpx). No es el tope de la página rasterizada (eso lo fija `maxPixeles` más abajo): el mismo
+      // factor 6 que `maxPixelesEntrada` para imágenes de entrada. Una imagen más grande sigue sin dibujarse: falla cerrado.
+      maxImageSize: limites.maxPixeles * 6,
       ...RECURSOS,
     });
     doc = await tarea.promise;

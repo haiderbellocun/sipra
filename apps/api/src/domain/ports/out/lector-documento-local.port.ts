@@ -143,6 +143,14 @@ export interface ResumenLecturaLocal {
     suficiencia?: 'insuficiente' | 'debil' | 'procesable';
   };
   qr: { paginasEscaneadas: number; hallazgos: HallazgoQrRegistrado[] };
+  /**
+   * ¿Qué tipo de documento parece ser, por su CONTENIDO? Solo el veredicto y códigos de motivo, nunca texto del documento.
+   * `no_determinable` = no se pudo leer o no alcanza; NO significa «no es un certificado de EPS».
+   */
+  clasificacion?: {
+    tipo: 'certificado_eps_probable' | 'documento_incorrecto' | 'no_determinable';
+    motivos: string[]; puntajeEps: number; puntajeOtro: number;
+  };
   /** Campos cuyo valor difiere entre fuentes (texto nativo vs OCR). Sin los valores. */
   discrepanciasFuentes: { campo: string; fuentes: string[] }[];
   /** `paginas_omitidas`, `documento_excede_paginas`, `pagina_excede_pixeles`, `tiempo_agotado`… */

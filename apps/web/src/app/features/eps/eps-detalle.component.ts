@@ -222,7 +222,12 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
           <div class="par">
           <section class="sec" aria-labelledby="p-dat">
             <h3 id="p-dat">Datos extraídos del certificado</h3>
-            @if (d.certificado.lectura.estado !== 'leida') {
+            @if (d.certificado.clasificacion.tipo === 'documento_incorrecto') {
+              <p class="sin-lectura aviso peligro" role="status" data-clasificacion="documento_incorrecto">
+                <strong>El archivo fue leído, pero no corresponde al tipo documental esperado.</strong>
+                No parece un certificado de afiliación EPS: se detectaron indicadores de otro tipo de certificación. No se muestran campos de EPS.
+              </p>
+            } @else if (d.certificado.lectura.estado !== 'leida') {
               <p class="sin-lectura aviso" [class.peligro]="d.certificado.lectura.estado !== 'pendiente'" role="status" [attr.data-lectura]="d.certificado.lectura.estado">
                 <strong>{{ tituloLectura(d.certificado.lectura.estado) }}.</strong>
                 {{ d.certificado.lectura.motivo }}
@@ -238,7 +243,7 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
             } @else {
               <p class="vigencia" data-vigencia="no_determinada">Vigencia no determinada: no se pudo leer la fecha de expedición (generación).</p>
             }
-            @if (d.certificado.lectura.estado !== 'leida') {
+            @if (d.certificado.clasificacion.tipo === 'documento_incorrecto' || d.certificado.lectura.estado !== 'leida') {
               <!-- Sin lectura no hay campos ni «método de lectura» que mostrar: «—» en todo sería un resultado inventado. -->
             } @else if (!d.acceso.puedeVerValores) {
               <p class="pista">Los datos personales se muestran cuando usted tiene el caso tomado.</p>
@@ -295,10 +300,16 @@ type Detalle = NonNullable<ReturnType<EpsMesaEstado['detalle']>>;
 
           <section class="sec" aria-labelledby="p-adres">
             <h3 id="p-adres">Consulta ADRES</h3>
+            @if (noAplicaAdres(d); as motivo) {
+              <p class="fila-adres" data-adres="no_aplica">
+                <span class="etiqueta etiqueta--neutra">No aplica</span> <span class="pista">{{ motivo }}</span>
+              </p>
+            } @else {
             <sipra-eps-adres
               [validacionId]="d.caso.validacionId" [estado]="d.adres.estado" [errorPrevio]="d.adres.error"
               [puedeConsultar]="d.acceso.puedeConsultarAdres && estado.puedeActuar()"
               (cambio)="estado.refrescarDetalle()" />
+            }
             @if (d.adres.resultado; as r) {
               <dl class="campos adres-leido" aria-label="Datos leídos del resultado de ADRES">
                 <div><dt>Documento</dt><dd>{{ r.tipoDocumento ?? '—' }} {{ r.numeroDocumento ?? '—' }}</dd></div>
@@ -419,6 +430,13 @@ export class EpsDetalleComponent {
   fechaIso(iso: string | null): string { return fechaIso(iso); }
   fuenteAfiliacion(f: string): string { return FUENTE_AFILIACION[f] ?? f; }
   fuenteCampo(f: string): string { return FUENTE_CAMPO[f] ?? f; }
+  /** Por qué ADRES no corresponde (y no se ofrece consultarlo); `null` si corresponde. ADRES contrasta la afiliación de un certificado de EPS. */
+  noAplicaAdres(d: Detalle): string | null {
+    if (d.adres.resultado || d.adres.estado !== 'no_requerido') return null;
+    if (d.certificado.clasificacion.tipo === 'documento_incorrecto') return 'El archivo no parece un certificado de afiliación EPS: no hay afiliación que contrastar. Revíselo y, si corresponde, devuélvalo al estudiante.';
+    if (d.certificado.clasificacion.tipo === 'no_determinable') return 'No se pudo determinar si el archivo es un certificado de afiliación EPS: no se consulta ADRES hasta que una persona lo revise.';
+    return null;
+  }
   tituloLectura(estado: string): string {
     return ({ pendiente: 'Procesamiento pendiente', fallida: 'Procesamiento fallido', sin_lectura: 'Certificado sin lectura' } as Record<string, string>)[estado] ?? 'Certificado sin lectura';
   }

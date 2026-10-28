@@ -140,6 +140,11 @@ export class DetalleMesaDto {
     metodoExtraccion: 'texto_nativo' | 'ocr' | 'mixto' | 'desconocido'; vigencia: string; campos: CampoCertificadoDto[];
     /** Si el certificado llegó a leerse: sin esto «—» en todos los campos parece un resultado y no una ausencia de lectura. */
     lectura: { estado: 'leida' | 'sin_lectura' | 'pendiente' | 'fallida'; motivo: string | null };
+    /**
+     * Tipo documental por CONTENIDO: `certificado_eps_probable`, `documento_incorrecto` (se leyó y es de otro tipo) o `no_determinable`
+     * (no se pudo leer o no alcanza). `null` en validaciones anteriores a la clasificación. Solo códigos de motivo.
+     */
+    clasificacion: { tipo: 'certificado_eps_probable' | 'documento_incorrecto' | 'no_determinable' | null; motivos: string[] };
     /** Vigencia explicada: fecha de expedición, antigüedad y regla institucional (días). */
     vigenciaDetalle: { fechaExpedicion: string | null; diasTranscurridos: number | null; diasVigencia: number | null };
   };

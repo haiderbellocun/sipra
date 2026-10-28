@@ -84,6 +84,11 @@ export type CampoClaveFaltante = 'numero_documento' | 'nombre' | 'fecha_expedici
  * Solo se evalúa con el certificado ya procesado: antes de eso no se sabe qué se leyó.
  * Un dato ausente NUNCA equivale a «coincide»: es información insuficiente.
  */
+/** La clasificación documental local concluyó que el archivo NO es un certificado de afiliación EPS (se leyó y es de otro tipo). */
+export function esDocumentoIncorrecto(d: Pick<DatosValidacionEps, 'datosExtraidos'>): boolean {
+  return d.datosExtraidos?.tipoDocumentoDetectado === 'documento_incorrecto';
+}
+
 export function camposClaveFaltantes(d: DatosValidacionEps): CampoClaveFaltante[] {
   if (d.estadoProcesamiento !== EstadoProcesamientoEps.PROCESADO) return [];
   const x = d.datosExtraidos;
@@ -182,6 +187,14 @@ function textoPar(par: ComparacionTripleCampo['conflictos'][number], campo: Comp
 export function construirDiscrepancias(
   d: DatosValidacionEps, triple: readonly ComparacionTripleCampo[], ctx?: ContextoMesa,
 ): DiscrepanciaLegible[] {
+  // Documento de otro tipo: el problema es DOCUMENTAL y es uno solo; comparar sus datos con el estudiante o listar campos
+  // «faltantes» sería ruido (no es un certificado de EPS al que le falten datos).
+  if (esDocumentoIncorrecto(d)) {
+    return [{
+      severidad: 'critica', campo: 'documento', titulo: 'Documento incorrecto', codigo: 'tipo_documental_incorrecto', fuentes: [],
+      explicacion: 'El archivo no parece un certificado de afiliación EPS: se detectaron indicadores de otro tipo de certificación.',
+    }];
+  }
   const salida: DiscrepanciaLegible[] = [];
   for (const fila of triple) {
     for (const par of fila.conflictos) {
@@ -248,6 +261,8 @@ export function construirDiscrepancias(
 export function condicionesRecomendacion(
   d: DatosValidacionEps, hayDiscrepanciaCritica: boolean, ctx?: Pick<ContextoMesa, 'tipoIncorrecto'>,
 ): RecomendacionEps[] {
+  // Documento de otro tipo: es lo único que importa hasta que se reemplace; lo demás (vencido, campos, ADRES) no aplica.
+  if (esDocumentoIncorrecto(d)) return [RecomendacionEps.DOCUMENTO_INCORRECTO];
   const condiciones: RecomendacionEps[] = [];
   if (ctx?.tipoIncorrecto) condiciones.push(RecomendacionEps.DOCUMENTO_INCORRECTO);
   if (hayDiscrepanciaCritica) condiciones.push(RecomendacionEps.DISCREPANCIA_CRITICA);

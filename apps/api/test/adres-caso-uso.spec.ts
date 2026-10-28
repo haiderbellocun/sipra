@@ -235,6 +235,18 @@ describe('Preparar la consulta ADRES', () => {
     await expect(m.uc.preparar('v-1', aux(), {}, AHORA)).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('un documento que NO es un certificado de afiliación EPS (clasificación local): ADRES no está disponible, 409', async () => {
+    const m = await montar({ sinuTipo: 'CC', certificado: { ...CERTIFICADO, tipoDocumentoDetectado: 'documento_incorrecto' } });
+    expect(m.fila().adres.estado).toBe(EstadoAdres.NO_REQUERIDO);
+    await expect(m.uc.preparar('v-1', aux(), {}, AHORA)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('un certificado EPS probable sí queda pendiente de ADRES y se puede preparar', async () => {
+    const m = await montar({ sinuTipo: 'CC', certificado: { ...CERTIFICADO, tipoDocumentoDetectado: 'certificado_eps_probable' } });
+    expect(m.fila().adres.estado).toBe(EstadoAdres.PENDIENTE);
+    expect((await m.uc.preparar('v-1', aux(), {}, AHORA)).estado).toBe('preparada');
+  });
+
   it('un caso ya decidido por una persona: 409', async () => {
     const m = await montar({ sinuTipo: 'CC' });
     m.validaciones.filas.set('v-1', { ...m.fila(), decision: DecisionEps.RECHAZADO, decididoPor: 'aux-1', decididoEn: AHORA });
