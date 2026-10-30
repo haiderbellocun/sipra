@@ -117,6 +117,35 @@ export const MENSAJES_DEVOLUCION_ACTA: Readonly<Record<MotivoDevolucionActa, { q
   },
 };
 
+/** Cómo se rotula cada motivo para quien devuelve, en el orden en que se ofrecen. */
+const TITULOS_MOTIVO_ACTA: ReadonlyArray<readonly [MotivoDevolucionActa, string]> = [
+  [MotivoDevolucionActa.FALTA_FIRMA_EMPRESA, 'Falta la firma de la empresa'],
+  [MotivoDevolucionActa.FALTA_FIRMA_PRACTICANTE, 'Falta la firma del practicante'],
+  [MotivoDevolucionActa.ARL_NO_COINCIDE, 'El responsable de la ARL no coincide'],
+  [MotivoDevolucionActa.REMUNERACION_NO_COINCIDE, 'La remuneración no coincide'],
+  [MotivoDevolucionActa.INFORMACION_NO_COINCIDE, 'La información no coincide con la práctica'],
+  [MotivoDevolucionActa.INFORMACION_INCOMPLETA, 'Falta información en el acta'],
+  [MotivoDevolucionActa.ILEGIBLE, 'Documento ilegible'],
+  [MotivoDevolucionActa.DOCUMENTO_INCORRECTO, 'No es el Acta de Iniciación'],
+  [MotivoDevolucionActa.OTRO, 'Otro motivo (explicar)'],
+];
+
+/** Un motivo de devolución tal como lo ve quien opera la Mesa. Es la ÚNICA fuente: la pantalla no mantiene copia. */
+export interface MotivoDevolucionActaCatalogo {
+  codigo: MotivoDevolucionActa;
+  titulo: string;
+  /** Lo que leerá el estudiante (qué ocurrió y qué hacer). Con «otro», el «qué» lo escribe quien devuelve. */
+  mensajeEstudiante: { que: string; hacer: string };
+  /** Hay que escribir qué corregir (con «otro»). */
+  requiereDetalle: boolean;
+}
+
+export function catalogoMotivosDevolucionActa(): MotivoDevolucionActaCatalogo[] {
+  return TITULOS_MOTIVO_ACTA.map(([codigo, titulo]) => ({
+    codigo, titulo, mensajeEstudiante: { ...MENSAJES_DEVOLUCION_ACTA[codigo] }, requiereDetalle: codigo === MotivoDevolucionActa.OTRO,
+  }));
+}
+
 /** Mensaje que queda en el documento (lo que lee el estudiante): qué ocurrió, más la explicación si el motivo es «otro». */
 export function mensajeDevolucionActa(motivo: MotivoDevolucionActa, detalle: string | null): string {
   const base = MENSAJES_DEVOLUCION_ACTA[motivo].que;

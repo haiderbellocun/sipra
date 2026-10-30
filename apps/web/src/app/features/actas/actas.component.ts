@@ -212,6 +212,7 @@ export class ActasComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
+    void this.estado.cargarMotivos();
     await this.estado.cargar();
     if (this.estado.esSupervisor()) await this.estado.cargarSupervision();
   }

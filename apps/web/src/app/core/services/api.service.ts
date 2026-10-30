@@ -11,7 +11,7 @@ import {
   ComparativaModeloIa, ConfiguracionIa, EstimacionIa, ResumenGastoIa, TarifaIa,
   ConsultaAdresPreparada, FilaBandejaAdres, ResultadoAdres,
   DecisionMesa, DetalleMesa, FiltrosMesa, ListadoMesa, ResultadoTomarSiguiente, SupervisionMesa,
-  CorreccionDatosPractica, DecisionActa, DetalleActa, EstadoActaEstudiante, FiltrosActas, ListadoBandejaActa, ReservaActa, SupervisionActa,
+  CorreccionDatosPractica, DecisionActa, MotivoDevolucionActa, DetalleActa, EstadoActaEstudiante, FiltrosActas, ListadoBandejaActa, ReservaActa, SupervisionActa,
 } from '../models/modelos';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
@@ -78,6 +78,11 @@ export class ApiService {
 
   tomarSiguienteActa(criterios: { conDiscrepancias?: 'si' | 'no'; documentoIncorrecto?: 'si' } = {}): Observable<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }> {
     return this.http.post<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }>(`${this.base}/actas-iniciacion/tomar-siguiente`, criterios);
+  }
+
+  /** Motivos de devolución permitidos (código, título, mensaje al estudiante): la pantalla no mantiene una copia. */
+  motivosDevolucionActa(): Observable<MotivoDevolucionActa[]> {
+    return this.http.get<MotivoDevolucionActa[]>(`${this.base}/actas-iniciacion/motivos-devolucion`);
   }
 
   decidirActa(id: string, dto: DecisionActa): Observable<unknown> {

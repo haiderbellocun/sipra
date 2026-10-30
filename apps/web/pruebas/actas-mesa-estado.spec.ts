@@ -48,6 +48,8 @@ class ApiFalsa {
   liberarActa(id: string): Observable<unknown> { this.llamadas.push(`liberar:${id}`); return of({}); }
   tomarSiguienteActa(c: unknown): Observable<unknown> { this.llamadas.push(`siguiente:${JSON.stringify(c)}`); return this.siguiente(); }
   decidirActa(id: string, dto: DecisionActa): Observable<unknown> { this.llamadas.push(`decidir:${id}:${dto.decision}`); return this.decidirFn(dto); }
+  catalogo = [{ codigo: 'x_1', titulo: 'Motivo de prueba', mensajeEstudiante: { que: 'Q.', hacer: 'H.' }, requiereDetalle: false }];
+  motivosDevolucionActa(): Observable<unknown> { this.llamadas.push('motivos'); return of(this.catalogo); }
   supervisionActas(): Observable<unknown> { this.llamadas.push('supervision'); return of({ abiertas: 0, libres: 0, tomadas: 0, porVencer: 0, vencidas: 0, porEstado: {}, inconsistentes: 0, inconsistencias: [], conDiscrepanciaCritica: 0, documentoIncorrecto: 0, funcionarios: [] }); }
   corregirDatosGobernantes(id: string, dto: unknown): Observable<unknown> { this.llamadas.push(`corregir:${id}:${JSON.stringify(dto)}`); return of({ practicaId: id, tipoRemuneracion: null, responsableArl: 'cun', actaIniciacion: 'recalculada' }); }
 }
@@ -199,6 +201,29 @@ describe('ActasMesaEstado · decisión', () => {
     resolver({});
     await primera;
     assert.equal(api.llamadas.filter((l) => l.startsWith('decidir')).length, 1);
+    cerrar();
+  });
+});
+
+describe('ActasMesaEstado · catálogo de motivos (fuente única: la API)', () => {
+  it('la pantalla usa exactamente el catálogo que devuelve la API', async () => {
+    const { api, estado, cerrar } = crear();
+    api.catalogo = [
+      { codigo: 'nuevo_1', titulo: 'Un motivo nuevo del servidor', mensajeEstudiante: { que: 'Q1.', hacer: 'H1.' }, requiereDetalle: false },
+      { codigo: 'nuevo_2', titulo: 'Otro', mensajeEstudiante: { que: 'Q2.', hacer: 'H2.' }, requiereDetalle: true },
+    ];
+    assert.deepEqual(estado.motivos(), []);
+    await estado.cargarMotivos();
+    assert.deepEqual(estado.motivos(), api.catalogo);
+    assert.ok(api.llamadas.includes('motivos'));
+    cerrar();
+  });
+  it('si el catálogo no carga no se inventa uno: queda vacío y marcado como error', async () => {
+    const { api, estado, cerrar } = crear();
+    api.motivosDevolucionActa = () => throwError(() => new HttpErrorResponse({ status: 500 }));
+    await estado.cargarMotivos();
+    assert.deepEqual(estado.motivos(), []);
+    assert.equal(estado.errorMotivos(), true);
     cerrar();
   });
 });

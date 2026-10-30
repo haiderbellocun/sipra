@@ -2,7 +2,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
 import {
-  CorreccionDatosPractica, DecisionActa, DetalleActa, FiltrosActas, ListadoBandejaActa, SupervisionActa,
+  CorreccionDatosPractica, DecisionActa, DetalleActa, FiltrosActas, ListadoBandejaActa, MotivoDevolucionActa, SupervisionActa,
 } from '@core/models/modelos';
 import { ApiService } from '@core/services/api.service';
 import { AvisosService } from '@core/ui/avisos.service';
@@ -41,6 +41,10 @@ export class ActasMesaEstado {
   readonly supervision = signal<SupervisionActa | null>(null);
   readonly cargandoSupervision = signal(false);
 
+  /** Motivos de devolución: los entrega la API (fuente única); sin ellos no se puede devolver. */
+  readonly motivos = signal<MotivoDevolucionActa[]>([]);
+  readonly errorMotivos = signal(false);
+
   readonly items = computed(() => this.listado()?.items ?? []);
   readonly esSupervisor = computed(() => ['coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly reservaVencidaEnPantalla = computed(() => {
@@ -58,6 +62,15 @@ export class ActasMesaEstado {
       clearInterval(reloj);
       if (this.temporizadorBusqueda) clearTimeout(this.temporizadorBusqueda);
     });
+  }
+
+  async cargarMotivos(): Promise<void> {
+    try {
+      this.motivos.set(await firstValueFrom(this.api.motivosDevolucionActa()));
+      this.errorMotivos.set(false);
+    } catch {
+      this.errorMotivos.set(true);
+    }
   }
 
   // ── Bandeja ───────────────────────────────────────────────────────────────

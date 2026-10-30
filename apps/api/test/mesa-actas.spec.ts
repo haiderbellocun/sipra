@@ -7,6 +7,7 @@ import { Rol } from '../src/domain/value-objects/rol.vo';
 import { actorDe } from './soporte-autorizacion';
 import { AHORA_MESA as AHORA, MIN, TEXTO_40, aux, admin, coord, montarMesaActas } from './soporte-mesa-actas';
 import { TEXTO_CEDULA } from './soporte-acta';
+import { MENSAJES_DEVOLUCION_ACTA, MotivoDevolucionActa } from '../src/domain/services/mesa-acta.domain-service';
 
 type Mesa = ReturnType<typeof montarMesaActas>;
 
@@ -627,5 +628,32 @@ describe('Datos de la práctica que gobiernan la comparación (remuneración y r
     expect(m.practicas.get('pra-n')!.responsableArlPractica).toBeNull();
     await m.gestionarPractica.corregirDatosGobernantes('pra-n', { responsableArl: 'empresa', justificacion: 'Se confirma con la organización.' }, coord());
     await expect(m.gestionarPractica.transicionar('pra-n', EstadoPractica.DOCUMENTACION, 'Inicia el proceso documental.', coord())).resolves.toBeDefined();
+  });
+});
+
+describe('Mesa de Actas · catálogo de motivos de devolución (fuente única)', () => {
+  it('el API entrega todos los motivos del dominio, con título, mensaje al estudiante y si exige detalle', () => {
+    const m = montarMesaActas();
+    const catalogo = m.mesa.motivosDevolucion(aux('a1'));
+    expect(catalogo.map((c) => c.codigo).sort()).toEqual(Object.values(MotivoDevolucionActa).sort());
+    for (const c of catalogo) {
+      expect(c.titulo.length).toBeGreaterThan(5);
+      expect(c.mensajeEstudiante).toEqual(MENSAJES_DEVOLUCION_ACTA[c.codigo]);
+      expect(c.requiereDetalle).toBe(c.codigo === MotivoDevolucionActa.OTRO);
+    }
+    expect(Object.keys(catalogo[0]).sort()).toEqual(['codigo', 'mensajeEstudiante', 'requiereDetalle', 'titulo']);
+  });
+  it('lo que lee el estudiante al devolver sale del mismo catálogo', async () => {
+    const m = montarMesaActas();
+    const { validacionId, documentoId } = await caso(m, 'c1', DISCREPANTE, aux('a1'));
+    const motivo = m.mesa.motivosDevolucion(aux('a1')).find((c) => c.codigo === MotivoDevolucionActa.ARL_NO_COINCIDE)!;
+    await m.mesa.decidir(validacionId, aux('a1'), { decision: 'devolver', motivo: motivo.codigo }, AHORA);
+    expect(m.documentos.filas.get(documentoId)!.motivoDevolucion).toBe(motivo.mensajeEstudiante.que);
+  });
+  it('solo quien opera la Mesa lo consulta', () => {
+    const m = montarMesaActas();
+    expect(() => m.mesa.motivosDevolucion(actorDe(Rol.ESTUDIANTE))).toThrow(ForbiddenException);
+    expect(() => m.mesa.motivosDevolucion(actorDe(Rol.TUTOR))).toThrow(ForbiddenException);
+    expect(m.mesa.motivosDevolucion(coord()).length).toBeGreaterThan(0);
   });
 });

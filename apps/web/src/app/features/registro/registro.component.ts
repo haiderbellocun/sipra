@@ -11,7 +11,7 @@ import { CronogramaComponent } from '@shared/components/cronograma.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
 import {
-  ResponsableArl, ResponsableArlFormulario, ayudaArl, sugerenciaArl, valorArlAlElegirModalidad,
+  ResponsableArl, ResponsableArlFormulario, ERROR_ARL_SIN_ELEGIR, ayudaArl, sugerenciaArl,
 } from './arl-registro';
 
 /**
@@ -136,7 +136,7 @@ import {
             <div class="campo">
               <label for="r-modalidad">Modalidad de práctica</label>
               <select id="r-modalidad" name="modalidad" [ngModel]="fur.modalidad"
-                      (ngModelChange)="fur.modalidad = $event; modalidadSeleccionada.set($event); aplicarSugerenciaArl()" required>
+                      (ngModelChange)="fur.modalidad = $event; modalidadSeleccionada.set($event)" required>
                 <option value="">Seleccione…</option>
                 @for (m of modalidadesOfertadas(); track m.modalidad) {
                   <option [value]="m.modalidad">{{ m.etiquetaSgp }}</option>
@@ -180,13 +180,14 @@ import {
                 <option value="remunerada">Remunerada</option><option value="no_remunerada">No remunerada</option>
               </select>
             </div>
-            <fieldset class="grupo" aria-describedby="r-arl-ayuda">
+            <fieldset class="grupo" [attr.aria-describedby]="mostrarErrorArl() ? 'r-arl-ayuda r-arl-error' : 'r-arl-ayuda'" [attr.aria-invalid]="mostrarErrorArl() ? 'true' : null">
               <legend>¿Quién asume la ARL?</legend>
               <div class="opciones">
-                <label class="opcion"><input type="radio" name="responsableArl" value="empresa" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" required /> Empresa</label>
-                <label class="opcion"><input type="radio" name="responsableArl" value="cun" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" required /> CUN</label>
+                <label class="opcion"><input type="radio" name="responsableArl" value="empresa" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" (blur)="arlTocada.set(true)" required /> Empresa</label>
+                <label class="opcion"><input type="radio" name="responsableArl" value="cun" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" (blur)="arlTocada.set(true)" required /> CUN</label>
               </div>
               <span class="pista" id="r-arl-ayuda">{{ ayudaArl() }}</span>
+              @if (mostrarErrorArl()) { <span class="error-campo" id="r-arl-error" role="alert" style="color:var(--peligro);font-size:var(--fs-sm)">{{ errorArl }}</span> }
             </fieldset>
             @if (fur.tipoRemuneracion === 'remunerada') {
               <div class="campo"><label for="r-salario">Salario o apoyo (COP)</label><input id="r-salario" name="salario" type="number" min="0" [(ngModel)]="fur.salario" /></div>
@@ -259,9 +260,12 @@ export class RegistroComponent implements OnInit {
   /** Espejo en signals de lo que ngModel escribe en `fur`, para los cómputos. */
   readonly periodoSeleccionado = signal('');
   readonly modalidadSeleccionada = signal('');
-  /** Espejo del radio «¿Quién asume la ARL?» y si la persona ya lo eligió (entonces la modalidad no lo pisa). */
+  /** Espejo del radio «¿Quién asume la ARL?». La modalidad no lo marca nunca: solo la persona lo elige. */
   readonly arlSeleccionada = signal<ResponsableArlFormulario>('');
-  private arlElegidaPorLaPersona = false;
+  /** La persona pasó por el grupo sin elegir: recién entonces se muestra el error (no antes de que lo haya visto). */
+  readonly arlTocada = signal(false);
+  readonly errorArl = ERROR_ARL_SIN_ELEGIR;
+  readonly mostrarErrorArl = computed(() => this.arlTocada() && this.arlSeleccionada() === '');
 
   readonly periodoElegido = computed(() => this.periodos().find((p) => p.codigo === this.periodoSeleccionado()) ?? null);
   readonly modalidadesOfertadas = computed(() => {
@@ -273,14 +277,7 @@ export class RegistroComponent implements OnInit {
   readonly sugerenciaArl = computed(() => sugerenciaArl(this.modalidadElegida()?.responsableArl));
   readonly ayudaArl = computed(() => ayudaArl(this.modalidadElegida() !== null, this.sugerenciaArl(), this.arlSeleccionada()));
 
-  /** La modalidad propone; el valor propuesto queda marcado y visible, y la persona lo confirma o lo cambia. */
-  aplicarSugerenciaArl(): void {
-    this.fur.responsableArl = valorArlAlElegirModalidad(this.fur.responsableArl, this.arlElegidaPorLaPersona, this.sugerenciaArl());
-    this.arlSeleccionada.set(this.fur.responsableArl);
-  }
-
   elegirArl(valor: ResponsableArlFormulario): void {
-    this.arlElegidaPorLaPersona = true;
     this.fur.responsableArl = valor;
     this.arlSeleccionada.set(valor);
   }

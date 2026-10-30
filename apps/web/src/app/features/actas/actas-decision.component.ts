@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, input, output
 import { FormsModule } from '@angular/forms';
 import { DecisionActa as DecisionDto, DetalleActa, MotivoDevolucionActa } from '@core/models/modelos';
 import {
-  DecisionActa, JUSTIFICACION_MINIMA, MOTIVOS_DEVOLUCION_ACTA, apartaDeRecomendacionActa, devolucionValida, minimoJustificacion,
+  DecisionActa, JUSTIFICACION_MINIMA, apartaDeRecomendacionActa, devolucionValida, minimoJustificacion,
   previsualizarDevolucion, resultadoActa,
 } from './actas.util';
 
@@ -57,11 +57,12 @@ const BOTON: Record<DecisionActa, string> = { aprobar: 'Aprobar Acta', devolver:
               <label for="acta-motivo">Motivo de la devolución</label>
               <select id="acta-motivo" [ngModel]="motivo()" (ngModelChange)="motivo.set($event)" [attr.aria-invalid]="intento() && motivo() === '' ? 'true' : null" aria-describedby="acta-motivo-ayuda">
                 <option value="">Seleccione…</option>
-                @for (m of motivos; track m.valor) { <option [value]="m.valor">{{ m.texto }}</option> }
+                @for (m of motivos(); track m.codigo) { <option [value]="m.codigo">{{ m.titulo }}</option> }
               </select>
               <span id="acta-motivo-ayuda" class="pista">El estudiante recibe un mensaje claro sobre qué corregir.</span>
+              @if (motivos().length === 0) { <span class="error-campo" role="alert">No se pudo cargar la lista de motivos. Cierra este cuadro y actualiza la Mesa.</span> }
             </div>
-            @if (motivo() === 'otro') {
+            @if (requiereDetalle()) {
               <div class="campo">
                 <label for="acta-detalle">Explica qué debe corregir el estudiante</label>
                 <textarea id="acta-detalle" rows="3" maxlength="500" [ngModel]="texto()" (ngModelChange)="texto.set($event)" [attr.aria-invalid]="intento() && !valida() ? 'true' : null" aria-describedby="acta-detalle-contador"></textarea>
@@ -119,10 +120,12 @@ export class ActasDecisionComponent {
   private readonly dialogo = viewChild.required<ElementRef<HTMLDialogElement>>('dialogo');
   readonly decision = signal<DecisionActa>('aprobar');
   readonly intento = signal(false);
-  readonly motivo = signal<MotivoDevolucionActa | ''>('');
+  readonly motivo = signal('');
   readonly texto = signal('');
   readonly confirmaRechazo = signal(false);
-  readonly motivos = MOTIVOS_DEVOLUCION_ACTA;
+  /** El catálogo lo entrega la API; aquí no hay lista propia. */
+  readonly motivos = input<readonly MotivoDevolucionActa[]>([]);
+  readonly requiereDetalle = computed(() => this.motivos().find((m) => m.codigo === this.motivo())?.requiereDetalle ?? false);
   readonly minimoOtro = JUSTIFICACION_MINIMA;
 
   private readonly codigo = computed(() => this.detalle()?.recomendacion ?? '');
@@ -132,12 +135,12 @@ export class ActasDecisionComponent {
   readonly aparta = computed(() => apartaDeRecomendacionActa(this.decision(), this.codigo()));
   readonly minimo = computed(() => minimoJustificacion(this.decision(), this.codigo()));
   readonly largo = computed(() => this.texto().trim().length);
-  readonly vista = computed(() => previsualizarDevolucion(this.motivo(), this.texto()));
+  readonly vista = computed(() => previsualizarDevolucion(this.motivos(), this.motivo(), this.texto()));
 
   /** Misma regla que el servidor: aquí solo se anticipa para no dejar enviar algo que se va a rechazar. */
   readonly valida = computed(() => {
     switch (this.decision()) {
-      case 'devolver': return devolucionValida(this.motivo(), this.texto());
+      case 'devolver': return devolucionValida(this.motivos(), this.motivo(), this.texto());
       case 'rechazar': return this.largo() >= this.minimo() && this.confirmaRechazo();
       default: return !this.aparta() || this.largo() >= this.minimo();
     }

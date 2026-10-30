@@ -358,7 +358,7 @@ const TIPOS_EVIDENCIA = ['lectura_documento', 'clasificacion_documental', 'compa
         }
       </div>
 
-      <sipra-actas-decision #decision [detalle]="d" [ocupado]="estado.ocupado()" (confirmada)="decidir($event)" />
+      <sipra-actas-decision #decision [detalle]="d" [motivos]="estado.motivos()" [ocupado]="estado.ocupado()" (confirmada)="decidir($event)" />
       <sipra-actas-correccion #correccion [detalle]="d" />
     }
   `,

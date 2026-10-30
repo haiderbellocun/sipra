@@ -1,10 +1,10 @@
 /**
  * «¿Quién asume la ARL?» en el registro de la práctica (FUR).
  *
- * Es un dato EXPLÍCITO de la práctica: lo confirma quien registra. La modalidad solo SUGIERE un valor, que aparece ya
- * marcado en el formulario (nunca se guarda sin que se vea) y que la persona puede cambiar. Si la modalidad depende del
- * convenio con la organización («según cobertura»), no hay sugerencia y hay que elegir. El acta de iniciación luego
- * confirma o contradice este dato; nunca lo establece.
+ * Es un dato EXPLÍCITO de la práctica: lo confirma quien registra. La modalidad solo SUGIERE un valor y NUNCA lo marca: para
+ * un registro nuevo hay que elegir una opción (el formulario no se envía sin ella). Si la modalidad depende del convenio con la
+ * organización («según cobertura»), no hay sugerencia. Cambiar de modalidad solo cambia la sugerencia. El acta de iniciación
+ * luego confirma o contradice este dato; nunca lo establece. Las prácticas ya registradas no se tocan.
  */
 export type ResponsableArl = 'empresa' | 'cun';
 export type ResponsableArlFormulario = ResponsableArl | '';
@@ -16,17 +16,13 @@ export function sugerenciaArl(responsableArlDelCatalogo: string | null | undefin
   return responsableArlDelCatalogo === 'cun' || responsableArlDelCatalogo === 'empresa' ? responsableArlDelCatalogo : null;
 }
 
-/**
- * Valor del formulario al cambiar de modalidad. Si la persona ya eligió, se respeta su elección; si no, se muestra
- * marcada la sugerencia de la modalidad (o nada, si no hay).
- */
-export function valorArlAlElegirModalidad(
-  actual: ResponsableArlFormulario, elegidaPorLaPersona: boolean, sugerida: ResponsableArl | null,
-): ResponsableArlFormulario {
-  return elegidaPorLaPersona ? actual : (sugerida ?? '');
-}
+/** Error asociado al grupo de opciones cuando aún no se eligió ninguna. */
+export const ERROR_ARL_SIN_ELEGIR = 'Selecciona quién asume la ARL.';
 
-/** Ayuda bajo el control, en lenguaje de quien registra. Sin códigos técnicos. */
+/**
+ * Ayuda bajo el control, en lenguaje de quien registra. La modalidad solo SUGIERE: nunca marca una opción. Si la persona ya
+ * eligió algo distinto de la sugerencia, se le dice, sin bloquear. Sin códigos técnicos.
+ */
 export function ayudaArl(
   hayModalidad: boolean, sugerida: ResponsableArl | null, elegida: ResponsableArlFormulario,
 ): string {
@@ -36,10 +32,10 @@ export function ayudaArl(
   if (sugerida === null) {
     return 'En esta modalidad depende del convenio con la organización: indica quién asume la ARL según lo acordado.';
   }
-  if (elegida !== '' && elegida !== sugerida) {
-    return `Sugerencia según la modalidad: ${ETIQUETA_RESPONSABLE_ARL[sugerida]}. Elegiste otra opción; se guarda lo que tú elijas.`;
-  }
-  return `Sugerencia según la modalidad: ${ETIQUETA_RESPONSABLE_ARL[sugerida]}. La dejamos marcada para que la veas; puedes cambiarla si el acuerdo de esta práctica establece algo diferente.`;
+  const base = `Sugerencia según la modalidad: ${ETIQUETA_RESPONSABLE_ARL[sugerida]}.`;
+  if (elegida !== '' && elegida !== sugerida) return `${base} Tu elección es diferente de la sugerencia de la modalidad.`;
+  if (elegida === sugerida) return `${base} Tu elección coincide con la sugerencia.`;
+  return `${base} La modalidad sugiere esta opción, pero confirma quién asume la ARL en esta práctica.`;
 }
 
 /** Cómo se ve el dato guardado de una práctica; las anteriores a este dato no lo tienen. */

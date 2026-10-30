@@ -159,33 +159,20 @@ export function minimoJustificacion(decision: DecisionActa, recomendacion: strin
 }
 
 /**
- * Motivos del catálogo de la API con el mensaje que recibe el estudiante. El servidor es la fuente de verdad (el estudiante
- * siempre lee lo suyo); esta copia solo permite que quien devuelve VEA lo que va a leer. Se mantiene igual a
- * `MENSAJES_DEVOLUCION_ACTA` (mesa-acta.domain-service.ts).
+ * Lo que leerá el estudiante al devolver, calculado con el catálogo que entrega la API (misma regla que
+ * `mensajeDevolucionActa` en el dominio). No hay una lista local de motivos: si el catálogo cambia, cambia la pantalla.
  */
-export const MOTIVOS_DEVOLUCION_ACTA: ReadonlyArray<{ valor: MotivoDevolucionActa; texto: string; que: string; hacer: string }> = [
-  { valor: 'falta_firma_empresa', texto: 'Falta la firma de la empresa', que: 'Al acta le falta la firma de la empresa.', hacer: 'Pide a la empresa que la firme y cárgala de nuevo.' },
-  { valor: 'falta_firma_practicante', texto: 'Falta la firma del practicante', que: 'Al acta le falta tu firma.', hacer: 'Fírmala y cárgala de nuevo.' },
-  { valor: 'arl_no_coincide', texto: 'El responsable de la ARL no coincide', que: 'El responsable de la ARL indicado en el acta no coincide con la información registrada en tu práctica.', hacer: 'Contacta a coordinación o carga el documento correcto, según corresponda.' },
-  { valor: 'remuneracion_no_coincide', texto: 'La remuneración no coincide', que: 'El tipo de práctica del acta (remunerada o no remunerada) no coincide con la información registrada en tu práctica.', hacer: 'Contacta a coordinación o carga el documento correcto, según corresponda.' },
-  { valor: 'informacion_no_coincide', texto: 'La información no coincide con la práctica', que: 'La información del acta no coincide con la registrada en tu práctica.', hacer: 'Revisa que los datos del acta (estudiante, documento, empresa, NIT y fechas) sean los de tu práctica y cárgala de nuevo. Si el dato registrado es el equivocado, comunícate con coordinación.' },
-  { valor: 'informacion_incompleta', texto: 'Falta información en el acta', que: 'Al acta le falta información necesaria.', hacer: 'Completa todos los campos del formato y cárgala de nuevo.' },
-  { valor: 'documento_ilegible', texto: 'Documento ilegible', que: 'No pudimos leer tu acta con claridad.', hacer: 'Cárgala de nuevo completa, enfocada y con buena luz, o usa el PDF original.' },
-  { valor: 'documento_incorrecto', texto: 'No es el Acta de Iniciación', que: 'El documento cargado no es el acta de iniciación de prácticas.', hacer: 'Descarga el formato de acta de iniciación, diligéncialo, fírmalo y cárgalo de nuevo.' },
-  { valor: 'otro', texto: 'Otro motivo (explicar)', que: 'Tu acta de iniciación necesita una corrección.', hacer: 'Lee la indicación del equipo de prácticas y carga una nueva versión.' },
-];
-
-/** Lo que leerá el estudiante (misma regla que `mensajeDevolucionActa` en la API). */
-export function previsualizarDevolucion(motivo: MotivoDevolucionActa | '', detalle: string): { que: string; hacer: string } | null {
-  const m = MOTIVOS_DEVOLUCION_ACTA.find((x) => x.valor === motivo);
+export function previsualizarDevolucion(motivos: readonly MotivoDevolucionActa[], motivo: string, detalle: string): { que: string; hacer: string } | null {
+  const m = motivos.find((x) => x.codigo === motivo);
   if (!m) return null;
   const extra = detalle.trim();
-  const que = m.valor === 'otro' ? (extra || m.que) : extra ? `${m.que} ${extra}` : m.que;
-  return { que, hacer: m.hacer };
+  const que = m.requiereDetalle ? (extra || m.mensajeEstudiante.que) : extra ? `${m.mensajeEstudiante.que} ${extra}` : m.mensajeEstudiante.que;
+  return { que, hacer: m.mensajeEstudiante.hacer };
 }
 
-export function devolucionValida(motivo: MotivoDevolucionActa | '', detalle: string): boolean {
-  return motivo !== '' && (motivo !== 'otro' || detalle.trim().length >= JUSTIFICACION_MINIMA);
+export function devolucionValida(motivos: readonly MotivoDevolucionActa[], motivo: string, detalle: string): boolean {
+  const m = motivos.find((x) => x.codigo === motivo);
+  return !!m && (!m.requiereDetalle || detalle.trim().length >= JUSTIFICACION_MINIMA);
 }
 
 // ── Corrección controlada de los datos de la práctica ───────────────────────

@@ -11,6 +11,7 @@ import { DocumentoRespuestaDto } from '../../application/dtos/documento.dto';
 import { ActaEstudianteUseCase } from '../../application/use-cases/documentos/acta-estudiante.use-case';
 import { MesaActasUseCase } from '../../application/use-cases/documentos/mesa-actas.use-case';
 import { Actor } from '../../application/use-cases/practicas/gestionar-practica.use-case';
+import { MotivoDevolucionActaCatalogo } from '../../domain/services/mesa-acta.domain-service';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
 import { Roles } from '../auth/roles.decorator';
@@ -70,6 +71,17 @@ export class ActasIniciacionController {
   @ApiResponse({ status: 200, description: '«tomado» con el id de la validación, o «sin_casos»' })
   siguiente(@Body() dto: TomarSiguienteActaDto, @ActorActual() actor: Actor): Promise<ResultadoTomarSiguienteActaDto> {
     return this.mesa.tomarSiguiente(actor, dto);
+  }
+
+  @Get('motivos-devolucion')
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @ApiOperation({
+    summary: 'Motivos de devolución permitidos para un Acta, con lo que leerá el estudiante',
+    description: 'Fuente única del catálogo: código, título, mensaje al estudiante y si exige detalle. La pantalla no mantiene una copia.',
+  })
+  @ApiResponse({ status: 200, description: 'Catálogo de motivos' })
+  motivos(@ActorActual() actor: Actor): MotivoDevolucionActaCatalogo[] {
+    return this.mesa.motivosDevolucion(actor);
   }
 
   @Get('practica/:practicaId/estado')

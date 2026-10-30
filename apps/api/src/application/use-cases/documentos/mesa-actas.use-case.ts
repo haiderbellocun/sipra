@@ -16,7 +16,7 @@ import {
 } from '../../../domain/ports/out/validacion-acta.port';
 import { JUSTIFICACION_MINIMA } from '../../../domain/services/justificacion-decision';
 import {
-  DURACION_RESERVA_ACTA_MS, MotivoDevolucionActa, calcularPrioridadActa, evaluarApartamientoActa,
+  DURACION_RESERVA_ACTA_MS, MotivoDevolucionActa, MotivoDevolucionActaCatalogo, calcularPrioridadActa, catalogoMotivosDevolucionActa, evaluarApartamientoActa,
   mensajeDevolucionActa, recomendacionActa,
 } from '../../../domain/services/mesa-acta.domain-service';
 import { datosSipraDePractica, recalcularComparacion } from '../../../domain/services/validacion-acta.domain-service';
@@ -439,6 +439,12 @@ export class MesaActasUseCase {
         contexto: { decision: dto.decision, recomendacion, apartaDeRecomendacion, motivoDevolucion, hayDiscrepanciaCritica: d.hayDiscrepanciaCritica },
       },
     });
+  }
+
+  /** Los motivos de devolución permitidos, con lo que leerá el estudiante: la pantalla no mantiene una copia. */
+  motivosDevolucion(actor: Actor): MotivoDevolucionActaCatalogo[] {
+    this.exigirOperador(actor);
+    return catalogoMotivosDevolucionActa();
   }
 
   // ── Supervisión ──────────────────────────────────────────────────────────

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import * as modulo from '../src/app/features/actas/actas.util';
 import {
-  AYUDA_FIRMAS, MOTIVOS_DEVOLUCION_ACTA, OPCIONES_ARL, OPCIONES_REMUNERACION, TEXTO_RESULTADO_CORRECCION, apartaDeRecomendacionActa,
+  AYUDA_FIRMAS, OPCIONES_ARL, OPCIONES_REMUNERACION, TEXTO_RESULTADO_CORRECCION, apartaDeRecomendacionActa,
   descripcionCampo, devolucionValida, minimoJustificacion, ordenarCampos, presenciaFirma, previsualizarDevolucion, problemaPrincipal,
   resultadoActa, resultadoCampo, textoReserva, tonoEstudiante, valorDeTexto,
 } from '../src/app/features/actas/actas.util';
@@ -101,31 +102,30 @@ describe('Mesa de Actas · decisión: las mismas reglas que el servidor', () => 
     assert.equal(minimoJustificacion('rechazar', 'discrepancia_critica'), 10);
     for (const r of ['consistente', 'documento_incorrecto']) assert.equal(apartaDeRecomendacionActa('devolver', r), false);
   });
-  it('el catálogo de motivos es el del servidor (9 motivos) y cada uno dice qué pasó y qué hacer', () => {
-    assert.deepEqual(MOTIVOS_DEVOLUCION_ACTA.map((m) => m.valor).sort(), [
-      'arl_no_coincide', 'documento_ilegible', 'documento_incorrecto', 'falta_firma_empresa', 'falta_firma_practicante',
-      'informacion_incompleta', 'informacion_no_coincide', 'otro', 'remuneracion_no_coincide',
-    ]);
-    for (const m of MOTIVOS_DEVOLUCION_ACTA) {
-      assert.ok(m.que.length > 10 && m.hacer.length > 10, m.valor);
-      assert.doesNotMatch(`${m.texto} ${m.que} ${m.hacer}`, PROHIBIDO, m.valor);
-    }
+  // Catálogo tal como lo entrega la API (aquí, inventado a propósito: la pantalla debe usar ESTE y no una copia propia).
+  const CATALOGO = [
+    { codigo: 'm_uno', titulo: 'Motivo uno', mensajeEstudiante: { que: 'Qué pasó uno.', hacer: 'Qué hacer uno.' }, requiereDetalle: false },
+    { codigo: 'm_otro', titulo: 'Otro motivo', mensajeEstudiante: { que: 'Qué pasó otro.', hacer: 'Qué hacer otro.' }, requiereDetalle: true },
+  ];
+  it('no hay una lista local de motivos: el módulo de la pantalla no la exporta', () => {
+    assert.equal('MOTIVOS_DEVOLUCION_ACTA' in modulo, false);
+    assert.equal('MENSAJES_DEVOLUCION_ACTA' in modulo, false);
   });
-  it('la previsualización muestra lo que leerá el estudiante', () => {
-    const v = previsualizarDevolucion('falta_firma_empresa', '');
-    assert.equal(v?.que, 'Al acta le falta la firma de la empresa.');
-    assert.equal(v?.hacer, 'Pide a la empresa que la firme y cárgala de nuevo.');
-    assert.equal(previsualizarDevolucion('', ''), null);
+  it('la previsualización sale del catálogo recibido, no de textos propios', () => {
+    assert.deepEqual(previsualizarDevolucion(CATALOGO, 'm_uno', ''), { que: 'Qué pasó uno.', hacer: 'Qué hacer uno.' });
+    assert.equal(previsualizarDevolucion(CATALOGO, 'm_uno', 'Es la página 2.')?.que, 'Qué pasó uno. Es la página 2.');
+    assert.equal(previsualizarDevolucion(CATALOGO, 'm_otro', 'Falta el sello.')?.que, 'Falta el sello.');
+    assert.equal(previsualizarDevolucion(CATALOGO, 'm_otro', '')?.que, 'Qué pasó otro.');
+    assert.equal(previsualizarDevolucion(CATALOGO, 'falta_firma_empresa', ''), null, 'un código que el catálogo no trae no se inventa');
+    assert.equal(previsualizarDevolucion([], 'm_uno', ''), null);
   });
-  it('con «otro» el estudiante lee lo que escribió quien devuelve; con un motivo del catálogo, el detalle se suma', () => {
-    assert.equal(previsualizarDevolucion('otro', 'Falta el sello de la empresa.')?.que, 'Falta el sello de la empresa.');
-    assert.equal(previsualizarDevolucion('falta_firma_practicante', 'Es la página 2.')?.que, 'Al acta le falta tu firma. Es la página 2.');
-  });
-  it('devolver exige motivo y, con «otro», al menos 10 caracteres', () => {
-    assert.equal(devolucionValida('', 'x'.repeat(50)), false);
-    assert.equal(devolucionValida('arl_no_coincide', ''), true);
-    assert.equal(devolucionValida('otro', 'corto'), false);
-    assert.equal(devolucionValida('otro', 'x'.repeat(10)), true);
+  it('devolver exige un motivo del catálogo y, si el motivo lo pide, el detalle (mínimo 10)', () => {
+    assert.equal(devolucionValida(CATALOGO, '', 'x'.repeat(50)), false);
+    assert.equal(devolucionValida(CATALOGO, 'inexistente', 'x'.repeat(50)), false);
+    assert.equal(devolucionValida(CATALOGO, 'm_uno', ''), true);
+    assert.equal(devolucionValida(CATALOGO, 'm_otro', 'corto'), false);
+    assert.equal(devolucionValida(CATALOGO, 'm_otro', 'x'.repeat(10)), true);
+    assert.equal(devolucionValida([], 'm_uno', ''), false);
   });
 });
 

@@ -713,11 +713,12 @@ export interface DetalleActa {
   historial: Array<{ fecha: string; tipo: string; etiqueta: string; resultado: string; ronda: number; actor: string | null }>;
 }
 
-export type MotivoDevolucionActa =
-  | 'documento_incorrecto' | 'informacion_no_coincide' | 'arl_no_coincide' | 'remuneracion_no_coincide' | 'falta_firma_empresa'
-  | 'falta_firma_practicante' | 'documento_ilegible' | 'informacion_incompleta' | 'otro';
+/** Un motivo de devolución, tal como lo entrega la API (fuente única del catálogo). */
+export interface MotivoDevolucionActa {
+  codigo: string; titulo: string; mensajeEstudiante: { que: string; hacer: string }; requiereDetalle: boolean;
+}
 
-export interface DecisionActa { decision: 'aprobar' | 'devolver' | 'rechazar'; motivo?: MotivoDevolucionActa; justificacion?: string }
+export interface DecisionActa { decision: 'aprobar' | 'devolver' | 'rechazar'; motivo?: string; justificacion?: string }
 
 export interface SupervisionActa {
   abiertas: number; libres: number; tomadas: number; porVencer: number; vencidas: number; porEstado: Record<string, number>;
