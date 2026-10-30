@@ -23,9 +23,10 @@ export function analizarActa(
   fuente: FuenteLecturaActa,
   sipra: DatosSipraActa | null,
   mediciones: MedicionesFirmas | null = null,
+  confianzaOcr?: number,
 ): AnalisisActa {
   const clasificacion = clasificarActa(texto);
-  const campos = extraerCamposActa(texto, fuente);
+  const campos = extraerCamposActa(texto, fuente, confianzaOcr);
   const firmas = evaluarFirmasActa(texto, mediciones);
   return {
     clasificacion, campos, firmas,

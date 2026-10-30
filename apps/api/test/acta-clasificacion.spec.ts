@@ -185,6 +185,18 @@ describe('Acta de iniciación · clasificación por contenido', () => {
       expect(c.senales.arlObligaciones).toBe('empresa');
     });
 
+    it('10c · si el OCR no leyó el encabezado de una sección, la obligación NO se atribuye a la sección equivocada', () => {
+      // Acta de la CUN (obligación bajo «DE LA INSTITUCIÓN») cuyo encabezado de institución salió ilegible: sin esa sección
+      // reconocida, la obligación caería bajo «DE LA EMPRESA» y se afirmaría una ARL que el documento no dice.
+      const texto = actaSintetica({ encabezadoArl: 'ninguna', obligacionArl: 'institucion' })
+        .replace('OBLIGACIONES DE LA INSTITUCIÓN', 'OBUGACIONES DE LA INSTTUCION');
+      const c = clasificarActa(texto);
+      expect(c.tipoActaDetectada).toBe('iniciacion_practicas');
+      expect(c.senales.arlObligaciones).toBe('ninguna');
+      expect(c.responsableArl).toBe('no_determinable');
+      expect(c.motivos).toContain('obligacion_arl_sin_seccion');
+    });
+
     it('una página aislada de trazabilidad (sin la estructura) queda no_determinable', () => {
       const c = clasificarActa('INICIACIÓN PRÁCTICAS NO REMUNERADAS\nINSTITUCIÓN - CUN ASUME ARL\nCÓDIGO: DPE-FO02\nVERSIÓN: 00\nTRAZABILIDAD\nVERSIÓN FECHA DE APROBACIÓN CONTROL DE CAMBIOS 00 17/07/2019 Creación del documento institucional de prácticas');
       expect(c.tipoActaDetectada).toBe('no_determinable');

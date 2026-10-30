@@ -4,13 +4,20 @@ import { dirname, join } from 'node:path';
 import {
   LimiteLecturaLocalError, LimitesLecturaLocal, ResultadoOcrPagina, VarianteOcr,
 } from '../../../domain/ports/out/lector-documento-local.port';
+import { CajaTexto } from '../../../domain/ports/out/geometria-documento.port';
 import { ampliarImagen, girarImagen, mejorarParaOcr } from './imagen-local';
 import { Semaforo, conTiempoLimite } from './semaforo';
 
 interface TrabajadorOcr {
   setParameters(parametros: Record<string, string>): Promise<unknown>;
-  recognize(imagen: Buffer): Promise<{ data: { text: string; confidence: number } }>;
+  recognize(
+    imagen: Buffer, opciones?: Record<string, unknown>, salida?: Record<string, unknown>,
+  ): Promise<{ data: { text: string; confidence: number; blocks?: BloqueOcr[] | null } }>;
   terminate(): Promise<unknown>;
+}
+/** Estructura mínima de la salida `blocks` de Tesseract: bloque → párrafo → línea → palabra con su caja en píxeles. */
+interface BloqueOcr {
+  paragraphs: { lines: { words: { text: string; confidence: number; bbox: { x0: number; y0: number; x1: number; y1: number } }[] }[] }[];
 }
 interface ModuloTesseract {
   createWorker(idioma: string, oem: number, opciones: Record<string, unknown>): Promise<TrabajadorOcr>;
@@ -92,6 +99,43 @@ export class OcrTesseractMotor {
       if (error instanceof LimiteLecturaLocalError) await this.cerrar();
       throw error;
     }
+  }
+
+  /**
+   * Palabras que reconoce el OCR con su caja, normalizadas a la imagen (0–1). Una pasada aparte y en la orientación recibida:
+   * solo se pide para ubicar los rótulos de firma de UNA página, no para la lectura de los certificados.
+   */
+  async reconocerCajas(png: Buffer, ancho: number, alto: number, limites: LimitesLecturaLocal): Promise<CajaTexto[]> {
+    if (!(ancho > 0) || !(alto > 0)) return [];
+    return this.semaforo.ejecutar(async () => {
+      try {
+        const trabajador = await this.obtener();
+        await trabajador.setParameters({ tessedit_pageseg_mode: '3' });
+        const r = await conTiempoLimite(trabajador.recognize(png, {}, { blocks: true }), limites.timeoutMs, () =>
+          new LimiteLecturaLocalError('tiempo', 'Se agotó el tiempo del OCR'));
+        const cajas: CajaTexto[] = [];
+        for (const b of r.data.blocks ?? []) {
+          for (const p of b.paragraphs) {
+            for (const l of p.lines) {
+              for (const w of l.words) {
+                if (!w.text.trim()) continue;
+                cajas.push({
+                  texto: w.text, confianza: w.confidence,
+                  x: w.bbox.x0 / ancho, y: w.bbox.y0 / alto,
+                  ancho: (w.bbox.x1 - w.bbox.x0) / ancho, alto: (w.bbox.y1 - w.bbox.y0) / alto,
+                });
+              }
+            }
+          }
+        }
+        return cajas;
+      } catch (error) {
+        if (error instanceof LimiteLecturaLocalError) await this.cerrar();
+        throw error;
+      } finally {
+        this.programarCierre();
+      }
+    });
   }
 
   /**

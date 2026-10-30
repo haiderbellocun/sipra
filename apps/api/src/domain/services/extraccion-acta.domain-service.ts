@@ -22,6 +22,8 @@ import { esRelleno, frase, plegar, sinSeparadoresDeValor } from './normalizacion
 
 export const CONFIANZA_TEXTO_NATIVO_ACTA = 0.95;
 export const CONFIANZA_OCR_ACTA = 0.75;
+/** Techo de la confianza de un dato leído por OCR: el OCR se equivoca de otra manera que el texto digital. */
+export const CONFIANZA_MAXIMA_OCR_ACTA = 0.85;
 /** Por debajo de esta confianza una lectura no se usa para comparar. */
 export const CONFIANZA_MINIMA_ACTA = 0.7;
 
@@ -137,11 +139,15 @@ function resolverContexto(hallazgos: readonly Hallazgo[]): { campo: CampoActa; h
 
 /**
  * `texto`: texto del documento, páginas unidas. `fuente`: de dónde salió (la confianza de un dato
- * leído por OCR es menor que la de uno de la capa de texto del PDF).
+ * leído por OCR es menor que la de uno de la capa de texto del PDF). `confianzaOcr`: confianza media
+ * del motor de OCR (0–1), si se conoce.
  */
-export function extraerCamposActa(texto: string, fuente: FuenteLecturaActa): CamposActaLeidos {
+export function extraerCamposActa(texto: string, fuente: FuenteLecturaActa, confianzaOcr?: number): CamposActaLeidos {
   const salida = vacio();
-  const confianza = fuente === 'texto_nativo' ? CONFIANZA_TEXTO_NATIVO_ACTA : CONFIANZA_OCR_ACTA;
+  // Con OCR, la confianza que reportó el motor (0–1) manda, con techo; sin ella, la de respaldo.
+  const confianza = fuente === 'texto_nativo'
+    ? CONFIANZA_TEXTO_NATIVO_ACTA
+    : confianzaOcr === undefined ? CONFIANZA_OCR_ACTA : Math.max(0, Math.min(CONFIANZA_MAXIMA_OCR_ACTA, confianzaOcr));
   const poner = (campo: CampoActa, valor: string | null): void => {
     if (valor === null) return;
     salida[campo] = { valor, confianza, fuente };

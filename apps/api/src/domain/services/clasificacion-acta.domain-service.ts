@@ -163,13 +163,18 @@ function arlDeObligaciones(texto: string): { senal: SenalFuente; sinSeccion: boo
   }
   encabezados.sort((a, b) => a.indice - b.indice);
 
+  // La obligación se atribuye por la sección que la contiene, y eso solo es confiable si se reconocen LAS DOS secciones
+  // (empresa e institución, como en los formatos). Con una sola, un encabezado que el OCR no leyó haría caer la obligación
+  // en la sección equivocada y se afirmaría una ARL que el documento no dice: mejor no atribuirla.
+  const seccionesCompletas = encabezados.some((e) => e.seccion === 'empresa') && encabezados.some((e) => e.seccion === 'institucion');
+
   let enEmpresa = false;
   let enInstitucion = false;
   let sinSeccion = false;
   for (const m of texto.matchAll(OBLIGACION_ARL)) {
     const indice = m.index ?? 0;
     const previos = encabezados.filter((e) => e.indice <= indice);
-    const seccion = previos.length > 0 ? previos[previos.length - 1].seccion : null;
+    const seccion = seccionesCompletas && previos.length > 0 ? previos[previos.length - 1].seccion : null;
     if (seccion === 'empresa') enEmpresa = true;
     else if (seccion === 'institucion') enInstitucion = true;
     else sinSeccion = true;

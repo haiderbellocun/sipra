@@ -134,3 +134,57 @@ describe('Pipeline · certificado de EPS', () => {
     expect(local.llamadas).toBe(0);
   });
 });
+
+describe('Pipeline · acta de iniciación (procesamiento local)', () => {
+  /** Extractor local que responde como el del acta: con su veredicto compacto. */
+  class ExtractorActa implements ExtraccionIaPort {
+    llamadas = 0;
+    constructor(private readonly tipoActa: 'iniciacion_practicas' | 'documento_incorrecto') {}
+    extraer(): Promise<ResultadoExtraccion> {
+      this.llamadas += 1;
+      const correcta = this.tipoActa === 'iniciacion_practicas';
+      return Promise.resolve({
+        ...extraccion(TipoDocumento.ACTA_INICIO, 'local'),
+        tipoDetectado: correcta ? TipoDocumento.ACTA_INICIO : null,
+        lecturaActa: {
+          tipoActaDetectada: this.tipoActa, documentoAjeno: correcta ? null : 'otro', remuneracion: 'no_remunerada',
+          responsableArl: 'empresa', firmaEmpresaPresente: 'no_determinable', firmaPracticantePresente: 'no_determinable',
+          metodoLectura: 'texto', motivos: [],
+        },
+      });
+    }
+  }
+
+  it('NUNCA llama al extractor externo (OpenAI/Anthropic): usa el local', async () => {
+    const externo = new Extractor('openai', TipoDocumento.ACTA_INICIO);
+    const local = new ExtractorActa('iniciacion_practicas');
+    const { pipeline } = montar(TipoDocumento.ACTA_INICIO, externo, local);
+    await pipeline.procesar('doc-1');
+    expect(externo.llamadas).toBe(0);
+    expect(local.llamadas).toBe(1);
+  });
+
+  it('sin extractor local no hay fallback al externo: revisión humana con la bandera de procesamiento no disponible', async () => {
+    const externo = new Extractor('openai', TipoDocumento.ACTA_INICIO);
+    const { pipeline, actual } = montar(TipoDocumento.ACTA_INICIO, externo, undefined);
+    await pipeline.procesar('doc-1');
+    expect(externo.llamadas).toBe(0);
+    expect(actual().estado).toBe(EstadoDocumento.EN_REVISION);
+    expect(actual().banderas.map((b) => b.codigo)).toContain('C2_PROCESAMIENTO_LOCAL_NO_DISPONIBLE');
+  });
+
+  it('un acta perfectamente leída jamás se autoaprueba: la decide una persona', async () => {
+    const { pipeline, actual } = montar(TipoDocumento.ACTA_INICIO, new Extractor('openai', TipoDocumento.ACTA_INICIO), new ExtractorActa('iniciacion_practicas'));
+    await pipeline.procesar('doc-1');
+    expect(actual().estado).toBe(EstadoDocumento.EN_REVISION);
+    expect(actual().banderas.map((b) => b.codigo)).toContain('C3_AUTOAPROBACION_NO_HABILITADA');
+  });
+
+  it('un documento que se LEYÓ y no es un acta queda marcado como tipo incorrecto', async () => {
+    const { pipeline, actual } = montar(TipoDocumento.ACTA_INICIO, new Extractor('openai', TipoDocumento.ACTA_INICIO), new ExtractorActa('documento_incorrecto'));
+    await pipeline.procesar('doc-1');
+    const incorrecto = actual().banderas.filter((b) => b.codigo === 'C2_TIPO_INCORRECTO');
+    expect(incorrecto).toHaveLength(1);
+    expect(incorrecto[0].mensaje).toContain('acta de iniciación');
+  });
+});

@@ -354,6 +354,17 @@ export class PipelineValidacionUseCase {
             'El archivo cargado no corresponde al documento solicitado. ' +
             `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,
         });
+      } else if (datos.tipo === TipoDocumento.ACTA_INICIO && extraido.lecturaActa?.tipoActaDetectada === 'documento_incorrecto') {
+        // El acta tiene su propio clasificador local: se LEYÓ y es otro documento (distinto de no poder leerlo).
+        banderas.push({
+          codigo: 'C2_TIPO_INCORRECTO',
+          capa: 2,
+          severidad: SeveridadBandera.ALTA,
+          mensaje: 'El archivo no parece un acta de iniciación de prácticas: se detectaron rasgos de otro tipo de documento',
+          mensajeUsuario:
+            'El archivo cargado no corresponde al documento solicitado. ' +
+            `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,
+        });
       } else if (extraido.tipoDetectado && extraido.tipoDetectado !== datos.tipo) {
         banderas.push({
           codigo: 'C2_TIPO_INCORRECTO',

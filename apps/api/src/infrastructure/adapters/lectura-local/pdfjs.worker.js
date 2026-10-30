@@ -109,6 +109,40 @@ async function renderizar(doc, numero, limites) {
   return { pagina: numero, ancho: lienzo.width, alto: lienzo.height, imagen: new Uint8Array(imagen) };
 }
 
+/**
+ * Cajas del texto digital de una página, normalizadas (0–1, origen arriba a la izquierda). Una página girada devuelve lista vacía:
+ * ubicar con confianza sería adivinar. Se usan solo para localizar rótulos y descontar texto impreso al medir una zona.
+ */
+async function cajas(doc, numero) {
+  if (!Number.isInteger(numero) || numero < 1 || numero > doc.numPages) throw falla('pagina_fuera_de_rango');
+  const pagina = await doc.getPage(numero);
+  const [x0, y0, x1, y1] = pagina.view;
+  const ancho = x1 - x0;
+  const alto = y1 - y0;
+  const salida = [];
+  if (!pagina.rotate && ancho > 0 && alto > 0) {
+    const t = await pagina.getTextContent();
+    for (const i of t.items) {
+      if (!i.str || i.str.trim() === '' || !i.transform || !(i.width > 0)) continue;
+      const tam = Math.abs(i.height) || Math.abs(i.transform[3]);
+      if (!(tam > 0)) continue;
+      // Línea base en (e, f); el texto sube ~ su tamaño y baja ~ 0,2 de él.
+      const arriba = i.transform[5] + tam;
+      const abajo = i.transform[5] - tam * 0.2;
+      salida.push({
+        texto: i.str,
+        x: (i.transform[4] - x0) / ancho,
+        y: (y1 - arriba) / alto,
+        ancho: i.width / ancho,
+        alto: (arriba - abajo) / alto,
+        confianza: 100,
+      });
+    }
+  }
+  pagina.cleanup();
+  return { cajas: salida };
+}
+
 parentPort.on('message', async (m) => {
   try {
     if (m.op === 'cerrar') {
@@ -117,7 +151,9 @@ parentPort.on('message', async (m) => {
       return;
     }
     const doc = await abrir(m.documento, m.datos, m.limites);
-    const resultado = m.op === 'texto' ? await texto(doc, m.limites) : await renderizar(doc, m.pagina, m.limites);
+    const resultado = m.op === 'texto' ? await texto(doc, m.limites)
+      : m.op === 'cajas' ? await cajas(doc, m.pagina)
+        : await renderizar(doc, m.pagina, m.limites);
     const transferibles = resultado.imagen ? [resultado.imagen.buffer] : [];
     parentPort.postMessage({ id: m.pedido, ok: true, resultado }, transferibles);
   } catch (error) {

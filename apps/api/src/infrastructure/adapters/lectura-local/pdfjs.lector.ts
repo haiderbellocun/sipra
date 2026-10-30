@@ -4,6 +4,7 @@ import {
   DocumentoLocalIlegibleError, LimiteLecturaLocalError, LimitesLecturaLocal, PaginaRenderizada,
   ResultadoTextoNativo,
 } from '../../../domain/ports/out/lector-documento-local.port';
+import { CajaTexto } from '../../../domain/ports/out/geometria-documento.port';
 import { Semaforo } from './semaforo';
 
 interface Respuesta {
@@ -121,6 +122,12 @@ export class PdfTrabajador {
 
   extraerTexto(contenido: Buffer, limites: LimitesLecturaLocal): Promise<ResultadoTextoNativo> {
     return this.pedir<ResultadoTextoNativo>(contenido, limites, { op: 'texto' });
+  }
+
+  /** Cajas del texto digital de una página (normalizadas 0–1). Ver `cajas` en el hilo de pdf.js. */
+  async cajas(contenido: Buffer, pagina: number, limites: LimitesLecturaLocal): Promise<CajaTexto[]> {
+    const r = await this.pedir<{ cajas: CajaTexto[] }>(contenido, limites, { op: 'cajas', pagina });
+    return r.cajas;
   }
 
   async renderizar(contenido: Buffer, pagina: number, limites: LimitesLecturaLocal): Promise<PaginaRenderizada> {

@@ -4,7 +4,9 @@ import {
   HallazgoQrCrudo, LectorDocumentoLocalPort, LimitesLecturaLocal, PaginaRenderizada,
   ResultadoOcrPagina, ResultadoTextoNativo, VarianteOcr,
 } from '../../../domain/ports/out/lector-documento-local.port';
-import { normalizarImagen } from './imagen-local';
+import { CajaTexto, GeometriaDocumentoPort, MedicionZona, RectRelativo } from '../../../domain/ports/out/geometria-documento.port';
+import { dimensionesDeEncabezado, normalizarImagen } from './imagen-local';
+import { medirZonaFirmaEnPng } from './medicion-firma';
 import { OcrTesseractMotor } from './ocr-tesseract.motor';
 import { PdfTrabajador } from './pdfjs.lector';
 import { Semaforo } from './semaforo';
@@ -16,7 +18,7 @@ import { INTERRUPTORES_EPS, interruptorActivo } from '../../../domain/services/i
  * Tesseract (OCR). Todo en el proceso, en memoria y sin red.
  */
 @Injectable()
-export class LectorDocumentoLocalAdapter implements LectorDocumentoLocalPort, OnModuleDestroy {
+export class LectorDocumentoLocalAdapter implements LectorDocumentoLocalPort, GeometriaDocumentoPort, OnModuleDestroy {
   private readonly log = new Logger(LectorDocumentoLocalAdapter.name);
   private readonly ocr: OcrTesseractMotor;
   private readonly render: Semaforo;
@@ -81,5 +83,25 @@ export class LectorDocumentoLocalAdapter implements LectorDocumentoLocalPort, On
     // Interruptor de incidente: sin OCR la lectura sigue con texto nativo y QR; lo ilegible pasa a revisión humana.
     if (!interruptorActivo(this.config?.get(INTERRUPTORES_EPS.ocr), INTERRUPTORES_EPS.ocr)) return Promise.resolve({ pagina, texto: '', confianza: 0, giro: 0 });
     return this.ocr.reconocer(imagen, pagina, limites, variante);
+  }
+
+  // ── Geometría (acta de iniciación): ubicar texto y medir zonas. EPS no la usa. ──────────────────────────────
+
+  cajasTextoNativo(contenido: Buffer, pagina: number, limites: LimitesLecturaLocal): Promise<CajaTexto[]> {
+    return this.pdf.cajas(contenido, pagina, limites);
+  }
+
+  async cajasOcr(imagen: Buffer, limites: LimitesLecturaLocal): Promise<CajaTexto[]> {
+    // Mismo interruptor de incidente que el OCR: apagado, no hay cajas y las firmas quedan sin determinar.
+    if (!interruptorActivo(this.config?.get(INTERRUPTORES_EPS.ocr), INTERRUPTORES_EPS.ocr)) return [];
+    const dims = dimensionesDeEncabezado(imagen, 'image/png');
+    if (!dims) return [];
+    return this.ocr.reconocerCajas(imagen, dims.ancho, dims.alto, limites);
+  }
+
+  medirZonaFirma(
+    imagen: Buffer, zona: RectRelativo, exclusiones: readonly RectRelativo[], limites: LimitesLecturaLocal,
+  ): Promise<MedicionZona> {
+    return this.render.ejecutar(() => medirZonaFirmaEnPng(imagen, zona, exclusiones, limites));
   }
 }

@@ -116,6 +116,8 @@ import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/con
 import { MesaEpsUseCase } from '../../application/use-cases/documentos/mesa-eps.use-case';
 import { MesaEpsController } from '../controllers/mesa-eps.controller';
 import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
+import { GEOMETRIA_DOCUMENTO } from '../../domain/ports/out/geometria-documento.port';
+import { LecturaActaLocalAdapter } from '../adapters/lectura-local/lectura-acta-local.adapter';
 import { LectorDocumentoLocalAdapter } from '../adapters/lectura-local/lector-documento-local.adapter';
 import { ExtraccionLocalAdapter } from '../adapters/ia/extraccion-local.adapter';
 import { ADAPTADORES_RESPUESTA_EPS, VERIFICADOR_CERTIFICADO_EPS } from '../../domain/ports/out/verificador-certificado-eps.port';
@@ -282,7 +284,11 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     // Extractor LOCAL y determinístico: el único que usan los tipos con procesamiento local
     // (certificado de EPS). Nunca sale a un proveedor externo, sea cual sea `IA_DRIVER`.
     // Lectura LOCAL (pdf.js, ZXing, Tesseract): texto nativo, QR y OCR sin salir del proceso.
-    { provide: LECTOR_DOCUMENTO_LOCAL, useClass: LectorDocumentoLocalAdapter },
+    // Una sola instancia del lector sirve a sus dos puertos: lectura y geometría (ubicar texto y medir zonas de firma).
+    LectorDocumentoLocalAdapter,
+    { provide: LECTOR_DOCUMENTO_LOCAL, useExisting: LectorDocumentoLocalAdapter },
+    { provide: GEOMETRIA_DOCUMENTO, useExisting: LectorDocumentoLocalAdapter },
+    LecturaActaLocalAdapter,
     ExtraccionLocalAdapter,
     { provide: EXTRACCION_LOCAL, useExisting: ExtraccionLocalAdapter },
     { provide: COHERENCIA_CRUZADA, useClass: CoherenciaCruzadaAdapter },
