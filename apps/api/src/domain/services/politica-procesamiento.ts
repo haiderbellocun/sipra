@@ -10,14 +10,16 @@ import { TipoDocumento } from '../entities/documento.entity';
  *  · `configurado`: el extractor que fije la configuración (`IA_DRIVER`).
  *
  * El certificado de EPS es dato de salud con documento de identidad: se
- * procesa en local. Cambiar esto es una decisión institucional, no técnica.
+ * procesa en local. El acta de iniciación lleva documento, dirección y teléfono
+ * del estudiante y datos del representante de la empresa: también. Cambiar esto
+ * es una decisión institucional, no técnica.
  */
 export enum ModoProcesamiento {
   LOCAL = 'procesamiento_local',
   CONFIGURADO = 'configurado',
 }
 
-const SOLO_LOCAL: readonly TipoDocumento[] = [TipoDocumento.CERTIFICADO_EPS];
+const SOLO_LOCAL: readonly TipoDocumento[] = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO];
 
 export function modoProcesamientoDe(tipo: TipoDocumento): ModoProcesamiento {
   return SOLO_LOCAL.includes(tipo) ? ModoProcesamiento.LOCAL : ModoProcesamiento.CONFIGURADO;
@@ -27,7 +29,7 @@ export function modoProcesamientoDe(tipo: TipoDocumento): ModoProcesamiento {
  * Tipos que el pipeline NUNCA autoaprueba: su autenticidad no la verifica el
  * pipeline común. Quedan en revisión humana aunque el puntaje sea verde.
  */
-const SIN_AUTOAPROBACION_DEL_PIPELINE: readonly TipoDocumento[] = [TipoDocumento.CERTIFICADO_EPS];
+const SIN_AUTOAPROBACION_DEL_PIPELINE: readonly TipoDocumento[] = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO];
 
 export function permiteAutoAprobacionDelPipeline(tipo: TipoDocumento): boolean {
   return !SIN_AUTOAPROBACION_DEL_PIPELINE.includes(tipo);

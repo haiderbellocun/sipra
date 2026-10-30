@@ -84,8 +84,14 @@ describe('Política de procesamiento por tipo (dominio)', () => {
     expect(permiteAutoAprobacionDelPipeline(TipoDocumento.CERTIFICADO_EPS)).toBe(false);
   });
 
+  it('el acta de iniciación también es local y no se autoaprueba (lleva datos personales)', () => {
+    expect(modoProcesamientoDe(TipoDocumento.ACTA_INICIO)).toBe(ModoProcesamiento.LOCAL);
+    expect(permiteAutoAprobacionDelPipeline(TipoDocumento.ACTA_INICIO)).toBe(false);
+  });
+
   it('el resto de los tipos conserva el procesamiento existente', () => {
-    for (const tipo of Object.values(TipoDocumento).filter((t) => t !== TipoDocumento.CERTIFICADO_EPS)) {
+    const locales = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO];
+    for (const tipo of Object.values(TipoDocumento).filter((t) => !locales.includes(t))) {
       expect(modoProcesamientoDe(tipo)).not.toBe(ModoProcesamiento.LOCAL);
       expect(permiteAutoAprobacionDelPipeline(tipo)).toBe(true);
     }
