@@ -36,7 +36,8 @@ export function puedeVerResultadoEps(rol: Rol): boolean {
  */
 export function puedeDecidirDocumento(rol: Rol, tipo: TipoDocumento): boolean {
   if (rol === Rol.TUTOR || rol === Rol.COORDINADOR || rol === Rol.ADMINISTRADOR) return true;
-  return rol === Rol.AUXILIAR && tipo === TipoDocumento.CERTIFICADO_EPS;
+  // El auxiliar decide el certificado de EPS y el acta de iniciación (esta última solo desde la Mesa de Actas).
+  return rol === Rol.AUXILIAR && (tipo === TipoDocumento.CERTIFICADO_EPS || tipo === TipoDocumento.ACTA_INICIO);
 }
 
 /** Puntaje, banderas y lectura asistida del documento: los ve quien revisa ese tipo. */

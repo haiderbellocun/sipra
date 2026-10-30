@@ -4,10 +4,10 @@ import { ModalidadPractica } from '../src/domain/entities/modalidad.entity';
 import { CicloAcademico, DatosPractica, EstadoPractica, Practica } from '../src/domain/entities/practica.entity';
 import { Usuario } from '../src/domain/entities/usuario.entity';
 import {
-  DatosEvidenciaActa, DatosValidacionActa, EstadoValidacionActa, EvidenciaActa, EvidenciaActaInvalidaError, TipoEvidenciaActa,
+  EstadoValidacionActa, EvidenciaActa, EvidenciaActaInvalidaError, TipoEvidenciaActa,
   ValidacionActa, ValidacionActaYaDecididaError,
 } from '../src/domain/entities/validacion-acta.entity';
-import { ValidacionActaRepositoryPort } from '../src/domain/ports/out/validacion-acta.port';
+import { DocumentosMemoria, ValidacionesActaMemoria } from './soporte-mesa-actas';
 import { Rol } from '../src/domain/value-objects/rol.vo';
 import {
   TEXTO_ARCHIVO_CUALQUIERA, TEXTO_CEDULA, VALORES_BASE, actaSintetica, lecturaPersistibleSintetica, OpcionesActa,
@@ -17,40 +17,9 @@ import {
 const AHORA = new Date('2026-08-10T15:00:00.000Z');
 const dia = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 
-/** Repositorio en memoria con la misma semántica que la base: documento único, compare-and-set y evidencias idempotentes. */
-class RepoValidaciones implements ValidacionActaRepositoryPort {
-  filas = new Map<string, DatosValidacionActa>();
-  evid: DatosEvidenciaActa[] = [];
-  /** Hace fallar el N-ésimo compare-and-set que deja la validación en «revision» (simula una interrupción). */
-  fallarCasDeResultado = 0;
-  async buscarPorId(id: string) { const d = this.filas.get(id); return d ? ValidacionActa.desde(d) : null; }
-  async buscarPorDocumento(documentoId: string) {
-    const d = [...this.filas.values()].find((f) => f.documentoId === documentoId);
-    return d ? ValidacionActa.desde(d) : null;
-  }
-  async listarPorPractica(practicaId: string) { return [...this.filas.values()].filter((f) => f.practicaId === practicaId).map((d) => ValidacionActa.desde(d)); }
-  async crearSiNoExiste(datos: DatosValidacionActa) {
-    const previa = [...this.filas.values()].find((f) => f.documentoId === datos.documentoId);
-    if (previa) return { validacion: ValidacionActa.desde(previa), creada: false };
-    this.filas.set(datos.id, { ...datos });
-    return { validacion: ValidacionActa.desde(datos), creada: true };
-  }
-  async guardarSiVersion(datos: DatosValidacionActa, versionEsperada: number) {
-    const actual = this.filas.get(datos.id);
-    if (!actual || actual.version !== versionEsperada) return false;
-    if (datos.estado === EstadoValidacionActa.REVISION && this.fallarCasDeResultado > 0) {
-      this.fallarCasDeResultado -= 1;
-      throw new Error('interrupción simulada');
-    }
-    this.filas.set(datos.id, { ...datos, version: versionEsperada + 1 });
-    return true;
-  }
-  async agregarEvidencia(datos: DatosEvidenciaActa) {
-    if (this.evid.some((e) => e.validacionActaId === datos.validacionActaId && e.intento === datos.intento && e.tipo === datos.tipo)) return false;
-    this.evid.push({ ...datos });
-    return true;
-  }
-  async listarEvidencias(id: string) { return this.evid.filter((e) => e.validacionActaId === id).map((e) => EvidenciaActa.desde(e)); }
+/** Repositorio en memoria con la misma semántica que la base (compartido con las pruebas de la Mesa). */
+class RepoValidaciones extends ValidacionesActaMemoria {
+  constructor() { super({ documentos: new DocumentosMemoria(), practicas: new Map(), usuarios: new Map() }); }
 }
 
 const estudiante = Usuario.desde({
@@ -343,13 +312,13 @@ describe('Acta de iniciación · validación persistida', () => {
       const doc = documentoActa('doc-1', 1, lectura());
       documentos.set('doc-1', doc);
       const antes = (await caso.registrarProcesamiento(doc, AHORA))!.instantanea();
-      await caso.registrarDecisionHumana(doc, 'devolver', { id: 'aux-1', correo: 'a@cun.edu.co', rol: Rol.COORDINADOR, permiso: 'escritura', escuelas: [], empresaId: null }, AHORA);
+      await caso.registrarDecisionHumana(doc, 'devolver', { id: 'aux-1', correo: 'a@cun.edu.co', rol: Rol.COORDINADOR, permiso: 'escritura', escuelas: [], empresaId: null }, null, AHORA);
       const despues = (await repo.buscarPorDocumento('doc-1'))!.instantanea();
       expect(despues).toMatchObject({ estado: EstadoValidacionActa.DEVUELTO, decididoPor: 'aux-1', tipoActaDetectada: antes.tipoActaDetectada });
       expect(despues.comparacion).toEqual(antes.comparacion);
       expect(repo.evid.filter((e) => e.tipo === TipoEvidenciaActa.DECISION_HUMANA)).toHaveLength(1);
       // Una decisión ya tomada no se repite ni se reprocesa.
-      await caso.registrarDecisionHumana(doc, 'aprobar', { id: 'otro', correo: 'o@cun.edu.co', rol: Rol.ADMINISTRADOR, permiso: 'escritura', escuelas: [], empresaId: null }, AHORA);
+      await caso.registrarDecisionHumana(doc, 'aprobar', { id: 'otro', correo: 'o@cun.edu.co', rol: Rol.ADMINISTRADOR, permiso: 'escritura', escuelas: [], empresaId: null }, null, AHORA);
       expect((await repo.buscarPorDocumento('doc-1'))!.estado).toBe(EstadoValidacionActa.DEVUELTO);
       expect((await caso.registrarProcesamiento(doc, AHORA))!.estado).toBe(EstadoValidacionActa.DEVUELTO);
       expect(() => ValidacionActa.desde(despues).registrarResultado({} as never, AHORA)).toThrow(ValidacionActaYaDecididaError);

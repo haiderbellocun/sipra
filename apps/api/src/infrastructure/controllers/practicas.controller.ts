@@ -4,6 +4,7 @@ import {
 import {
   ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags,
 } from '@nestjs/swagger';
+import { CorregirDatosPracticaDto, CorreccionDatosPracticaRespuestaDto } from '../../application/dtos/acta-iniciacion.dto';
 import {
   ActualizarVacanteDto, AsignarTutorDto, CrearPracticaDto, PracticaRespuestaDto, RegistrarArlDto,
   RegistrarHorasDto, RegistrarPracticaDto, TransicionPracticaDto,
@@ -119,6 +120,25 @@ export class PracticasController {
     @ActorActual() actor: Actor,
   ): Promise<PracticaRespuestaDto> {
     return this.gestionar.actualizarVacante(id, dto, actor);
+  }
+
+  @Patch(':id/datos-gobernantes')
+  @Roles(Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @ApiOperation({
+    summary: 'Corregir la remuneración y/o quién asume la ARL (con acta de iniciación cargada o no)',
+    description:
+      'Solo coordinación y administración, con justificación y auditoría (valor anterior, nuevo, actor y motivo). No modifica el ' +
+      'acta ni una decisión ya tomada: si la validación está sin decidir, su comparación se recalcula en una ronda nueva; si ya ' +
+      'estaba decidida, solo queda constancia de que los datos cambiaron después. Con un acta cargada, la edición común de la ' +
+      'vacante ya no admite estos dos campos.',
+  })
+  @ApiResponse({ status: 200, description: 'Datos vigentes y qué pasó con la comparación del acta' })
+  corregirDatosGobernantes(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CorregirDatosPracticaDto,
+    @ActorActual() actor: Actor,
+  ): Promise<CorreccionDatosPracticaRespuestaDto> {
+    return this.gestionar.corregirDatosGobernantes(id, dto, actor);
   }
 
   @Get(':id')

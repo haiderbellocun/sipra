@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { LecturaActaPersistible } from '../../../domain/entities/acta-iniciacion';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
@@ -12,7 +12,9 @@ import {
 } from '../../../domain/ports/out/repositorios.port';
 import { SINU, SinuPort } from '../../../domain/ports/out/servicios-externos.port';
 import { VALIDACION_ACTA_REPOSITORY, ValidacionActaRepositoryPort } from '../../../domain/ports/out/validacion-acta.port';
-import { datosSipraDePractica, resolverValidacionActa } from '../../../domain/services/validacion-acta.domain-service';
+import {
+  datosSipraDePractica, recalcularComparacion, resolverValidacionActa,
+} from '../../../domain/services/validacion-acta.domain-service';
 import { Actor } from '../practicas/gestionar-practica.use-case';
 
 /**
@@ -138,21 +140,119 @@ export class ValidacionActaUseCase {
   // ── Decisión humana tomada sobre el documento ────────────────────────────
 
   /**
-   * La decisión general del documento (aprobar, devolver, rechazar) se refleja en la validación y deja su evidencia.
-   * No cambia ningún resultado de lectura. Para otros tipos de documento no hace nada.
+   * Solo un acta LISTA para revisión se decide. Mientras está pendiente o procesando (o falló), no hay nada que decidir:
+   * 409 controlado, y NO se crea una validación artificial. Una ya decidida tampoco se decide otra vez.
    */
-  async registrarDecisionHumana(documento: Documento, decision: DecisionActa, actor: Actor, ahora: Date = new Date()): Promise<void> {
+  async exigirRevisable(documentoId: string): Promise<ValidacionActa> {
+    const validacion = await this.validaciones.buscarPorDocumento(documentoId);
+    if (!validacion) throw new ConflictException('El acta todavía no se ha procesado: espere a que esté lista para revisión');
+    if (validacion.estaDecidida) throw new ConflictException('El acta ya fue decidida');
+    if (!validacion.estaRevisable) {
+      throw new ConflictException(
+        validacion.estado === EstadoValidacionActa.ERROR
+          ? 'El procesamiento del acta falló: debe reintentarse antes de decidir'
+          : 'El acta todavía se está procesando: espere a que esté lista para revisión',
+      );
+    }
+    return validacion;
+  }
+
+  /**
+   * La decisión general del documento se refleja en la validación (estado, motivo, quién y cuándo; libera la reserva) y deja
+   * su evidencia. No cambia ningún resultado de lectura. NO crea la validación si no existe. Reintenta ante un cambio
+   * concurrente de versión (otra persona reservó o liberó mientras tanto): la decisión del documento ya se aplicó.
+   */
+  async registrarDecisionHumana(
+    documento: Documento, decision: DecisionActa, actor: Actor, motivo: string | null = null, ahora: Date = new Date(),
+  ): Promise<void> {
     if (documento.tipo !== TipoDocumento.ACTA_INICIO) return;
-    const validacion = await this.obtenerOCrear(documento, ahora);
-    if (!validacion || validacion.estaDecidida) return;
-    const versionLeida = validacion.version;
-    validacion.registrarDecision(decision, actor.id, ahora);
-    if (!(await this.validaciones.guardarSiVersion(validacion.instantanea(), versionLeida))) return;
-    await this.validaciones.agregarEvidencia(EvidenciaActa.crear({
-      id: randomUUID(), validacionActaId: validacion.id, intento: validacion.intentos, tipo: TipoEvidenciaActa.DECISION_HUMANA,
-      resultado: decision, metodo: 'decision_documento', fecha: ahora, actorId: actor.id,
-      hashDocumento: documento.instantanea().hashSha256, datos: { rol: actor.rol }, errorCodigo: null, creadoEn: ahora,
-    }).instantanea());
+    for (let intento = 0; intento < 5; intento += 1) {
+      const validacion = await this.validaciones.buscarPorDocumento(documento.id);
+      if (!validacion || validacion.estaDecidida) return;
+      const versionLeida = validacion.version;
+      validacion.registrarDecision(decision, actor.id, ahora, motivo);
+      if (!(await this.validaciones.guardarSiVersion(validacion.instantanea(), versionLeida))) continue;
+      await this.validaciones.agregarEvidencia(EvidenciaActa.crear({
+        id: randomUUID(), validacionActaId: validacion.id, intento: validacion.intentos, tipo: TipoEvidenciaActa.DECISION_HUMANA,
+        resultado: decision, metodo: 'decision_documento', fecha: ahora, actorId: actor.id,
+        hashDocumento: documento.instantanea().hashSha256, datos: { rol: actor.rol, motivo }, errorCodigo: null, creadoEn: ahora,
+      }).instantanea());
+      return;
+    }
+  }
+
+  // ── Cambio de los datos canónicos de la práctica ─────────────────────────
+
+  /**
+   * Remuneración y responsable de la ARL gobiernan la comparación. Si cambian (coordinación/administración, con
+   * justificación) y ya hay un acta:
+   *  · validación en revisión → la comparación se RECALCULA en una ronda nueva (las evidencias anteriores se conservan);
+   *  · ya decidida → NO se reabre ni se toca: queda constancia de que los datos cambiaron después;
+   *  · pendiente/procesando/error → no hay cálculo aún: usará los datos nuevos al procesarse.
+   * El archivo no cambió: no hay versión documental nueva. Nunca se borra historial.
+   */
+  async alCambiarDatosDeLaPractica(
+    practicaId: string, cambios: { remuneracion?: { de: string | null; a: string }; responsableArl?: { de: string | null; a: string } },
+    actor: Actor, justificacion: string, ahora: Date = new Date(),
+  ): Promise<'sin_acta' | 'sin_calculo' | 'recalculada' | 'marcada_posterior_a_decision'> {
+    const actas = (await this.documentos.listarPorPractica(practicaId)).filter((d) => d.tipo === TipoDocumento.ACTA_INICIO);
+    if (actas.length === 0) return 'sin_acta';
+    const vigente = actas.reduce((m, d) => (d.instantanea().version > m.instantanea().version ? d : m));
+    const practica = await this.practicas.buscarPorId(practicaId);
+    if (!practica) return 'sin_acta';
+
+    for (let intento = 0; intento < 5; intento += 1) {
+      const validacion = await this.validaciones.buscarPorDocumento(vigente.id);
+      if (!validacion || !validacion.estaProcesada) return 'sin_calculo';
+      const versionLeida = validacion.version;
+      const evidenciaCambio = (n: number): EvidenciaActa => EvidenciaActa.crear({
+        id: randomUUID(), validacionActaId: validacion.id, intento: n, tipo: TipoEvidenciaActa.CAMBIO_DATOS_PRACTICA,
+        resultado: validacion.estaDecidida ? 'posterior_a_decision' : 'recalculada', metodo: 'correccion_datos_practica', fecha: ahora,
+        actorId: actor.id, hashDocumento: vigente.instantanea().hashSha256, datos: { cambios, rol: actor.rol, conJustificacion: justificacion.length > 0 },
+        errorCodigo: null, creadoEn: ahora,
+      });
+
+      if (validacion.estaDecidida) {
+        validacion.marcarCambioDeDatosPosterior(ahora);
+        if (!(await this.validaciones.guardarSiVersion(validacion.instantanea(), versionLeida))) continue;
+        await this.validaciones.agregarEvidencia(evidenciaCambio(validacion.intentos).instantanea());
+        await this.auditar(AccionAuditada.ACTA_DATOS_CAMBIARON_TRAS_DECISION, validacion.id, { documentoId: vigente.id, cambios }, actor, justificacion);
+        return 'marcada_posterior_a_decision';
+      }
+
+      const estudiante = await this.usuarios.buscarPorId(practica.estudianteId);
+      const empresa = practica.empresaId ? await this.empresas.buscarPorId(practica.empresaId) : null;
+      const sipra = datosSipraDePractica({
+        practica: practica.instantanea(),
+        estudiante: { nombre: estudiante?.nombre ?? '', documento: estudiante?.instantanea().documento ?? null },
+        empresa: empresa ? { razonSocial: empresa.razonSocial, nit: empresa.nit.formateado } : null,
+        programa: await this.nombreDelPrograma(estudiante?.instantanea().documento ?? null),
+      });
+      const v = validacion.instantanea();
+      const nueva = recalcularComparacion(v, sipra, ahora);
+      if (!nueva) return 'sin_calculo';
+      validacion.aplicarRecalculo(nueva.comparacion, nueva.hayDiscrepanciaCritica, ahora);
+      if (!(await this.validaciones.guardarSiVersion(validacion.instantanea(), versionLeida))) continue;
+      const ronda = validacion.intentos;
+      await this.validaciones.agregarEvidencia(evidenciaCambio(ronda).instantanea());
+      await this.validaciones.agregarEvidencia(EvidenciaActa.crear({
+        id: randomUUID(), validacionActaId: validacion.id, intento: ronda, tipo: TipoEvidenciaActa.COMPARACION,
+        resultado: nueva.comparacion.veredicto, metodo: 'comparacion_acta_vs_sipra', fecha: ahora, actorId: actor.id,
+        hashDocumento: vigente.instantanea().hashSha256,
+        datos: {
+          motivo: 'cambio_datos_practica', resumen: nueva.comparacion.resumen,
+          camposDiferentes: nueva.comparacion.campos.filter((f) => f.resultado === 'diferente').map((f) => f.campo),
+          camposInsuficientes: nueva.comparacion.campos.filter((f) => f.resultado === 'informacion_insuficiente').map((f) => f.campo),
+          discrepancias: nueva.comparacion.discrepancias.map((d) => d.codigo),
+        },
+        errorCodigo: null, creadoEn: ahora,
+      }).instantanea());
+      await this.auditar(AccionAuditada.ACTA_RECALCULADA, validacion.id, {
+        documentoId: vigente.id, veredicto: nueva.comparacion.veredicto, discrepanciasCriticas: nueva.comparacion.discrepancias.filter((d) => d.severidad === 'critica').length,
+      }, actor, justificacion);
+      return 'recalculada';
+    }
+    return 'sin_calculo';
   }
 
   // ── internos ─────────────────────────────────────────────────────────────
@@ -180,10 +280,13 @@ export class ValidacionActaUseCase {
     }
   }
 
-  private async auditar(accion: AccionAuditada, entidadId: string, metadatos: Record<string, unknown>): Promise<void> {
+  private async auditar(
+    accion: AccionAuditada, entidadId: string, metadatos: Record<string, unknown>, actor?: Actor, justificacion: string | null = null,
+  ): Promise<void> {
     await this.auditoria.registrar({
-      actorId: null, actorCorreo: 'sistema', actorRol: 'sistema', accion, entidad: 'validacion_acta_iniciacion', entidadId,
-      justificacion: null, metadatos, ip: null, agenteUsuario: null, ocurridoEn: new Date(),
+      actorId: actor?.id ?? null, actorCorreo: actor?.correo ?? 'sistema', actorRol: actor?.rol ?? 'sistema', accion,
+      entidad: 'validacion_acta_iniciacion', entidadId, justificacion, metadatos, ip: actor?.ip ?? null,
+      agenteUsuario: actor?.agenteUsuario ?? null, ocurridoEn: new Date(),
     });
   }
 }

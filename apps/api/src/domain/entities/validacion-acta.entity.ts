@@ -67,6 +67,17 @@ export interface DatosValidacionActa {
   procesadaEn: Date | null;
   decididoPor: string | null;
   decididoEn: Date | null;
+  /** Motivo de la devolución (código del catálogo de la Mesa); solo si se devolvió. */
+  motivoDecision: string | null;
+  // ── Reserva operativa (una persona a la vez) ──
+  asignadoA: string | null;
+  reservadoEn: Date | null;
+  reservaHasta: Date | null;
+  /**
+   * Los datos canónicos de la práctica (remuneración, responsable de la ARL) cambiaron DESPUÉS de que esta validación
+   * ya tenía una decisión humana. La decisión no se toca: solo queda constancia.
+   */
+  datosPracticaCambiaronEn: Date | null;
   version: number;
   creadaEn: Date;
   actualizadaEn: Date;
@@ -103,7 +114,8 @@ export class ValidacionActa {
       tipoActaDetectada: null, remuneracionDetectada: null, responsableArlDetectado: null,
       firmaEmpresa: null, firmaPracticante: null, metodoLectura: null, confianza: null,
       motivosClasificacion: [], datosExtraidos: null, comparacion: null, hayDiscrepanciaCritica: false,
-      recibidaEn: base.recibidaEn, procesadaEn: null, decididoPor: null, decididoEn: null,
+      recibidaEn: base.recibidaEn, procesadaEn: null, decididoPor: null, decididoEn: null, motivoDecision: null,
+      asignadoA: null, reservadoEn: null, reservaHasta: null, datosPracticaCambiaronEn: null,
       version: 1, creadaEn: base.ahora, actualizadaEn: base.ahora,
     });
   }
@@ -116,6 +128,19 @@ export class ValidacionActa {
   get estaDecidida(): boolean { return ESTADOS_DECIDIDOS_ACTA.includes(this.datos.estado); }
   /** Ya tiene un resultado de lectura (en revisión o decidida). Reprocesarla no hace falta ni se hace. */
   get estaProcesada(): boolean { return this.datos.estado === EstadoValidacionActa.REVISION || this.estaDecidida; }
+  /** Lista para que una persona la decida: leída y comparada, sin decisión. Antes de eso NO se decide. */
+  get estaRevisable(): boolean { return this.datos.estado === EstadoValidacionActa.REVISION; }
+
+  /** ¿Otra persona la tiene reservada y su reserva sigue vigente? */
+  reservadaPorOtro(actorId: string, ahora: Date): boolean {
+    return this.datos.asignadoA !== null && this.datos.asignadoA !== actorId
+      && this.datos.reservaHasta !== null && this.datos.reservaHasta.getTime() > ahora.getTime();
+  }
+
+  /** ¿La tiene reservada ESTA persona y sigue vigente? */
+  reservadaPor(actorId: string, ahora: Date): boolean {
+    return this.datos.asignadoA === actorId && this.datos.reservaHasta !== null && this.datos.reservaHasta.getTime() > ahora.getTime();
+  }
 
   instantanea(): DatosValidacionActa { return { ...this.datos, motivosClasificacion: [...this.datos.motivosClasificacion] }; }
 
@@ -146,13 +171,40 @@ export class ValidacionActa {
     this.datos.actualizadaEn = ahora;
   }
 
-  /** Refleja una decisión humana. No cambia ningún resultado de lectura. */
-  registrarDecision(decision: DecisionActa, actorId: string, ahora: Date): void {
+  /** Refleja una decisión humana. No cambia ningún resultado de lectura; libera la reserva. */
+  registrarDecision(decision: DecisionActa, actorId: string, ahora: Date, motivo: string | null = null): void {
     if (this.estaDecidida) throw new ValidacionActaYaDecididaError(this.datos.estado);
     this.datos.estado = ESTADO_POR_DECISION[decision];
     this.datos.errorCodigo = null;
     this.datos.decididoPor = actorId;
     this.datos.decididoEn = ahora;
+    this.datos.motivoDecision = decision === 'devolver' ? motivo : null;
+    this.datos.asignadoA = null;
+    this.datos.reservadoEn = null;
+    this.datos.reservaHasta = null;
+    this.datos.actualizadaEn = ahora;
+  }
+
+  /**
+   * Cambiaron los datos canónicos de la práctica y esta validación todavía NO tiene decisión: se recalcula la comparación
+   * en una ronda NUEVA (las evidencias de la anterior se conservan). El estado y la reserva no cambian.
+   */
+  aplicarRecalculo(comparacion: ComparacionActaPersistida, hayDiscrepanciaCritica: boolean, ahora: Date): void {
+    if (this.estaDecidida) throw new ValidacionActaYaDecididaError(this.datos.estado);
+    this.datos.comparacion = comparacion;
+    this.datos.hayDiscrepanciaCritica = hayDiscrepanciaCritica;
+    this.datos.intentos += 1;
+    this.datos.actualizadaEn = ahora;
+  }
+
+  /**
+   * Cambiaron los datos canónicos DESPUÉS de una decisión humana: la decisión y la comparación con que se decidió no se
+   * tocan (son historia); solo se deja constancia, en una ronda nueva de evidencias.
+   */
+  marcarCambioDeDatosPosterior(ahora: Date): void {
+    if (!this.estaDecidida) throw new Error('Solo una validación decidida registra un cambio posterior de datos');
+    this.datos.datosPracticaCambiaronEn = ahora;
+    this.datos.intentos += 1;
     this.datos.actualizadaEn = ahora;
   }
 }
@@ -166,6 +218,8 @@ export enum TipoEvidenciaActa {
   MEDICION_FIRMAS = 'medicion_firmas',
   PROCESAMIENTO = 'procesamiento',
   DECISION_HUMANA = 'decision_humana',
+  /** Remuneración o responsable de la ARL de la práctica cambiaron con un acta ya cargada (con justificación). */
+  CAMBIO_DATOS_PRACTICA = 'cambio_datos_practica',
 }
 
 /** Claves que nunca van en una evidencia (la base también las rechaza): texto del documento e imágenes de firma. */

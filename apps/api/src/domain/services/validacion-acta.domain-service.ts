@@ -1,10 +1,10 @@
 import {
-  CAMPOS_ACTA, CAMPOS_ACTA_PERSISTIBLES, CampoActa, CampoLeidoActa, CamposActaLeidos, ComparacionActa,
+  CAMPOS_ACTA, CAMPOS_ACTA_PERSISTIBLES, CampoActa, CampoLeidoActa, CamposActaLeidos, ClasificacionActa, ComparacionActa,
   ComparacionActaPersistida, DatosSipraActa, FirmasActa, LecturaActaPersistible,
   MAX_CARACTERES_FUNCIONES_PERSISTIDAS,
 } from '../entities/acta-iniciacion';
 import { DatosPractica } from '../entities/practica.entity';
-import { ResultadoProcesamientoActa, TipoEvidenciaActa } from '../entities/validacion-acta.entity';
+import { DatosValidacionActa, ResultadoProcesamientoActa, TipoEvidenciaActa } from '../entities/validacion-acta.entity';
 import { compararActaConSipra } from './comparacion-acta.domain-service';
 import { CONFIANZA_TEXTO_NATIVO_ACTA } from './extraccion-acta.domain-service';
 import { LecturaActaLocal } from './lectura-local-acta.domain-service';
@@ -231,4 +231,39 @@ export function resolverValidacionActa(
     },
     evidencias,
   };
+}
+
+// ── Recalcular la comparación cuando cambian los datos de la práctica ───────
+
+const MENSAJE_DISCREPANCIA_DOCUMENTO: Readonly<Record<string, string>> = {
+  ARL_ENCABEZADO_VS_OBLIGACIONES: 'El encabezado y las obligaciones del acta no coinciden sobre quién asume la ARL.',
+  ARL_ENCABEZADO_AMBIGUO: 'El encabezado menciona a la CUN y a la empresa como responsables de la ARL.',
+  ARL_OBLIGACIONES_AMBIGUAS: 'La obligación de afiliar a la ARL figura en las obligaciones de la empresa y de la institución.',
+  REMUNERACION_AMBIGUA: 'El documento se presenta a la vez como remunerado y no remunerado.',
+  TIPO_ACTA_NO_CONFIRMADO: 'No se pudo confirmar que el documento sea un acta de iniciación de prácticas.',
+};
+
+/**
+ * Lo que la validación conserva basta para comparar de nuevo contra datos de SIPRA que cambiaron (la comparación es una
+ * función pura de la lectura y de SIPRA): clasificación (columnas y discrepancias del documento) y campos conservados.
+ * No relee el archivo ni lo toca.
+ */
+export function recalcularComparacion(
+  v: Pick<DatosValidacionActa, 'tipoActaDetectada' | 'remuneracionDetectada' | 'responsableArlDetectado' | 'motivosClasificacion' | 'datosExtraidos' | 'comparacion'>,
+  sipra: DatosSipraActa, ahora: Date,
+): { comparacion: ComparacionActaPersistida; hayDiscrepanciaCritica: boolean; completa: ComparacionActa } | null {
+  if (v.tipoActaDetectada !== 'iniciacion_practicas') return null;
+  const discrepanciasDocumento = (v.comparacion?.discrepancias ?? [])
+    .filter((d) => d.campo === 'documento_acta')
+    .map((d) => ({ codigo: d.codigo as never, severidad: 'critica' as const, mensaje: MENSAJE_DISCREPANCIA_DOCUMENTO[d.codigo] ?? 'Discrepancia del documento.' }));
+  const clasificacion: ClasificacionActa = {
+    tipoActaDetectada: 'iniciacion_practicas', documentoAjeno: null,
+    remuneracion: v.remuneracionDetectada ?? 'no_determinable', responsableArl: v.responsableArlDetectado ?? 'no_determinable',
+    confianzaRemuneracion: null, confianzaResponsableArl: null,
+    senales: { remuneracionEncabezado: 'no_determinable', arlEncabezado: 'ninguna', arlObligaciones: 'ninguna' },
+    puntajeActa: 0, puntajeAjeno: 0, motivos: [...v.motivosClasificacion], discrepanciasDocumento,
+  };
+  const completa = compararActaConSipra({ clasificacion, campos: hidratarCampos(v.datosExtraidos?.campos ?? {}) }, sipra);
+  const comparacion = comparacionAPersistida(completa, ahora);
+  return { comparacion, hayDiscrepanciaCritica: comparacion.discrepancias.some((d) => d.severidad === 'critica'), completa };
 }

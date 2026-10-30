@@ -39,7 +39,7 @@ const nombreDe = (m: new () => MigrationInterface): string => (new m() as Migrat
 const ESPERADAS = MIGRACIONES.map(nombreDe);
 const PRE_EPS = MIGRACIONES.slice(0, 11); // 0–10: hasta ConsentimientoVersionado
 const EPS = MIGRACIONES.slice(11, 16); // 11–15
-const ACTA = MIGRACIONES.slice(16); // 16–17: responsable de la ARL y validación del acta de iniciación (Bloque 3)
+const ACTA = MIGRACIONES.slice(16); // 16–18: responsable de la ARL, validación del acta de iniciación y su Mesa (Bloques 3 y 4)
 
 async function admin(): Promise<DataSource> {
   return new DataSource({ type: 'postgres', url: urlDe('postgres'), ssl: false }).initialize();
@@ -118,6 +118,12 @@ async function esquemaActa(ds: DataSource, etiqueta: string): Promise<void> {
   comprobar(`${etiqueta}: practicas.responsable_arl existe y admite NULL (histórico sin rellenar)`, col.length === 1 && col[0].is_nullable === 'YES');
   const cons = (await ds.query(`SELECT conname FROM pg_constraint WHERE conname IN ('ck_practicas_responsable_arl','ux_vacta_documento','ux_eacta_idempotencia','ck_vacta_solo_acta','ck_vacta_decision_humana')`)).map((r: { conname: string }) => r.conname);
   for (const c of ['ck_practicas_responsable_arl', 'ux_vacta_documento', 'ux_eacta_idempotencia', 'ck_vacta_solo_acta', 'ck_vacta_decision_humana']) comprobar(`${etiqueta}: restricción ${c}`, cons.includes(c));
+  const colsMesa = (await ds.query(`SELECT column_name FROM information_schema.columns WHERE table_name='validaciones_acta_iniciacion'`)).map((r: { column_name: string }) => r.column_name);
+  for (const c of ['asignado_a', 'reservado_en', 'reserva_hasta', 'motivo_decision', 'datos_practica_cambiaron_en']) comprobar(`${etiqueta}: validaciones_acta_iniciacion.${c}`, colsMesa.includes(c));
+  const consMesa = (await ds.query(`SELECT conname FROM pg_constraint WHERE conname IN ('ck_vacta_reserva','ck_vacta_reserva_solo_revision','ck_vacta_motivo','ck_vacta_motivo_solo_devuelto')`)).map((r: { conname: string }) => r.conname);
+  for (const c of ['ck_vacta_reserva', 'ck_vacta_reserva_solo_revision', 'ck_vacta_motivo', 'ck_vacta_motivo_solo_devuelto']) comprobar(`${etiqueta}: restricción ${c}`, consMesa.includes(c));
+  const idxMesa = (await ds.query(`SELECT indexname FROM pg_indexes WHERE tablename='validaciones_acta_iniciacion'`)).map((r: { indexname: string }) => r.indexname);
+  for (const i of ['ix_vacta_mesa', 'ix_vacta_asignado']) comprobar(`${etiqueta}: índice ${i}`, idxMesa.includes(i));
   const trg = (await ds.query(`SELECT tgname FROM pg_trigger WHERE NOT tgisinternal`)).map((r: { tgname: string }) => r.tgname);
   comprobar(`${etiqueta}: disparador de evidencias del acta de solo inserción`, trg.includes('tg_evidencias_acta_inmutable'));
   const p = async (rol: string, tabla: string, priv: string): Promise<boolean> => (await ds.query('SELECT has_table_privilege($1,$2,$3) AS v', [rol, tabla, priv]))[0].v as boolean;
@@ -156,7 +162,7 @@ async function sintetizarPreEps(ds: DataSource): Promise<{ aprobador: string }> 
 
 async function main(): Promise<void> {
   const sufijo = randomUUID().slice(0, 6);
-  const bases = { cero: `mig_cero_${sufijo}`, rev: `mig_rev_${sufijo}`, up: `mig_up_${sufijo}`, acta: `mig_acta_${sufijo}` };
+  const bases = { cero: `mig_cero_${sufijo}`, rev: `mig_rev_${sufijo}`, up: `mig_up_${sufijo}`, acta: `mig_acta_${sufijo}`, acta2: `mig_acta2_${sufijo}` };
   try {
     // ── A. Desde cero ─────────────────────────────────────────────────────
     console.log('\nA. Migración completa desde una base vacía');
@@ -199,7 +205,7 @@ async function main(): Promise<void> {
     });
     // Bloque 3 (16–17) primero. Sin datos del acta el down es limpio y no toca el resto de lo que ya existía.
     const practicasAntes = await huella(ds, 'practicas', true);
-    for (const n of ['ValidacionActaIniciacion', 'ResponsableArlPractica']) {
+    for (const n of ['MesaActas', 'ValidacionActaIniciacion', 'ResponsableArlPractica']) {
       await ds.undoLastMigration({ transaction: 'each' });
       const regA = await registradas(ds);
       comprobar(`down de ${n}: revertida y fuera del registro`, !regA.some((x) => x.startsWith(n)));
@@ -257,11 +263,36 @@ async function main(): Promise<void> {
     const vActa = randomUUID();
     await ds.query(`INSERT INTO validaciones_acta_iniciacion (id, documento_id, practica_id, estudiante_id) VALUES ($1,$2,$3,$4)`, [vActa, docActa, PRACTICAS[0], estActa]);
     await ds.query(`INSERT INTO evidencias_validacion_acta (id, validacion_acta_id, intento, tipo, resultado, metodo, fecha) VALUES ($1,$2,1,'procesamiento','ok','sintetico', now())`, [randomUUID(), vActa]);
+    // La 18 (Mesa) se revierte sin problema: no hay evidencia de cambio de datos de la práctica.
+    await ds.undoLastMigration({ transaction: 'each' });
+    comprobar('down de MesaActas sin evidencia de cambio de datos: revertida', !(await registradas(ds)).some((x) => x.startsWith('MesaActas')));
     const fallaActa = await ds.undoLastMigration({ transaction: 'each' }).then(() => null, (e: Error) => e.message);
     comprobar('down de ValidacionActaIniciacion se NIEGA con evidencia existente (solo inserción)', fallaActa !== null, 'no se negó');
     comprobar('tras el rechazo, la migración 17 sigue registrada y la evidencia intacta',
       (await registradas(ds)).some((x) => x.startsWith('ValidacionActaIniciacion')) &&
       (await ds.query(`SELECT count(*)::int AS n FROM evidencias_validacion_acta`))[0].n === 1);
+    await ds.destroy();
+
+    // Con una evidencia de CAMBIO DE DATOS de la práctica (solo inserción), el down de la Mesa (18) se NIEGA.
+    await crearBase(bases.acta2);
+    ds = await abrir(bases.acta2, MIGRACIONES);
+    await ds.runMigrations({ transaction: 'each' });
+    await cargarCatalogos(ds);
+    await sembrar(ds);
+    const [{ id: estActa2 }] = await ds.query(`SELECT id FROM usuarios WHERE rol='estudiante' LIMIT 1`);
+    const [{ id: actorActa2 }] = await ds.query(`SELECT id FROM usuarios WHERE rol='coordinador' LIMIT 1`);
+    const docActa2 = randomUUID();
+    await ds.query(
+      `INSERT INTO documentos (id, practica_id, tipo, version, estado, nombre_original, mime_real, tamano_bytes, hash_sha256, ruta_almacenamiento) VALUES ($1,$2,'acta_inicio',1,'en_revision','s.pdf','application/pdf',10,$3,'s/a.pdf')`,
+      [docActa2, PRACTICAS[0], createHash('sha256').update(docActa2).digest('hex')]);
+    const vActa2 = randomUUID();
+    await ds.query(`INSERT INTO validaciones_acta_iniciacion (id, documento_id, practica_id, estudiante_id) VALUES ($1,$2,$3,$4)`, [vActa2, docActa2, PRACTICAS[0], estActa2]);
+    await ds.query(`INSERT INTO evidencias_validacion_acta (id, validacion_acta_id, intento, tipo, resultado, metodo, fecha, actor_id) VALUES ($1,$2,2,'cambio_datos_practica','recalculada','correccion', now(), $3)`, [randomUUID(), vActa2, actorActa2]);
+    const fallaMesa = await ds.undoLastMigration({ transaction: 'each' }).then(() => null, (e: Error) => e.message);
+    comprobar('down de MesaActas se NIEGA con evidencia de cambio de datos (solo inserción)', fallaMesa !== null, 'no se negó');
+    comprobar('tras el rechazo, la migración 18 sigue registrada y el esquema no quedó a medias',
+      (await registradas(ds)).some((x) => x.startsWith('MesaActas')) &&
+      (await ds.query(`SELECT 1 FROM information_schema.columns WHERE table_name='validaciones_acta_iniciacion' AND column_name='asignado_a'`)).length === 1);
     await ds.destroy();
 
     // ── C. Upgrade desde PRE-EPS ──────────────────────────────────────────
@@ -290,8 +321,8 @@ async function main(): Promise<void> {
     await ds.destroy();
     ds = await abrir(bases.up, MIGRACIONES);
     const ultima = await ds.runMigrations({ transaction: 'each' });
-    comprobar('las migraciones 15 (Mesa) y 16–17 (acta) se aplicaron sobre filas existentes',
-      ultima.length === 3 && ultima[0].name.startsWith('MesaEps') && ultima[1].name.startsWith('ResponsableArl') && ultima[2].name.startsWith('ValidacionActa'), ultima.map((m) => m.name).join(', '));
+    comprobar('las migraciones 15 (Mesa EPS) y 16–18 (acta y su Mesa) se aplicaron sobre filas existentes',
+      ultima.length === 4 && ultima[0].name.startsWith('MesaEps') && ultima[1].name.startsWith('ResponsableArl') && ultima[2].name.startsWith('ValidacionActa') && ultima[3].name.startsWith('MesaActas'), ultima.map((m) => m.name).join(', '));
     const [{ n: sinRellenar }] = await ds.query(`SELECT count(*)::int AS n FROM practicas WHERE responsable_arl IS NOT NULL`);
     const [{ n: practicasN }] = await ds.query(`SELECT count(*)::int AS n FROM practicas`);
     comprobar(`las ${practicasN} prácticas históricas quedaron con responsable_arl NULL (no se rellenó ni se derivó de la modalidad)`, practicasN > 0 && sinRellenar === 0, `${sinRellenar} con valor`);

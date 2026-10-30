@@ -292,8 +292,9 @@ export function recomendacionActual(
 
 // ── Decisión: justificación reforzada ───────────────────────────────────────
 
-export const JUSTIFICACION_MINIMA = 10;
-export const JUSTIFICACION_REFORZADA = 40;
+import { JUSTIFICACION_MINIMA, JUSTIFICACION_REFORZADA } from './justificacion-decision';
+// Se reexportan: la definición es compartida con la Mesa de Actas.
+export { JUSTIFICACION_MINIMA, JUSTIFICACION_REFORZADA };
 
 export function evaluarApartamiento(
   decision: 'aprobar' | 'devolver' | 'rechazar', recomendacion: RecomendacionEps,

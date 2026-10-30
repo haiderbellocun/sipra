@@ -25,6 +25,11 @@ export class ValidacionActaOrm {
   @Column({ type: 'timestamptz', nullable: true }) procesada_en!: Date | null;
   @Column({ type: 'uuid', nullable: true }) decidido_por!: string | null;
   @Column({ type: 'timestamptz', nullable: true }) decidido_en!: Date | null;
+  @Column({ type: 'varchar', length: 40, nullable: true }) motivo_decision!: string | null;
+  @Column({ type: 'uuid', nullable: true }) asignado_a!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) reservado_en!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) reserva_hasta!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) datos_practica_cambiaron_en!: Date | null;
   @Column({ type: 'integer' }) version!: number;
   @Column({ type: 'timestamptz' }) creada_en!: Date;
   @Column({ type: 'timestamptz' }) actualizada_en!: Date;

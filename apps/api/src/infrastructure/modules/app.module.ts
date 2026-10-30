@@ -118,6 +118,9 @@ import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/v
 import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/consulta-adres.use-case';
 import { MesaEpsUseCase } from '../../application/use-cases/documentos/mesa-eps.use-case';
 import { MesaEpsController } from '../controllers/mesa-eps.controller';
+import { ActasIniciacionController } from '../controllers/actas-iniciacion.controller';
+import { MesaActasUseCase } from '../../application/use-cases/documentos/mesa-actas.use-case';
+import { ActaEstudianteUseCase } from '../../application/use-cases/documentos/acta-estudiante.use-case';
 import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
 import { GEOMETRIA_DOCUMENTO } from '../../domain/ports/out/geometria-documento.port';
 import { LecturaActaLocalAdapter } from '../adapters/lectura-local/lectura-acta-local.adapter';
@@ -212,7 +215,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     EmpresasController, CumplimientoController, BolsaController, SaludController,
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
-    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController,
+    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -326,6 +329,8 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     ConsentimientoUseCase,
     ValidacionEpsUseCase,
     ValidacionActaUseCase,
+    MesaActasUseCase,
+    ActaEstudianteUseCase,
     // Verificación OFICIAL de certificados de EPS: registro de destinos permitidos (hoy vacío),
     // cliente HTTP con defensa SSRF y un adaptador por verificador (ninguno habilitado todavía).
     { provide: REGISTRO_VERIFICADORES_EPS, useFactory: () => new RegistroVerificadoresEps(VERIFICADORES_EPS_OFICIALES) },

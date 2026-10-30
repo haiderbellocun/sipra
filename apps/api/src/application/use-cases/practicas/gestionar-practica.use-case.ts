@@ -1,10 +1,10 @@
 import {
-  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, Optional,
 } from '@nestjs/common';
 import { ParametrosUseCase } from '../administracion/parametros.use-case';
 import { randomUUID } from 'node:crypto';
 import {
-  CompuertaArlError, DatosPractica, EstadoPractica, ModalidadPractica, Practica,
+  CompuertaArlError, DatosPractica, EstadoPractica, ModalidadPractica, Practica, ResponsableArlNoDefinidoError,
   SenalAcompanamiento, TransicionInvalidaError,
 } from '../../../domain/entities/practica.entity';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
@@ -23,6 +23,10 @@ import {
 } from '../../../domain/services/obligaciones.domain-service';
 import { Permiso, Rol } from '../../../domain/value-objects/rol.vo';
 import { ActualizarVacanteDto, CrearPracticaDto, PracticaRespuestaDto } from '../../dtos/practica.dto';
+import { CorregirDatosPracticaDto, CorreccionDatosPracticaRespuestaDto } from '../../dtos/acta-iniciacion.dto';
+import { TipoDocumento } from '../../../domain/entities/documento.entity';
+import { JUSTIFICACION_MINIMA } from '../../../domain/services/justificacion-decision';
+import { ValidacionActaUseCase } from '../documentos/validacion-acta.use-case';
 import { proyectarPracticaPara } from './proyeccion-practica';
 import { AvanceDocumentalDomainService } from '../../../domain/services/avance-documental.domain-service';
 import { EQUIVALENCIA_SGP } from '../../../domain/entities/practica.entity';
@@ -53,6 +57,7 @@ export class GestionarPracticaUseCase {
     @Inject(USUARIO_REPOSITORY) private readonly usuarios: UsuarioRepositoryPort,
     @Inject(AUDITORIA_REPOSITORY) private readonly auditoria: AuditoriaRepositoryPort,
     private readonly parametros: ParametrosUseCase,
+    @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
   ) {}
 
   /** Crea la práctica y, con ella, sus obligaciones normativas (M5). */
@@ -169,6 +174,14 @@ export class GestionarPracticaUseCase {
       throw new ForbiddenException('Solo coordinación o administración cambian quién asume la ARL de la práctica');
     }
     const practica = await this.exigirVisible(id, actor);
+    // Con un acta de iniciación cargada, remuneración y responsable de la ARL gobiernan la comparación documental: ya no se
+    // editan por aquí (ni siquiera coordinación). Se corrigen con la corrección controlada, con justificación y auditoría.
+    if ((dto.tipoRemuneracion !== undefined || dto.responsableArl !== undefined) && await this.tieneActaCargada(id)) {
+      if (![Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+        throw new ForbiddenException('Con el acta de iniciación cargada, la remuneración y quién asume la ARL solo las corrige coordinación o administración, con justificación.');
+      }
+      throw new BadRequestException('Con el acta de iniciación cargada, la remuneración y quién asume la ARL se corrigen con la corrección controlada, que exige justificación.');
+    }
     const arlAnterior = practica.responsableArlPractica;
     try {
       practica.actualizarVacante(dto);
@@ -186,6 +199,54 @@ export class GestionarPracticaUseCase {
       });
     }
     return this.presentar(guardada, actor);
+  }
+
+  private async tieneActaCargada(practicaId: string): Promise<boolean> {
+    return (await this.documentos.listarPorPractica(practicaId)).some((d) => d.tipo === TipoDocumento.ACTA_INICIO);
+  }
+
+  /**
+   * Corrección CONTROLADA de la remuneración y de quién asume la ARL: son los datos con los que se compara el acta de
+   * iniciación. Solo coordinación y administración, con justificación y auditoría (valor anterior, nuevo, actor, motivo). No
+   * modifica el acta ni una decisión ya tomada; si hay una validación sin decidir, su comparación se recalcula en una ronda
+   * nueva; si ya estaba decidida, solo queda constancia de que los datos cambiaron después.
+   */
+  async corregirDatosGobernantes(id: string, dto: CorregirDatosPracticaDto, actor: Actor): Promise<CorreccionDatosPracticaRespuestaDto> {
+    if (![Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+      throw new ForbiddenException('Solo coordinación o administración corrigen estos datos de la práctica');
+    }
+    const justificacion = (dto.justificacion ?? '').trim();
+    if (justificacion.length < JUSTIFICACION_MINIMA) {
+      throw new BadRequestException(`La corrección exige una justificación (al menos ${JUSTIFICACION_MINIMA} caracteres)`);
+    }
+    const practica = await this.exigirVisible(id, actor);
+    const antes = practica.instantanea();
+    const cambios: { remuneracion?: { de: string | null; a: string }; responsableArl?: { de: string | null; a: string } } = {};
+    try {
+      if (dto.tipoRemuneracion !== undefined && dto.tipoRemuneracion !== antes.tipoRemuneracion) {
+        practica.actualizarVacante({
+          tipoRemuneracion: dto.tipoRemuneracion, ...(dto.tipoRemuneracion === 'no_remunerada' ? { salario: null } : {}),
+        });
+        cambios.remuneracion = { de: antes.tipoRemuneracion, a: dto.tipoRemuneracion };
+      }
+      if (dto.responsableArl !== undefined && dto.responsableArl !== antes.responsableArlPractica) {
+        practica.definirResponsableArl(dto.responsableArl);
+        cambios.responsableArl = { de: antes.responsableArlPractica, a: dto.responsableArl };
+      }
+    } catch (error) {
+      throw new BadRequestException((error as Error).message);
+    }
+    if (!cambios.remuneracion && !cambios.responsableArl) {
+      const actual = practica.instantanea();
+      return { practicaId: id, tipoRemuneracion: actual.tipoRemuneracion, responsableArl: actual.responsableArlPractica, actaIniciacion: 'sin_cambios' };
+    }
+    const guardada = await this.practicas.guardar(practica.instantanea());
+    await this.registrarAuditoria(actor, AccionAuditada.DATOS_PRACTICA_CORREGIDOS_ACTA, id, { ...cambios }, justificacion);
+    const acta = this.validacionesActa
+      ? await this.validacionesActa.alCambiarDatosDeLaPractica(id, cambios, actor, justificacion)
+      : 'sin_acta' as const;
+    const d = guardada.instantanea();
+    return { practicaId: id, tipoRemuneracion: d.tipoRemuneracion, responsableArl: d.responsableArlPractica, actaIniciacion: acta };
   }
 
   async obtener(id: string, actor: Actor): Promise<PracticaRespuestaDto> {
@@ -222,7 +283,7 @@ export class GestionarPracticaUseCase {
     try {
       practica.transicionarA(destino);
     } catch (error) {
-      if (error instanceof CompuertaArlError || error instanceof TransicionInvalidaError) {
+      if (error instanceof CompuertaArlError || error instanceof TransicionInvalidaError || error instanceof ResponsableArlNoDefinidoError) {
         throw new BadRequestException(error.message);
       }
       throw error;

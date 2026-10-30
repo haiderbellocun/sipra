@@ -5,7 +5,7 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.18.0 |
+| Versión del documento | 0.18.1 |
 | Fecha | 30 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
@@ -1401,7 +1401,7 @@ Rediseño de la **experiencia y el layout** del detalle de la Mesa; no cambia ex
 
 ---
 
-### 7.22 Acta de iniciación de prácticas (Bloques 0–3)
+### 7.22 Acta de iniciación de prácticas (Bloques 0–4)
 
 Validación local del acta de iniciación (`TipoDocumento.ACTA_INICIO`). El acta **confirma o contradice** lo que SIPRA ya sabe de la práctica; **nunca lo establece ni lo modifica**, y **nunca se autoaprueba**: la decide una persona.
 
@@ -1437,6 +1437,20 @@ Validación local del acta de iniciación (`TipoDocumento.ACTA_INICIO`). El acta
 **Auditoría.** `acta_procesada` (una por procesamiento, con códigos y conteos) y `responsable_arl_practica_actualizado`. No se audita cada paso interno del OCR.
 
 **Pendiente.** (1) Validar la extracción de valores con **al menos un acta diligenciada real, anonimizada o autorizada**: las tres plantillas reales están en blanco. (2) Calibrar los umbrales de firma con actas firmadas reales. (3) Bloque 4: Mesa de revisión (reserva, decisión, devolución), endpoints y roles (auxiliar, coordinación, administración). (4) UI del estudiante (estados «Acta en revisión» / «Necesita corrección»). Herramienta de validación manual: `apps/api/herramientas/validar-actas-reales.ts` (`SIPRA_ACTAS_DIR`, fuera del repositorio; solo imprime códigos).
+
+**Mesa de Actas de Iniciación (Bloque 4: flujo operativo y API).** Independiente de la Mesa de EPS (no se copió `mesa-eps.use-case`; solo se compartió lo genérico: `JUSTIFICACION_MINIMA`/`REFORZADA` pasaron a `justificacion-decision.ts` y la Mesa de EPS las reexporta, sin cambio de comportamiento).
+
+- **Roles.** Operan (bandeja, tomar, revisar, decidir, liberar lo propio): auxiliar, coordinación y administración. Supervisan y corrigen datos de la práctica: coordinación y administración. El estudiante solo ve el estado humano de SU acta. Docente, empresa y extensión no entran. El acta **solo se decide desde la Mesa**: la decisión general de documentos responde 403 para `acta_inicio` si no viene de la Mesa (se cerró el camino por el que un docente podía aprobarla). Alcance por escuela como en EPS.
+- **Reserva operativa** (`validaciones_acta_iniciacion.asignado_a / reservado_en / reserva_hasta`, migración 18): 15 minutos, atómica (`UPDATE … WHERE estado='revision' AND (libre OR vencida OR propia)`): de dos personas a la vez, una recibe 200 y la otra 409. Solo un caso en `revision` se reserva; decidido, no queda reservado (`CHECK`). «Tomar siguiente» elige por prioridad y prueba reservar uno a uno: nunca dos personas con el mismo caso.
+- **Endpoints** (`/actas-iniciacion`): `GET /` (bandeja), `GET /supervision`, `POST /tomar-siguiente`, `GET /practica/:practicaId/estado` (estudiante), `GET /:id` (detalle), `GET /:id/archivo` (visor, por la sesión autenticada, sin URL permanente; la apertura se audita), `POST /:id/tomar`, `POST /:id/liberar`, `POST /:id/decision`; y `PATCH /practicas/:id/datos-gobernantes` (corrección controlada).
+- **Bandeja.** Solo la versión **vigente** de cada acta, en `revision`. Filtros: remuneración y responsable de la ARL del acta, discrepancias, documento incorrecto, firmas (faltantes / no determinables / completas), reenvío, antigüedad, reserva (libres / mías / otras / vencidas), prioridad mínima y nombre. Prioridad **simple y explicable, sin IA**: documento incorrecto 40, discrepancia crítica 30, firma faltante 15 (no determinable 5), reenvío 10, 2 por día en bandeja (tope 10 días), inicio ya pasado 25 / en una semana 20 / en dos 10. No es una fórmula institucional.
+- **Detalle.** Estudiante (documento enmascarado salvo para quien tiene el caso tomado, supervisión o quien decidió), práctica, resumen SIPRA ↔ Acta (remuneración, responsable de la ARL, firmas, clasificación), comparación campo a campo con los valores de SIPRA recalculados **hoy** (la comparación persistida no guarda valores de SIPRA) y la sugerencia de la modalidad **aparte** (no es el dato de la práctica), versiones y historial **de esa versión** (evidencias: códigos y resultados, nunca el texto).
+- **Decisión.** Siempre humana. Exige: caso reservado por quien decide (se revalida en el servidor), versión vigente y validación en `revision` (409 si está pendiente, procesando, en error, ya decidida o hay una versión más nueva; **no se crea una validación artificial**). Aprobar contra la recomendación (discrepancia crítica, documento incorrecto, firma faltante o indeterminable) exige al menos **40** caracteres (la misma regla de EPS); rechazar exige justificación (40 si el sistema ve el acta consistente); devolver exige un motivo del catálogo (con «otro», texto). Una sola decisión aplica: el compare-and-set del documento deja pasar a una y las demás reciben 409; una decisión, una evidencia, una auditoría (`decision_acta` + `decision_documento`).
+- **Devolución para el estudiante.** Catálogo de motivos con *qué ocurrió* y *qué hacer* (p. ej. «El responsable de la ARL indicado en el acta no coincide con la información registrada en tu práctica.» / «Contacta a coordinación o carga el documento correcto, según corresponda.»). El estudiante recibe estados humanos (Acta pendiente de cargar / pendiente de procesar / Estamos revisando tu acta / Acta en revisión / Necesita corrección / Acta validada / Acta rechazada / Necesita revisión), nunca nombres internos de estado, códigos de discrepancia ni la lectura. Desde ese flujo no puede modificar la remuneración ni quién asume la ARL.
+- **Datos que gobiernan la comparación.** Con al menos una versión del acta cargada, **nadie** cambia `tipo_remuneracion` ni `responsable_arl` por la edición común de la vacante (estudiante, docente, auxiliar, empresa: 403; coordinación y administración: deben usar la corrección controlada). La corrección controlada (coordinación/administración) exige justificación (≥10), audita anterior/nuevo/actor/fecha/motivo (`datos_practica_corregidos_acta`), no toca el acta y trata la validación así: **sin decidir** → se recalcula la comparación en una **ronda nueva** (`intentos + 1`; las evidencias anteriores se conservan; `acta_recalculada`); **decidida** → no se reabre ni se modifica; se marca `datos_practica_cambiaron_en`, queda una evidencia `cambio_datos_practica` y el detalle avisa que la comparación decidida ya no corresponde a los datos actuales (`acta_datos_cambiaron_tras_decision`); pendiente/procesando/error → no hay cálculo: usará los datos nuevos al procesarse. No se crea una versión documental (el archivo no cambió). **Reabrir una decisión terminal no existe**: si hace falta, el camino institucional es una nueva versión del acta.
+- **Compuerta del responsable de la ARL (dominio).** Una práctica no avanza (inscrita → documentación → en validación → activa) mientras `responsable_arl` sea `NULL`: «Debes indicar quién asume la ARL antes de continuar.» (400). Nunca se infiere de la modalidad. Volver atrás, reanudar una suspendida, cancelar/anular y las modalidades sin colocación nueva no se bloquean. Una práctica histórica con `NULL` sigue siendo válida almacenada.
+- **Migración 18** (`MesaActas`): columnas de reserva, motivo de devolución, constancia de cambio de datos, `CHECK`s (reserva coherente, solo `revision` reservada, motivo del catálogo y solo en devolución) y nuevo tipo de evidencia. Su `down` se **niega** si ya hay evidencias de cambio de datos (solo inserción): preferible un fallo explícito a borrar trazabilidad.
+- **Pendiente (Bloque 5).** La Mesa en el frontend, el visor del archivo, la pantalla del estudiante (estados y reenvío) y la pantalla de corrección controlada para coordinación.
 
 ---
 
@@ -3022,6 +3036,10 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.18.1 — 30 de octubre de 2026
+
+Acta de iniciación, Bloque 4: Mesa de Actas y API (ver §7.22). Reserva atómica de 15 minutos, bandeja con prioridad explicable (sin IA) y filtros, detalle con comparación SIPRA ↔ Acta, decisión humana única (aprobar / devolver con motivo del catálogo / rechazar; 40 caracteres para apartarse de la recomendación, la misma regla de EPS), supervisión (libres, tomados, por vencer, vencidos, por funcionario, por estado y por discrepancia), visor autenticado y estado humano para el estudiante. El acta solo se decide desde la Mesa y solo cuando está lista para revisión (antes, 409 sin crear validación). Con un acta cargada, remuneración y responsable de la ARL ya no se editan por la vía común: corrección controlada de coordinación/administración con justificación y auditoría; una validación sin decidir se recalcula en una ronda nueva y una decidida solo deja constancia (no se reabre). Compuerta del responsable de la ARL en el dominio de la práctica. Migración 18 verificada desde cero, con reversión (negada con evidencia de solo inserción) y con upgrade sobre datos existentes.
 
 ### 0.18.0 — 30 de octubre de 2026
 

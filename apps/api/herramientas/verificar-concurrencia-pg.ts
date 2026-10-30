@@ -17,7 +17,7 @@
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
-import { EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
+import { Documento, EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
 import {
   EvidenciaEps, FuenteEvidenciaEps, TipoEvidenciaEps,
 } from '../src/domain/entities/evidencia-validacion-eps.entity';
@@ -500,6 +500,136 @@ async function main(): Promise<void> {
     const guardada = await practicas.guardar(editada.instantanea());
     comprobar('guardar la práctica con responsable «cun» lo persiste y lo devuelve', guardada.responsableArlPractica === 'cun' && (await practicas.buscarPorId(practica))!.responsableArlPractica === 'cun');
     comprobar('la remuneración no cambió al definir el responsable de la ARL', guardada.instantanea().tipoRemuneracion === original.instantanea().tipoRemuneracion);
+
+    // ═══ Mesa de Actas (Bloque 4): reserva, decisión única, versión optimista, restricciones, vigencia ═════════════
+    {
+    console.log('\n— Mesa de Actas: reserva y decisión —');
+    const estudianteMesa = randomUUID();
+    const practicaMesa = randomUUID();
+    await ds.query('INSERT INTO usuarios (id, correo, nombre, rol) VALUES ($1, $2, $3, $4)', [estudianteMesa, `${estudianteMesa}@verificacion.example`, 'Estudiante de la Mesa', 'estudiante']);
+    await ds.query(
+      `INSERT INTO practicas (id, estudiante_id, programa_id, escuela_id, ciclo, periodo_academico, modalidad, estado)
+       VALUES ($1, $2, 'PRG', $3, 'profesional', '2026-2', 'pasantia', 'documentacion')`, [practicaMesa, estudianteMesa, esc]);
+    let versionMesa = 0;
+    const actaEnRevision = async (practicaId = practicaMesa, estudianteId = estudianteMesa): Promise<{ documentoId: string; validacionId: string }> => {
+      const documentoId = randomUUID();
+      await ds.query(
+        `INSERT INTO documentos (id, practica_id, tipo, version, estado, nombre_original, mime_real, tamano_bytes, hash_sha256, ruta_almacenamiento)
+         VALUES ($1, $2, 'acta_inicio', $4, 'en_revision', 'a.pdf', 'application/pdf', 10, $3, 'ruta/m')`,
+        [documentoId, practicaId, 'd'.repeat(64), (versionMesa += 1)]);
+      const nueva = ValidacionActa.pendiente({ id: randomUUID(), documentoId, practicaId, estudianteId, recibidaEn: ahora, ahora });
+      const { validacion } = await validacionesActa.crearSiNoExiste(nueva.instantanea());
+      const v = ValidacionActa.desde(validacion.instantanea());
+      v.iniciarProcesamiento(ahora);
+      v.registrarResultado({
+        tipoActaDetectada: 'iniciacion_practicas', remuneracionDetectada: 'no_remunerada', responsableArlDetectado: 'empresa', firmaEmpresa: 'si',
+        firmaPracticante: 'si', metodoLectura: 'texto', confianza: 0.95, motivosClasificacion: ['sintetico'], datosExtraidos: { campos: {} },
+        comparacion: { veredicto: 'revision_necesaria', comparadaEn: ahora.toISOString(), resumen: { coinciden: 1, diferentes: 1, insuficientes: 0, criticas: 1 }, campos: [], discrepancias: [] },
+        hayDiscrepanciaCritica: true,
+      }, ahora);
+      await validacionesActa.guardarSiVersion(v.instantanea(), validacion.version);
+      return { documentoId, validacionId: validacion.id };
+    };
+    const hasta = new Date(ahora.getTime() + 900_000);
+
+    // Reserva atómica: N personas a la vez, una gana.
+    const caso1 = await actaEnRevision();
+    const personas = Array.from({ length: 25 }, () => randomUUID());
+    for (const id of personas) {
+      await ds.query('INSERT INTO usuarios (id, correo, nombre, rol) VALUES ($1, $2, $3, $4)', [id, `${id}@verificacion.example`, 'Auxiliar sintético', 'auxiliar']);
+    }
+    const reservas = await Promise.all(personas.map((p) => validacionesActa.reservar(caso1.validacionId, p, ahora, hasta)));
+    comprobar('25 personas reservan el mismo caso a la vez: exactamente una gana', reservas.filter(Boolean).length === 1, String(reservas.filter(Boolean).length));
+    const ganador = personas[reservas.findIndex(Boolean)];
+    const tomada = (await validacionesActa.buscarPorId(caso1.validacionId))!.instantanea();
+    comprobar('la reserva quedó a nombre de quien ganó, con su vencimiento', tomada.asignadoA === ganador && tomada.reservaHasta?.getTime() === hasta.getTime());
+    comprobar('quien ya la tiene puede volver a reservarla (renovar); otra persona, no', await validacionesActa.reservar(caso1.validacionId, ganador, ahora, hasta)
+      && !(await validacionesActa.reservar(caso1.validacionId, personas.find((p) => p !== ganador) as string, ahora, hasta)));
+
+    // Versión optimista: reservar sube la versión; una escritura con la versión vieja pierde.
+    const antes = (await validacionesActa.buscarPorId(caso1.validacionId))!;
+    await validacionesActa.liberarReserva(caso1.validacionId, ganador, ahora, false);
+    comprobar('con la versión vieja, guardar no aplica (otra persona ya cambió el caso)', !(await validacionesActa.guardarSiVersion(antes.instantanea(), antes.version)));
+
+    // Liberar: la titular, un supervisor o cualquiera si ya venció; ninguna otra persona.
+    const caso2 = await actaEnRevision();
+    await validacionesActa.reservar(caso2.validacionId, funcionario, ahora, hasta);
+    comprobar('otra persona NO libera una reserva vigente ajena', !(await validacionesActa.liberarReserva(caso2.validacionId, funcionario2, ahora, false)));
+    comprobar('la titular SÍ libera la suya', await validacionesActa.liberarReserva(caso2.validacionId, funcionario, ahora, false));
+    await validacionesActa.reservar(caso2.validacionId, funcionario, ahora, hasta);
+    comprobar('un supervisor SÍ libera la de otra persona', await validacionesActa.liberarReserva(caso2.validacionId, funcionario2, ahora, true));
+    comprobar('liberar un caso que nadie tiene reservado no hace nada', !(await validacionesActa.liberarReserva(caso2.validacionId, funcionario, ahora, true)));
+
+    // Reserva vencida: otra persona la toma.
+    await validacionesActa.reservar(caso2.validacionId, funcionario, ahora, hasta);
+    await ds.query(`UPDATE validaciones_acta_iniciacion SET reservado_en = now() - interval '30 minutes', reserva_hasta = now() - interval '15 minutes' WHERE id = $1`, [caso2.validacionId]);
+    comprobar('una reserva vencida vuelve a estar disponible para otra persona', await validacionesActa.reservar(caso2.validacionId, funcionario2, new Date(), new Date(Date.now() + 900_000)));
+
+    // Solo un caso en revisión se reserva.
+    const pendiente = ValidacionActa.pendiente({ id: randomUUID(), documentoId: await (async () => {
+      const d = randomUUID();
+      await ds.query(`INSERT INTO documentos (id, practica_id, tipo, version, estado, nombre_original, mime_real, tamano_bytes, hash_sha256, ruta_almacenamiento) VALUES ($1, $2, 'acta_inicio', $4, 'recibido', 'a.pdf', 'application/pdf', 10, $3, 'ruta/p')`, [d, practicaMesa, 'e'.repeat(64), (versionMesa += 1)]);
+      return d;
+    })(), practicaId: practicaMesa, estudianteId: estudianteMesa, recibidaEn: ahora, ahora });
+    await validacionesActa.crearSiNoExiste(pendiente.instantanea());
+    comprobar('un acta que todavía no está en revisión (pendiente) no se puede reservar', !(await validacionesActa.reservar(pendiente.instantanea().id, funcionario, ahora, hasta)));
+
+    // Decisión única: el documento y la validación decididos por UNA persona entre muchas.
+    console.log('\n— Mesa de Actas: decisión única —');
+    const caso3 = await actaEnRevision();
+    const original = (await documentos.buscarPorId(caso3.documentoId))!;
+    const estadoLeido = original.estado;
+    const aplicadas = await Promise.all(Array.from({ length: 10 }, (_, i) => {
+      const copia = Documento.desde(original.instantanea());
+      copia.aprobar(i % 2 === 0 ? funcionario : funcionario2, 'Decisión simultánea de prueba, justificación suficiente.');
+      return documentos.guardarSiEstado(copia.instantanea(), estadoLeido);
+    }));
+    comprobar('10 decisiones simultáneas sobre el mismo documento: exactamente una se aplica (las demás reciben 409 en el caso de uso)', aplicadas.filter(Boolean).length === 1);
+    const leida = (await validacionesActa.buscarPorId(caso3.validacionId))!;
+    const decisiones = await Promise.all(Array.from({ length: 10 }, (_, i) => {
+      const copia = ValidacionActa.desde(leida.instantanea());
+      copia.registrarDecision('aprobar', i % 2 === 0 ? funcionario : funcionario2, ahora);
+      return validacionesActa.guardarSiVersion(copia.instantanea(), leida.version);
+    }));
+    comprobar('10 decisiones simultáneas sobre la validación con la misma versión: exactamente una gana', decisiones.filter(Boolean).length === 1);
+    const decidida = (await validacionesActa.buscarPorId(caso3.validacionId))!.instantanea();
+    comprobar('la validación quedó decidida UNA vez, con quién y cuándo, y sin reserva', decidida.estado === 'aprobado_manual' && decidida.decididoPor !== null && decidida.decididoEn !== null && decidida.asignadoA === null);
+
+    // Restricciones de la Mesa.
+    console.log('\n— Mesa de Actas: restricciones —');
+    const caso4 = await actaEnRevision();
+    await rechaza('una reserva incompleta (sin vencimiento) se rechaza', () => ds.query(`UPDATE validaciones_acta_iniciacion SET asignado_a = $1 WHERE id = $2`, [funcionario, caso4.validacionId]), /ck_vacta_reserva/);
+    await rechaza('una reserva que vence antes de empezar se rechaza', () => ds.query(`UPDATE validaciones_acta_iniciacion SET asignado_a = $1, reservado_en = now(), reserva_hasta = now() - interval '1 minute' WHERE id = $2`, [funcionario, caso4.validacionId]), /ck_vacta_reserva/);
+    await rechaza('un caso decidido no puede quedar reservado', () => ds.query(`UPDATE validaciones_acta_iniciacion SET estado = 'devuelto', decidido_por = $1, decidido_en = now(), asignado_a = $1, reservado_en = now(), reserva_hasta = now() + interval '5 minutes' WHERE id = $2`, [funcionario, caso4.validacionId]), /ck_vacta_reserva_solo_revision/);
+    await rechaza('un motivo de devolución fuera del catálogo se rechaza', () => ds.query(`UPDATE validaciones_acta_iniciacion SET estado = 'devuelto', decidido_por = $1, decidido_en = now(), motivo_decision = 'porque_si' WHERE id = $2`, [funcionario, caso4.validacionId]), /ck_vacta_motivo/);
+    await rechaza('un motivo de devolución solo existe en una devolución', () => ds.query(`UPDATE validaciones_acta_iniciacion SET motivo_decision = 'arl_no_coincide' WHERE id = $1`, [caso4.validacionId]), /ck_vacta_motivo_solo_devuelto/);
+    await ds.query(`UPDATE validaciones_acta_iniciacion SET estado = 'devuelto', decidido_por = $1, decidido_en = now(), motivo_decision = 'arl_no_coincide' WHERE id = $2`, [funcionario, caso4.validacionId]).then(
+      () => comprobar('una devolución con motivo del catálogo, quién y cuándo se acepta', true),
+      (e: Error) => comprobar('una devolución con motivo del catálogo, quién y cuándo se acepta', false, e.message.slice(0, 160)));
+    await ds.query(`INSERT INTO evidencias_validacion_acta (id, validacion_acta_id, intento, tipo, resultado, metodo, fecha, actor_id) VALUES ($1,$2,7,'cambio_datos_practica','posterior_a_decision','correccion', now(), $3)`, [randomUUID(), caso4.validacionId, funcionario]).then(
+      () => comprobar('la evidencia de cambio de datos de la práctica se acepta (con quién la hizo)', true),
+      (e: Error) => comprobar('la evidencia de cambio de datos de la práctica se acepta (con quién la hizo)', false, e.message.slice(0, 160)));
+    await rechaza('esa evidencia, como todas, no se puede modificar', () => ds.query(`UPDATE evidencias_validacion_acta SET resultado = 'otro' WHERE validacion_acta_id = $1 AND tipo = 'cambio_datos_practica'`, [caso4.validacionId]), /inmutable|insufficient/i);
+
+    // Vigencia: la bandeja solo trae la última versión del acta de cada práctica, y respeta el alcance.
+    console.log('\n— Mesa de Actas: bandeja y supervisión —');
+    const estudianteB = randomUUID();
+    const practicaB = randomUUID();
+    await ds.query('INSERT INTO usuarios (id, correo, nombre, rol) VALUES ($1, $2, $3, $4)', [estudianteB, `${estudianteB}@verificacion.example`, 'Estudiante B', 'estudiante']);
+    await ds.query(`INSERT INTO practicas (id, estudiante_id, programa_id, escuela_id, ciclo, periodo_academico, modalidad, estado) VALUES ($1, $2, 'PRG', $3, 'profesional', '2026-2', 'pasantia', 'documentacion')`, [practicaB, estudianteB, esc]);
+    const b1 = await actaEnRevision(practicaB, estudianteB);
+    const b2 = await actaEnRevision(practicaB, estudianteB);
+    const lista = await validacionesActa.listarMesa({ estados: ['revision' as never], escuelas: null });
+    const deB = lista.filter((f) => f.practicaId === practicaB);
+    comprobar('con dos versiones del acta, la bandeja trae SOLO la vigente (la última)', deB.length === 1 && deB[0].validacionId === b2.validacionId && deB[0].version > 0);
+    comprobar('la versión anterior no aparece en la bandeja', !lista.some((f) => f.validacionId === b1.validacionId));
+    comprobar('la fila trae lo necesario para la bandeja (estudiante, discrepancia, veredicto, reserva)', deB[0].estudianteNombre === 'Estudiante B' && deB[0].hayDiscrepanciaCritica && deB[0].veredicto === 'revision_necesaria' && deB[0].asignadoA === null);
+    comprobar('con otra escuela en el alcance no se entrega nada de esa práctica', !(await validacionesActa.listarMesa({ estados: ['revision' as never], escuelas: ['no-existe'] })).some((f) => f.practicaId === practicaB));
+    await validacionesActa.reservar(b2.validacionId, funcionario, new Date(), new Date(Date.now() + 120_000));
+    const sup = await validacionesActa.supervisionMesa(new Date(), null);
+    comprobar('la supervisión cuenta abiertas, tomadas, por vencer (reserva de 2 minutos) y por discrepancia crítica', sup.abiertas >= 1 && sup.tomadas >= 1 && sup.porVencer >= 1 && sup.conDiscrepanciaCritica >= 1);
+    comprobar('la supervisión agrupa por estado y lista la carga por funcionario', typeof sup.porEstado.revision === 'number' && sup.funcionarios.some((f) => f.funcionarioId === funcionario && f.reservasVigentes >= 1));
+    }
 
     void TipoDocumento;
   } finally {

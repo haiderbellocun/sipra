@@ -170,6 +170,25 @@ export class TransicionInvalidaError extends Error {
   }
 }
 
+/**
+ * Compuerta del responsable de la ARL: una práctica no AVANZA (inscrita → documentación → en validación → activa) mientras
+ * no se haya indicado quién asume la ARL. La BD admite `null` para registros históricos o incompletos, pero la práctica no
+ * avanza con ese vacío, y NUNCA se infiere de la modalidad. Vive en el dominio: ninguna pantalla ni rol la omite.
+ */
+export class ResponsableArlNoDefinidoError extends Error {
+  constructor() {
+    super('Debes indicar quién asume la ARL antes de continuar.');
+    this.name = 'ResponsableArlNoDefinidoError';
+  }
+}
+
+/** Avances hacia adelante que exigen el responsable de la ARL. Volver atrás o reanudar una suspendida no. */
+const AVANCES_CON_RESPONSABLE_ARL: readonly (readonly [EstadoPractica, EstadoPractica])[] = [
+  [EstadoPractica.INSCRITA, EstadoPractica.DOCUMENTACION],
+  [EstadoPractica.DOCUMENTACION, EstadoPractica.EN_VALIDACION],
+  [EstadoPractica.EN_VALIDACION, EstadoPractica.ACTIVA],
+];
+
 export class CompuertaArlError extends Error {
   constructor(motivo: string) {
     super(`Compuerta de afiliación a ARL: ${motivo}`);
@@ -291,12 +310,23 @@ export class Practica {
         'solo la homologación por experiencia laboral aterriza en finalizada desde inscrita',
       );
     }
+    this.exigirResponsableArlParaAvanzar(destino);
     if (destino === EstadoPractica.ACTIVA && this.datos.estado === EstadoPractica.EN_VALIDACION) {
       this.verificarCompuertaArl();
     }
     this.datos.estado = destino;
     this.datos.actualizadaEn = ahora;
     this.datos.ultimaActividad = ahora;
+  }
+
+  /**
+   * Una práctica sin responsable de la ARL definido no avanza. Las modalidades sin colocación nueva (validación de experiencia,
+   * combinación de funciones) no tienen afiliación que asignar: la cobertura viene del empleo vigente.
+   */
+  private exigirResponsableArlParaAvanzar(destino: EstadoPractica): void {
+    const avanza = AVANCES_CON_RESPONSABLE_ARL.some(([desde, hacia]) => desde === this.datos.estado && hacia === destino);
+    if (!avanza || SIN_AFILIACION_NUEVA.includes(this.datos.modalidad)) return;
+    if (this.datos.responsableArlPractica === null) throw new ResponsableArlNoDefinidoError();
   }
 
   registrarAfiliacionArl(fechaAfiliacion: Date, ahora: Date = new Date()): void {

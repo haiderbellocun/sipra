@@ -298,6 +298,7 @@ export class GestionarDocumentoUseCase {
     documentoId: string,
     dto: DecisionDocumentoDto,
     actor: Actor,
+    opciones: { mesaActa?: { motivo: string | null } } = {},
   ): Promise<DocumentoRespuestaDto> {
     // Docente, coordinación y administración deciden cualquier documento de su alcance; el
     // auxiliar entra aquí solo para el certificado de EPS (se comprueba más abajo).
@@ -308,6 +309,14 @@ export class GestionarDocumentoUseCase {
     await this.exigirTipoPermitido(documento, actor);
     if (!puedeDecidirDocumento(actor.rol, documento.tipo)) {
       throw new ForbiddenException('Su perfil solo decide sobre el certificado de EPS');
+    }
+    // El acta de iniciación se decide SOLO desde la Mesa de Actas (reserva, versión vigente, justificación y motivo), y solo
+    // cuando ya está lista para revisión: ni el docente por el camino general ni nadie antes de que se procese.
+    if (documento.tipo === TipoDocumento.ACTA_INICIO) {
+      if (!opciones.mesaActa || !this.validacionesActa) {
+        throw new ForbiddenException('El acta de iniciación se revisa y se decide en la Mesa de Actas.');
+      }
+      await this.validacionesActa.exigirRevisable(documentoId);
     }
     // Un caso de EPS que otro funcionario tiene reservado no se decide por encima.
     if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
@@ -351,7 +360,7 @@ export class GestionarDocumentoUseCase {
     // La validación de EPS refleja la decisión humana y deja su evidencia.
     await this.validacionesEps.registrarDecisionHumana(guardado, dto.decision, actor);
     // La del acta de iniciación, también (no hace nada para otros tipos de documento).
-    await this.validacionesActa?.registrarDecisionHumana(guardado, dto.decision, actor);
+    await this.validacionesActa?.registrarDecisionHumana(guardado, dto.decision, actor, opciones.mesaActa?.motivo ?? null);
     await this.notificarSiRequiereAccion(guardado, actor);
     if (dto.decision === 'devolver') {
       // El manual pide dejar en la bitácora el plazo de ocho días para subsanar.

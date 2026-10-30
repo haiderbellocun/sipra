@@ -57,6 +57,17 @@ export enum AccionAuditada {
   RESPONSABLE_ARL_PRACTICA_ACTUALIZADO = 'responsable_arl_practica_actualizado',
   /** Se procesó un acta de iniciación (resultado persistido). No se audita cada paso interno de la lectura. */
   ACTA_PROCESADA = 'acta_procesada',
+  /** Mesa de Actas: una persona tomó un caso (reserva). */
+  ACTA_ASIGNADA = 'acta_asignada',
+  ACTA_LIBERADA = 'acta_liberada',
+  /** Contexto de la decisión de la Mesa de Actas (la decisión del documento se audita aparte). */
+  DECISION_ACTA = 'decision_acta',
+  /** Coordinación/administración corrigieron remuneración o responsable de la ARL con un acta ya cargada (con justificación). */
+  DATOS_PRACTICA_CORREGIDOS_ACTA = 'datos_practica_corregidos_acta',
+  /** La comparación de un acta aún sin decidir se recalculó por un cambio canónico de la práctica. */
+  ACTA_RECALCULADA = 'acta_recalculada',
+  /** Los datos de la práctica cambiaron DESPUÉS de una decisión sobre el acta; la decisión no se tocó. */
+  ACTA_DATOS_CAMBIARON_TRAS_DECISION = 'acta_datos_cambiaron_tras_decision',
 }
 
 export interface RegistroAuditoria {
