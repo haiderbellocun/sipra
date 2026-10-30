@@ -38,6 +38,7 @@ export function minimizarLecturaActa(lectura: LecturaActaLocal): LecturaActaPers
   const r = lectura.resumen;
   return {
     clasificacion,
+    lecturaDudosa: lectura.analisis.lecturaDudosa,
     campos: conservados,
     firmas: esActa ? firmas : { ...firmas, firmaEmpresaPresente: 'no_determinable', firmaPracticantePresente: 'no_determinable' },
     lectura: {
@@ -157,7 +158,7 @@ export function resolverValidacionActa(
   const firmaPracticante = esActa ? firmas.firmaPracticantePresente : FIRMA_SIN_DETERMINAR.firmaPracticantePresente;
 
   const comparacion = esActa
-    ? comparacionAPersistida(compararActaConSipra({ clasificacion: c, campos: hidratarCampos(lectura.campos) }, sipra), ahora)
+    ? comparacionAPersistida(compararActaConSipra({ clasificacion: c, campos: hidratarCampos(lectura.campos), lecturaDudosa: lectura.lecturaDudosa === true }, sipra), ahora)
     : null;
   const hayCritica = comparacion !== null && comparacion.discrepancias.some((d) => d.severidad === 'critica');
 
@@ -175,6 +176,7 @@ export function resolverValidacionActa(
         procesamiento: 'local', metodoLectura: l.metodoLectura, paginas: l.paginas, paginasLeidas: l.paginasLeidas,
         paginasOcr: l.paginasOcr, intentosOcr: l.intentosOcr, confianzaOcrMedia: l.confianzaOcrMedia,
         suficiencia: l.suficiencia, limitesAplicados: l.limitesAplicados, errores: l.errores,
+        lecturaDudosa: lectura.lecturaDudosa === true,
       },
     },
     {
@@ -226,7 +228,7 @@ export function resolverValidacionActa(
       tipoActaDetectada: c.tipoActaDetectada, remuneracionDetectada: remuneracion, responsableArlDetectado: arl,
       firmaEmpresa, firmaPracticante, metodoLectura: l.metodoLectura, confianza,
       motivosClasificacion: [...c.motivos],
-      datosExtraidos: esActa ? { campos: { ...lectura.campos } } : null,
+      datosExtraidos: esActa ? { campos: { ...lectura.campos }, ...(lectura.lecturaDudosa ? { lecturaDudosa: true } : {}) } : null,
       comparacion, hayDiscrepanciaCritica: hayCritica,
     },
     evidencias,
@@ -263,7 +265,7 @@ export function recalcularComparacion(
     senales: { remuneracionEncabezado: 'no_determinable', arlEncabezado: 'ninguna', arlObligaciones: 'ninguna' },
     puntajeActa: 0, puntajeAjeno: 0, motivos: [...v.motivosClasificacion], discrepanciasDocumento,
   };
-  const completa = compararActaConSipra({ clasificacion, campos: hidratarCampos(v.datosExtraidos?.campos ?? {}) }, sipra);
+  const completa = compararActaConSipra({ clasificacion, campos: hidratarCampos(v.datosExtraidos?.campos ?? {}), lecturaDudosa: v.datosExtraidos?.lecturaDudosa === true }, sipra);
   const comparacion = comparacionAPersistida(completa, ahora);
   return { comparacion, hayDiscrepanciaCritica: comparacion.discrepancias.some((d) => d.severidad === 'critica'), completa };
 }

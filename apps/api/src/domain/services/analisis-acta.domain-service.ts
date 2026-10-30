@@ -3,7 +3,7 @@ import {
 } from '../entities/acta-iniciacion';
 import { compararActaConSipra } from './comparacion-acta.domain-service';
 import { clasificarActa } from './clasificacion-acta.domain-service';
-import { extraerCamposActa } from './extraccion-acta.domain-service';
+import { extraerConDiagnostico } from './extraccion-acta.domain-service';
 import { MedicionesFirmas, evaluarFirmasActa } from './firmas-acta.domain-service';
 
 /**
@@ -16,7 +16,13 @@ export interface AnalisisActa {
   campos: CamposActaLeidos;
   firmas: FirmasActa;
   comparacion: ComparacionActa | null;
+  /** Letra a mano o foto/escaneo dudoso: lo leído por OCR no se usa para decidir coincidencias críticas. */
+  lecturaDudosa: boolean;
 }
+
+/** Por debajo de esta confianza media del OCR, o con este número de datos descartados por ruido, la lectura es dudosa. */
+export const CONFIANZA_OCR_DUDOSA = 0.88;
+export const RUIDO_MINIMO_LECTURA_DUDOSA = 3;
 
 export function analizarActa(
   texto: string,
@@ -26,10 +32,12 @@ export function analizarActa(
   confianzaOcr?: number,
 ): AnalisisActa {
   const clasificacion = clasificarActa(texto);
-  const campos = extraerCamposActa(texto, fuente, confianzaOcr);
-  const firmas = evaluarFirmasActa(texto, mediciones);
+  const { campos, descartadosPorRuido } = extraerConDiagnostico(texto, fuente, confianzaOcr);
+  const lecturaDudosa = fuente === 'ocr'
+    && ((confianzaOcr !== undefined && confianzaOcr < CONFIANZA_OCR_DUDOSA) || descartadosPorRuido >= RUIDO_MINIMO_LECTURA_DUDOSA);
+  const firmas = evaluarFirmasActa(texto, mediciones, lecturaDudosa);
   return {
-    clasificacion, campos, firmas,
-    comparacion: sipra ? compararActaConSipra({ clasificacion, campos }, sipra) : null,
+    clasificacion, campos, firmas, lecturaDudosa,
+    comparacion: sipra ? compararActaConSipra({ clasificacion, campos, lecturaDudosa }, sipra) : null,
   };
 }

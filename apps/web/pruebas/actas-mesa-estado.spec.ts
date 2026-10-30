@@ -24,7 +24,7 @@ const listado = (n = 2): ListadoBandejaActa => ({
 
 const detalle = (reserva: ReservaActa, puedeDecidir: boolean): DetalleActa => ({
   validacionId: 'v1', practicaId: 'p1', documentoId: 'd1', version: 1, vigente: true, estado: 'revision', recomendacion: 'consistente',
-  prioridad: { puntaje: 10, razones: [] }, reserva, puedeDecidir, inconsistenciaOperativa: null,
+  prioridad: { puntaje: 10, razones: [] }, reserva, puedeDecidir, inconsistenciaOperativa: null, lectura: { metodo: 'texto', dudosa: false },
   estudiante: { nombre: 'Estudiante 1', documento: puedeDecidir ? '1000000001' : null, documentoEnmascarado: '••••0001', programa: 'Ingeniería' },
   practica: { empresa: 'Empresa SAS', nit: '900', modalidad: 'Pasantía', fechaInicio: null, fechaFin: null }, responsableArlSugeridoPorModalidad: 'empresa',
   resumen: { clasificacion: 'iniciacion_practicas', remuneracionSipra: 'Remunerada', remuneracionActa: 'Remunerada', responsableArlSipra: 'Empresa', responsableArlActa: 'Empresa', firmaEmpresa: 'si', firmaPracticante: 'si' },

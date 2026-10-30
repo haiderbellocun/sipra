@@ -341,6 +341,7 @@ export class MesaActasUseCase {
       validacionId: d.id, practicaId: d.practicaId, documentoId: d.documentoId, version: doc.version, vigente, estado: d.estado,
       recomendacion, prioridad, reserva,
       puedeDecidir: d.estado === EstadoValidacionActa.REVISION && vigente && reserva.estado === 'mia' && !inconsistencia,
+      lectura: { metodo: d.metodoLectura === 'ocr' ? 'ocr' : d.metodoLectura === 'texto' ? 'texto' : null, dudosa: d.datosExtraidos?.lecturaDudosa === true },
       inconsistenciaOperativa: inconsistencia ? { estadoDocumento: doc.estado, mensaje: MENSAJE_INCONSISTENCIA_ACTA } : null,
       estudiante: {
         nombre: estudiante?.nombre ?? '', documento: valores ? documentoEstudiante : null,

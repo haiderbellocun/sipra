@@ -60,7 +60,7 @@ export interface DatosValidacionActa {
   confianza: number | null;
   motivosClasificacion: string[];
   /** Campos leídos que se conservan (lista blanca). Nunca el texto del documento. */
-  datosExtraidos: { campos: Partial<Record<CampoActa, CampoLeidoActa>> } | null;
+  datosExtraidos: { campos: Partial<Record<CampoActa, CampoLeidoActa>>; lecturaDudosa?: boolean } | null;
   comparacion: ComparacionActaPersistida | null;
   hayDiscrepanciaCritica: boolean;
   recibidaEn: Date | null;

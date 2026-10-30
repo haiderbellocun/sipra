@@ -112,6 +112,8 @@ export interface DetalleActaDto {
   puedeDecidir: boolean;
   /** Documento ya decidido con la validación aún en revisión (estado heredado). Requiere reconciliación controlada; no se decide. */
   inconsistenciaOperativa: { estadoDocumento: string; mensaje: string } | null;
+  /** Cómo se leyó el documento. Con OCR (sobre todo si es dudosa) lo leído se revisa contra el documento; no es una certeza. */
+  lectura: { metodo: 'texto' | 'ocr' | null; dudosa: boolean };
   estudiante: { nombre: string; documento: string | null; documentoEnmascarado: string; programa: string | null };
   practica: { empresa: string | null; nit: string | null; modalidad: string; fechaInicio: string | null; fechaFin: string | null };
   /** Lo que SIPRA tiene como sugerencia por modalidad, SOLO informativo: no es el dato de la práctica. */

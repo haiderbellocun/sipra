@@ -59,12 +59,28 @@ function interpretar(
 }
 
 /** `texto`: texto del documento (para comprobar que los rótulos de firma están en lo que se leyó). */
-export function evaluarFirmasActa(texto: string, mediciones: MedicionesFirmas | null): FirmasActa {
+export function evaluarFirmasActa(texto: string, mediciones: MedicionesFirmas | null, lecturaDudosa = false): FirmasActa {
   const plegado = plegarColapsado(texto);
   const motivos: string[] = [];
-  return {
-    firmaEmpresaPresente: interpretar(ROTULO_EMPRESA.test(plegado), mediciones?.empresa ?? null, 'empresa', motivos),
-    firmaPracticantePresente: interpretar(ROTULO_PRACTICANTE.test(plegado), mediciones?.practicante ?? null, 'practicante', motivos),
-    motivos,
+  let empresa = interpretar(ROTULO_EMPRESA.test(plegado), mediciones?.empresa ?? null, 'empresa', motivos);
+  let practicante = interpretar(ROTULO_PRACTICANTE.test(plegado), mediciones?.practicante ?? null, 'practicante', motivos);
+
+  /**
+   * «No detectada» solo se afirma cuando se puede sostener: ambas zonas se localizaron y están claramente vacías, en una lectura
+   * confiable. Una zona vacía junto a una firma presente en la otra es el patrón de una firma pegada fuera de zona, escrita a
+   * máquina o con el rótulo cubierto; y en una foto/escaneo dudoso la geometría no es confiable. En esos casos: no_determinable.
+   */
+  const degradar = (parte: 'empresa' | 'practicante', motivo: string): void => {
+    motivos.push(`${parte}_${motivo}`);
+    if (parte === 'empresa') empresa = 'no_determinable'; else practicante = 'no_determinable';
   };
+  if (lecturaDudosa) {
+    if (empresa === 'no') degradar('empresa', 'lectura_dudosa');
+    if (practicante === 'no') degradar('practicante', 'lectura_dudosa');
+  } else if (empresa === 'si' && practicante === 'no') {
+    degradar('practicante', 'otra_firma_presente_zona_sin_confirmar');
+  } else if (practicante === 'si' && empresa === 'no') {
+    degradar('empresa', 'otra_firma_presente_zona_sin_confirmar');
+  }
+  return { firmaEmpresaPresente: empresa, firmaPracticantePresente: practicante, motivos };
 }

@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/app/features/actas/actas-decision.component.ts"
+        ],
+        "createdAt": "2026-10-30T20:51:49.400Z",
+        "reason": "asistente: borde izquierdo de aviso identico al de eps-decision.component.ts (patron existente del sistema); no confirmado por el usuario"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/app/features/actas/actas-correccion.component.ts"
+        ],
+        "createdAt": "2026-10-30T20:51:50.279Z",
+        "reason": "asistente: borde izquierdo de aviso identico al de eps-decision.component.ts (patron existente del sistema); no confirmado por el usuario"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/app/features/actas/actas-detalle.component.ts"
+        ],
+        "createdAt": "2026-10-30T20:51:51.142Z",
+        "reason": "asistente: borde izquierdo de aviso identico al de eps-decision.component.ts (patron existente del sistema); no confirmado por el usuario"
+      }
+    ]
+  }
+}

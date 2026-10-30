@@ -11,12 +11,12 @@ describe('Acta de iniciación · presencia probable de firmas', () => {
   it('15 · trazo en la zona de la empresa → firma de la empresa probable', () => {
     const f = evaluarFirmasActa(texto, { empresa: CON_TRAZO, practicante: EN_BLANCO });
     expect(f.firmaEmpresaPresente).toBe('si');
-    expect(f.firmaPracticantePresente).toBe('no');
+    expect(f.firmaPracticantePresente).toBe('no_determinable');
   });
 
   it('16 · trazo en la zona del practicante → firma del practicante probable', () => {
     const f = evaluarFirmasActa(texto, { empresa: EN_BLANCO, practicante: CON_TRAZO });
-    expect(f.firmaEmpresaPresente).toBe('no');
+    expect(f.firmaEmpresaPresente).toBe('no_determinable');
     expect(f.firmaPracticantePresente).toBe('si');
   });
 

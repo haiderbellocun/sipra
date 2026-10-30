@@ -126,7 +126,7 @@ export function fechaDeActa(valor: string | null): string | null {
   if (directa) return directa;
   const numerica = valor.match(/\d{1,2}\s*[/.-]\s*\d{1,2}\s*[/.-]\s*\d{2,4}|\d{4}-\d{1,2}-\d{1,2}/);
   if (numerica) return fechaIsoDe(numerica[0].replace(/\s+/g, '').replace(/\./g, '/'));
-  const larga = normalizarTexto(valor).match(/\d{1,2} DE [A-Z]+ DE \d{4}/);
+  const larga = normalizarTexto(valor).match(/\d{1,2} (?:DE )?[A-Z]+ (?:DE )?\d{4}/);
   return larga ? fechaIsoDe(larga[0]) : null;
 }
 
@@ -164,7 +164,18 @@ function solapamiento(a: string | null, b: string | null): Veredicto {
 export interface ActaParaComparar {
   clasificacion: ClasificacionActa;
   campos: CamposActaLeidos;
+  /**
+   * Letra a mano o foto/escaneo dudoso leído por OCR: lo leído se conserva y se muestra para revisión, pero NO produce
+   * coincidencia ni diferencia automática en los campos críticos.
+   */
+  lecturaDudosa?: boolean;
 }
+
+/** Campos cuya coincidencia o diferencia no se decide con una lectura OCR dudosa. */
+const CAMPOS_CRITICOS_COMPARACION: ReadonlySet<CampoComparableActa> = new Set<CampoComparableActa>([
+  'estudiante', 'documento', 'empresa', 'nit', 'fecha_inicio', 'fecha_fin', 'remuneracion', 'responsable_arl',
+]);
+export const NOTA_LECTURA_DUDOSA = 'Lectura por OCR dudosa: revise este dato contra el documento.';
 
 function leido(campos: CamposActaLeidos, nombre: keyof CamposActaLeidos): string | null {
   const c = campos[nombre];
@@ -176,6 +187,7 @@ const vacioONulo = (v: string | null | undefined): string | null => (v && v.trim
 
 export function compararActaConSipra(acta: ActaParaComparar, sipra: DatosSipraActa): ComparacionActa {
   const { clasificacion, campos } = acta;
+  const dudosa = acta.lecturaDudosa === true;
   const esActa = clasificacion.tipoActaDetectada === 'iniciacion_practicas';
   // Si no se confirmó que sea un acta, lo extraído no es del acta: nada se compara.
   const dato = (n: keyof CamposActaLeidos): string | null => (esActa ? leido(campos, n) : null);
@@ -186,8 +198,12 @@ export function compararActaConSipra(acta: ActaParaComparar, sipra: DatosSipraAc
   ): void => {
     const d = DEFINICIONES[campo];
     // Un campo sin lectura o sin dato en SIPRA no puede coincidir.
-    const efectivo: Veredicto = siprav === null || actav === null ? 'informacion_insuficiente' : resultado;
-    filas.push({ campo, etiqueta: d.etiqueta, sipra: siprav, acta: actav, resultado: efectivo, criticidad: d.criticidad, orden: d.orden, nota });
+    const sinDecidir = dudosa && CAMPOS_CRITICOS_COMPARACION.has(campo);
+    const efectivo: Veredicto = siprav === null || actav === null || sinDecidir ? 'informacion_insuficiente' : resultado;
+    filas.push({
+      campo, etiqueta: d.etiqueta, sipra: siprav, acta: actav, resultado: efectivo, criticidad: d.criticidad, orden: d.orden,
+      nota: sinDecidir && actav !== null ? NOTA_LECTURA_DUDOSA : nota,
+    });
   };
 
   const nombreSipra = vacioONulo(sipra.estudianteNombre);

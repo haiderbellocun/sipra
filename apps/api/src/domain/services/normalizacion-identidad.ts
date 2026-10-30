@@ -232,7 +232,7 @@ export function fechaIsoDe(valor: string | null | undefined): string | null {
     const anio = latino[3].length === 2 ? 2000 + +latino[3] : +latino[3];
     return fechaValida(anio, +latino[2], +latino[1]);
   }
-  const larga = texto.match(/^(\d{1,2}) DE ([A-Z]+) DE (\d{4})$/);
+  const larga = texto.match(/^(\d{1,2}) (?:DE )?([A-Z]+) (?:DE )?(\d{4})$/);
   if (larga && MESES[larga[2]]) return fechaValida(+larga[3], MESES[larga[2]], +larga[1]);
   return null;
 }

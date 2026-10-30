@@ -148,7 +148,7 @@ async function main() {
     });
     await paso('carga el Acta (sin firma de la empresa) por el expediente y queda «en revisión»', async () => {
       await nav.evaluar(`(() => { const s = document.querySelector('#tipo-doc'); s.value = 'acta_inicio'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-      await nav.archivo('input[type=file]', manifiesto.archivos['1-sin-firma-empresa']);
+      await nav.archivo('input[type=file]', manifiesto.archivos['1-sin-firmas']);
       await nav.esperar(`[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Cargar y validar') && !b.disabled)`, 15000, 'botón Cargar y validar');
       await nav.clic('button', 'Cargar y validar');
       await nav.esperar(`document.querySelector('[data-acta-estado]')?.innerText === 'Acta en revisión'`, 60000, 'estado «Acta en revisión»');
@@ -178,7 +178,7 @@ async function main() {
     await paso('cada caso se escanea rápido: estudiante, empresa, problema principal, prioridad y estado (sin pilas de insignias)', async () => {
       const t = await nav.evaluar(textoDe('.lista'));
       afirmar(t.includes(LAURA.nombre) && t.includes('Soluciones Logísticas Andinas'), 'falta el estudiante o la empresa');
-      afirmar(/Falta la firma de la empresa/.test(t), 'falta el problema de Laura');
+      afirmar(/Faltan las firmas de la empresa y del practicante/.test(t), 'falta el problema de Laura');
       afirmar(/Parece ser otro documento/.test(t), 'falta el problema de Valentina');
       afirmar(/Diferencias críticas con la práctica/.test(t), 'falta el problema de Andrés');
       afirmar(/Prioridad \d+ · .*Disponible/.test(t), 'falta prioridad · estado');
@@ -267,7 +267,9 @@ async function main() {
       afirmar(/REMUNERACIÓN.*SIPRA.*No remunerada.*Acta.*No remunerada.*Coincide/i.test(de('remuneracion')), `remuneración: ${de('remuneracion')}`);
       afirmar(/RESPONSABLE ARL.*SIPRA.*Empresa.*Acta.*Empresa.*Coincide/i.test(de('arl')), `ARL: ${de('arl')}`);
       afirmar(/FIRMA EMPRESA.*No detectada/i.test(de('firma-empresa')), `firma empresa: ${de('firma-empresa')}`);
-      afirmar(/FIRMA PRACTICANTE.*Detectada/i.test(de('firma-practicante')) && !/No detectada/.test(de('firma-practicante')), `firma practicante: ${de('firma-practicante')}`);
+      afirmar(/FIRMA PRACTICANTE.*No detectada/i.test(de('firma-practicante')), `firma practicante: ${de('firma-practicante')}`);
+      afirmar(/Texto digital/.test(await nav.evaluar(textoDe('[data-lectura]'))), 'debe indicar discretamente el método de lectura (texto digital)');
+      afirmar(!/%/.test(await nav.evaluar(textoDe('[data-resultado]'))), 'no se muestra la confianza como porcentaje de certeza');
       afirmar(/SIPRA detecta presencia probable de firma; no valida su autenticidad\./.test(await nav.evaluar(textoPagina)), 'falta la ayuda sobre las firmas');
       afirmar(/REVISIÓN NECESARIA|FALTA UNA FIRMA/i.test(await nav.evaluar(textoDe('[data-resultado]'))), 'falta el resultado principal');
       await captura(nav, 'caso-laura-resumen');

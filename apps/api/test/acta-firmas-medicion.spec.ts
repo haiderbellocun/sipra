@@ -173,8 +173,8 @@ describe('Acta de iniciación · firmas de punta a punta (PDF)', () => {
 
   it.each<[string, Firma, Firma, string, string]>([
     ['sin firmas', 'ninguna', 'ninguna', 'no', 'no'],
-    ['firma de la empresa', 'trazo', 'ninguna', 'si', 'no'],
-    ['firma del practicante', 'ninguna', 'trazo', 'no', 'si'],
+    ['firma de la empresa', 'trazo', 'ninguna', 'si', 'no_determinable'],
+    ['firma del practicante', 'ninguna', 'trazo', 'no_determinable', 'si'],
     ['ambas', 'trazo', 'trazo', 'si', 'si'],
     ['trazo que cruza la línea', 'linea_cruzada', 'trazo', 'si', 'si'],
     ['marca pequeña ambigua', 'pequeno', 'ninguna', 'no_determinable', 'no'],
@@ -196,7 +196,7 @@ describe('Acta de iniciación · firmas de punta a punta (PDF)', () => {
   it('PDF escaneado: los rótulos se ubican por OCR y se mide la zona', async () => {
     const f = await firmas(await pdfActaEscaneada({ firmaEmpresa: 'trazo', firmaPracticante: 'ninguna' }));
     expect(f.firmaEmpresaPresente).toBe('si');
-    expect(f.firmaPracticantePresente).toBe('no');
+    expect(f.firmaPracticantePresente).toBe('no_determinable');
   }, 180_000);
 
   it('solo se mide en un acta: otro documento no produce firmas', async () => {

@@ -219,6 +219,7 @@ const TIPOS_EVIDENCIA = ['lectura_documento', 'clasificacion_documental', 'compa
             <p class="rotulo" id="p-rec">Acta de iniciación · revisión</p>
             <p class="titulo"><span class="etiqueta etiqueta--icono etiqueta--{{ resultado(d).tono }}"><span aria-hidden="true">{{ resultado(d).icono }}</span> {{ resultado(d).titulo }}</span></p>
             <p class="frase">{{ resultado(d).frase }}</p>
+            @if (d.lectura.metodo; as m) { <p class="nota" data-lectura>{{ m === 'ocr' ? 'Leído por OCR · revisar contra el documento' : 'Texto digital' }}</p> }
             <p class="nota">@if (d.resumen.clasificacion) { Lo que parece ser el archivo: {{ clasificacion(d) }}. }Es una ayuda para quien revisa: la decisión es de una persona.</p>
           </section>
 

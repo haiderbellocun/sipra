@@ -693,6 +693,8 @@ export interface DetalleActa {
   validacionId: string; practicaId: string; documentoId: string; version: number; vigente: boolean; estado: string; recomendacion: string;
   prioridad: PrioridadActa; reserva: ReservaActa; puedeDecidir: boolean;
   inconsistenciaOperativa: { estadoDocumento: string; mensaje: string } | null;
+  /** Cómo se leyó el documento: con OCR lo leído se revisa contra el documento; no es una certeza. */
+  lectura: { metodo: 'texto' | 'ocr' | null; dudosa: boolean };
   estudiante: { nombre: string; documento: string | null; documentoEnmascarado: string; programa: string | null };
   practica: { empresa: string | null; nit: string | null; modalidad: string; fechaInicio: string | null; fechaFin: string | null };
   responsableArlSugeridoPorModalidad: string | null;

@@ -182,6 +182,8 @@ export interface LecturaActaPersistible {
   campos: Partial<Record<CampoActa, CampoLeidoActa>>;
   firmas: FirmasActa;
   lectura: ResumenLecturaActaPersistible;
+  /** Letra a mano o foto/escaneo dudoso leído por OCR: sus datos críticos no deciden coincidencias automáticas. */
+  lecturaDudosa?: boolean;
 }
 
 /**

@@ -62,7 +62,8 @@ async function main(): Promise<void> {
       const base = { valores, remuneracion: 'no_remunerada' as const, encabezadoArl: 'empresa' as const, obligacionArl: 'empresa' as const };
       const variantes: Record<string, Buffer> = {
         completa: await pdfActaDigital({ ...base, firmaEmpresa: 'trazo', firmaPracticante: 'trazo' }),
-        'sin-firma-empresa': await pdfActaDigital({ ...base, firmaEmpresa: 'ninguna', firmaPracticante: 'trazo' }),
+        // Sin ninguna firma: las dos zonas claramente vacías (una zona vacía junto a una firma presente NO se afirma como «no»).
+        'sin-firmas': await pdfActaDigital({ ...base, firmaEmpresa: 'ninguna', firmaPracticante: 'ninguna' }),
         // Dice que la CUN asume la ARL, y SIPRA tiene «Empresa»: discrepancia crítica.
         'arl-cun': await pdfActaDigital({ ...base, encabezadoArl: 'cun', obligacionArl: 'institucion', firmaEmpresa: 'trazo', firmaPracticante: 'trazo' }),
       };

@@ -170,7 +170,14 @@ export class LecturaLocalActaService {
     }
 
     // El texto nativo va primero: si ya alcanza para decir qué es el documento, no se paga OCR.
-    if (metricas.utilizable && this.evaluar(estado.paginas, false).paraClasificar) return;
+    if (metricas.utilizable && this.evaluar(estado.paginas, false).paraClasificar) {
+      // La capa de texto dice QUÉ documento es, pero puede traer solo la plantilla: lo diligenciado puede estar dibujado
+      // (imagen, anotaciones, curvas) y no estar en el texto. Si no se leyó ningún dato, se verifica con OCR.
+      // Solo si es un acta: un documento que se reconoce como OTRA cosa no se lee más.
+      const esActa = clasificarActa(unir(estado.paginas)).tipoActaDetectada === 'iniciacion_practicas';
+      if (esActa && !this.evaluar(estado.paginas, false).paraComparar) await this.complementarConOcr(contenido, limites, estado);
+      return;
+    }
 
     // Solo se leen por OCR las páginas SIN texto utilizable. Otra pasada sobre texto digital no le suma nada.
     for (const pagina of metricas.paginasSinTexto) {
@@ -183,6 +190,37 @@ export class LecturaLocalActaService {
         continue;
       }
       await this.ocrDePagina(imagen, pagina, limites, estado);
+    }
+  }
+
+  /**
+   * El texto digital clasifica el documento pero no trae datos suficientes para compararlo. Se lee por OCR la imagen de las
+   * páginas (que sí incluye lo dibujado) y se ADOPTA solo si trae más campos clave que el texto; si no, se conserva el texto
+   * (una plantilla en blanco sigue siendo una plantilla en blanco). El intento de OCR queda contado.
+   */
+  private async complementarConOcr(contenido: Buffer, limites: LimitesLecturaLocal, estado: Estado): Promise<void> {
+    const antes = {
+      paginas: new Map(estado.paginas), paginasOcr: [...estado.paginasOcr], confianzas: [...estado.confianzas],
+    };
+    const clavesAntes = this.evaluar(estado.paginas, false).camposClaveLeidos;
+    const ultima = Math.min(estado.total, limites.maxPaginas);
+    for (let pagina = 1; pagina <= ultima; pagina += 1) {
+      try {
+        const imagen = (await this.lector.renderizarPagina(contenido, pagina, limites)).imagen;
+        await this.ocrDePagina(imagen, pagina, limites, estado);
+      } catch (error) {
+        if (error instanceof LimiteLecturaLocalError) estado.limitesAplicados.push(this.codigoDeLimite(error));
+        else estado.errores.push('rasterizacion_fallida');
+        break;
+      }
+    }
+    const confianzaMedia = estado.confianzas.length > 0 ? estado.confianzas.reduce((a, b) => a + b, 0) / estado.confianzas.length : 0;
+    const despues = this.evaluar(estado.paginas, true, confianzaMedia / 100).camposClaveLeidos;
+    if (despues <= clavesAntes) {
+      estado.paginas.clear();
+      for (const [p, v] of antes.paginas) estado.paginas.set(p, v);
+      estado.paginasOcr.splice(0, estado.paginasOcr.length, ...antes.paginasOcr);
+      estado.confianzas.splice(0, estado.confianzas.length, ...antes.confianzas);
     }
   }
 
@@ -256,10 +294,14 @@ export class LecturaLocalActaService {
         ? (await this.lector.renderizarPagina(contenido, elegida.pagina, limites)).imagen
         : estado.imagenUnica;
       if (!imagen) return sin;
-      const cajas: CajaTexto[] = elegida.origen === 'texto' && mime === 'application/pdf'
-        ? await this.geometria.cajasTextoNativo(contenido, elegida.pagina, limites)
-        : await this.geometria.cajasOcr(imagen, limites);
-      const zonas = localizarZonasFirma(cajas);
+      // Los rótulos de firma suelen estar en la capa de texto digital aunque lo diligenciado se haya leído por OCR (acta híbrida):
+      // se prefieren esas cajas, que son exactas, y solo si no localizan nada se recurre al OCR.
+      let cajas: CajaTexto[] = mime === 'application/pdf' ? await this.geometria.cajasTextoNativo(contenido, elegida.pagina, limites) : [];
+      let zonas = localizarZonasFirma(cajas);
+      if (!zonas.empresa && !zonas.practicante) {
+        cajas = await this.geometria.cajasOcr(imagen, limites);
+        zonas = localizarZonasFirma(cajas);
+      }
       const medir = (zona: RectRelativo | null) =>
         zona ? this.geometria!.medirZonaFirma(imagen, zona, zonas.exclusiones, limites) : Promise.resolve(null);
       const [empresa, practicante] = [await medir(zonas.empresa), await medir(zonas.practicante)];
