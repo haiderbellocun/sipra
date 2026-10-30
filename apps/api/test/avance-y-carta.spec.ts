@@ -63,7 +63,7 @@ describe('Edición posterior al registro', () => {
     salario: null, horario: null, jefeInmediatoNombre: 'Ana', jefeInmediatoCargo: null,
     jefeInmediatoCorreo: null, jefeInmediatoTelefono: null, ciudad: null, funcionesRelevantes: null,
     fechaInicio: dia('2026-08-10'), fechaFin: dia('2026-11-27'), horasRegistradas: null, arlVerificada: false,
-    arlFechaAfiliacion: null, terminosAceptadosEn: null, registradaPor: 'estudiante', nota: null,
+    responsableArlPractica: null, arlFechaAfiliacion: null, terminosAceptadosEn: null, registradaPor: 'estudiante', nota: null,
     cerradaEn: null, ultimaActividad: new Date(), creadaEn: new Date(), actualizadaEn: new Date(),
   });
 

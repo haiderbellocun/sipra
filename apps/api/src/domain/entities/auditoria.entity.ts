@@ -52,6 +52,11 @@ export enum AccionAuditada {
   EVIDENCIA_ADRES_PROCESADA = 'evidencia_adres_procesada',
   COMPARACION_ADRES_REALIZADA = 'comparacion_adres_realizada',
   DECISION_EPS_CONTEXTO = 'decision_eps_contexto',
+  // ── Acta de iniciación ──
+  /** Quién asume la ARL en la práctica cambió (registro posterior; solo coordinación y administración). */
+  RESPONSABLE_ARL_PRACTICA_ACTUALIZADO = 'responsable_arl_practica_actualizado',
+  /** Se procesó un acta de iniciación (resultado persistido). No se audita cada paso interno de la lectura. */
+  ACTA_PROCESADA = 'acta_procesada',
 }
 
 export interface RegistroAuditoria {

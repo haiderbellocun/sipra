@@ -1,7 +1,7 @@
 /**
  * Verificación de migraciones contra un PostgreSQL LOCAL DESECHABLE (Fase 6 EPS).
  *
- *   A. Desde cero: las 16 migraciones en orden, esquema, restricciones válidas, disparadores,
+ *   A. Desde cero: todas las migraciones en orden, esquema, restricciones válidas, disparadores,
  *      privilegios del rol de aplicación.
  *   B. Reversión controlada del bloque EPS (15 → 11) con datos sintéticos que el `down()` debe
  *      proteger (la evidencia OCR de solo inserción impide revertir la 12 «a propósito») y luego
@@ -38,7 +38,8 @@ function comprobar(descripcion: string, ok: boolean, detalle = ''): void {
 const nombreDe = (m: new () => MigrationInterface): string => (new m() as MigrationInterface & { name?: string }).name ?? m.name;
 const ESPERADAS = MIGRACIONES.map(nombreDe);
 const PRE_EPS = MIGRACIONES.slice(0, 11); // 0–10: hasta ConsentimientoVersionado
-const EPS = MIGRACIONES.slice(11); // 11–15
+const EPS = MIGRACIONES.slice(11, 16); // 11–15
+const ACTA = MIGRACIONES.slice(16); // 16–17: responsable de la ARL y validación del acta de iniciación (Bloque 3)
 
 async function admin(): Promise<DataSource> {
   return new DataSource({ type: 'postgres', url: urlDe('postgres'), ssl: false }).initialize();
@@ -64,9 +65,13 @@ async function tablas(ds: DataSource): Promise<string[]> {
   return (await ds.query(`SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY 1`))
     .map((r: { table_name: string }) => r.table_name).filter((t: string) => t !== 'migrations');
 }
-async function huella(ds: DataSource, tabla: string): Promise<{ filas: number; md5: string }> {
+/** Columnas AGREGADAS por migraciones posteriores: la huella de una fila previa las ignora (el resto debe quedar idéntico). */
+const COLUMNAS_NUEVAS: Readonly<Record<string, string>> = { practicas: 'responsable_arl' };
+async function huella(ds: DataSource, tabla: string, sinColumnasNuevas = false): Promise<{ filas: number; md5: string }> {
   const [{ n }] = await ds.query(`SELECT count(*)::int AS n FROM "${tabla}"`);
-  const [{ h }] = await ds.query(`SELECT coalesce(md5(string_agg(t::text, '|' ORDER BY t::text)), '') AS h FROM "${tabla}" t`);
+  const nueva = sinColumnasNuevas ? COLUMNAS_NUEVAS[tabla] : undefined;
+  const fila = nueva ? `(to_jsonb(t) - '${nueva}')::text` : 't::text';
+  const [{ h }] = await ds.query(`SELECT coalesce(md5(string_agg(${fila}, '|' ORDER BY ${fila})), '') AS h FROM "${tabla}" t`);
   return { filas: n as number, md5: h as string };
 }
 async function integridad(ds: DataSource, etiqueta: string): Promise<void> {
@@ -106,6 +111,22 @@ async function esquemaEps(ds: DataSource, etiqueta: string): Promise<void> {
   comprobar(`${etiqueta}: sipra_app NO puede DELETE sobre validaciones_eps`, !(await p('sipra_app', 'validaciones_eps', 'DELETE')));
 }
 
+async function esquemaActa(ds: DataSource, etiqueta: string): Promise<void> {
+  const t = await tablas(ds);
+  for (const tabla of ['validaciones_acta_iniciacion', 'evidencias_validacion_acta']) comprobar(`${etiqueta}: existe la tabla ${tabla}`, t.includes(tabla));
+  const col = (await ds.query(`SELECT column_name, is_nullable FROM information_schema.columns WHERE table_name='practicas' AND column_name='responsable_arl'`)) as { is_nullable: string }[];
+  comprobar(`${etiqueta}: practicas.responsable_arl existe y admite NULL (histórico sin rellenar)`, col.length === 1 && col[0].is_nullable === 'YES');
+  const cons = (await ds.query(`SELECT conname FROM pg_constraint WHERE conname IN ('ck_practicas_responsable_arl','ux_vacta_documento','ux_eacta_idempotencia','ck_vacta_solo_acta','ck_vacta_decision_humana')`)).map((r: { conname: string }) => r.conname);
+  for (const c of ['ck_practicas_responsable_arl', 'ux_vacta_documento', 'ux_eacta_idempotencia', 'ck_vacta_solo_acta', 'ck_vacta_decision_humana']) comprobar(`${etiqueta}: restricción ${c}`, cons.includes(c));
+  const trg = (await ds.query(`SELECT tgname FROM pg_trigger WHERE NOT tgisinternal`)).map((r: { tgname: string }) => r.tgname);
+  comprobar(`${etiqueta}: disparador de evidencias del acta de solo inserción`, trg.includes('tg_evidencias_acta_inmutable'));
+  const p = async (rol: string, tabla: string, priv: string): Promise<boolean> => (await ds.query('SELECT has_table_privilege($1,$2,$3) AS v', [rol, tabla, priv]))[0].v as boolean;
+  comprobar(`${etiqueta}: sipra_app NO puede UPDATE/DELETE sobre evidencias_validacion_acta`, !(await p('sipra_app', 'evidencias_validacion_acta', 'UPDATE')) && !(await p('sipra_app', 'evidencias_validacion_acta', 'DELETE')));
+  comprobar(`${etiqueta}: sipra_app SÍ puede SELECT/INSERT/UPDATE y NO DELETE sobre validaciones_acta_iniciacion`,
+    await p('sipra_app', 'validaciones_acta_iniciacion', 'SELECT') && await p('sipra_app', 'validaciones_acta_iniciacion', 'INSERT')
+    && await p('sipra_app', 'validaciones_acta_iniciacion', 'UPDATE') && !(await p('sipra_app', 'validaciones_acta_iniciacion', 'DELETE')));
+}
+
 // ── Datos sintéticos ────────────────────────────────────────────────────────
 
 const PRACTICAS = ['00000000-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000042', '00000000-0000-4000-8000-000000000043'];
@@ -135,7 +156,7 @@ async function sintetizarPreEps(ds: DataSource): Promise<{ aprobador: string }> 
 
 async function main(): Promise<void> {
   const sufijo = randomUUID().slice(0, 6);
-  const bases = { cero: `mig_cero_${sufijo}`, rev: `mig_rev_${sufijo}`, up: `mig_up_${sufijo}` };
+  const bases = { cero: `mig_cero_${sufijo}`, rev: `mig_rev_${sufijo}`, up: `mig_up_${sufijo}`, acta: `mig_acta_${sufijo}` };
   try {
     // ── A. Desde cero ─────────────────────────────────────────────────────
     console.log('\nA. Migración completa desde una base vacía');
@@ -147,6 +168,7 @@ async function main(): Promise<void> {
     comprobar('la tabla de migraciones coincide con la lista declarada, en orden', JSON.stringify(reg) === JSON.stringify(ESPERADAS), reg.join(', '));
     comprobar('una segunda ejecución no aplica nada (idempotente)', (await ds.runMigrations({ transaction: 'each' })).length === 0);
     await esquemaEps(ds, 'cero');
+    await esquemaActa(ds, 'cero');
     await integridad(ds, 'cero');
     await cargarCatalogos(ds);
     await sembrar(ds);
@@ -175,6 +197,19 @@ async function main(): Promise<void> {
       // Si el esquema exige otras columnas, se informa en vez de adivinar.
       comprobar('se pudo sembrar una evidencia OCR sintética', false, e.message.slice(0, 200));
     });
+    // Bloque 3 (16–17) primero. Sin datos del acta el down es limpio y no toca el resto de lo que ya existía.
+    const practicasAntes = await huella(ds, 'practicas', true);
+    for (const n of ['ValidacionActaIniciacion', 'ResponsableArlPractica']) {
+      await ds.undoLastMigration({ transaction: 'each' });
+      const regA = await registradas(ds);
+      comprobar(`down de ${n}: revertida y fuera del registro`, !regA.some((x) => x.startsWith(n)));
+    }
+    comprobar('sin tablas del acta ni columna responsable_arl tras revertir el Bloque 3',
+      !(await tablas(ds)).some((t) => t.includes('acta')) &&
+      (await ds.query(`SELECT 1 FROM information_schema.columns WHERE table_name='practicas' AND column_name='responsable_arl'`)).length === 0);
+    const practicasDespues = await huella(ds, 'practicas', true);
+    comprobar('revertir el Bloque 3 deja las prácticas existentes idénticas (conteo y contenido)',
+      practicasAntes.filas === practicasDespues.filas && practicasAntes.md5 === practicasDespues.md5);
     // down de 15, 14 y 13: seguros (solo quitan columnas, índices y restricciones propias).
     for (const n of ['MesaEps', 'ConsultaAdres', 'VerificacionEps']) {
       await ds.undoLastMigration({ transaction: 'each' });
@@ -194,18 +229,40 @@ async function main(): Promise<void> {
     await crearBase(sinDatos);
     ds = await abrir(sinDatos, MIGRACIONES);
     await ds.runMigrations({ transaction: 'each' });
-    for (let i = 0; i < EPS.length; i += 1) await ds.undoLastMigration({ transaction: 'each' });
+    for (let i = 0; i < ACTA.length + EPS.length; i += 1) await ds.undoLastMigration({ transaction: 'each' });
     const quedan = await registradas(ds);
-    comprobar('bloque EPS (11–15) revertido por completo sin datos EPS', JSON.stringify(quedan) === JSON.stringify(ESPERADAS.slice(0, 11)), quedan.slice(-2).join(', '));
-    comprobar('sin tablas EPS tras revertir', !(await tablas(ds)).some((t) => t.includes('eps')));
+    comprobar('bloque EPS (11–15) y Bloque 3 (16–17) revertidos por completo sin datos', JSON.stringify(quedan) === JSON.stringify(ESPERADAS.slice(0, 11)), quedan.slice(-2).join(', '));
+    comprobar('sin tablas EPS ni del acta tras revertir', !(await tablas(ds)).some((t) => t.includes('eps') || t.includes('acta')));
     comprobar('la auditoría y su disparador siguen intactos (no pertenecen al bloque EPS)', (await tablas(ds)).includes('auditoria'));
     await integridad(ds, 'revertida');
     const re = await ds.runMigrations({ transaction: 'each' });
-    comprobar(`reaplicación del bloque EPS (${EPS.length} migraciones)`, re.length === EPS.length, `${re.length}`);
+    comprobar(`reaplicación de los bloques EPS y del acta (${EPS.length + ACTA.length} migraciones)`, re.length === EPS.length + ACTA.length, `${re.length}`);
     await esquemaEps(ds, 'reaplicada');
+    await esquemaActa(ds, 'reaplicada');
     await integridad(ds, 'reaplicada');
     await ds.destroy();
     await borrarBase(sinDatos);
+
+    // Con una evidencia del acta (solo inserción), el down de la validación del acta se NIEGA: no se borra evidencia en silencio.
+    await crearBase(bases.acta);
+    ds = await abrir(bases.acta, MIGRACIONES);
+    await ds.runMigrations({ transaction: 'each' });
+    await cargarCatalogos(ds);
+    await sembrar(ds);
+    const [{ id: estActa }] = await ds.query(`SELECT id FROM usuarios WHERE rol='estudiante' LIMIT 1`);
+    const docActa = randomUUID();
+    await ds.query(
+      `INSERT INTO documentos (id, practica_id, tipo, version, estado, nombre_original, mime_real, tamano_bytes, hash_sha256, ruta_almacenamiento) VALUES ($1,$2,'acta_inicio',1,'en_revision','s.pdf','application/pdf',10,$3,'s/a.pdf')`,
+      [docActa, PRACTICAS[0], createHash('sha256').update(docActa).digest('hex')]);
+    const vActa = randomUUID();
+    await ds.query(`INSERT INTO validaciones_acta_iniciacion (id, documento_id, practica_id, estudiante_id) VALUES ($1,$2,$3,$4)`, [vActa, docActa, PRACTICAS[0], estActa]);
+    await ds.query(`INSERT INTO evidencias_validacion_acta (id, validacion_acta_id, intento, tipo, resultado, metodo, fecha) VALUES ($1,$2,1,'procesamiento','ok','sintetico', now())`, [randomUUID(), vActa]);
+    const fallaActa = await ds.undoLastMigration({ transaction: 'each' }).then(() => null, (e: Error) => e.message);
+    comprobar('down de ValidacionActaIniciacion se NIEGA con evidencia existente (solo inserción)', fallaActa !== null, 'no se negó');
+    comprobar('tras el rechazo, la migración 17 sigue registrada y la evidencia intacta',
+      (await registradas(ds)).some((x) => x.startsWith('ValidacionActaIniciacion')) &&
+      (await ds.query(`SELECT count(*)::int AS n FROM evidencias_validacion_acta`))[0].n === 1);
+    await ds.destroy();
 
     // ── C. Upgrade desde PRE-EPS ──────────────────────────────────────────
     console.log('\nC. Upgrade desde una base PRE-EPS con datos sintéticos');
@@ -217,7 +274,7 @@ async function main(): Promise<void> {
     await sembrar(ds);
     await sintetizarPreEps(ds);
     const antes = new Map<string, { filas: number; md5: string }>();
-    for (const t of await tablas(ds)) antes.set(t, await huella(ds, t));
+    for (const t of await tablas(ds)) antes.set(t, await huella(ds, t, true));
     const idsAntes = new Set<string>((await ds.query(`SELECT id::text FROM documentos`)).map((r: { id: string }) => r.id));
     const [{ n: nDocs }] = await ds.query(`SELECT count(*)::int AS n FROM documentos`);
     const [{ n: nAud }] = await ds.query(`SELECT count(*)::int AS n FROM auditoria`);
@@ -233,13 +290,17 @@ async function main(): Promise<void> {
     await ds.destroy();
     ds = await abrir(bases.up, MIGRACIONES);
     const ultima = await ds.runMigrations({ transaction: 'each' });
-    comprobar('la migración 15 (Mesa) se aplicó sobre filas existentes', ultima.length === 1 && ultima[0].name.startsWith('MesaEps'));
+    comprobar('las migraciones 15 (Mesa) y 16–17 (acta) se aplicaron sobre filas existentes',
+      ultima.length === 3 && ultima[0].name.startsWith('MesaEps') && ultima[1].name.startsWith('ResponsableArl') && ultima[2].name.startsWith('ValidacionActa'), ultima.map((m) => m.name).join(', '));
+    const [{ n: sinRellenar }] = await ds.query(`SELECT count(*)::int AS n FROM practicas WHERE responsable_arl IS NOT NULL`);
+    const [{ n: practicasN }] = await ds.query(`SELECT count(*)::int AS n FROM practicas`);
+    comprobar(`las ${practicasN} prácticas históricas quedaron con responsable_arl NULL (no se rellenó ni se derivó de la modalidad)`, practicasN > 0 && sinRellenar === 0, `${sinRellenar} con valor`);
     const rec = await ds.query(`SELECT count(*)::int AS n FROM validaciones_eps v JOIN documentos d ON d.id=v.documento_id WHERE v.recibida_en IS DISTINCT FROM d.cargado_en`);
     comprobar('recibida_en se rellenó con la fecha de carga de cada certificado existente', rec[0].n === 0, `${rec[0].n} distintas`);
 
     let cambiadas = 0;
     for (const [t, h] of antes) {
-      const d = await huella(ds, t);
+      const d = await huella(ds, t, true);
       const igual = d.filas === h.filas && d.md5 === h.md5;
       if (!igual) { cambiadas += 1; comprobar(`tabla previa «${t}» intacta tras el upgrade`, false, `${h.filas}→${d.filas} filas, huella distinta`); }
     }
@@ -249,6 +310,7 @@ async function main(): Promise<void> {
     comprobar('la auditoría previa sigue completa', (await ds.query(`SELECT count(*)::int AS n FROM auditoria`))[0].n === nAud);
     comprobar('la tabla de migraciones quedó completa y en orden', JSON.stringify(await registradas(ds)) === JSON.stringify(ESPERADAS));
     await esquemaEps(ds, 'upgrade');
+    await esquemaActa(ds, 'upgrade');
     await integridad(ds, 'upgrade');
     // Una restricción nueva no debe romper un dato histórico válido: una decisión previa ya está en documentos; las validaciones heredadas son legales.
     const [{ n: validas }] = await ds.query(`SELECT count(*)::int AS n FROM validaciones_eps`);

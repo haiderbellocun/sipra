@@ -26,7 +26,7 @@ function practicaBase(sobrescribir: Partial<DatosPractica> = {}): Practica {
     jefeInmediatoNombre: 'Jefe', jefeInmediatoCargo: null, jefeInmediatoCorreo: 'jefe@andina.co',
     jefeInmediatoTelefono: null, ciudad: 'Bogotá', funcionesRelevantes: null,
     fechaInicio: dia('2026-08-10'), fechaFin: dia('2026-11-27'), horasRegistradas: null,
-    arlVerificada: true, arlFechaAfiliacion: dia('2026-08-05'), terminosAceptadosEn: dia('2026-08-03'),
+    arlVerificada: true, responsableArlPractica: null, arlFechaAfiliacion: dia('2026-08-05'), terminosAceptadosEn: dia('2026-08-03'),
     registradaPor: 'estudiante', nota: null, cerradaEn: null,
     ultimaActividad: HOY, creadaEn: HOY, actualizadaEn: HOY, ...sobrescribir,
   });

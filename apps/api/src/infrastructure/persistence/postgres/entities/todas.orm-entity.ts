@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn, UpdateDateColumn,
 } from 'typeorm';
 import { ConsentimientoOrm, PoliticaConsentimientoOrm } from './consentimiento.orm-entity';
+import { EvidenciaValidacionActaOrm, ValidacionActaOrm } from './validacion-acta.orm-entity';
 import { EvidenciaValidacionEpsOrm, ValidacionEpsOrm } from './validacion-eps.orm-entity';
 
 /**
@@ -92,6 +93,8 @@ export class PracticaOrm {
   @Column({ type: 'timestamptz', nullable: true }) fecha_fin!: Date | null;
   @Column({ type: 'int', nullable: true }) horas_registradas!: number | null;
   @Column({ default: false }) arl_verificada!: boolean;
+  /** Quién asume la ARL en la práctica (acuerdo al registrarla); NULL en registros históricos, sin rellenar. */
+  @Column({ type: 'varchar', length: 10, nullable: true }) responsable_arl!: string | null;
   @Column({ type: 'timestamptz', nullable: true }) arl_fecha_afiliacion!: Date | null;
   @Column({ type: 'timestamptz' }) ultima_actividad!: Date;
   @CreateDateColumn({ type: 'timestamptz' }) creada_en!: Date;
@@ -311,6 +314,7 @@ export class PqrsOrm {
 
 export const ENTIDADES_ORM = [
   ConsentimientoOrm, PoliticaConsentimientoOrm, ValidacionEpsOrm, EvidenciaValidacionEpsOrm,
+  ValidacionActaOrm, EvidenciaValidacionActaOrm,
   UsuarioOrm, EmpresaOrm, PracticaOrm, DocumentoOrm,
   ObligacionOrm, VacanteOrm, PostulacionOrm, AuditoriaOrm, ParametroOrm, PeriodoOrm, CartaOrm,
   BitacoraOrm, SolicitudArlOrm, PqrsOrm,

@@ -22,7 +22,7 @@ const practica: DatosPractica = {
   cargo: null, tipoRemuneracion: null, salario: null, horario: null, jefeInmediatoNombre: null, jefeInmediatoCargo: null,
   jefeInmediatoCorreo: null, jefeInmediatoTelefono: null, ciudad: null, funcionesRelevantes: null,
   fechaInicio: dia('2026-08-18'), fechaFin: dia('2026-11-27'), horasRegistradas: null, arlVerificada: true,
-  arlFechaAfiliacion: dia('2026-08-17'), terminosAceptadosEn: dia('2026-08-01'), registradaPor: 'estudiante', nota: null,
+  responsableArlPractica: null, arlFechaAfiliacion: dia('2026-08-17'), terminosAceptadosEn: dia('2026-08-01'), registradaPor: 'estudiante', nota: null,
   cerradaEn: null, ultimaActividad: dia('2026-08-01'), creadaEn: dia('2026-08-01'), actualizadaEn: dia('2026-08-01'),
 };
 

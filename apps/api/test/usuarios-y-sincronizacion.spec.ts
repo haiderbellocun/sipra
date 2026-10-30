@@ -102,7 +102,7 @@ describe('Vistas SINU y sincronizador prácticas–docente', () => {
     empresaRazonSocial: null, empresaNit: null, area: null, cargo: null, tipoRemuneracion: null, salario: null, horario: null,
     jefeInmediatoNombre: null, jefeInmediatoCargo: null, jefeInmediatoCorreo: null, jefeInmediatoTelefono: null, ciudad: null,
     funcionesRelevantes: null, fechaInicio: null, fechaFin: null, horasRegistradas: null, arlVerificada: false,
-    arlFechaAfiliacion: null, terminosAceptadosEn: null, registradaPor: 'estudiante', nota: null, cerradaEn: null,
+    responsableArlPractica: null, arlFechaAfiliacion: null, terminosAceptadosEn: null, registradaPor: 'estudiante', nota: null, cerradaEn: null,
     ultimaActividad: HOY, creadaEn: HOY, actualizadaEn: HOY, ...sobrescribir,
   });
 

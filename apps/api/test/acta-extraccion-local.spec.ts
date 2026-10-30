@@ -33,25 +33,28 @@ describe('Extractor local · acta de iniciación', () => {
     expect(r.campos.fecha_fin.valor).toBe('2026-09-17');
     expect(r.campos.modalidad.valor).toBe('Contrato de aprendizaje');
     expect(r.campos.nombre_responsable.valor).toBe('Laura Jefe Ficticia');
-    expect(r.lecturaActa).toMatchObject({
-      tipoActaDetectada: 'iniciacion_practicas', remuneracion: 'no_remunerada', responsableArl: 'cun', metodoLectura: 'texto',
-    });
+    expect(r.lecturaActa?.clasificacion).toMatchObject({ tipoActaDetectada: 'iniciacion_practicas', remuneracion: 'no_remunerada', responsableArl: 'cun' });
+    expect(r.lecturaActa?.lectura.metodoLectura).toBe('texto');
   }, 60_000);
 
-  it('el veredicto compacto no lleva datos personales ni texto del documento', async () => {
+  it('la lectura que sale del extractor viene MINIMIZADA: sin texto del documento y sin datos que ninguna regla usa', async () => {
     const r = await extractor.extraer(await pdfActaDigital({}), 'application/pdf', TipoDocumento.ACTA_INICIO);
     const json = JSON.stringify(r.lecturaActa);
-    expect(json).not.toContain('Prueba Sintetica');
-    expect(json).not.toContain('1.000.000');
+    // Conserva lo que sirve a la comparación…
+    expect(r.lecturaActa?.campos.nombre_estudiante?.valor).toBe('Ana Maria Prueba Sintetica');
+    // …y descarta dirección, teléfonos y documentos de terceros, que el formulario trae pero nadie usa.
+    for (const dato of ['Calle 1 # 2-3', '3000000000', '6010000000', '1.000.000.002', '1.000.000.003', 'Barrio Ficticio']) expect(json).not.toContain(dato);
+    expect(json).not.toContain('OBLIGACIONES DE LA EMPRESA');
+    expect(json).not.toContain('Afiliar el estudiante');
   }, 60_000);
 
   it('un documento de otro tipo se reconoce: tipo detectado distinto y veredicto «documento_incorrecto»', async () => {
     const cedula = await extractor.extraer(await pdfDeLineas(TEXTO_CEDULA.split('\n')), 'application/pdf', TipoDocumento.ACTA_INICIO);
     expect(cedula.tipoDetectado).toBe(TipoDocumento.CEDULA);
-    expect(cedula.lecturaActa?.tipoActaDetectada).toBe('documento_incorrecto');
+    expect(cedula.lecturaActa?.clasificacion.tipoActaDetectada).toBe('documento_incorrecto');
     const otro = await extractor.extraer(await pdfDeLineas(TEXTO_ARCHIVO_CUALQUIERA.split('. ')), 'application/pdf', TipoDocumento.ACTA_INICIO);
     expect(otro.tipoDetectado).toBeNull();
-    expect(otro.lecturaActa).toMatchObject({ tipoActaDetectada: 'documento_incorrecto', documentoAjeno: 'otro' });
+    expect(otro.lecturaActa?.clasificacion).toMatchObject({ tipoActaDetectada: 'documento_incorrecto', documentoAjeno: 'otro' });
   }, 60_000);
 
   it('un archivo dañado queda ilegible (reenvío), no clasificado', async () => {

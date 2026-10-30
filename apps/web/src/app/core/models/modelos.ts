@@ -102,6 +102,8 @@ export interface Practica {
   area: string | null;
   cargo: string | null;
   tipoRemuneracion: 'remunerada' | 'no_remunerada' | null;
+  /** Quién asume la ARL en esta práctica; `null` en registros anteriores a este dato. */
+  responsableArl: 'empresa' | 'cun' | null;
   salario: number | null;
   horario: string | null;
   jefeInmediatoNombre: string | null;
@@ -132,7 +134,7 @@ export interface FiltroPracticas {
 
 export interface RegistroFur {
   periodoAcademico: string; modalidad: string; empresaRazonSocial: string; empresaNit: string;
-  area: string; cargo: string; tipoRemuneracion: 'remunerada' | 'no_remunerada'; salario?: number;
+  area: string; cargo: string; tipoRemuneracion: 'remunerada' | 'no_remunerada'; responsableArl: 'empresa' | 'cun'; salario?: number;
   horario: string; jefeInmediatoNombre: string; jefeInmediatoCargo: string; jefeInmediatoCorreo: string;
   jefeInmediatoTelefono: string; ciudad: string; funcionesRelevantes: string; fechaInicio: string;
   fechaFin: string; aceptaTerminos: boolean; estudianteDocumento?: string;

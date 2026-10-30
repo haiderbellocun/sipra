@@ -19,7 +19,7 @@ const practica = (estado: EstadoPractica) => Practica.desde({
   modalidad: ModalidadPractica.PASANTIA, estado, tutorId: null, empresaId: null,
   cargo: null, jefeInmediatoNombre: null, jefeInmediatoCorreo: null,
   fechaInicio: null, fechaFin: null, horasRegistradas: null, arlVerificada: false,
-  arlFechaAfiliacion: null, ultimaActividad: new Date(), creadaEn: new Date(),
+  responsableArlPractica: null, arlFechaAfiliacion: null, ultimaActividad: new Date(), creadaEn: new Date(),
   actualizadaEn: new Date(),
   numeroFur: null, regional: null, asignatura: null, empresaRazonSocial: null, empresaNit: null,
   area: null, tipoRemuneracion: null, salario: null, horario: null, jefeInmediatoCargo: null,

@@ -5,8 +5,8 @@ Corporación Unificada Nacional de Educación Superior · Dirección de Operacio
 
 | Campo | Valor |
 |---|---|
-| Versión del documento | 0.17.10 |
-| Fecha | 27 de octubre de 2026 |
+| Versión del documento | 0.18.0 |
+| Fecha | 30 de octubre de 2026 |
 | Estado del desarrollo | Proceso base del SGP (0.12), mejoras del Área de Prácticas (0.13), diseño SIPRA (0.14), movimiento de la interfaz (0.15), lectura documental con OpenAI y costos (0.16), paquete de transferencia (0.17) y repositorio independiente (0.17.1) |
 | Commit de referencia | `161ef40` y siguientes de `main` (es el `4fff78f` del repositorio original: el historial se reescribió al separar la carpeta con `git subtree split`) |
 | Repositorio | `ironfuentes-netizen/sipra-practicas` (repositorio privado independiente desde el 14 de octubre de 2026; antes vivió como carpeta `sipra/` del repositorio `Productoacademico`, rama `claude/sipra-practicas-setup-l0zasi`) |
@@ -1398,6 +1398,45 @@ Rediseño de la **experiencia y el layout** del detalle de la Mesa; no cambia ex
 - La revisión es a su vez un contenedor (*container query* `rev`): discrepancias como lista estructurada (severidad | título y explicación), datos extraídos junto a autenticidad y afiliación cuando hay ≥ 46 rem, comparación como tabla Campo | SIPRA | Certificado | ADRES | Resultado desde 40 rem y como filas compactas por debajo, versiones/evidencia e historial en dos columnas desde 30 rem, tiempos en una banda de una línea y los pasos de ADRES plegados (`<details>`). El flujo ADRES no cambia (sin iframe).
 
 <!-- FIN_PILOTO_EPS -->
+
+---
+
+### 7.22 Acta de iniciación de prácticas (Bloques 0–3)
+
+Validación local del acta de iniciación (`TipoDocumento.ACTA_INICIO`). El acta **confirma o contradice** lo que SIPRA ya sabe de la práctica; **nunca lo establece ni lo modifica**, y **nunca se autoaprueba**: la decide una persona.
+
+**Formatos.** Los tres formatos institucionales conocidos son combinaciones de dos datos independientes (remuneración y quién asume la ARL): *remunerada + empresa*, *no remunerada + CUN* y *no remunerada + empresa*. El dominio no guarda un enum combinado. El código del formato (`DPE-FO03`, `DPE-FO02`) **no** identifica el tipo: dos formatos distintos lo comparten. La clasificación usa título, estructura (secciones, rótulos, campos) y la sección donde figura la obligación de afiliar a la ARL.
+
+**Dominio puro** (`domain/entities/acta-iniciacion.ts`, `domain/services/*-acta.*`):
+
+| Pieza | Qué hace |
+|---|---|
+| `clasificacion-acta` | `iniciacion_practicas` / `documento_incorrecto` / `no_determinable`. «No pude leer» no es «no es un acta». Remuneración del título; responsable de la ARL por **dos señales independientes** (encabezado y sección de obligaciones): coinciden → confianza alta; una sola → media; se contradicen o una sección no se pudo reconocer → `no_determinable` + discrepancia crítica del documento. Nunca se escoge una. |
+| `extraccion-acta` | Campos por etiqueta («Tipo/Modalidad de práctica» y «funciones/actividades» son el mismo campo). Un valor ausente es `null`. |
+| `comparacion-acta` | `coincide` / `diferente` / `informacion_insuficiente` por campo. Críticos: estudiante, documento, empresa, NIT, remuneración, responsable de la ARL. Fechas y modalidad: altas. Un dato ausente jamás coincide. |
+| `firmas-acta` + `localizacion-firmas` | Solo **presencia probable** (`si` / `no` / `no_determinable`). Sin autenticidad ni biometría. Zona relativa a los rótulos «FIRMA DE LA EMPRESA» / «FIRMA DEL PRÁCTICANTE». |
+| `suficiencia-acta` | Propia del acta (no la de EPS): suficiente para *clasificar* ≠ suficiente para *comparar*. |
+
+**Lectura 100 % local** (`LecturaLocalActaService`): texto nativo (pdf.js) → OCR (Tesseract) solo para páginas sin texto utilizable → `analizarActa`. `ACTA_INICIO` es de procesamiento `LOCAL` y no se autoaprueba (`politica-procesamiento`): ni OpenAI ni Anthropic ni OCR externo. La regex antigua («acta de inicio») ya no interviene. Firmas: se miden sobre la página rasterizada descontando texto impreso, líneas del formulario, bordes y ruido (`GeometriaDocumentoPort`). Mismos topes de seguridad que EPS (páginas, píxeles, tiempo).
+
+**Validación de la remuneración y de la ARL de la práctica (Bloque 3).**
+
+- Remuneración esperada = campo **existente** `practicas.tipo_remuneracion` (`remunerada` / `no_remunerada`). No se creó un segundo campo.
+- `practicas.responsable_arl` (`empresa` | `cun`, nullable): acuerdo **explícito** de la práctica, capturado en el FUR («¿Quién asume la ARL?», obligatorio para registros nuevos). Es independiente del valor por defecto de la modalidad (`responsableArlPorDefecto`, que solo **sugiere** y puede ser «según cobertura») y de lo que diga el acta. Las prácticas anteriores quedan en `NULL` («No informado»): **no hay backfill ni se infiere de la modalidad**; la comparación dice `informacion_insuficiente`. Tras el registro solo coordinación y administración lo cambian (auditado como `responsable_arl_practica_actualizado`); el estudiante lo fija al registrar y una carga documental jamás lo toca.
+
+**Persistencia** (migraciones `1756000016000` y `1756000017000`; `synchronize` sigue prohibido):
+
+- `validaciones_acta_iniciacion`: **una por documento** (`UNIQUE(documento_id)`), es decir, por versión del acta. Estados: `pendiente`, `procesando`, `revision`, `aprobado_manual`, `devuelto`, `rechazado`, `error` (la Mesa de decisiones llega en el Bloque 4). Guarda `tipo_acta_detectada`, `remuneracion_detectada`, `responsable_arl_detectado`, `firma_empresa`, `firma_practicante`, método de lectura, confianza, motivos (códigos), `datos_extraidos` y `comparacion` (jsonb) y versión optimista. `CHECK`: un documento que no es un acta o no se pudo determinar **no** puede traer remuneración, ARL ni firmas «válidas»; una decisión humana dice quién y cuándo; ni el texto del documento ni imágenes de firma caben en los JSON (claves prohibidas).
+- `evidencias_validacion_acta`: **solo inserción** (disparador + permisos), identificadas por `(validación, ronda, tipo)`: `lectura_documento`, `clasificacion_documental`, `comparacion`, `medicion_firmas`, `procesamiento`, `decision_humana`. Sin texto del documento.
+- `down` de la 17 se **niega** si hay evidencia (solo inserción); la 16 revierte la columna sin tocar las prácticas.
+
+**Minimización.** Solo se conserva una lista blanca de campos (nombre, documento, programa, modalidad, fechas, funciones —máx. 500 caracteres—, empresa, NIT, jefe, representante, docente monitor y datos del formato). No se conservan dirección, barrio, teléfonos, lugar de expedición, semestre, ciudad, departamento ni documentos de terceros. Un documento que no es un acta no conserva datos extraídos. La comparación persistida guarda el veredicto de cada campo, **sin** el valor de SIPRA (es canónico en Usuario/Práctica/Empresa) ni el del acta (ya están en `datos_extraidos`).
+
+**Idempotencia y versionado.** El reintento no crea otra validación (`INSERT … ON CONFLICT DO NOTHING`), no duplica evidencias (misma ronda), no crea otra versión documental y no pisa un resultado ni una decisión humana (compare-and-set por versión). Un error abre una **ronda nueva** al reanudar; las evidencias de la anterior no se tocan. Una versión nueva del acta tiene su propia validación, evidencias, firmas y comparación: nada se copia de la anterior.
+
+**Auditoría.** `acta_procesada` (una por procesamiento, con códigos y conteos) y `responsable_arl_practica_actualizado`. No se audita cada paso interno del OCR.
+
+**Pendiente.** (1) Validar la extracción de valores con **al menos un acta diligenciada real, anonimizada o autorizada**: las tres plantillas reales están en blanco. (2) Calibrar los umbrales de firma con actas firmadas reales. (3) Bloque 4: Mesa de revisión (reserva, decisión, devolución), endpoints y roles (auxiliar, coordinación, administración). (4) UI del estudiante (estados «Acta en revisión» / «Necesita corrección»). Herramienta de validación manual: `apps/api/herramientas/validar-actas-reales.ts` (`SIPRA_ACTAS_DIR`, fuera del repositorio; solo imprime códigos).
 
 ---
 
@@ -2983,6 +3022,10 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.18.0 — 30 de octubre de 2026
+
+Acta de iniciación de prácticas, Bloques 0–3 (ver §7.22). Dominio puro (clasificación por contenido con dos señales independientes para la ARL, extracción por etiqueta, comparación contra SIPRA, presencia probable de firmas), lectura 100 % local (pdf.js, OCR Tesseract, medición de zonas de firma; `ACTA_INICIO` pasa a procesamiento local y sin autoaprobación) y persistencia: `practicas.responsable_arl` (acuerdo explícito; el FUR pregunta «¿Quién asume la ARL?» y la modalidad solo sugiere; los registros históricos quedan en `NULL` sin backfill), `validaciones_acta_iniciacion` y `evidencias_validacion_acta` (solo inserción, idempotentes por documento y ronda, sin texto del documento ni imágenes de firma). La remuneración esperada es el campo existente `tipo_remuneracion`. Auditoría: `acta_procesada` y `responsable_arl_practica_actualizado`. Migraciones 16 y 17, verificadas desde cero, con reversión y con upgrade sobre datos existentes en un PostgreSQL local desechable. Corrección encontrada al leer un acta con OCR degradado: una obligación de ARL ya no se atribuye a una sección si no se reconocen las dos (antes podía afirmar la ARL contraria). Pendiente: probar con un acta diligenciada real y la Mesa (Bloque 4).
 
 ### 0.17.20 — 28 de octubre de 2026
 

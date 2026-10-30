@@ -4,7 +4,7 @@ import { RegistrarPracticaUseCase } from '../src/application/use-cases/practicas
 import { Empresa, EstadoEmpresa } from '../src/domain/entities/empresa.entity';
 import { ModalidadPractica } from '../src/domain/entities/modalidad.entity';
 import { PeriodoAcademico, TipoVentana } from '../src/domain/entities/periodo.entity';
-import { CicloAcademico, DatosPractica, EstadoPractica, Practica } from '../src/domain/entities/practica.entity';
+import { CicloAcademico, DatosPractica, EstadoPractica, Practica, responsableArlSugerido } from '../src/domain/entities/practica.entity';
 import { Usuario } from '../src/domain/entities/usuario.entity';
 import { Rol } from '../src/domain/value-objects/rol.vo';
 import { EventoNotificable } from '../src/domain/services/plantillas-notificacion.domain-service';
@@ -92,6 +92,7 @@ const dto = (extra: Partial<RegistrarPracticaDto> = {}): RegistrarPracticaDto =>
   area: 'Operaciones',
   cargo: 'Practicante de logística',
   tipoRemuneracion: 'remunerada',
+  responsableArl: 'empresa',
   salario: 1_423_500,
   horario: 'Lunes a viernes, 8:00 a 17:00',
   jefeInmediatoNombre: 'Camila Restrepo Duarte',
@@ -259,5 +260,76 @@ describe('Reglas del documento PQRS y del cronograma sobre el registro', () => {
     )) as unknown as DatosPractica;
     expect(r.modalidad).toBe(ModalidadPractica.PASANTIA);
     expect(auditorias.some((a) => a.metadatos.extensionAutorizada === true)).toBe(true);
+  });
+});
+
+describe('Registro · remuneración y responsable de la ARL son conceptos independientes', () => {
+  // Los tres formatos conocidos del acta de iniciación son combinaciones de estos dos datos, pero el dominio no
+  // guarda un enum combinado: cada uno se registra por separado y admite cualquier combinación.
+  it.each<['remunerada' | 'no_remunerada', 'empresa' | 'cun']>([
+    ['remunerada', 'empresa'],
+    ['no_remunerada', 'cun'],
+    ['no_remunerada', 'empresa'],
+    ['remunerada', 'cun'],
+  ])('registra %s con la ARL a cargo de: %s', async (remuneracion, arl) => {
+    const { caso, practicas } = armar();
+    await caso.registrar(dto({ tipoRemuneracion: remuneracion, responsableArl: arl, salario: remuneracion === 'remunerada' ? 1_423_500 : undefined }), actorEstudiante, HOY);
+    expect(practicas.filas[0].tipoRemuneracion).toBe(remuneracion);
+    expect(practicas.filas[0].responsableArlPractica).toBe(arl);
+  });
+
+  it('la remuneración esperada es el campo existente tipoRemuneracion: no hay un segundo campo equivalente', async () => {
+    const { caso, practicas } = armar();
+    await caso.registrar(dto({ tipoRemuneracion: 'no_remunerada' }), actorEstudiante, HOY);
+    expect(Object.keys(practicas.filas[0]).filter((k) => /remunera/i.test(k))).toEqual(['tipoRemuneracion']);
+  });
+
+  it('la modalidad solo SUGIERE: si sugiere empresa y se registra CUN, se guarda CUN y la auditoría lo deja dicho', async () => {
+    const { caso, practicas, auditorias } = armar();
+    // Pasantía: el catálogo sugiere que afilia la organización (empresa).
+    expect(responsableArlSugerido(ModalidadPractica.PASANTIA)).toBe('empresa');
+    await caso.registrar(dto({ modalidad: ModalidadPractica.PASANTIA, responsableArl: 'cun' }), actorEstudiante, HOY);
+    expect(practicas.filas[0].responsableArlPractica).toBe('cun');
+    const registro = auditorias.find((a) => a.accion === 'registro_fur')!;
+    expect(registro.metadatos).toMatchObject({ responsableArl: 'cun', responsableArlSugerido: 'empresa', responsableArlDifiereDeSugerido: true });
+  });
+
+  it('una modalidad «según cobertura» no tiene sugerencia: quien registra decide', () => {
+    expect(responsableArlSugerido(ModalidadPractica.INVESTIGACION)).toBe('cun');
+    const segunCobertura = Object.values(ModalidadPractica).filter((m) => responsableArlSugerido(m) === null);
+    expect(segunCobertura.length).toBeGreaterThan(0);
+    expect(segunCobertura).toContain(ModalidadPractica.PASANTIA_INVESTIGATIVA);
+  });
+
+  it('el dato es obligatorio y solo admite empresa o cun (contrato de registro)', async () => {
+    const { validate } = await import('class-validator');
+    const { plainToInstance } = await import('class-transformer');
+    const base = { ...dto() } as Record<string, unknown>;
+    const errores = async (cambios: Record<string, unknown>) =>
+      (await validate(plainToInstance(RegistrarPracticaDto, { ...base, ...cambios }))).map((e) => e.property);
+    expect(await errores({})).toEqual([]);
+    expect(await errores({ responsableArl: undefined })).toContain('responsableArl');
+    expect(await errores({ responsableArl: 'segun_cobertura' })).toContain('responsableArl');
+    expect(await errores({ responsableArl: 'cun' })).toEqual([]);
+  });
+
+  it('un registro histórico (responsable ARL null) sigue siendo válido y no se rellena desde la modalidad', () => {
+    const base = Practica.desde({
+      id: 'p-historica', numeroFur: 1, estudianteId: 'est-1', programaId: 'ADM-PRO', escuelaId: 'ESC-NEG', regional: null,
+      asignatura: null, ciclo: CicloAcademico.PROFESIONAL, periodoAcademico: '2025B', modalidad: ModalidadPractica.PASANTIA,
+      estado: EstadoPractica.ACTIVA, tutorId: null, empresaId: null, empresaRazonSocial: null, empresaNit: null, area: null,
+      cargo: null, tipoRemuneracion: null, salario: null, horario: null, jefeInmediatoNombre: null, jefeInmediatoCargo: null,
+      jefeInmediatoCorreo: null, jefeInmediatoTelefono: null, ciudad: null, funcionesRelevantes: null, fechaInicio: null,
+      fechaFin: null, horasRegistradas: null, arlVerificada: false, arlFechaAfiliacion: null, responsableArlPractica: null,
+      terminosAceptadosEn: null, registradaPor: 'coordinacion', nota: null, cerradaEn: null, ultimaActividad: HOY, creadaEn: HOY, actualizadaEn: HOY,
+    });
+    expect(base.responsableArlPractica).toBeNull();
+    expect(base.instantanea().responsableArlPractica).toBeNull();
+  });
+
+  it('definir el responsable de la ARL no toca la remuneración ni lo deriva de ella', () => {
+    const p = Practica.desde({ ...({} as DatosPractica), id: 'p', estado: EstadoPractica.INSCRITA, tipoRemuneracion: 'remunerada', responsableArlPractica: null, modalidad: ModalidadPractica.PASANTIA, actualizadaEn: HOY, ultimaActividad: HOY });
+    p.definirResponsableArl('cun');
+    expect(p.instantanea()).toMatchObject({ tipoRemuneracion: 'remunerada', responsableArlPractica: 'cun' });
   });
 });

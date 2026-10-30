@@ -32,7 +32,7 @@ function practicaBase(sobrescribir: Partial<DatosPractica> = {}): DatosPractica 
     tipoRemuneracion: null, salario: null, horario: null, jefeInmediatoNombre: 'Ana Ruiz', jefeInmediatoCargo: null,
     jefeInmediatoCorreo: null, jefeInmediatoTelefono: null, ciudad: null, funcionesRelevantes: null,
     fechaInicio: dia('2026-08-18'), fechaFin: dia('2026-11-27'), horasRegistradas: null, arlVerificada: false,
-    arlFechaAfiliacion: null, terminosAceptadosEn: HOY, registradaPor: 'estudiante', nota: null, cerradaEn: null,
+    responsableArlPractica: null, arlFechaAfiliacion: null, terminosAceptadosEn: HOY, registradaPor: 'estudiante', nota: null, cerradaEn: null,
     ultimaActividad: HOY, creadaEn: HOY, actualizadaEn: HOY, ...sobrescribir,
   };
 }

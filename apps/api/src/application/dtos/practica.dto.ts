@@ -5,7 +5,7 @@ import {
 } from 'class-validator';
 import {
   CicloAcademico, EstadoPractica, ModalidadPractica, OrigenRegistro, SenalAcompanamiento,
-  TipoRemuneracion,
+  RESPONSABLES_ARL_PRACTICA, ResponsableArlPractica, TipoRemuneracion,
 } from '../../domain/entities/practica.entity';
 import { AvanceDocumental } from '../../domain/services/avance-documental.domain-service';
 
@@ -44,6 +44,12 @@ export class RegistrarPracticaDto {
   @ApiProperty() @IsString() @MinLength(2) @MaxLength(150) cargo!: string;
   @ApiProperty({ enum: ['remunerada', 'no_remunerada'] })
   @IsEnum(['remunerada', 'no_remunerada'] as never) tipoRemuneracion!: TipoRemuneracion;
+  @ApiProperty({
+    enum: RESPONSABLES_ARL_PRACTICA,
+    description: '¿Quién asume la afiliación a la ARL en esta práctica? La modalidad solo sugiere un valor en el formulario: ' +
+      'quien registra lo confirma o lo cambia. El acta de iniciación no lo establece: lo confirma o lo contradice.',
+  })
+  @IsEnum(RESPONSABLES_ARL_PRACTICA) responsableArl!: ResponsableArlPractica;
   @ApiPropertyOptional() @IsOptional() @IsNumber() @Min(0) salario?: number;
   @ApiProperty({ example: 'Lunes a viernes, 8:00 a 17:00' }) @IsString() @MaxLength(200) horario!: string;
   @ApiProperty() @IsString() @MinLength(3) @MaxLength(150) jefeInmediatoNombre!: string;
@@ -76,6 +82,11 @@ export class ActualizarVacanteDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(150) cargo?: string;
   @ApiPropertyOptional({ enum: ['remunerada', 'no_remunerada'] })
   @IsOptional() @IsEnum(['remunerada', 'no_remunerada'] as never) tipoRemuneracion?: TipoRemuneracion;
+  @ApiPropertyOptional({
+    enum: RESPONSABLES_ARL_PRACTICA,
+    description: 'Solo coordinación y administración lo cambian después del registro (el estudiante lo fija al registrar).',
+  })
+  @IsOptional() @IsEnum(RESPONSABLES_ARL_PRACTICA) responsableArl?: ResponsableArlPractica;
   @ApiPropertyOptional() @IsOptional() @IsNumber() @Min(0) salario?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) horario?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(150) jefeInmediatoNombre?: string;
@@ -127,6 +138,8 @@ export class PracticaRespuestaDto {
   @ApiProperty({ nullable: true }) area!: string | null;
   @ApiProperty({ nullable: true }) cargo!: string | null;
   @ApiProperty({ nullable: true }) tipoRemuneracion!: TipoRemuneracion | null;
+  @ApiProperty({ nullable: true, enum: RESPONSABLES_ARL_PRACTICA, description: 'Quién asume la ARL en esta práctica; null en registros anteriores a este dato.' })
+  responsableArl!: ResponsableArlPractica | null;
   @ApiProperty({ nullable: true }) salario!: number | null;
   @ApiProperty({ nullable: true }) horario!: string | null;
   @ApiProperty({ nullable: true }) jefeInmediatoNombre!: string | null;

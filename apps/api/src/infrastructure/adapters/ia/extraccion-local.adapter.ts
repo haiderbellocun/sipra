@@ -8,7 +8,7 @@ import { CAMPOS_EPS } from '../../../domain/services/extraccion-eps-local.domain
 import { LecturaLocalEpsService } from '../../../domain/services/lectura-local-eps.domain-service';
 import { CampoLeidoActa } from '../../../domain/entities/acta-iniciacion';
 import { GEOMETRIA_DOCUMENTO, GeometriaDocumentoPort } from '../../../domain/ports/out/geometria-documento.port';
-import { LecturaActaLocal } from '../../../domain/services/lectura-local-acta.domain-service';
+import { minimizarLecturaActa } from '../../../domain/services/validacion-acta.domain-service';
 import { fechaDeActa } from '../../../domain/services/comparacion-acta.domain-service';
 import { LecturaActaLocalAdapter } from '../lectura-local/lectura-acta-local.adapter';
 import { ExtraccionSimuladaAdapter } from './extraccion.adapter';
@@ -122,17 +122,8 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
       costoUsd: 0,
       proveedor: 'local',
       duracionMs: lectura.resumen.duracionMs,
-      lecturaActa: this.compacta(lectura),
+      lecturaActa: minimizarLecturaActa(lectura),
     };
   }
 
-  private compacta(lectura: LecturaActaLocal): NonNullable<ResultadoExtraccion['lecturaActa']> {
-    const { clasificacion: c, firmas } = lectura.analisis;
-    return {
-      tipoActaDetectada: c.tipoActaDetectada, documentoAjeno: c.documentoAjeno, remuneracion: c.remuneracion,
-      responsableArl: c.responsableArl, firmaEmpresaPresente: firmas.firmaEmpresaPresente,
-      firmaPracticantePresente: firmas.firmaPracticantePresente, metodoLectura: lectura.resumen.metodoLectura,
-      motivos: c.motivos,
-    };
-  }
 }

@@ -22,6 +22,11 @@ import {
   EvidenciaEps, FuenteEvidenciaEps, TipoEvidenciaEps,
 } from '../src/domain/entities/evidencia-validacion-eps.entity';
 import { ValidacionEps } from '../src/domain/entities/validacion-eps.entity';
+import { Practica } from '../src/domain/entities/practica.entity';
+import { EvidenciaActa, TipoEvidenciaActa, ValidacionActa } from '../src/domain/entities/validacion-acta.entity';
+import { ValidacionActaRepositoryAdapter } from '../src/infrastructure/adapters/persistence/postgres/validacion-acta.adapter';
+import { PracticaRepositoryAdapter } from '../src/infrastructure/adapters/persistence/postgres/repositorios.adapter';
+import { EvidenciaValidacionActaOrm, ValidacionActaOrm } from '../src/infrastructure/persistence/postgres/entities/validacion-acta.orm-entity';
 import {
   ESTADOS_ADRES_ABIERTOS, calcularPrioridad, tieneDiscrepanciaCriticaPersistida,
 } from '../src/domain/services/mesa-eps.domain-service';
@@ -32,7 +37,7 @@ import {
   ValidacionEpsRepositoryAdapter,
 } from '../src/infrastructure/adapters/persistence/postgres/validacion-eps.adapter';
 import {
-  DocumentoOrm, ENTIDADES_ORM,
+  DocumentoOrm, ENTIDADES_ORM, PracticaOrm,
 } from '../src/infrastructure/persistence/postgres/entities/todas.orm-entity';
 import {
   EvidenciaValidacionEpsOrm, ValidacionEpsOrm,
@@ -371,6 +376,130 @@ async function main(): Promise<void> {
 
     const supervision = await validaciones.supervisionMesa(new Date(), null);
     comprobar('la supervisión cuenta abiertas y la carga por funcionario', supervision.abiertas >= 3 && supervision.funcionarios.some((f) => f.reservasVigentes >= 1));
+
+    // ═══ Acta de iniciación (Bloque 3): unicidad, idempotencia, restricciones, privilegios ═══════════════════════
+    console.log('\n— Acta de iniciación: validación y evidencias —');
+    const validacionesActa = new ValidacionActaRepositoryAdapter(
+      ds.getRepository(ValidacionActaOrm), ds.getRepository(EvidenciaValidacionActaOrm),
+    );
+    let versionActa = 0;
+    const nuevaActa = async (): Promise<string> => {
+      const id = randomUUID();
+      await ds.query(
+        `INSERT INTO documentos (id, practica_id, tipo, version, estado, nombre_original, mime_real, tamano_bytes,
+           hash_sha256, ruta_almacenamiento) VALUES ($1, $2, 'acta_inicio', $4, 'en_revision', 'a.pdf', 'application/pdf', 10, $3, 'ruta/a')`,
+        [id, practica, 'c'.repeat(64), (versionActa += 1)],
+      );
+      return id;
+    };
+    const pendienteActa = (documentoId: string) => ValidacionActa.pendiente({
+      id: randomUUID(), documentoId, practicaId: practica, estudianteId: estudiante, recibidaEn: ahora, ahora,
+    }).instantanea();
+
+    // Una validación por documento: N creaciones simultáneas dejan UNA fila.
+    const docA = await nuevaActa();
+    const creaciones = await Promise.all(Array.from({ length: 20 }, () => validacionesActa.crearSiNoExiste(pendienteActa(docA))));
+    comprobar('20 creaciones simultáneas de la validación del mismo documento: exactamente una se crea', creaciones.filter((c) => c.creada).length === 1);
+    comprobar('todas devuelven la MISMA validación', new Set(creaciones.map((c) => c.validacion.id)).size === 1);
+    const [{ n: filasA }] = await ds.query('SELECT count(*)::int AS n FROM validaciones_acta_iniciacion WHERE documento_id = $1', [docA]);
+    comprobar('la base tiene una sola fila para el documento', filasA === 1);
+
+    // Compare-and-set: solo uno gana con la misma versión.
+    const vA = creaciones[0].validacion;
+    const cas = await Promise.all(Array.from({ length: 20 }, (_, i) => {
+      const copia = ValidacionActa.desde(vA.instantanea());
+      copia.iniciarProcesamiento(new Date(ahora.getTime() + i));
+      return validacionesActa.guardarSiVersion(copia.instantanea(), vA.version);
+    }));
+    comprobar('20 actualizaciones simultáneas con la misma versión: exactamente una gana', cas.filter(Boolean).length === 1);
+    const tras = (await validacionesActa.buscarPorDocumento(docA))!;
+    comprobar('la versión subió una sola vez y el estado es «procesando» con la ronda 1', tras.version === vA.version + 1 && tras.estado === 'procesando' && tras.intentos === 1);
+
+    // Evidencias idempotentes por (validación, ronda, tipo).
+    const evidenciaActa = (intento: number, tipo: TipoEvidenciaActa) => EvidenciaActa.crear({
+      id: randomUUID(), validacionActaId: vA.id, intento, tipo, resultado: 'ok', metodo: 'verificacion', fecha: ahora, actorId: null,
+      hashDocumento: 'c'.repeat(64), datos: { prueba: true }, errorCodigo: null, creadoEn: ahora,
+    }).instantanea();
+    const ins = await Promise.all(Array.from({ length: 20 }, () => validacionesActa.agregarEvidencia(evidenciaActa(1, TipoEvidenciaActa.LECTURA_DOCUMENTO))));
+    comprobar('20 inserciones simultáneas de la misma evidencia (validación, ronda, tipo): exactamente una entra', ins.filter(Boolean).length === 1);
+    comprobar('otra ronda del mismo tipo SÍ entra', await validacionesActa.agregarEvidencia(evidenciaActa(2, TipoEvidenciaActa.LECTURA_DOCUMENTO)));
+    comprobar('otro tipo en la misma ronda SÍ entra', await validacionesActa.agregarEvidencia(evidenciaActa(1, TipoEvidenciaActa.COMPARACION)));
+    comprobar('la validación tiene exactamente 3 evidencias', (await validacionesActa.listarEvidencias(vA.id)).length === 3);
+
+    // Versiones: otra versión del acta = otro documento = otra validación, sin copiar nada.
+    const docB = await nuevaActa();
+    const { validacion: vB, creada: creadaB } = await validacionesActa.crearSiNoExiste(pendienteActa(docB));
+    comprobar('una versión nueva del acta crea su propia validación, en blanco', creadaB && vB.id !== vA.id && vB.intentos === 0 && vB.estado === 'pendiente');
+    comprobar('la validación de la versión nueva no hereda las evidencias de la anterior', (await validacionesActa.listarEvidencias(vB.id)).length === 0);
+    comprobar('la práctica lista las dos validaciones', (await validacionesActa.listarPorPractica(practica)).length >= 2);
+
+    // Inmutabilidad de las evidencias.
+    await rechaza('UPDATE de una evidencia se rechaza (disparador)', () => ds.query(`UPDATE evidencias_validacion_acta SET resultado = 'otro' WHERE validacion_acta_id = $1`, [vA.id]), /inmutable|insufficient/i);
+    await rechaza('DELETE de una evidencia se rechaza (disparador)', () => ds.query(`DELETE FROM evidencias_validacion_acta WHERE validacion_acta_id = $1`, [vA.id]), /inmutable|insufficient/i);
+
+    // Restricciones de la validación.
+    const docC = await nuevaActa();
+    const insertar = (columnas: string, valores: unknown[]): Promise<unknown> =>
+      ds.query(`INSERT INTO validaciones_acta_iniciacion (id, documento_id, practica_id, estudiante_id, ${columnas}) VALUES ($1,$2,$3,$4,${valores.map((_, i) => `$${i + 5}`).join(',')})`,
+        [randomUUID(), docC, practica, estudiante, ...valores]);
+    await rechaza('un segundo registro para el mismo documento se rechaza (unicidad)', () => ds.query(
+      `INSERT INTO validaciones_acta_iniciacion (id, documento_id, practica_id, estudiante_id) VALUES ($1,$2,$3,$4)`, [randomUUID(), docA, practica, estudiante]), /ux_vacta_documento|duplicate|unique/i);
+    await rechaza('un estado fuera del catálogo se rechaza', () => insertar('estado', ['aprobado_automatico']), /ck_vacta_estado/);
+    await rechaza('el tipo de acta fuera del catálogo se rechaza', () => insertar('tipo_acta_detectada', ['acta_rara']), /ck_vacta_tipo/);
+    await rechaza('una firma fuera de si/no/no_determinable se rechaza', () => insertar('firma_empresa', ['autentica']), /ck_vacta_firma_empresa/);
+    await rechaza('una decisión humana sin quién ni cuándo se rechaza', () => insertar('estado', ['aprobado_manual']), /ck_vacta_decision_humana/);
+    await rechaza('«error» sin código de error se rechaza', () => insertar('estado', ['error']), /ck_vacta_error/);
+    await rechaza('un documento INCORRECTO con remuneración «válida» se rechaza', () => insertar('tipo_acta_detectada, remuneracion_detectada', ['documento_incorrecto', 'remunerada']), /ck_vacta_solo_acta/);
+    await rechaza('un documento NO DETERMINABLE con responsable de ARL «válido» se rechaza', () => insertar('tipo_acta_detectada, responsable_arl_detectado', ['no_determinable', 'cun']), /ck_vacta_solo_acta/);
+    await rechaza('un documento incorrecto con firma «si» se rechaza', () => insertar('tipo_acta_detectada, firma_practicante', ['documento_incorrecto', 'si']), /ck_vacta_solo_acta/);
+    await rechaza('el texto del documento no cabe en los datos extraídos (clave prohibida)', () => insertar('datos_extraidos', [JSON.stringify({ texto_ocr: 'x' })]), /ck_vacta_datos/);
+    await rechaza('una imagen de firma no cabe en la comparación (clave prohibida)', () => insertar('comparacion', [JSON.stringify({ imagen_firma: 'x' })]), /ck_vacta_comparacion/);
+    await rechaza('una confianza fuera de 0–1 se rechaza', () => insertar('confianza', [1.5]), /ck_vacta_confianza|numeric field overflow/i);
+    await insertar('tipo_acta_detectada, remuneracion_detectada, responsable_arl_detectado, firma_empresa, firma_practicante, metodo_lectura, confianza',
+      ['iniciacion_practicas', 'no_remunerada', 'cun', 'si', 'no', 'ocr', 0.812]).then(
+      () => comprobar('un acta válida con remuneración, ARL, firmas y método se acepta', true),
+      (e: Error) => comprobar('un acta válida con remuneración, ARL, firmas y método se acepta', false, e.message.slice(0, 160)));
+
+    // Restricciones de la evidencia.
+    const evi = (tipo: string, datos: unknown): Promise<unknown> => ds.query(
+      `INSERT INTO evidencias_validacion_acta (id, validacion_acta_id, intento, tipo, resultado, metodo, fecha, datos)
+       VALUES ($1,$2,9,$3,'x','x',now(),$4)`, [randomUUID(), vB.id, tipo, JSON.stringify(datos)]);
+    await rechaza('un tipo de evidencia fuera del catálogo se rechaza', () => evi('inventada', {}), /ck_eacta_tipo/);
+    await rechaza('una decisión humana sin actor se rechaza', () => evi('decision_humana', {}), /ck_eacta_decision/);
+    await rechaza('el texto del documento no cabe en una evidencia (clave prohibida)', () => evi('lectura_documento', { texto: 'hola' }), /ck_eacta_datos/);
+    await rechaza('una imagen de firma no cabe en una evidencia', () => evi('medicion_firmas', { imagen_firma: 'AAAA' }), /ck_eacta_datos/);
+
+    // Privilegios de la aplicación (rol sipra_app): inserta y actualiza validaciones, solo inserta evidencias, nada se borra.
+    const comoApp = async (sql: string, params: unknown[] = []): Promise<void> => {
+      const qr = ds.createQueryRunner();
+      await qr.connect();
+      await qr.startTransaction();
+      try {
+        await qr.query('SET LOCAL ROLE sipra_app');
+        await qr.query(sql, params);
+      } finally {
+        await qr.rollbackTransaction();
+        await qr.release();
+      }
+    };
+    await rechaza('sipra_app NO puede borrar validaciones del acta', () => comoApp('DELETE FROM validaciones_acta_iniciacion WHERE id = $1', [vB.id]), /permission denied|permiso denegado/i);
+    await rechaza('sipra_app NO puede actualizar evidencias', () => comoApp('UPDATE evidencias_validacion_acta SET resultado = $1', ['x']), /permission denied|permiso denegado/i);
+    await rechaza('sipra_app NO puede borrar evidencias', () => comoApp('DELETE FROM evidencias_validacion_acta'), /permission denied|permiso denegado/i);
+    await comoApp('UPDATE validaciones_acta_iniciacion SET estado = $1 WHERE id = $2', ['procesando', vB.id]).then(
+      () => comprobar('sipra_app SÍ puede actualizar validaciones del acta', true),
+      (e: Error) => comprobar('sipra_app SÍ puede actualizar validaciones del acta', false, e.message.slice(0, 160)));
+
+    // Responsable de la ARL en la práctica.
+    console.log('\n— Responsable de la ARL de la práctica —');
+    const practicas = new PracticaRepositoryAdapter(ds.getRepository(PracticaOrm));
+    const original = (await practicas.buscarPorId(practica))!;
+    comprobar('una práctica sin el dato (histórica) se lee con responsable de ARL null, sin derivarlo de la modalidad', original.responsableArlPractica === null);
+    await rechaza('un responsable de la ARL fuera de empresa/cun se rechaza', () => ds.query(`UPDATE practicas SET responsable_arl = 'otro' WHERE id = $1`, [practica]), /ck_practicas_responsable_arl/);
+    const editada = Practica.desde(original.instantanea());
+    editada.definirResponsableArl('cun');
+    const guardada = await practicas.guardar(editada.instantanea());
+    comprobar('guardar la práctica con responsable «cun» lo persiste y lo devuelve', guardada.responsableArlPractica === 'cun' && (await practicas.buscarPorId(practica))!.responsableArlPractica === 'cun');
+    comprobar('la remuneración no cambió al definir el responsable de la ARL', guardada.instantanea().tipoRemuneracion === original.instantanea().tipoRemuneracion);
 
     void TipoDocumento;
   } finally {

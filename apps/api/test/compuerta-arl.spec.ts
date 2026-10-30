@@ -23,7 +23,7 @@ function practicaBase(sobrescribir: Partial<DatosPractica> = {}): Practica {
     fechaFin: new Date('2026-12-01T00:00:00Z'),
     horasRegistradas: null,
     arlVerificada: false,
-    arlFechaAfiliacion: null,
+    responsableArlPractica: null, arlFechaAfiliacion: null,
     numeroFur: null,
     regional: null,
     asignatura: null,
@@ -58,7 +58,7 @@ describe('Compuerta de afiliación a ARL (Decreto 055 de 2015)', () => {
   it('bloquea la activación cuando la afiliación es del MISMO día del inicio', () => {
     const practica = practicaBase({
       arlVerificada: true,
-      arlFechaAfiliacion: new Date('2026-09-01T00:00:00Z'),
+      responsableArlPractica: null, arlFechaAfiliacion: new Date('2026-09-01T00:00:00Z'),
     });
     expect(() => practica.transicionarA(EstadoPractica.ACTIVA)).toThrow(
       /anterior a la fecha de inicio/,
@@ -68,7 +68,7 @@ describe('Compuerta de afiliación a ARL (Decreto 055 de 2015)', () => {
   it('bloquea la activación cuando la afiliación es posterior al inicio', () => {
     const practica = practicaBase({
       arlVerificada: true,
-      arlFechaAfiliacion: new Date('2026-09-05T00:00:00Z'),
+      responsableArlPractica: null, arlFechaAfiliacion: new Date('2026-09-05T00:00:00Z'),
     });
     expect(() => practica.transicionarA(EstadoPractica.ACTIVA)).toThrow(CompuertaArlError);
   });
@@ -76,7 +76,7 @@ describe('Compuerta de afiliación a ARL (Decreto 055 de 2015)', () => {
   it('permite la activación con afiliación anterior al inicio', () => {
     const practica = practicaBase({
       arlVerificada: true,
-      arlFechaAfiliacion: new Date('2026-08-28T00:00:00Z'),
+      responsableArlPractica: null, arlFechaAfiliacion: new Date('2026-08-28T00:00:00Z'),
     });
     practica.transicionarA(EstadoPractica.ACTIVA);
     expect(practica.estado).toBe(EstadoPractica.ACTIVA);

@@ -90,6 +90,7 @@ export class GestionarPracticaUseCase {
       horasRegistradas: null,
       arlVerificada: false,
       arlFechaAfiliacion: null,
+      responsableArlPractica: null,
       terminosAceptadosEn: null,
       registradaPor: 'coordinacion',
       nota: null,
@@ -161,9 +162,17 @@ export class GestionarPracticaUseCase {
     if (actor.rol === Rol.EMPRESA || actor.rol === Rol.EXTENSION) {
       throw new ForbiddenException('Su perfil no edita los datos de la práctica');
     }
+    // Quién asume la ARL es un acuerdo que el acta de iniciación luego confirma o contradice: tras el registro solo
+    // coordinación y administración lo cambian (el estudiante lo fija al registrar; cambiarlo después silenciaría una
+    // discrepancia). Se comprueba antes de aplicar nada para no dejar una edición a medias.
+    if (dto.responsableArl !== undefined && ![Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+      throw new ForbiddenException('Solo coordinación o administración cambian quién asume la ARL de la práctica');
+    }
     const practica = await this.exigirVisible(id, actor);
+    const arlAnterior = practica.responsableArlPractica;
     try {
       practica.actualizarVacante(dto);
+      if (dto.responsableArl !== undefined && dto.responsableArl !== arlAnterior) practica.definirResponsableArl(dto.responsableArl);
     } catch (error) {
       throw new BadRequestException((error as Error).message);
     }
@@ -171,6 +180,11 @@ export class GestionarPracticaUseCase {
     await this.registrarAuditoria(actor, AccionAuditada.VACANTE_PRACTICA_ACTUALIZADA, id, {
       campos: Object.keys(dto).filter((k) => (dto as Record<string, unknown>)[k] !== undefined),
     });
+    if (dto.responsableArl !== undefined && dto.responsableArl !== arlAnterior) {
+      await this.registrarAuditoria(actor, AccionAuditada.RESPONSABLE_ARL_PRACTICA_ACTUALIZADO, id, {
+        de: arlAnterior, a: dto.responsableArl,
+      });
+    }
     return this.presentar(guardada, actor);
   }
 
@@ -384,6 +398,7 @@ export class GestionarPracticaUseCase {
       area: datos.area,
       cargo: datos.cargo,
       tipoRemuneracion: datos.tipoRemuneracion,
+      responsableArl: datos.responsableArlPractica,
       salario: datos.salario,
       horario: datos.horario,
       jefeInmediatoNombre: datos.jefeInmediatoNombre,

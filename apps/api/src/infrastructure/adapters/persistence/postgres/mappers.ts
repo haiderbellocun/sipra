@@ -10,7 +10,7 @@ import {
 } from '../../../../domain/entities/obligacion.entity';
 import {
   CicloAcademico, DatosPractica, EstadoPractica, ModalidadPractica, OrigenRegistro, Practica,
-  TipoRemuneracion,
+  ResponsableArlPractica, TipoRemuneracion,
 } from '../../../../domain/entities/practica.entity';
 import {
   CartaPresentacion, DatosCarta, ModalidadCarta,
@@ -159,6 +159,7 @@ export const PracticaMapper = {
       horasRegistradas: orm.horas_registradas,
       arlVerificada: orm.arl_verificada,
       arlFechaAfiliacion: orm.arl_fecha_afiliacion,
+      responsableArlPractica: (orm.responsable_arl ?? null) as ResponsableArlPractica | null,
       ultimaActividad: orm.ultima_actividad,
       creadaEn: orm.creada_en,
       actualizadaEn: orm.actualizada_en,
@@ -200,6 +201,7 @@ export const PracticaMapper = {
     orm.horas_registradas = d.horasRegistradas;
     orm.arl_verificada = d.arlVerificada;
     orm.arl_fecha_afiliacion = d.arlFechaAfiliacion;
+    orm.responsable_arl = d.responsableArlPractica;
     orm.ultima_actividad = d.ultimaActividad;
     orm.creada_en = d.creadaEn;
     orm.actualizada_en = d.actualizadaEn;

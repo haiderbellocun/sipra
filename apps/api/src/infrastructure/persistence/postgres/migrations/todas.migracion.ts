@@ -17,6 +17,8 @@ import { EvidenciaEpsOcr1756000012000 } from './1756000012000-EvidenciaEpsOcr';
 import { VerificacionEps1756000013000 } from './1756000013000-VerificacionEps';
 import { ConsultaAdres1756000014000 } from './1756000014000-ConsultaAdres';
 import { MesaEps1756000015000 } from './1756000015000-MesaEps';
+import { ResponsableArlPractica1756000016000 } from './1756000016000-ResponsableArlPractica';
+import { ValidacionActaIniciacion1756000017000 } from './1756000017000-ValidacionActaIniciacion';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -43,4 +45,6 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   VerificacionEps1756000013000,
   ConsultaAdres1756000014000,
   MesaEps1756000015000,
+  ResponsableArlPractica1756000016000,
+  ValidacionActaIniciacion1756000017000,
 ];

@@ -35,7 +35,7 @@ function practicaDe(empresaId: string | null, sobrescribir: Partial<DatosPractic
     fechaFin: null,
     horasRegistradas: null,
     arlVerificada: true,
-    arlFechaAfiliacion: null,
+    responsableArlPractica: null, arlFechaAfiliacion: null,
     numeroFur: null,
     regional: null,
     asignatura: null,

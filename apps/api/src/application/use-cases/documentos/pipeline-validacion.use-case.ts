@@ -354,7 +354,7 @@ export class PipelineValidacionUseCase {
             'El archivo cargado no corresponde al documento solicitado. ' +
             `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,
         });
-      } else if (datos.tipo === TipoDocumento.ACTA_INICIO && extraido.lecturaActa?.tipoActaDetectada === 'documento_incorrecto') {
+      } else if (datos.tipo === TipoDocumento.ACTA_INICIO && extraido.lecturaActa?.clasificacion.tipoActaDetectada === 'documento_incorrecto') {
         // El acta tiene su propio clasificador local: se LEYÓ y es otro documento (distinto de no poder leerlo).
         banderas.push({
           codigo: 'C2_TIPO_INCORRECTO',

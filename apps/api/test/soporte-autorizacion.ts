@@ -46,7 +46,7 @@ export function practicaDe(sobrescribir: Partial<DatosPractica> = {}): Practica 
     fechaFin: null,
     horasRegistradas: null,
     arlVerificada: true,
-    arlFechaAfiliacion: null,
+    responsableArlPractica: null, arlFechaAfiliacion: null,
     numeroFur: null,
     regional: null,
     asignatura: null,

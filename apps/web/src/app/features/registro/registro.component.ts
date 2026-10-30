@@ -10,6 +10,9 @@ import { Carta, ModalidadCatalogo, Periodo, RegistroFur } from '@core/models/mod
 import { CronogramaComponent } from '@shared/components/cronograma.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
+import {
+  ResponsableArl, ResponsableArlFormulario, ayudaArl, sugerenciaArl, valorArlAlElegirModalidad,
+} from './arl-registro';
 
 /**
  * Pasos 1 y 2 del estudiante en el SGP: la carta de presentación y el
@@ -39,6 +42,12 @@ import { leerError } from '@shared/utils/errores';
     .carta:last-child { border-bottom: none; }
     .carta .q { flex: 1; min-width: 0; }
     .ventana { font-size: var(--fs-xs); }
+    .grupo { border: 0; padding: 0; margin: 0 0 var(--sp-4); min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+    .grupo legend { padding: 0; margin-bottom: var(--sp-2); font-size: var(--fs-sm); font-weight: 700; color: var(--texto); }
+    .opciones { display: flex; flex-wrap: wrap; gap: 0 var(--sp-5); }
+    .opcion { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 44px; cursor: pointer; font-size: var(--fs-base); }
+    .opcion input { width: 20px; height: 20px; margin: 0; accent-color: var(--marca); }
+    .opcion:has(input:focus-visible) { outline: 2px solid var(--marca); outline-offset: 2px; border-radius: var(--r-sm); }
   `],
   template: `
     @if (registrada(); as r) {
@@ -127,7 +136,7 @@ import { leerError } from '@shared/utils/errores';
             <div class="campo">
               <label for="r-modalidad">Modalidad de práctica</label>
               <select id="r-modalidad" name="modalidad" [ngModel]="fur.modalidad"
-                      (ngModelChange)="fur.modalidad = $event; modalidadSeleccionada.set($event)" required>
+                      (ngModelChange)="fur.modalidad = $event; modalidadSeleccionada.set($event); aplicarSugerenciaArl()" required>
                 <option value="">Seleccione…</option>
                 @for (m of modalidadesOfertadas(); track m.modalidad) {
                   <option [value]="m.modalidad">{{ m.etiquetaSgp }}</option>
@@ -171,6 +180,14 @@ import { leerError } from '@shared/utils/errores';
                 <option value="remunerada">Remunerada</option><option value="no_remunerada">No remunerada</option>
               </select>
             </div>
+            <fieldset class="grupo" aria-describedby="r-arl-ayuda">
+              <legend>¿Quién asume la ARL?</legend>
+              <div class="opciones">
+                <label class="opcion"><input type="radio" name="responsableArl" value="empresa" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" required /> Empresa</label>
+                <label class="opcion"><input type="radio" name="responsableArl" value="cun" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" required /> CUN</label>
+              </div>
+              <span class="pista" id="r-arl-ayuda">{{ ayudaArl() }}</span>
+            </fieldset>
             @if (fur.tipoRemuneracion === 'remunerada') {
               <div class="campo"><label for="r-salario">Salario o apoyo (COP)</label><input id="r-salario" name="salario" type="number" min="0" [(ngModel)]="fur.salario" /></div>
             }
@@ -233,15 +250,18 @@ export class RegistroComponent implements OnInit {
 
   readonly esEstudiante = computed(() => this.sesion.rol() === 'estudiante');
 
-  readonly fur: RegistroFur & { periodoAcademico: string } = {
+  readonly fur: Omit<RegistroFur, 'responsableArl'> & { periodoAcademico: string; responsableArl: ResponsableArlFormulario } = {
     periodoAcademico: '', modalidad: '', empresaRazonSocial: '', empresaNit: '', area: '', cargo: '',
-    tipoRemuneracion: 'no_remunerada', salario: undefined, horario: '', jefeInmediatoNombre: '', jefeInmediatoCargo: '',
+    tipoRemuneracion: 'no_remunerada', responsableArl: '', salario: undefined, horario: '', jefeInmediatoNombre: '', jefeInmediatoCargo: '',
     jefeInmediatoCorreo: '', jefeInmediatoTelefono: '', ciudad: '', funcionesRelevantes: '', fechaInicio: '', fechaFin: '',
     aceptaTerminos: false, estudianteDocumento: undefined,
   };
   /** Espejo en signals de lo que ngModel escribe en `fur`, para los cómputos. */
   readonly periodoSeleccionado = signal('');
   readonly modalidadSeleccionada = signal('');
+  /** Espejo del radio «¿Quién asume la ARL?» y si la persona ya lo eligió (entonces la modalidad no lo pisa). */
+  readonly arlSeleccionada = signal<ResponsableArlFormulario>('');
+  private arlElegidaPorLaPersona = false;
 
   readonly periodoElegido = computed(() => this.periodos().find((p) => p.codigo === this.periodoSeleccionado()) ?? null);
   readonly modalidadesOfertadas = computed(() => {
@@ -249,6 +269,21 @@ export class RegistroComponent implements OnInit {
     return this.modalidades().filter((m) => !p || p.modalidadesOfertadas.includes(m.modalidad));
   });
   readonly modalidadElegida = computed(() => this.modalidades().find((m) => m.modalidad === this.modalidadSeleccionada()) ?? null);
+
+  readonly sugerenciaArl = computed(() => sugerenciaArl(this.modalidadElegida()?.responsableArl));
+  readonly ayudaArl = computed(() => ayudaArl(this.modalidadElegida() !== null, this.sugerenciaArl(), this.arlSeleccionada()));
+
+  /** La modalidad propone; el valor propuesto queda marcado y visible, y la persona lo confirma o lo cambia. */
+  aplicarSugerenciaArl(): void {
+    this.fur.responsableArl = valorArlAlElegirModalidad(this.fur.responsableArl, this.arlElegidaPorLaPersona, this.sugerenciaArl());
+    this.arlSeleccionada.set(this.fur.responsableArl);
+  }
+
+  elegirArl(valor: ResponsableArlFormulario): void {
+    this.arlElegidaPorLaPersona = true;
+    this.fur.responsableArl = valor;
+    this.arlSeleccionada.set(valor);
+  }
 
   async ngOnInit(): Promise<void> {
     const [periodos, modalidades] = await Promise.all([
@@ -285,7 +320,7 @@ export class RegistroComponent implements OnInit {
   faltantes(f: NgForm): string[] {
     const etiquetas: Record<string, string> = {
       estudianteDocumento: 'Documento del estudiante', periodoAcademico: 'Periodo académico', modalidad: 'Modalidad', empresaRazonSocial: 'Razón social',
-      empresaNit: 'NIT', ciudad: 'Ciudad', area: 'Área', cargo: 'Cargo', tipoRemuneracion: 'Remuneración', horario: 'Horario', fechaInicio: 'Fecha de inicio',
+      empresaNit: 'NIT', ciudad: 'Ciudad', area: 'Área', cargo: 'Cargo', tipoRemuneracion: 'Remuneración', responsableArl: '¿Quién asume la ARL?', horario: 'Horario', fechaInicio: 'Fecha de inicio',
       fechaFin: 'Fecha de finalización', funcionesRelevantes: 'Funciones relevantes', jefeInmediatoNombre: 'Jefe inmediato: nombre',
       jefeInmediatoCargo: 'Jefe inmediato: cargo', jefeInmediatoCorreo: 'Jefe inmediato: correo', jefeInmediatoTelefono: 'Jefe inmediato: teléfono',
       aceptaTerminos: 'Aceptar los términos',
@@ -295,8 +330,10 @@ export class RegistroComponent implements OnInit {
 
   async registrar(): Promise<void> {
     await this.ejecutar(async () => {
+      // El formulario es inválido mientras no haya una opción marcada, así que aquí siempre hay valor.
       const practica = await firstValueFrom(this.api.registrarPractica({
         ...this.fur,
+        responsableArl: this.fur.responsableArl as ResponsableArl,
         salario: this.fur.tipoRemuneracion === 'remunerada' ? this.fur.salario : undefined,
         estudianteDocumento: this.esEstudiante() ? undefined : this.fur.estudianteDocumento,
       }));

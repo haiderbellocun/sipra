@@ -1,4 +1,4 @@
-import { ModalidadPractica } from './modalidad.entity';
+import { ModalidadPractica, ResponsableArl, definicionModalidad } from './modalidad.entity';
 
 /** Modalidades sin colocación nueva: la cobertura viene del empleo vigente. */
 const SIN_AFILIACION_NUEVA: readonly ModalidadPractica[] = [
@@ -66,6 +66,27 @@ export enum SenalAcompanamiento {
 }
 
 export type TipoRemuneracion = 'remunerada' | 'no_remunerada';
+
+/**
+ * Quién asume la afiliación a la ARL en ESTA práctica concreta, tal como se acordó al registrarla.
+ *
+ * No es el valor por defecto de la modalidad (`definicionModalidad(...).responsableArlPorDefecto`: una
+ * sugerencia del catálogo, que puede ser «según cobertura») ni lo que diga el acta de iniciación (una fuente
+ * documental independiente que lo confirma o lo contradice). `null` = no informado: prácticas anteriores a este
+ * dato, que NO se rellenan derivándolo de la modalidad.
+ */
+export type ResponsableArlPractica = 'empresa' | 'cun';
+export const RESPONSABLES_ARL_PRACTICA: readonly ResponsableArlPractica[] = ['empresa', 'cun'];
+
+/**
+ * Sugerencia de la modalidad para el formulario de registro. Solo propone: el usuario la confirma o la cambia, y
+ * nunca se guarda sin que aparezca en el formulario. «Según cobertura» (convenio vigente) no se resuelve por
+ * modalidad: no hay sugerencia.
+ */
+export function responsableArlSugerido(modalidad: ModalidadPractica): ResponsableArlPractica | null {
+  const porDefecto = definicionModalidad(modalidad).responsableArlPorDefecto;
+  return porDefecto === ResponsableArl.CUN ? 'cun' : porDefecto === ResponsableArl.EMPRESA ? 'empresa' : null;
+}
 export type OrigenRegistro = 'estudiante' | 'coordinacion';
 
 /**
@@ -111,6 +132,8 @@ export interface DatosPractica extends DatosVacantePractica {
   horasRegistradas: number | null;
   arlVerificada: boolean;
   arlFechaAfiliacion: Date | null;
+  /** Quién asume la ARL en esta práctica (acuerdo al registrarla). `null` en registros históricos. */
+  responsableArlPractica: ResponsableArlPractica | null;
   terminosAceptadosEn: Date | null;
   registradaPor: OrigenRegistro;
   /** Calificación docente de 0,0 a 5,0; la mínima aprobatoria es 3,0. */
@@ -211,6 +234,7 @@ export class Practica {
   get modalidad(): ModalidadPractica { return this.datos.modalidad; }
   get fechaInicio(): Date | null { return this.datos.fechaInicio; }
   get arlVerificada(): boolean { return this.datos.arlVerificada; }
+  get responsableArlPractica(): ResponsableArlPractica | null { return this.datos.responsableArlPractica; }
   get periodoAcademico(): string { return this.datos.periodoAcademico; }
   get ciclo(): CicloAcademico { return this.datos.ciclo; }
   get programaId(): string { return this.datos.programaId; }
@@ -278,6 +302,18 @@ export class Practica {
   registrarAfiliacionArl(fechaAfiliacion: Date, ahora: Date = new Date()): void {
     this.datos.arlVerificada = true;
     this.datos.arlFechaAfiliacion = fechaAfiliacion;
+    this.datos.actualizadaEn = ahora;
+    this.datos.ultimaActividad = ahora;
+  }
+
+  /**
+   * Cambia quién asume la ARL. No hay un camino desde un documento: el acta de iniciación solo confirma o contradice
+   * este valor, jamás lo establece. Quién puede llamarlo lo decide el caso de uso.
+   */
+  definirResponsableArl(valor: ResponsableArlPractica, ahora: Date = new Date()): void {
+    if (this.esTerminal) throw new Error('La práctica ya cerró: sus datos no se modifican');
+    if (!RESPONSABLES_ARL_PRACTICA.includes(valor)) throw new Error('Responsable de la ARL no válido');
+    this.datos.responsableArlPractica = valor;
     this.datos.actualizadaEn = ahora;
     this.datos.ultimaActividad = ahora;
   }

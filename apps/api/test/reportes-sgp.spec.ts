@@ -30,7 +30,7 @@ const practica: DatosPractica = {
   tipoRemuneracion: 'remunerada', salario: 1423500, horario: 'L-V 8-5', jefeInmediatoNombre: 'Ana Ruiz',
   jefeInmediatoCargo: 'Líder', jefeInmediatoCorreo: 'ana@andina.co', jefeInmediatoTelefono: '3001112233', ciudad: 'Bogotá',
   funcionesRelevantes: 'Apoyo a compras', fechaInicio: dia('2026-08-10'), fechaFin: dia('2026-11-27'), horasRegistradas: null,
-  arlVerificada: true, arlFechaAfiliacion: dia('2026-08-05'), terminosAceptadosEn: dia('2026-08-03'), registradaPor: 'estudiante',
+  arlVerificada: true, responsableArlPractica: null, arlFechaAfiliacion: dia('2026-08-05'), terminosAceptadosEn: dia('2026-08-03'), registradaPor: 'estudiante',
   nota: 4.5, cerradaEn: null, ultimaActividad: HOY, creadaEn: dia('2026-08-03'), actualizadaEn: HOY,
 };
 const documento = (s: Partial<DatosDocumento>): DatosDocumento => ({

@@ -9,6 +9,7 @@ import {
 import { ModoProcesamiento, modoProcesamientoDe, permiteAutoAprobacionDelPipeline } from '../src/domain/services/politica-procesamiento';
 import { DecodificadorImagenAdapter } from '../src/infrastructure/adapters/imagen/decodificador.adapter';
 import { operacionesAtomicasEnMemoria } from './soporte-concurrencia';
+import { TEXTO_CEDULA, actaSintetica, lecturaPersistibleSintetica } from './soporte-acta';
 
 /**
  * Política de procesamiento por tipo: el certificado de EPS se procesa SIEMPRE en
@@ -146,11 +147,7 @@ describe('Pipeline · acta de iniciación (procesamiento local)', () => {
       return Promise.resolve({
         ...extraccion(TipoDocumento.ACTA_INICIO, 'local'),
         tipoDetectado: correcta ? TipoDocumento.ACTA_INICIO : null,
-        lecturaActa: {
-          tipoActaDetectada: this.tipoActa, documentoAjeno: correcta ? null : 'otro', remuneracion: 'no_remunerada',
-          responsableArl: 'empresa', firmaEmpresaPresente: 'no_determinable', firmaPracticantePresente: 'no_determinable',
-          metodoLectura: 'texto', motivos: [],
-        },
+        lecturaActa: lecturaPersistibleSintetica(correcta ? actaSintetica() : TEXTO_CEDULA),
       });
     }
   }

@@ -153,3 +153,37 @@ export const TEXTO_ARCHIVO_CUALQUIERA =
   'La reunion del comite de compras se realizo en la oficina principal para revisar las propuestas de los ' +
   'proveedores y definir el calendario de entregas de la proxima semana. Se acordo que los pagos se haran por ' +
   'transferencia y que el responsable enviara el resumen de la sesion a todos los participantes antes del viernes.';
+
+// ── Lecturas ya hechas (sin archivo): para probar la persistencia y el pipeline ─────────────────────────────
+
+import { FirmasActa } from '../src/domain/entities/acta-iniciacion';
+import { analizarActa } from '../src/domain/services/analisis-acta.domain-service';
+import { LecturaActaLocal } from '../src/domain/services/lectura-local-acta.domain-service';
+import { evaluarSuficienciaActa } from '../src/domain/services/suficiencia-acta.domain-service';
+import { minimizarLecturaActa } from '../src/domain/services/validacion-acta.domain-service';
+
+export interface OpcionesLecturaSintetica {
+  metodo?: 'texto' | 'ocr';
+  confianzaOcr?: number;
+  firmas?: Partial<Pick<FirmasActa, 'firmaEmpresaPresente' | 'firmaPracticantePresente'>>;
+}
+
+/** Lo que devolvería el lector local para este texto, sin pasar por un archivo. */
+export function lecturaLocalSintetica(texto: string, o: OpcionesLecturaSintetica = {}): LecturaActaLocal {
+  const metodo = o.metodo ?? 'texto';
+  const analisis = analizarActa(texto, metodo === 'ocr' ? 'ocr' : 'texto_nativo', null, null, o.confianzaOcr === undefined ? undefined : o.confianzaOcr / 100);
+  analisis.firmas = { ...analisis.firmas, ...(o.firmas ?? {}) };
+  return {
+    analisis, ilegible: false, motivoIlegible: null,
+    resumen: {
+      metodoLectura: metodo, paginas: 3, paginasLeidas: 3, paginasOcr: metodo === 'ocr' ? [1, 2, 3] : [],
+      intentosOcr: metodo === 'ocr' ? 3 : 0, confianzaOcrMedia: metodo === 'ocr' ? (o.confianzaOcr ?? 80) : null,
+      textoNativo: null, suficiencia: evaluarSuficienciaActa(analisis.clasificacion, analisis.campos),
+      firmas: { pagina: 2, empresaLocalizada: true, practicanteLocalizada: true },
+      limitesAplicados: [], errores: [], duracionMs: 5,
+    },
+  };
+}
+
+export const lecturaPersistibleSintetica = (texto: string, o: OpcionesLecturaSintetica = {}) =>
+  minimizarLecturaActa(lecturaLocalSintetica(texto, o));

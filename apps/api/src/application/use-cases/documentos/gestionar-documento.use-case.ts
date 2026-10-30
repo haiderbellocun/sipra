@@ -1,5 +1,6 @@
 import {
-  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, Optional,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
@@ -43,6 +44,7 @@ import { PipelineValidacionUseCase } from './pipeline-validacion.use-case';
 import { BitacoraUseCase } from '../practicas/bitacora.use-case';
 import { ParametrosUseCase } from '../administracion/parametros.use-case';
 import { ConsentimientoUseCase } from '../consentimientos/consentimiento.use-case';
+import { ValidacionActaUseCase } from './validacion-acta.use-case';
 import { ValidacionEpsUseCase } from './validacion-eps.use-case';
 import {
   puedeDecidirDocumento, puedeVerLecturaInterna,
@@ -82,6 +84,7 @@ export class GestionarDocumentoUseCase {
     private readonly parametros: ParametrosUseCase,
     private readonly consentimientos: ConsentimientoUseCase,
     private readonly validacionesEps: ValidacionEpsUseCase,
+    @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
   ) {}
 
   async cargar(
@@ -347,6 +350,8 @@ export class GestionarDocumentoUseCase {
     }, dto.justificacion);
     // La validación de EPS refleja la decisión humana y deja su evidencia.
     await this.validacionesEps.registrarDecisionHumana(guardado, dto.decision, actor);
+    // La del acta de iniciación, también (no hace nada para otros tipos de documento).
+    await this.validacionesActa?.registrarDecisionHumana(guardado, dto.decision, actor);
     await this.notificarSiRequiereAccion(guardado, actor);
     if (dto.decision === 'devolver') {
       // El manual pide dejar en la bitácora el plazo de ocho días para subsanar.

@@ -111,6 +111,9 @@ import { ConsentimientosController } from '../controllers/consentimientos.contro
 import { ValidacionesEpsController } from '../controllers/validaciones-eps.controller';
 import { ValidacionEpsUseCase } from '../../application/use-cases/documentos/validacion-eps.use-case';
 import { VALIDACION_EPS_REPOSITORY } from '../../domain/ports/out/validacion-eps.port';
+import { VALIDACION_ACTA_REPOSITORY } from '../../domain/ports/out/validacion-acta.port';
+import { ValidacionActaUseCase } from '../../application/use-cases/documentos/validacion-acta.use-case';
+import { ValidacionActaRepositoryAdapter } from '../adapters/persistence/postgres/validacion-acta.adapter';
 import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
 import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/consulta-adres.use-case';
 import { MesaEpsUseCase } from '../../application/use-cases/documentos/mesa-eps.use-case';
@@ -233,6 +236,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: POLITICA_CONSENTIMIENTO_REPOSITORY, useClass: PoliticaConsentimientoRepositoryAdapter },
     { provide: CONSENTIMIENTO_REPOSITORY, useClass: ConsentimientoRepositoryAdapter },
     { provide: VALIDACION_EPS_REPOSITORY, useClass: ValidacionEpsRepositoryAdapter },
+    { provide: VALIDACION_ACTA_REPOSITORY, useClass: ValidacionActaRepositoryAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
 
@@ -321,6 +325,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     PqrsUseCase,
     ConsentimientoUseCase,
     ValidacionEpsUseCase,
+    ValidacionActaUseCase,
     // Verificación OFICIAL de certificados de EPS: registro de destinos permitidos (hoy vacío),
     // cliente HTTP con defensa SSRF y un adaptador por verificador (ninguno habilitado todavía).
     { provide: REGISTRO_VERIFICADORES_EPS, useFactory: () => new RegistroVerificadoresEps(VERIFICADORES_EPS_OFICIALES) },

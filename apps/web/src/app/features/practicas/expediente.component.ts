@@ -358,6 +358,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
               <div class="dato"><div class="k">Área</div><div class="v">{{ p.area ?? '—' }}</div></div>
               <div class="dato"><div class="k">Cargo</div><div class="v">{{ p.cargo ?? '—' }}</div></div>
               <div class="dato"><div class="k">Remuneración</div><div class="v">{{ p.tipoRemuneracion | etiqueta }}{{ p.salario ? ' · $' + (p.salario | number) : '' }}</div></div>
+              <div class="dato"><div class="k">Responsable de la ARL</div><div class="v">{{ p.responsableArl === 'cun' ? 'CUN' : p.responsableArl === 'empresa' ? 'Empresa' : 'No informado' }}</div></div>
               <div class="dato"><div class="k">Horario</div><div class="v">{{ p.horario ?? '—' }}</div></div>
               <div class="dato"><div class="k">Inicio</div><div class="v">{{ p.fechaInicio ? (p.fechaInicio | date: 'd MMM y') : '—' }}</div></div>
               <div class="dato"><div class="k">Fin</div><div class="v">{{ p.fechaFin ? (p.fechaFin | date: 'd MMM y') : '—' }}</div></div>

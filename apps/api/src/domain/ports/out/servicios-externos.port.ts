@@ -1,6 +1,7 @@
 import { Bandera } from '../../entities/documento.entity';
 import type { ResumenLecturaLocal } from './lector-documento-local.port';
 import { TipoDocumento } from '../../entities/documento.entity';
+import type { LecturaActaPersistible } from '../../entities/acta-iniciacion';
 
 /** Almacenamiento de documentos (Cloud Storage en GCP, disco en local). */
 export interface AlmacenamientoPort {
@@ -42,18 +43,6 @@ export interface HallazgoCriterio {
   causalDevolucion: boolean;
 }
 
-/** Lo que se conserva de la lectura de un acta de iniciación junto a la extracción: solo códigos, sin texto ni datos personales. */
-export interface LecturaActaCompacta {
-  tipoActaDetectada: 'iniciacion_practicas' | 'documento_incorrecto' | 'no_determinable';
-  documentoAjeno: string | null;
-  remuneracion: 'remunerada' | 'no_remunerada' | 'no_determinable';
-  responsableArl: 'empresa' | 'cun' | 'no_determinable';
-  firmaEmpresaPresente: 'si' | 'no' | 'no_determinable';
-  firmaPracticantePresente: 'si' | 'no' | 'no_determinable';
-  metodoLectura: 'texto' | 'ocr';
-  motivos: string[];
-}
-
 export interface ResultadoExtraccion {
   tipoDetectado: TipoDocumento | null;
   campos: Record<string, CampoExtraido>;
@@ -80,7 +69,7 @@ export interface ResultadoExtraccion {
   /** Solo la lectura local: qué se hizo (texto, OCR, QR) sin el contenido del documento. */
   lecturaLocal?: ResumenLecturaLocal;
   /** Solo el acta de iniciación: veredicto de la lectura local, en códigos. */
-  lecturaActa?: LecturaActaCompacta;
+  lecturaActa?: LecturaActaPersistible;
 }
 
 export interface ExtraccionIaPort {

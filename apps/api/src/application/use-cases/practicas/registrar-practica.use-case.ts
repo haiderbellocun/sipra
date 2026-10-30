@@ -13,7 +13,7 @@ import {
   TipoVentana, VentanaCerradaError,
 } from '../../../domain/entities/periodo.entity';
 import {
-  CicloAcademico, DatosPractica, EstadoPractica,
+  CicloAcademico, DatosPractica, EstadoPractica, responsableArlSugerido,
 } from '../../../domain/entities/practica.entity';
 import { criteriosDe } from '../../../domain/entities/criterios-documentales';
 import {
@@ -223,6 +223,8 @@ export class RegistrarPracticaUseCase {
       horasRegistradas: null,
       arlVerificada: false,
       arlFechaAfiliacion: null,
+      // Lo confirma quien registra en el formulario (la modalidad solo sugiere). No se deriva de la modalidad.
+      responsableArlPractica: dto.responsableArl,
       terminosAceptadosEn: ahora,
       registradaPor: actor.rol === Rol.ESTUDIANTE ? 'estudiante' : 'coordinacion',
       nota: null,
@@ -247,6 +249,10 @@ export class RegistrarPracticaUseCase {
       metadatos: {
         periodo: periodo.codigo, modalidad: dto.modalidad, empresaNit: datos.empresaNit,
         registradaPor: datos.registradaPor, empresaVinculada: empresaId !== null,
+        responsableArl: dto.responsableArl,
+        // Trazabilidad de la sugerencia: se registra si quien registró aceptó la de la modalidad o la cambió.
+        responsableArlSugerido: responsableArlSugerido(dto.modalidad),
+        responsableArlDifiereDeSugerido: responsableArlSugerido(dto.modalidad) !== null && responsableArlSugerido(dto.modalidad) !== dto.responsableArl,
         ...(extensionAutorizada ? { extensionAutorizada: true } : {}),
       },
       ip: actor.ip ?? null, agenteUsuario: actor.agenteUsuario ?? null, ocurridoEn: ahora,

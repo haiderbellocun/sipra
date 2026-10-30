@@ -143,3 +143,55 @@ export interface ComparacionActa {
   /** `consistente` NO es una aprobación: solo dice que no hay nada que señalar a la persona. */
   veredicto: 'consistente' | 'revision_necesaria';
 }
+
+// ── Lo que se conserva de una lectura (minimización) ───────────────────────
+
+/**
+ * Campos del acta que se conservan tras leerla: los que sirven a la comparación y a la revisión. NO se conservan
+ * dirección, barrio, teléfonos, lugar de expedición, semestre, departamento ni los documentos del representante o
+ * del jefe: el formulario los trae, pero ninguna regla de SIPRA los usa y ya hay un archivo para quien deba verlos.
+ */
+export const CAMPOS_ACTA_PERSISTIBLES: readonly CampoActa[] = [
+  'nombre_estudiante', 'documento_estudiante', 'programa', 'modalidad_practica', 'fecha_inicio', 'fecha_fin',
+  'funciones', 'empresa', 'nit', 'jefe_inmediato', 'representante_legal', 'docente_monitor',
+  'codigo_formato', 'version_formato', 'fecha_formato',
+];
+
+/** Tope de la descripción de funciones que se conserva (texto libre del estudiante). */
+export const MAX_CARACTERES_FUNCIONES_PERSISTIDAS = 500;
+
+/** Qué hizo la lectura, en códigos y conteos. Nunca el texto del documento ni imágenes. */
+export interface ResumenLecturaActaPersistible {
+  metodoLectura: 'texto' | 'ocr';
+  paginas: number;
+  paginasLeidas: number;
+  paginasOcr: number[];
+  intentosOcr: number;
+  /** 0–100, o `null` si no hubo OCR. */
+  confianzaOcrMedia: number | null;
+  suficiencia: { paraClasificar: boolean; paraComparar: boolean; senalesLeidas: number; camposClaveLeidos: number };
+  firmasUbicadas: { pagina: number | null; empresaLocalizada: boolean; practicanteLocalizada: boolean };
+  limitesAplicados: string[];
+  errores: string[];
+}
+
+/** Resultado de leer un acta, ya minimizado: lo único que viaja del lector al resto del sistema. */
+export interface LecturaActaPersistible {
+  clasificacion: ClasificacionActa;
+  /** Vacío si el documento no es un acta: lo «extraído» de otro documento no se conserva. */
+  campos: Partial<Record<CampoActa, CampoLeidoActa>>;
+  firmas: FirmasActa;
+  lectura: ResumenLecturaActaPersistible;
+}
+
+/**
+ * Comparación tal como se conserva: el veredicto de cada campo. SIN el valor de SIPRA (es canónico en Usuario/Práctica/
+ * Empresa), SIN el valor leído del acta (está en `datos_extraidos` y en las columnas detectadas) y sin mensajes con valores.
+ */
+export interface ComparacionActaPersistida {
+  veredicto: ComparacionActa['veredicto'];
+  comparadaEn: string;
+  resumen: ComparacionActa['resumen'];
+  campos: { campo: CampoComparableActa; resultado: ResultadoCampoActa; criticidad: CriticidadActa; nota: string | null }[];
+  discrepancias: { campo: DiscrepanciaActa['campo']; codigo: string; severidad: CriticidadActa }[];
+}
