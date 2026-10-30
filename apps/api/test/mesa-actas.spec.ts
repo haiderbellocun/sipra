@@ -231,7 +231,7 @@ describe('Mesa de Actas · decisión', () => {
     const m2 = montarMesaActas();
     await m2.crear({ id: 'x', sinProcesar: true });
     m2.validaciones.filas.clear();
-    await expect(m2.gestionar.decidir('doc-x', { decision: 'aprobar', justificacion: 'x'.repeat(40) }, aux('a1'), { mesaActa: { motivo: null } }))
+    await expect(m2.gestionar.decidir('doc-x', { decision: 'aprobar', justificacion: 'x'.repeat(40) }, aux('a1'), { mesaActa: { motivo: null, contexto: {}, ahora: AHORA } }))
       .rejects.toBeInstanceOf(ConflictException);
     expect(m2.validaciones.filas.size).toBe(0);
   });
@@ -298,7 +298,7 @@ describe('Mesa de Actas · bandeja, detalle y archivo', () => {
     await caso(m, 'sinfirma', { lectura: { firmas: { firmaEmpresaPresente: 'no', firmaPracticantePresente: 'si' } } });
     await caso(m, 'ajeno', { textoPlano: TEXTO_CEDULA });
     const todo = await m.mesa.listar(aux('a1'), {}, AHORA);
-    expect(todo.kpis).toMatchObject({ abiertas: 4, libres: 4, mias: 0, conDiscrepanciaCritica: 1, documentoIncorrecto: 1 });
+    expect(todo.kpis).toMatchObject({ abiertas: 4, libres: 4, mias: 0, conDiscrepanciaCritica: 1, documentoIncorrecto: 1, tomadas: 0, porVencer: 0, firmasPendientes: 1 });
     expect(todo.items[0].tipoActa).toBe('documento_incorrecto');
     expect(todo.items.map((i) => i.prioridad.puntaje)).toEqual([...todo.items.map((i) => i.prioridad.puntaje)].sort((a, b) => b - a));
     expect(todo.items.find((i) => i.validacionId.length > 0 && i.hayDiscrepanciaCritica)!.prioridad.razones.join(' ')).toContain('discrepancia crítica');
@@ -310,6 +310,10 @@ describe('Mesa de Actas · bandeja, detalle y archivo', () => {
     expect((await m.mesa.listar(aux('a1'), { antiguedadMinDias: '2' }, AHORA)).total).toBe(1);
     await m.mesa.tomar(todo.items[0].validacionId, aux('a1'), AHORA);
     expect((await m.mesa.listar(aux('a1'), { reserva: 'mias' }, AHORA)).total).toBe(1);
+    // Tomado = reserva vigente de cualquier persona; «por vencer» = vence en los próximos 5 minutos.
+    expect((await m.mesa.listar(aux('a2'), {}, AHORA)).kpis).toMatchObject({ libres: 3, tomadas: 1, porVencer: 0 });
+    expect((await m.mesa.listar(aux('a2'), {}, new Date(AHORA.getTime() + 11 * MIN))).kpis).toMatchObject({ tomadas: 1, porVencer: 1 });
+    expect((await m.mesa.listar(aux('a2'), {}, new Date(AHORA.getTime() + 16 * MIN))).kpis).toMatchObject({ tomadas: 0, porVencer: 0, libres: 4 });
     expect((await m.mesa.listar(aux('a2'), { reserva: 'otros' }, AHORA)).total).toBe(1);
     expect((await m.mesa.listar(aux('a2'), { reserva: 'libres' }, AHORA)).total).toBe(3);
   });

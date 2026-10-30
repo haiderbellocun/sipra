@@ -294,6 +294,7 @@ export class ShellComponent {
     { ruta: '/costos-ia', etiqueta: 'Costos de IA', icono: 'sipra-indicadores', roles: ['administrador', 'coordinador'] },
     { ruta: '/vistas', etiqueta: 'Vistas SINU', icono: 'sipra-buscar', roles: ['coordinador', 'administrador', 'auxiliar', 'tutor'] },
     { ruta: '/eps', etiqueta: 'Validación de EPS', icono: 'sipra-seguridad', roles: ['auxiliar', 'coordinador', 'administrador'] },
+    { ruta: '/actas', etiqueta: 'Actas de iniciación', icono: 'sipra-verificado', roles: ['auxiliar', 'coordinador', 'administrador'] },
     { ruta: '/pqrs', etiqueta: 'PQRS', icono: 'sipra-correo', roles: ['estudiante', 'coordinador', 'administrador', 'auxiliar'] },
     { ruta: '/ayuda', etiqueta: 'Ayuda', icono: 'sipra-ayuda', roles: null },
     { ruta: '/gestion/periodos', etiqueta: 'Gestión de periodos', icono: 'sipra-calendario', roles: ['coordinador', 'administrador'] },
@@ -308,6 +309,7 @@ export class ShellComponent {
     ayuda: 'Centro de ayuda',
     pqrs: 'PQRS',
     eps: 'Validación de EPS',
+    actas: 'Actas de iniciación',
     vistas: 'Vistas SINU',
     gestion: 'Gestión',
     practicas: 'Prácticas',
@@ -342,7 +344,7 @@ export class ShellComponent {
     this.router.events.pipe(
       filter((e) => e instanceof NavigationEnd),
       startWith(null),
-      map(() => /^\/eps(?:[/?#]|$)/.test(this.router.url)),
+      map(() => /^\/(?:eps|actas)(?:[/?#]|$)/.test(this.router.url)),
     ),
     { initialValue: false },
   );

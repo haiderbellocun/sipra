@@ -5,7 +5,7 @@ import {
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import {
-  DatosDocumento, Documento, DocumentoYaDecididoError, EstadoDocumento, MetricasCalidadCaptura, TipoDocumento,
+  DatosDocumento, DecisionSinJustificacionError, Documento, DocumentoYaDecididoError, EstadoDocumento, MetricasCalidadCaptura, TipoDocumento,
 } from '../../../domain/entities/documento.entity';
 import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, DOCUMENTO_REPOSITORY, DocumentoRepositoryPort,
@@ -45,6 +45,8 @@ import { BitacoraUseCase } from '../practicas/bitacora.use-case';
 import { ParametrosUseCase } from '../administracion/parametros.use-case';
 import { ConsentimientoUseCase } from '../consentimientos/consentimiento.use-case';
 import { ValidacionActaUseCase } from './validacion-acta.use-case';
+import { DECISION_ACTA, DecisionActaPort } from '../../../domain/ports/out/decision-acta.port';
+import { ConflictoDecisionActaError } from '../../../domain/services/decision-acta.domain-service';
 import { ValidacionEpsUseCase } from './validacion-eps.use-case';
 import {
   puedeDecidirDocumento, puedeVerLecturaInterna,
@@ -85,6 +87,7 @@ export class GestionarDocumentoUseCase {
     private readonly consentimientos: ConsentimientoUseCase,
     private readonly validacionesEps: ValidacionEpsUseCase,
     @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
+    @Optional() @Inject(DECISION_ACTA) private readonly decisionActa?: DecisionActaPort,
   ) {}
 
   async cargar(
@@ -298,7 +301,7 @@ export class GestionarDocumentoUseCase {
     documentoId: string,
     dto: DecisionDocumentoDto,
     actor: Actor,
-    opciones: { mesaActa?: { motivo: string | null } } = {},
+    opciones: { mesaActa?: { motivo: string | null; contexto: Record<string, unknown>; ahora: Date } } = {},
   ): Promise<DocumentoRespuestaDto> {
     // Docente, coordinación y administración deciden cualquier documento de su alcance; el
     // auxiliar entra aquí solo para el certificado de EPS (se comprueba más abajo).
@@ -313,10 +316,12 @@ export class GestionarDocumentoUseCase {
     // El acta de iniciación se decide SOLO desde la Mesa de Actas (reserva, versión vigente, justificación y motivo), y solo
     // cuando ya está lista para revisión: ni el docente por el camino general ni nadie antes de que se procese.
     if (documento.tipo === TipoDocumento.ACTA_INICIO) {
-      if (!opciones.mesaActa || !this.validacionesActa) {
+      if (!opciones.mesaActa || !this.validacionesActa || !this.decisionActa) {
         throw new ForbiddenException('El acta de iniciación se revisa y se decide en la Mesa de Actas.');
       }
-      await this.validacionesActa.exigirRevisable(documentoId);
+      // Primera barrera (barata): el 409 temprano. La definitiva está dentro de la transacción de `decisionActa`.
+      const validacion = await this.validacionesActa.exigirRevisable(documentoId);
+      return this.decidirActa(validacion.id, dto, actor, opciones.mesaActa);
     }
     // Un caso de EPS que otro funcionario tiene reservado no se decide por encima.
     if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
@@ -359,14 +364,38 @@ export class GestionarDocumentoUseCase {
     }, dto.justificacion);
     // La validación de EPS refleja la decisión humana y deja su evidencia.
     await this.validacionesEps.registrarDecisionHumana(guardado, dto.decision, actor);
-    // La del acta de iniciación, también (no hace nada para otros tipos de documento).
-    await this.validacionesActa?.registrarDecisionHumana(guardado, dto.decision, actor, opciones.mesaActa?.motivo ?? null);
     await this.notificarSiRequiereAccion(guardado, actor);
     if (dto.decision === 'devolver') {
       // El manual pide dejar en la bitácora el plazo de ocho días para subsanar.
       await this.bitacora.anotarDevolucion(
         guardado.practicaId, guardado.tipo, guardado.instantanea().motivoDevolucion, actor,
       );
+    }
+    return this.aRespuesta(guardado, actor);
+  }
+
+  /**
+   * Decisión del acta: documento, validación, evidencia y auditoría se confirman JUNTOS en una transacción (o ninguno). Solo
+   * después del commit se avisa al estudiante y se anota la devolución en la bitácora: si eso falla, la decisión ya es válida.
+   */
+  private async decidirActa(
+    validacionId: string, dto: DecisionDocumentoDto, actor: Actor, mesa: { motivo: string | null; contexto: Record<string, unknown>; ahora: Date },
+  ): Promise<DocumentoRespuestaDto> {
+    let guardado: Documento;
+    try {
+      guardado = await (this.decisionActa as DecisionActaPort).aplicar(validacionId, {
+        decision: dto.decision, justificacion: dto.justificacion, motivo: mesa.motivo, ahora: mesa.ahora,
+        actor: { id: actor.id, correo: actor.correo, rol: actor.rol, ip: actor.ip ?? null, agenteUsuario: actor.agenteUsuario ?? null },
+        contextoAuditoria: mesa.contexto,
+      });
+    } catch (error) {
+      if (error instanceof ConflictoDecisionActaError || error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);
+      if (error instanceof DecisionSinJustificacionError) throw new BadRequestException(error.message);
+      throw error;
+    }
+    await this.notificarSiRequiereAccion(guardado, actor);
+    if (dto.decision === 'devolver') {
+      await this.bitacora.anotarDevolucion(guardado.practicaId, guardado.tipo, guardado.instantanea().motivoDevolucion, actor);
     }
     return this.aRespuesta(guardado, actor);
   }

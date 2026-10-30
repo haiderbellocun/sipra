@@ -114,6 +114,8 @@ import { VALIDACION_EPS_REPOSITORY } from '../../domain/ports/out/validacion-eps
 import { VALIDACION_ACTA_REPOSITORY } from '../../domain/ports/out/validacion-acta.port';
 import { ValidacionActaUseCase } from '../../application/use-cases/documentos/validacion-acta.use-case';
 import { ValidacionActaRepositoryAdapter } from '../adapters/persistence/postgres/validacion-acta.adapter';
+import { DECISION_ACTA } from '../../domain/ports/out/decision-acta.port';
+import { DecisionActaPgAdapter } from '../adapters/persistence/postgres/decision-acta.adapter';
 import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
 import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/consulta-adres.use-case';
 import { MesaEpsUseCase } from '../../application/use-cases/documentos/mesa-eps.use-case';
@@ -240,6 +242,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: CONSENTIMIENTO_REPOSITORY, useClass: ConsentimientoRepositoryAdapter },
     { provide: VALIDACION_EPS_REPOSITORY, useClass: ValidacionEpsRepositoryAdapter },
     { provide: VALIDACION_ACTA_REPOSITORY, useClass: ValidacionActaRepositoryAdapter },
+    { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
 

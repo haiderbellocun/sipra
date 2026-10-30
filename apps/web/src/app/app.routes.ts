@@ -50,6 +50,12 @@ export const rutas: Routes = [
         loadComponent: () => import('./features/eps/eps.component').then((m) => m.EpsComponent),
       },
       {
+        path: 'actas',
+        title: 'Actas de iniciación · SIPRA PRÁCTICAS',
+        canActivate: [rolGuard('auxiliar', 'coordinador', 'administrador')],
+        loadComponent: () => import('./features/actas/actas.component').then((m) => m.ActasComponent),
+      },
+      {
         path: 'ayuda',
         title: 'Centro de ayuda · SIPRA PRÁCTICAS',
         loadComponent: () => import('./features/ayuda/ayuda.component').then((m) => m.AyudaComponent),

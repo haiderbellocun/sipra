@@ -11,6 +11,7 @@ import {
   ComparativaModeloIa, ConfiguracionIa, EstimacionIa, ResumenGastoIa, TarifaIa,
   ConsultaAdresPreparada, FilaBandejaAdres, ResultadoAdres,
   DecisionMesa, DetalleMesa, FiltrosMesa, ListadoMesa, ResultadoTomarSiguiente, SupervisionMesa,
+  CorreccionDatosPractica, DecisionActa, DetalleActa, EstadoActaEstudiante, FiltrosActas, ListadoBandejaActa, ReservaActa, SupervisionActa,
 } from '../models/modelos';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
@@ -51,6 +52,49 @@ export class ApiService {
 
   supervisionMesaEps(): Observable<SupervisionMesa> {
     return this.http.get<SupervisionMesa>(`${this.base}/mesa-eps/supervision`);
+  }
+
+  // ── Mesa de Actas de Iniciación ────────────────────────────────────────
+  listarMesaActas(filtros: FiltrosActas = {}): Observable<ListadoBandejaActa> {
+    return this.http.get<ListadoBandejaActa>(`${this.base}/actas-iniciacion`, { params: aParams({ ...filtros }) });
+  }
+
+  detalleActa(id: string): Observable<DetalleActa> {
+    return this.http.get<DetalleActa>(`${this.base}/actas-iniciacion/${id}`);
+  }
+
+  /** El acta llega por la sesión autenticada (cabecera Authorization): sin enlace firmado ni credencial en la URL. */
+  archivoActa(id: string): Observable<Blob> {
+    return this.http.get(`${this.base}/actas-iniciacion/${id}/archivo`, { responseType: 'blob' });
+  }
+
+  tomarActa(id: string): Observable<ReservaActa> {
+    return this.http.post<ReservaActa>(`${this.base}/actas-iniciacion/${id}/tomar`, {});
+  }
+
+  liberarActa(id: string): Observable<ReservaActa> {
+    return this.http.post<ReservaActa>(`${this.base}/actas-iniciacion/${id}/liberar`, {});
+  }
+
+  tomarSiguienteActa(criterios: { conDiscrepancias?: 'si' | 'no'; documentoIncorrecto?: 'si' } = {}): Observable<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }> {
+    return this.http.post<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }>(`${this.base}/actas-iniciacion/tomar-siguiente`, criterios);
+  }
+
+  decidirActa(id: string, dto: DecisionActa): Observable<unknown> {
+    return this.http.post(`${this.base}/actas-iniciacion/${id}/decision`, dto);
+  }
+
+  supervisionActas(): Observable<SupervisionActa> {
+    return this.http.get<SupervisionActa>(`${this.base}/actas-iniciacion/supervision`);
+  }
+
+  estadoDeMiActa(practicaId: string): Observable<EstadoActaEstudiante> {
+    return this.http.get<EstadoActaEstudiante>(`${this.base}/actas-iniciacion/practica/${practicaId}/estado`);
+  }
+
+  /** Corrección controlada (coordinación/administración): remuneración y/o quién asume la ARL, con justificación. */
+  corregirDatosGobernantes(practicaId: string, dto: { tipoRemuneracion?: string; responsableArl?: string; justificacion: string }): Observable<CorreccionDatosPractica> {
+    return this.http.patch<CorreccionDatosPractica>(`${this.base}/practicas/${practicaId}/datos-gobernantes`, dto);
   }
 
   // ── Validación de EPS · consulta ADRES asistida ────────────────────────

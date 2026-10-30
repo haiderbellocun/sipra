@@ -32,6 +32,8 @@ export interface FilaMesaActa {
   recibidaEn: Date | null;
   procesadaEn: Date | null;
   datosPracticaCambiaronEn: Date | null;
+  /** Estado del documento. Un documento terminal con la validación en `revision` es una inconsistencia operativa heredada. */
+  estadoDocumento: string;
 }
 
 export interface FiltroMesaActa {
@@ -51,6 +53,10 @@ export interface ResumenSupervisionActa {
   /** Reservas ya vencidas (el caso vuelve a estar disponible). */
   vencidas: number;
   porEstado: Record<string, number>;
+  /** Casos «Documento decidido + Validación en revisión» (estado heredado de antes de la decisión atómica). Solo se detectan: no se corrigen solos. */
+  inconsistentes: number;
+  /** Hasta `TOPE_INCONSISTENCIAS_ACTA` casos, para la reconciliación controlada. */
+  inconsistencias: { validacionId: string; documentoId: string; estadoDocumento: string; version: number }[];
   conDiscrepanciaCritica: number;
   documentoIncorrecto: number;
   funcionarios: {
@@ -95,4 +101,7 @@ export interface ValidacionActaRepositoryPort {
   supervisionMesa(ahora: Date, escuelas: readonly string[] | null): Promise<ResumenSupervisionActa>;
 }
 export const TOPE_LISTADO_MESA_ACTA = 2000;
+export const TOPE_INCONSISTENCIAS_ACTA = 50;
+/** Estados terminales del documento: si la validación sigue en `revision`, el caso está inconsistente. */
+export const ESTADOS_DOCUMENTO_TERMINALES = ['aprobado', 'devuelto', 'rechazado'] as const;
 export const VALIDACION_ACTA_REPOSITORY = Symbol('VALIDACION_ACTA_REPOSITORY');

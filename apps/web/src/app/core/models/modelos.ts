@@ -658,3 +658,80 @@ export type MotivoDevolucionEps =
   | 'documento_ilegible' | 'certificado_vencido' | 'datos_no_coinciden' | 'certificado_incorrecto' | 'falta_informacion' | 'otro';
 
 export interface DecisionMesa { decision: 'aprobar' | 'devolver' | 'rechazar'; motivo?: MotivoDevolucionEps; justificacion?: string }
+// ── Mesa de Actas de Iniciación ────────────────────────────────────────────
+
+export interface ReservaActa { estado: 'libre' | 'mia' | 'otro' | 'vencida'; por: string | null; hasta: string | null; minutosRestantes: number | null }
+export interface PrioridadActa { puntaje: number; razones: string[] }
+
+export interface ItemBandejaActa {
+  validacionId: string; practicaId: string; estudiante: { nombre: string }; empresa: string | null; modalidad: string;
+  fechaInicio: string | null; version: number; esReenvio: boolean; estado: string; tipoActa: string | null;
+  remuneracionActa: string | null; responsableArlActa: string | null; firmaEmpresa: string | null; firmaPracticante: string | null;
+  hayDiscrepanciaCritica: boolean; recomendacion: string; prioridad: PrioridadActa; reserva: ReservaActa;
+  recibidaEn: string | null; diasEnBandeja: number | null; datosPracticaCambiaronDespuesDeDecision: boolean; inconsistenciaOperativa: boolean;
+}
+
+export interface ListadoBandejaActa {
+  kpis: {
+    abiertas: number; libres: number; mias: number; conDiscrepanciaCritica: number; documentoIncorrecto: number;
+    tomadas: number; porVencer: number; firmasPendientes: number;
+  };
+  total: number;
+  items: ItemBandejaActa[];
+}
+
+export interface FiltrosActas {
+  estado?: string; remuneracion?: string; responsableArl?: string; conDiscrepancias?: string; documentoIncorrecto?: string;
+  firmas?: string; reenvio?: string; reserva?: string; antiguedadMinDias?: string; prioridadMinima?: string; buscar?: string;
+}
+
+export interface CampoComparadoActa {
+  campo: string; etiqueta: string; sipra: string | null; acta: string | null; resultado: string; criticidad: string; nota: string | null;
+}
+
+export interface DetalleActa {
+  validacionId: string; practicaId: string; documentoId: string; version: number; vigente: boolean; estado: string; recomendacion: string;
+  prioridad: PrioridadActa; reserva: ReservaActa; puedeDecidir: boolean;
+  inconsistenciaOperativa: { estadoDocumento: string; mensaje: string } | null;
+  estudiante: { nombre: string; documento: string | null; documentoEnmascarado: string; programa: string | null };
+  practica: { empresa: string | null; nit: string | null; modalidad: string; fechaInicio: string | null; fechaFin: string | null };
+  responsableArlSugeridoPorModalidad: string | null;
+  resumen: {
+    clasificacion: string | null; remuneracionSipra: string | null; remuneracionActa: string | null; responsableArlSipra: string | null;
+    responsableArlActa: string | null; firmaEmpresa: string | null; firmaPracticante: string | null;
+  };
+  comparacion: {
+    veredicto: string | null; comparadaEn: string | null; vigente: boolean; campos: CampoComparadoActa[];
+    discrepancias: Array<{ campo: string; codigo: string; severidad: string; mensaje: string }>;
+  } | null;
+  datosPracticaCambiaronDespuesDeDecision: string | null;
+  decision: { estado: string; por: string | null; en: string | null; motivo: string | null } | null;
+  versiones: Array<{
+    validacionId: string; documentoId: string; version: number; vigente: boolean; estado: string; tipoActa: string | null;
+    cargadaEn: string | null; decididaEn: string | null;
+  }>;
+  historial: Array<{ fecha: string; tipo: string; etiqueta: string; resultado: string; ronda: number; actor: string | null }>;
+}
+
+export type MotivoDevolucionActa =
+  | 'documento_incorrecto' | 'informacion_no_coincide' | 'arl_no_coincide' | 'remuneracion_no_coincide' | 'falta_firma_empresa'
+  | 'falta_firma_practicante' | 'documento_ilegible' | 'informacion_incompleta' | 'otro';
+
+export interface DecisionActa { decision: 'aprobar' | 'devolver' | 'rechazar'; motivo?: MotivoDevolucionActa; justificacion?: string }
+
+export interface SupervisionActa {
+  abiertas: number; libres: number; tomadas: number; porVencer: number; vencidas: number; porEstado: Record<string, number>;
+  inconsistentes: number; inconsistencias: Array<{ validacionId: string; documentoId: string; estadoDocumento: string; version: number }>;
+  conDiscrepanciaCritica: number; documentoIncorrecto: number;
+  funcionarios: Array<{ funcionarioId: string; nombre: string; rol: string; reservasVigentes: number; reservasPorVencer: number; decididas7Dias: number }>;
+}
+
+export interface EstadoActaEstudiante {
+  practicaId: string; estado: string; etiqueta: string; que: string; hacer: string; puedeReenviar: boolean; versionActual: number | null;
+  versiones: Array<{ version: number; etiqueta: string; cargadaEn: string }>;
+}
+
+export interface CorreccionDatosPractica {
+  practicaId: string; tipoRemuneracion: string | null; responsableArl: string | null;
+  actaIniciacion: 'sin_acta' | 'sin_calculo' | 'recalculada' | 'marcada_posterior_a_decision' | 'sin_cambios';
+}

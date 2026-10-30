@@ -11,6 +11,15 @@
         ],
         "createdAt": "2026-10-26T21:32:01.104Z",
         "reason": "falso positivo: el src es un enlace dinámico a un blob local del certificado, renderizado solo con el contenido ya cargado (decidido por el asistente, no por el usuario)"
+      },
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "apps/web/src/app/features/actas/actas-visor.component.ts"
+        ],
+        "createdAt": "2026-10-30T16:48:29.997Z",
+        "reason": "asistente: el img usa [src] enlazado a un blob local y solo se renderiza con el estado listo (url no nula); no hay src vacio"
       }
     ]
   }

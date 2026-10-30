@@ -31,15 +31,15 @@ export function ayudaArl(
   hayModalidad: boolean, sugerida: ResponsableArl | null, elegida: ResponsableArlFormulario,
 ): string {
   if (!hayModalidad) {
-    return 'Elija la modalidad y le mostramos la sugerencia. Usted confirma quién afilia al estudiante a la ARL.';
+    return 'Elige la modalidad y te mostramos la sugerencia. Tú confirmas quién afilia al estudiante a la ARL.';
   }
   if (sugerida === null) {
-    return 'En esta modalidad depende del convenio con la organización: indique quién asume la ARL según lo acordado.';
+    return 'En esta modalidad depende del convenio con la organización: indica quién asume la ARL según lo acordado.';
   }
   if (elegida !== '' && elegida !== sugerida) {
-    return `La modalidad sugiere: ${ETIQUETA_RESPONSABLE_ARL[sugerida]}. Usted indicó otra opción; se guarda lo que usted elija.`;
+    return `Sugerencia según la modalidad: ${ETIQUETA_RESPONSABLE_ARL[sugerida]}. Elegiste otra opción; se guarda lo que tú elijas.`;
   }
-  return `Sugerido por la modalidad: ${ETIQUETA_RESPONSABLE_ARL[sugerida]}. Confírmelo o cámbielo si lo acordado es distinto.`;
+  return `Sugerencia según la modalidad: ${ETIQUETA_RESPONSABLE_ARL[sugerida]}. La dejamos marcada para que la veas; puedes cambiarla si el acuerdo de esta práctica establece algo diferente.`;
 }
 
 /** Cómo se ve el dato guardado de una práctica; las anteriores a este dato no lo tienen. */

@@ -16,6 +16,7 @@ import { EstadoComponent } from '@shared/components/estado.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
 import { formatearEntero, formatearUsd } from '@shared/utils/moneda';
+import { ActaEstudianteComponent } from '../actas/acta-estudiante.component';
 import { guiaDocumento, lineaVersionAnterior } from './guia-documento';
 import { textoBandera } from './banderas';
 
@@ -30,7 +31,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
 @Component({
   selector: 'sipra-expediente',
   standalone: true,
-  imports: [EsqueletoComponent, FormsModule, DatePipe, DecimalPipe, RouterLink, EstadoComponent, EtiquetaPipe],
+  imports: [EsqueletoComponent, FormsModule, DatePipe, DecimalPipe, RouterLink, EstadoComponent, EtiquetaPipe, ActaEstudianteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     .cab { display:flex; gap:var(--sp-3); align-items:flex-start; flex-wrap:wrap; margin-bottom:var(--sp-4); }
@@ -158,6 +159,11 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                 <h3>{{ m.etiqueta }} <span class="pista">{{ m.aprobados }}/{{ m.exigidos }} aprobados</span>
                   @if (m.completo) { <span class="etiqueta etiqueta--ok">completo</span> } @else if (p.avance.momentoActual === m.momento) { <span class="etiqueta etiqueta--info">momento actual</span> }</h3>
                 @for (d of m.documentos; track d.tipo) {
+                  @if (esEstudiante() && d.tipo === 'acta_inicio') {
+                    <div class="doc">
+                      <sipra-acta-estudiante [practicaId]="id()" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir('acta_inicio')" />
+                    </div>
+                  } @else {
                   <div class="doc">
                     <div class="doc-cab">
                       <span class="nombre">{{ d.tipo | etiqueta }}</span>
@@ -227,7 +233,9 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                           <div class="pista" style="margin-top:var(--sp-2)">{{ tokens(l.tokensEntrada) }} tokens de entrada · {{ tokens(l.tokensSalida) }} de salida · {{ costo(l.costoUsd) }}</div>
                         </details>
                       }
-                      @if (puedeDecidir() && decidible(doc)) {
+                      @if (doc.tipo === 'acta_inicio') {
+                        <p class="pista" style="margin:var(--sp-2) 0 0" data-acta-mesa>El Acta de iniciación se revisa y se decide en la Mesa de Actas.@if (puedeMesaActas()) { <a routerLink="/actas">Abrir la Mesa de Actas</a> }</p>
+                      } @else if (puedeDecidir() && decidible(doc)) {
                         <div class="campo" style="margin:var(--sp-2) 0 var(--sp-1)"><input type="text" [ngModel]="justificacionDoc()[doc.id] ?? ''" (ngModelChange)="anotar(doc.id, $event)" placeholder="Justificación de la decisión (mínimo 10 caracteres)" /></div>
                         <div class="acciones">
                           <button type="button" class="boton compacto" [disabled]="!justificado(doc.id) || guardando()" (click)="decidir(doc, 'aprobar')">Aprobar</button>
@@ -237,6 +245,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                       }
                     }
                   </div>
+                  }
                 }
               </section>
             }
@@ -447,6 +456,7 @@ export class ExpedienteComponent implements OnInit {
   readonly vac: VacanteEditable = {};
 
   readonly puedeAdministrar = computed(() => ['administrador', 'coordinador'].includes(this.sesion.rol() ?? ''));
+  readonly puedeMesaActas = computed(() => ['auxiliar', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeDecidir = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeCargar = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? '') && !this.terminal());
   /** El avance documental y el docente solo se muestran a quien los recibe del servidor. */

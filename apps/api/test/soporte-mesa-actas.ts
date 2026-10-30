@@ -4,6 +4,9 @@ import { MesaActasUseCase } from '../src/application/use-cases/documentos/mesa-a
 import { ValidacionActaUseCase } from '../src/application/use-cases/documentos/validacion-acta.use-case';
 import { GestionarPracticaUseCase } from '../src/application/use-cases/practicas/gestionar-practica.use-case';
 import { RegistroAuditoria } from '../src/domain/entities/auditoria.entity';
+import { DecisionActaPort } from '../src/domain/ports/out/decision-acta.port';
+import { ConflictoDecisionActaError, EntradaDecisionActa, planificarDecisionActa } from '../src/domain/services/decision-acta.domain-service';
+import type { PuntoDecisionActa } from '../src/infrastructure/adapters/persistence/postgres/decision-acta.adapter';
 import { DatosDocumento, Documento, EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
 import { ModalidadPractica } from '../src/domain/entities/modalidad.entity';
 import { EstadoPractica, Practica } from '../src/domain/entities/practica.entity';
@@ -121,6 +124,7 @@ export class ValidacionesActaMemoria implements ValidacionActaRepositoryPort {
           hayDiscrepanciaCritica: v.hayDiscrepanciaCritica, veredicto: v.comparacion?.veredicto ?? null, asignadoA: v.asignadoA,
           asignadoNombre: v.asignadoA ? this.ctx.usuarios.get(v.asignadoA)?.nombre ?? null : null, reservaHasta: v.reservaHasta,
           recibidaEn: v.recibidaEn, procesadaEn: v.procesadaEn, datosPracticaCambiaronEn: v.datosPracticaCambiaronEn,
+          estadoDocumento: doc.estado,
         };
       }));
   }
@@ -131,13 +135,65 @@ export class ValidacionesActaMemoria implements ValidacionActaRepositoryPort {
     const vigente = (x: DatosValidacionActa) => x.asignadoA !== null && (x.reservaHasta?.getTime() ?? 0) > ahora.getTime();
     const porEstado: Record<string, number> = {};
     for (const x of v) porEstado[x.estado] = (porEstado[x.estado] ?? 0) + 1;
+    const inconsistentes = rev.filter((x) => ['aprobado', 'devuelto', 'rechazado'].includes(this.ctx.documentos.filas.get(x.documentoId)?.estado ?? ''));
     return Promise.resolve({
+      inconsistentes: inconsistentes.length,
+      inconsistencias: inconsistentes.slice(0, 50).map((x) => {
+        const d = this.ctx.documentos.filas.get(x.documentoId) as DatosDocumento;
+        return { validacionId: x.id, documentoId: x.documentoId, estadoDocumento: d.estado, version: d.version };
+      }),
       abiertas: rev.length, libres: rev.filter((x) => !vigente(x)).length, tomadas: rev.filter(vigente).length,
       porVencer: rev.filter((x) => vigente(x) && (x.reservaHasta as Date).getTime() <= ahora.getTime() + MINUTOS_RESERVA_POR_VENCER * MIN).length,
       vencidas: rev.filter((x) => x.asignadoA !== null && !vigente(x)).length, porEstado,
       conDiscrepanciaCritica: rev.filter((x) => x.hayDiscrepanciaCritica).length,
       documentoIncorrecto: rev.filter((x) => x.tipoActaDetectada === 'documento_incorrecto').length, funcionarios: [],
     });
+  }
+}
+
+/**
+ * Doble en memoria de la decisión transaccional: misma lógica pura (`planificarDecisionActa`), con un mutex que emula el
+ * bloqueo de filas y con ROLLBACK real (se restauran los almacenes al estado previo si algo falla). `alPunto` fuerza fallos
+ * intermedios, igual que el adaptador de PostgreSQL. La prueba contra PostgreSQL está en `herramientas/verificar-concurrencia-pg.ts`.
+ */
+export class DecisionActaMemoria implements DecisionActaPort {
+  alPunto?: (punto: PuntoDecisionActa) => void;
+  private cola: Promise<unknown> = Promise.resolve();
+  constructor(private readonly s: { documentos: DocumentosMemoria; validaciones: ValidacionesActaMemoria; auditoria: AuditoriaMemoria }) {}
+
+  aplicar(validacionId: string, entrada: EntradaDecisionActa): Promise<Documento> {
+    const turno = this.cola.then(() => this.transaccion(validacionId, entrada));
+    this.cola = turno.catch(() => undefined);
+    return turno;
+  }
+
+  private async transaccion(validacionId: string, entrada: EntradaDecisionActa): Promise<Documento> {
+    const { documentos, validaciones, auditoria } = this.s;
+    const foto = { d: new Map(documentos.filas), v: new Map(validaciones.filas), e: [...validaciones.evid], a: [...auditoria.registros] };
+    try {
+      const v = validaciones.filas.get(validacionId);
+      if (!v) throw new ConflictoDecisionActaError('no_encontrada');
+      const dDatos = documentos.filas.get(v.documentoId);
+      if (!dDatos) throw new ConflictoDecisionActaError('no_encontrada');
+      const maxima = Math.max(0, ...[...documentos.filas.values()].filter((x) => x.practicaId === dDatos.practicaId && x.tipo === TipoDocumento.ACTA_INICIO).map((x) => x.version));
+      const plan = planificarDecisionActa({ validacion: ValidacionActa.desde(v), documento: Documento.desde(dDatos), versionMaximaActa: maxima }, entrada);
+      await Promise.resolve();
+      if (documentos.filas.get(dDatos.id)?.estado !== plan.estadoDocumentoLeido) throw new ConflictoDecisionActaError('documento_cambio');
+      documentos.filas.set(dDatos.id, plan.documento.instantanea());
+      this.alPunto?.('tras_documento');
+      if (validaciones.filas.get(validacionId)?.version !== plan.versionValidacionLeida) throw new ConflictoDecisionActaError('no_revisable');
+      validaciones.filas.set(validacionId, { ...plan.validacion.instantanea(), version: plan.versionValidacionLeida + 1 });
+      this.alPunto?.('tras_validacion');
+      validaciones.evid.push({ ...plan.evidencia });
+      this.alPunto?.('tras_evidencia');
+      auditoria.registros.push(plan.auditorias[0]);
+      this.alPunto?.('tras_auditoria_documento');
+      auditoria.registros.push(plan.auditorias[1]);
+      return plan.documento;
+    } catch (error) {
+      documentos.filas = foto.d; validaciones.filas = foto.v; validaciones.evid = foto.e; auditoria.registros = foto.a;
+      throw error;
+    }
   }
 }
 
@@ -177,11 +233,12 @@ export function montarMesaActas() {
   const repoUsuarios = { buscarPorId: (id: string) => Promise.resolve(usuarios.get(id) ?? null) };
   const sinu = { buscarPorDocumento: () => Promise.resolve({ programaNombre: VALORES_BASE.programa.replace('Administracion', 'Administración') }) };
 
+  const decision = new DecisionActaMemoria({ documentos, validaciones, auditoria });
   const acta = new ValidacionActaUseCase(validaciones, documentos as never, repoPracticas as never, repoUsuarios as never, { buscarPorId: () => Promise.resolve(null) } as never, auditoria as never, sinu as never);
   const gestionar = new GestionarDocumentoUseCase(
     documentos as never, repoPracticas as never, repoUsuarios as never, auditoria as never, almacen as never, { notificar: jest.fn() } as never,
     {} as never, {} as never, {} as never, { anotarDevolucion: jest.fn() } as never, {} as never, {} as never, {} as never,
-    { registrarDecisionHumana: () => Promise.resolve(), exigirSinReservaAjena: () => Promise.resolve() } as never, acta,
+    { registrarDecisionHumana: () => Promise.resolve(), exigirSinReservaAjena: () => Promise.resolve() } as never, acta, decision,
   );
   const mesa = new MesaActasUseCase(validaciones, documentos as never, repoPracticas as never, repoUsuarios as never, { buscarPorId: () => Promise.resolve(null) } as never, auditoria as never, almacen as never, gestionar, sinu as never);
   const estudiante = new ActaEstudianteUseCase(repoPracticas as never, documentos as never, validaciones);
@@ -220,7 +277,7 @@ export function montarMesaActas() {
   };
 
   const persona = (id: string, nombre: string, rol: Rol): void => { usuarios.set(id, usuarioDe(rol, { id, nombre, correo: `${id}@cun.edu.co` })); };
-  return { mesa, acta, estudiante, gestionar, gestionarPractica, validaciones, documentos, auditoria, almacen, practicas, usuarios, crear, persona };
+  return { mesa, acta, decision, estudiante, gestionar, gestionarPractica, validaciones, documentos, auditoria, almacen, practicas, usuarios, crear, persona };
 }
 
 export const aux = (id = 'aux-1') => actorDe(Rol.AUXILIAR, { id, correo: `${id}@cun.edu.co` });

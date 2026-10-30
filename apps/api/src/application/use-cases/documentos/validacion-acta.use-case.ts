@@ -4,7 +4,7 @@ import { LecturaActaPersistible } from '../../../domain/entities/acta-iniciacion
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import { Documento, EstadoDocumento, TipoDocumento } from '../../../domain/entities/documento.entity';
 import {
-  DecisionActa, EstadoValidacionActa, EvidenciaActa, TipoEvidenciaActa, ValidacionActa,
+  EstadoValidacionActa, EvidenciaActa, TipoEvidenciaActa, ValidacionActa,
 } from '../../../domain/entities/validacion-acta.entity';
 import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, DOCUMENTO_REPOSITORY, DocumentoRepositoryPort, EMPRESA_REPOSITORY,
@@ -155,30 +155,6 @@ export class ValidacionActaUseCase {
       );
     }
     return validacion;
-  }
-
-  /**
-   * La decisión general del documento se refleja en la validación (estado, motivo, quién y cuándo; libera la reserva) y deja
-   * su evidencia. No cambia ningún resultado de lectura. NO crea la validación si no existe. Reintenta ante un cambio
-   * concurrente de versión (otra persona reservó o liberó mientras tanto): la decisión del documento ya se aplicó.
-   */
-  async registrarDecisionHumana(
-    documento: Documento, decision: DecisionActa, actor: Actor, motivo: string | null = null, ahora: Date = new Date(),
-  ): Promise<void> {
-    if (documento.tipo !== TipoDocumento.ACTA_INICIO) return;
-    for (let intento = 0; intento < 5; intento += 1) {
-      const validacion = await this.validaciones.buscarPorDocumento(documento.id);
-      if (!validacion || validacion.estaDecidida) return;
-      const versionLeida = validacion.version;
-      validacion.registrarDecision(decision, actor.id, ahora, motivo);
-      if (!(await this.validaciones.guardarSiVersion(validacion.instantanea(), versionLeida))) continue;
-      await this.validaciones.agregarEvidencia(EvidenciaActa.crear({
-        id: randomUUID(), validacionActaId: validacion.id, intento: validacion.intentos, tipo: TipoEvidenciaActa.DECISION_HUMANA,
-        resultado: decision, metodo: 'decision_documento', fecha: ahora, actorId: actor.id,
-        hashDocumento: documento.instantanea().hashSha256, datos: { rol: actor.rol, motivo }, errorCodigo: null, creadoEn: ahora,
-      }).instantanea());
-      return;
-    }
   }
 
   // ── Cambio de los datos canónicos de la práctica ─────────────────────────

@@ -72,10 +72,19 @@ export interface ItemBandejaActaDto {
   recibidaEn: string | null;
   diasEnBandeja: number | null;
   datosPracticaCambiaronDespuesDeDecision: boolean;
+  inconsistenciaOperativa: boolean;
 }
 
 export interface ListadoBandejaActaDto {
-  kpis: { abiertas: number; libres: number; mias: number; conDiscrepanciaCritica: number; documentoIncorrecto: number };
+  kpis: {
+    abiertas: number; libres: number; mias: number; conDiscrepanciaCritica: number; documentoIncorrecto: number;
+    /** Con reserva vigente (de cualquier persona). */
+    tomadas: number;
+    /** Reservas vigentes que vencen en los próximos minutos. */
+    porVencer: number;
+    /** Con una firma faltante (el mismo criterio del filtro `firmas=faltantes`). */
+    firmasPendientes: number;
+  };
   total: number;
   items: ItemBandejaActaDto[];
 }
@@ -101,6 +110,8 @@ export interface DetalleActaDto {
   prioridad: PrioridadActaDto;
   reserva: ReservaActaDto;
   puedeDecidir: boolean;
+  /** Documento ya decidido con la validación aún en revisión (estado heredado). Requiere reconciliación controlada; no se decide. */
+  inconsistenciaOperativa: { estadoDocumento: string; mensaje: string } | null;
   estudiante: { nombre: string; documento: string | null; documentoEnmascarado: string; programa: string | null };
   practica: { empresa: string | null; nit: string | null; modalidad: string; fechaInicio: string | null; fechaFin: string | null };
   /** Lo que SIPRA tiene como sugerencia por modalidad, SOLO informativo: no es el dato de la práctica. */
@@ -144,6 +155,8 @@ export interface SupervisionActaDto {
   porVencer: number;
   vencidas: number;
   porEstado: Record<string, number>;
+  inconsistentes: number;
+  inconsistencias: { validacionId: string; documentoId: string; estadoDocumento: string; version: number }[];
   conDiscrepanciaCritica: number;
   documentoIncorrecto: number;
   funcionarios: {

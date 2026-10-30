@@ -24,6 +24,8 @@ import {
 import { ValidacionEps } from '../src/domain/entities/validacion-eps.entity';
 import { Practica } from '../src/domain/entities/practica.entity';
 import { EvidenciaActa, TipoEvidenciaActa, ValidacionActa } from '../src/domain/entities/validacion-acta.entity';
+import { ConflictoDecisionActaError, EntradaDecisionActa } from '../src/domain/services/decision-acta.domain-service';
+import { DecisionActaPgAdapter } from '../src/infrastructure/adapters/persistence/postgres/decision-acta.adapter';
 import { ValidacionActaRepositoryAdapter } from '../src/infrastructure/adapters/persistence/postgres/validacion-acta.adapter';
 import { PracticaRepositoryAdapter } from '../src/infrastructure/adapters/persistence/postgres/repositorios.adapter';
 import { EvidenciaValidacionActaOrm, ValidacionActaOrm } from '../src/infrastructure/persistence/postgres/entities/validacion-acta.orm-entity';
@@ -624,11 +626,126 @@ async function main(): Promise<void> {
     comprobar('con dos versiones del acta, la bandeja trae SOLO la vigente (la última)', deB.length === 1 && deB[0].validacionId === b2.validacionId && deB[0].version > 0);
     comprobar('la versión anterior no aparece en la bandeja', !lista.some((f) => f.validacionId === b1.validacionId));
     comprobar('la fila trae lo necesario para la bandeja (estudiante, discrepancia, veredicto, reserva)', deB[0].estudianteNombre === 'Estudiante B' && deB[0].hayDiscrepanciaCritica && deB[0].veredicto === 'revision_necesaria' && deB[0].asignadoA === null);
+    // La empresa que ve la bandeja es la de la práctica (por `empresa_id`), no solo la columna heredada de texto libre.
+    const empresaMesa = randomUUID();
+    await ds.query(`INSERT INTO empresas (id, razon_social, nit_numero, nit_dv, solicitante_nombre, solicitante_correo, estado) VALUES ($1, 'Empresa Sintetica de la Mesa S.A.S.', '900111222', '3', 'Solicitante', 'solicitante@verificacion.example', 'habilitada')`, [empresaMesa]);
+    await ds.query(`UPDATE practicas SET empresa_id = $1 WHERE id = $2`, [empresaMesa, practicaB]);
+    const conEmpresa = (await validacionesActa.listarMesa({ estados: ['revision' as never], escuelas: null })).find((f) => f.practicaId === practicaB);
+    comprobar('la bandeja muestra la empresa de la práctica aunque solo esté asociada por empresa_id', conEmpresa?.empresaRazonSocial === 'Empresa Sintetica de la Mesa S.A.S.', String(conEmpresa?.empresaRazonSocial));
     comprobar('con otra escuela en el alcance no se entrega nada de esa práctica', !(await validacionesActa.listarMesa({ estados: ['revision' as never], escuelas: ['no-existe'] })).some((f) => f.practicaId === practicaB));
     await validacionesActa.reservar(b2.validacionId, funcionario, new Date(), new Date(Date.now() + 120_000));
     const sup = await validacionesActa.supervisionMesa(new Date(), null);
     comprobar('la supervisión cuenta abiertas, tomadas, por vencer (reserva de 2 minutos) y por discrepancia crítica', sup.abiertas >= 1 && sup.tomadas >= 1 && sup.porVencer >= 1 && sup.conDiscrepanciaCritica >= 1);
     comprobar('la supervisión agrupa por estado y lista la carga por funcionario', typeof sup.porEstado.revision === 'number' && sup.funcionarios.some((f) => f.funcionarioId === funcionario && f.reservasVigentes >= 1));
+
+    // Decisión atómica: documento + validación + evidencia + auditoría en UNA transacción, o nada.
+    console.log('\n— Mesa de Actas: decisión atómica —');
+    const decisionActa = new DecisionActaPgAdapter(ds);
+    const casoAislado = async (): Promise<{ documentoId: string; validacionId: string }> => {
+      const est = randomUUID();
+      const pra = randomUUID();
+      await ds.query('INSERT INTO usuarios (id, correo, nombre, rol) VALUES ($1, $2, $3, $4)', [est, `${est}@verificacion.example`, 'Estudiante atómico', 'estudiante']);
+      await ds.query(`INSERT INTO practicas (id, estudiante_id, programa_id, escuela_id, ciclo, periodo_academico, modalidad, estado) VALUES ($1, $2, 'PRG', $3, 'profesional', '2026-2', 'pasantia', 'documentacion')`, [pra, est, esc]);
+      return actaEnRevision(pra, est);
+    };
+    const reservadoPor = async (quien: string): Promise<{ documentoId: string; validacionId: string }> => {
+      const c = await casoAislado();
+      await validacionesActa.reservar(c.validacionId, quien, ahora, hasta);
+      return c;
+    };
+    const entradaDe = (decision: 'aprobar' | 'devolver' | 'rechazar', actorId: string): EntradaDecisionActa => ({
+      decision, justificacion: 'Justificación sintética suficiente para la prueba de atomicidad.', motivo: decision === 'devolver' ? 'arl_no_coincide' : null,
+      actor: { id: actorId, correo: `${actorId}@verificacion.example`, rol: 'auxiliar', ip: null, agenteUsuario: null }, ahora, contextoAuditoria: { origen: 'verificacion' },
+    });
+    const instantanea = async (c: { validacionId: string }): Promise<string> => JSON.stringify(await ds.query(
+      `SELECT d.estado AS doc, d.decidido_por AS doc_por, d.justificacion_decision AS doc_just, v.estado AS val, v.version, v.decidido_por, v.decidido_en,
+              v.asignado_a, v.reserva_hasta, v.motivo_decision
+         FROM validaciones_acta_iniciacion v JOIN documentos d ON d.id = v.documento_id WHERE v.id = $1`, [c.validacionId]));
+    const escrituras = async (c: { validacionId: string; documentoId: string }): Promise<{ evidencias: number; auditorias: number }> => {
+      const ev: { n: number }[] = await ds.query(`SELECT count(*)::int AS n FROM evidencias_validacion_acta WHERE validacion_acta_id = $1 AND tipo = 'decision_humana'`, [c.validacionId]);
+      const au: { n: number }[] = await ds.query(
+        `SELECT count(*)::int AS n FROM auditoria WHERE accion IN ('decision_acta', 'decision_documento') AND entidad_id IN ($1, $2)`, [c.validacionId, c.documentoId]);
+      return { evidencias: ev[0].n, auditorias: au[0].n };
+    };
+
+    // Éxito: las cuatro escrituras juntas.
+    for (const decision of ['aprobar', 'devolver', 'rechazar'] as const) {
+      const c = await reservadoPor(funcionario);
+      await decisionActa.aplicar(c.validacionId, entradaDe(decision, funcionario));
+      const e = await escrituras(c);
+      const f = (await validacionesActa.buscarPorId(c.validacionId))!.instantanea();
+      comprobar(`${decision}: documento, validación (quién/cuándo, sin reserva), UNA evidencia y DOS auditorías`,
+        e.evidencias === 1 && e.auditorias === 2 && f.decididoPor === funcionario && f.decididoEn !== null && f.asignadoA === null && f.estado !== 'revision');
+    }
+
+    // Fallo forzado en cada punto: todo se revierte (documento, validación, reserva, evidencia, auditoría).
+    for (const decision of ['aprobar', 'devolver', 'rechazar'] as const) {
+      for (const punto of ['tras_documento', 'tras_validacion', 'tras_evidencia', 'tras_auditoria_documento'] as const) {
+        const c = await reservadoPor(funcionario);
+        const antes = await instantanea(c);
+        decisionActa.alPunto = (p) => { if (p === punto) throw new Error('fallo forzado'); };
+        const error = await decisionActa.aplicar(c.validacionId, entradaDe(decision, funcionario)).then(() => null, (e: Error) => e);
+        decisionActa.alPunto = undefined;
+        const e = await escrituras(c);
+        comprobar(`fallo forzado (${decision}, ${punto}): ROLLBACK completo`, error?.message === 'fallo forzado' && (await instantanea(c)) === antes && e.evidencias === 0 && e.auditorias === 0);
+        await decisionActa.aplicar(c.validacionId, entradaDe(decision, funcionario));
+        comprobar(`tras el fallo (${decision}, ${punto}) la reserva seguía intacta y la decisión confirma`, (await escrituras(c)).evidencias === 1);
+      }
+    }
+
+    // Retry tras commit: 409 controlado, nada se escribe de nuevo.
+    {
+      const c = await reservadoPor(funcionario);
+      await decisionActa.aplicar(c.validacionId, entradaDe('aprobar', funcionario));
+      const despues = await instantanea(c);
+      const reintento = await decisionActa.aplicar(c.validacionId, entradaDe('aprobar', funcionario)).then(() => null, (e: unknown) => e);
+      const e = await escrituras(c);
+      comprobar('retry tras commit: ConflictoDecisionActaError «ya_decidida», sin segunda evidencia ni auditoría, sin nuevo decidido_en',
+        reintento instanceof ConflictoDecisionActaError && reintento.motivo === 'ya_decidida' && e.evidencias === 1 && e.auditorias === 2 && (await instantanea(c)) === despues);
+    }
+
+    // Concurrencia: 2 y 10 decisiones simultáneas; solo una confirma, sin interbloqueos ni errores inesperados.
+    for (const n of [2, 10]) {
+      const c = await reservadoPor(funcionario);
+      const r = await Promise.allSettled(Array.from({ length: n }, (_, i) => decisionActa.aplicar(
+        c.validacionId, entradaDe((['aprobar', 'devolver', 'rechazar'] as const)[i % 3], i % 2 === 0 ? funcionario : funcionario2))));
+      const ok = r.filter((x) => x.status === 'fulfilled').length;
+      const raras = r.filter((x): x is PromiseRejectedResult => x.status === 'rejected' && !(x.reason instanceof ConflictoDecisionActaError));
+      const e = await escrituras(c);
+      comprobar(`${n} decisiones simultáneas: exactamente una confirma y las demás reciben 409 (sin deadlocks ni 500)`,
+        ok === 1 && raras.length === 0 && e.evidencias === 1 && e.auditorias === 2, raras.map((x) => String(x.reason)).join(' | '));
+    }
+
+    // Decisiones y reservas/liberaciones simultáneas sobre el mismo caso: sin deadlock.
+    {
+      const c = await reservadoPor(funcionario);
+      const r = await Promise.allSettled([
+        decisionActa.aplicar(c.validacionId, entradaDe('aprobar', funcionario)),
+        validacionesActa.liberarReserva(c.validacionId, funcionario, ahora, false),
+        validacionesActa.reservar(c.validacionId, funcionario, ahora, hasta),
+        decisionActa.aplicar(c.validacionId, entradaDe('devolver', funcionario)),
+        validacionesActa.liberarReserva(c.validacionId, funcionario2, ahora, true),
+      ]);
+      const raras = r.filter((x): x is PromiseRejectedResult => x.status === 'rejected' && !(x.reason instanceof ConflictoDecisionActaError));
+      const e = await escrituras(c);
+      comprobar('decisiones mezcladas con reservas y liberaciones: sin errores inesperados y como máximo una decisión',
+        raras.length === 0 && e.evidencias <= 1 && e.auditorias === e.evidencias * 2, raras.map((x) => String(x.reason)).join(' | '));
+    }
+
+    // Inconsistencia heredada: se detecta y se marca, nunca se corrige sola, y no se decide encima.
+    {
+      const c = await reservadoPor(funcionario);
+      await ds.query(`UPDATE documentos SET estado = 'aprobado', decidido_por = $1, justificacion_decision = 'Estado heredado sintético para la prueba.' WHERE id = $2`, [funcionario, c.documentoId]);
+      const sup2 = await validacionesActa.supervisionMesa(new Date(), null);
+      const fila2 = (await validacionesActa.listarMesa({ estados: ['revision' as never], escuelas: null })).find((f) => f.validacionId === c.validacionId);
+      comprobar('la supervisión detecta «Documento decidido + Validación en revisión»', sup2.inconsistentes >= 1 && sup2.inconsistencias.some((i) => i.validacionId === c.validacionId && i.estadoDocumento === 'aprobado'));
+      comprobar('la bandeja trae el estado del documento para marcar la inconsistencia', fila2?.estadoDocumento === 'aprobado');
+      const antes = await instantanea(c);
+      const intento = await decisionActa.aplicar(c.validacionId, entradaDe('aprobar', funcionario)).then(() => null, (e: unknown) => e);
+      const e = await escrituras(c);
+      comprobar('decidir sobre un caso inconsistente da conflicto «inconsistente» y no corrige ni escribe nada',
+        intento instanceof ConflictoDecisionActaError && intento.motivo === 'inconsistente' && (await instantanea(c)) === antes && e.evidencias === 0 && e.auditorias === 0);
+    }
     }
 
     void TipoDocumento;

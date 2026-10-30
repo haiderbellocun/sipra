@@ -5,7 +5,7 @@ import { CicloAcademico, DatosPractica, EstadoPractica, Practica } from '../src/
 import { Usuario } from '../src/domain/entities/usuario.entity';
 import {
   EstadoValidacionActa, EvidenciaActa, EvidenciaActaInvalidaError, TipoEvidenciaActa,
-  ValidacionActa, ValidacionActaYaDecididaError,
+  ValidacionActa,
 } from '../src/domain/entities/validacion-acta.entity';
 import { DocumentosMemoria, ValidacionesActaMemoria } from './soporte-mesa-actas';
 import { Rol } from '../src/domain/value-objects/rol.vo';
@@ -305,23 +305,6 @@ describe('Acta de iniciación · validación persistida', () => {
       expect(auditorias[0].accion).toBe('acta_procesada');
       expect(auditorias[0].metadatos).toMatchObject({ tipoActa: 'iniciacion_practicas', remuneracion: 'no_remunerada', responsableArl: 'empresa', veredicto: 'consistente', discrepanciasCriticas: 0 });
       expect(JSON.stringify(auditorias[0])).not.toContain(VALORES_BASE.nombre);
-    });
-
-    it('una decisión humana sobre el documento se refleja en la validación, con su evidencia, y no cambia la lectura', async () => {
-      const { caso, repo, documentos } = armar();
-      const doc = documentoActa('doc-1', 1, lectura());
-      documentos.set('doc-1', doc);
-      const antes = (await caso.registrarProcesamiento(doc, AHORA))!.instantanea();
-      await caso.registrarDecisionHumana(doc, 'devolver', { id: 'aux-1', correo: 'a@cun.edu.co', rol: Rol.COORDINADOR, permiso: 'escritura', escuelas: [], empresaId: null }, null, AHORA);
-      const despues = (await repo.buscarPorDocumento('doc-1'))!.instantanea();
-      expect(despues).toMatchObject({ estado: EstadoValidacionActa.DEVUELTO, decididoPor: 'aux-1', tipoActaDetectada: antes.tipoActaDetectada });
-      expect(despues.comparacion).toEqual(antes.comparacion);
-      expect(repo.evid.filter((e) => e.tipo === TipoEvidenciaActa.DECISION_HUMANA)).toHaveLength(1);
-      // Una decisión ya tomada no se repite ni se reprocesa.
-      await caso.registrarDecisionHumana(doc, 'aprobar', { id: 'otro', correo: 'o@cun.edu.co', rol: Rol.ADMINISTRADOR, permiso: 'escritura', escuelas: [], empresaId: null }, null, AHORA);
-      expect((await repo.buscarPorDocumento('doc-1'))!.estado).toBe(EstadoValidacionActa.DEVUELTO);
-      expect((await caso.registrarProcesamiento(doc, AHORA))!.estado).toBe(EstadoValidacionActa.DEVUELTO);
-      expect(() => ValidacionActa.desde(despues).registrarResultado({} as never, AHORA)).toThrow(ValidacionActaYaDecididaError);
     });
 
     it('no procesa documentos de otro tipo ni mientras el pipeline no terminó', async () => {

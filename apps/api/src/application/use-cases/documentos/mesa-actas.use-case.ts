@@ -12,7 +12,7 @@ import {
 } from '../../../domain/ports/out/repositorios.port';
 import { ALMACENAMIENTO, AlmacenamientoPort, SINU, SinuPort } from '../../../domain/ports/out/servicios-externos.port';
 import {
-  FilaMesaActa, VALIDACION_ACTA_REPOSITORY, ValidacionActaRepositoryPort,
+  ESTADOS_DOCUMENTO_TERMINALES, FilaMesaActa, MINUTOS_RESERVA_POR_VENCER, VALIDACION_ACTA_REPOSITORY, ValidacionActaRepositoryPort,
 } from '../../../domain/ports/out/validacion-acta.port';
 import { JUSTIFICACION_MINIMA } from '../../../domain/services/justificacion-decision';
 import {
@@ -43,6 +43,7 @@ const ETIQUETA_EVENTO: Record<TipoEvidenciaActa, string> = {
 };
 const MINUTO_MS = 60_000;
 const DIA_MS = 86_400_000;
+const MENSAJE_INCONSISTENCIA_ACTA = 'Inconsistencia operativa: el documento ya tiene decisión pero la validación sigue en revisión. Requiere reconciliación controlada por coordinación.';
 
 /** Solo los últimos 4 caracteres alfanuméricos: «C.C. 1.000.000.001» y «1000000001» se ven igual (nunca la forma en que se escribió). */
 function enmascarar(documento: string | null): string {
@@ -122,6 +123,7 @@ export class MesaActasUseCase {
     const { v, documento } = await this.cargarCaso(validacionId, actor);
     if (v.estaDecidida) throw new ConflictException('El caso ya fue decidido');
     if (!v.estaRevisable) throw new ConflictException('El acta todavía no está lista para revisión');
+    if (this.inconsistente(documento.instantanea().estado)) throw new ConflictException(MENSAJE_INCONSISTENCIA_ACTA);
     if (documento.instantanea().version < (await this.versionVigente(v.instantanea().practicaId))) {
       throw new ConflictException('El estudiante cargó una versión más reciente del acta: revise esa versión');
     }
@@ -152,6 +154,7 @@ export class MesaActasUseCase {
     const filas = await this.validaciones.listarMesa({ estados: [EstadoValidacionActa.REVISION], escuelas: this.alcance(actor) });
     const candidatos = filas
       .filter((f) => !this.reservaVigenteAjena(f, actor.id, ahora))
+      .filter((f) => !this.inconsistente(f.estadoDocumento))
       .filter((f) => (dto.conDiscrepancias ? f.hayDiscrepanciaCritica === (dto.conDiscrepancias === 'si') : true))
       .filter((f) => (dto.documentoIncorrecto === 'si' ? f.tipoActaDetectada === 'documento_incorrecto' : true))
       .map((f) => ({ f, p: this.prioridadDe(f, ahora) }))
@@ -164,6 +167,15 @@ export class MesaActasUseCase {
       }
     }
     return { estado: 'sin_casos', validacionId: null };
+  }
+
+  /** Documento terminal con la validación aún en revisión: se detecta y se marca, nunca se corrige solo. */
+  private inconsistente(estadoDocumento: string): boolean {
+    return (ESTADOS_DOCUMENTO_TERMINALES as readonly string[]).includes(estadoDocumento);
+  }
+
+  private reservaVigente(f: FilaMesaActa, ahora: Date): boolean {
+    return f.asignadoA !== null && f.reservaHasta !== null && f.reservaHasta.getTime() > ahora.getTime();
   }
 
   private reservaVigenteAjena(f: FilaMesaActa, actorId: string, ahora: Date): boolean {
@@ -200,6 +212,9 @@ export class MesaActasUseCase {
         mias: abiertas.filter((f) => f.asignadoA === actor.id && (f.reservaHasta?.getTime() ?? 0) > ahora.getTime()).length,
         conDiscrepanciaCritica: abiertas.filter((f) => f.hayDiscrepanciaCritica).length,
         documentoIncorrecto: abiertas.filter((f) => f.tipoActaDetectada === 'documento_incorrecto').length,
+        tomadas: abiertas.filter((f) => this.reservaVigente(f, ahora)).length,
+        porVencer: abiertas.filter((f) => this.reservaVigente(f, ahora) && (f.reservaHasta as Date).getTime() <= ahora.getTime() + MINUTOS_RESERVA_POR_VENCER * MINUTO_MS).length,
+        firmasPendientes: abiertas.filter((f) => f.firmaEmpresa === 'no' || f.firmaPracticante === 'no').length,
       },
       total: items.length,
       items,
@@ -247,6 +262,7 @@ export class MesaActasUseCase {
       prioridad: this.prioridadDe(f, ahora), reserva: this.reservaDe(f.asignadoA, f.reservaHasta, f.asignadoNombre, actor.id, ahora),
       recibidaEn: recibida.toISOString(), diasEnBandeja: Math.max(0, Math.floor((ahora.getTime() - recibida.getTime()) / DIA_MS)),
       datosPracticaCambiaronDespuesDeDecision: f.datosPracticaCambiaronEn !== null,
+      inconsistenciaOperativa: f.estado === EstadoValidacionActa.REVISION && this.inconsistente(f.estadoDocumento),
     };
   }
 
@@ -319,11 +335,13 @@ export class MesaActasUseCase {
     }, ahora);
     const decididoPor = d.decididoPor ? (await this.usuarios.buscarPorId(d.decididoPor))?.nombre ?? null : null;
     const esActa = d.tipoActaDetectada === 'iniciacion_practicas';
+    const inconsistencia = d.estado === EstadoValidacionActa.REVISION && this.inconsistente(doc.estado);
 
     return {
       validacionId: d.id, practicaId: d.practicaId, documentoId: d.documentoId, version: doc.version, vigente, estado: d.estado,
       recomendacion, prioridad, reserva,
-      puedeDecidir: d.estado === EstadoValidacionActa.REVISION && vigente && reserva.estado === 'mia',
+      puedeDecidir: d.estado === EstadoValidacionActa.REVISION && vigente && reserva.estado === 'mia' && !inconsistencia,
+      inconsistenciaOperativa: inconsistencia ? { estadoDocumento: doc.estado, mensaje: MENSAJE_INCONSISTENCIA_ACTA } : null,
       estudiante: {
         nombre: estudiante?.nombre ?? '', documento: valores ? documentoEstudiante : null,
         documentoEnmascarado: enmascarar(documentoEstudiante), programa,
@@ -412,15 +430,15 @@ export class MesaActasUseCase {
       justificacion = 'Acta de iniciación revisada y aprobada en la Mesa de Actas.';
     }
 
-    // Una sola decisión aplica: el compare-and-set del documento deja pasar a una y las demás reciben 409.
-    const respuesta = await this.gestionar.decidir(d.documentoId, { decision: dto.decision, justificacion }, actor, {
-      mesaActa: { motivo: dto.decision === 'devolver' ? dto.motivo ?? null : null },
+    // UNA operación atómica (documento + validación + evidencia + auditoría, o nada). Con decisiones simultáneas solo una
+    // confirma; las demás reciben 409. La auditoría de la decisión (`decision_acta`) se escribe dentro de la misma transacción.
+    const motivoDevolucion = dto.decision === 'devolver' ? dto.motivo ?? null : null;
+    return this.gestionar.decidir(d.documentoId, { decision: dto.decision, justificacion }, actor, {
+      mesaActa: {
+        motivo: motivoDevolucion, ahora,
+        contexto: { decision: dto.decision, recomendacion, apartaDeRecomendacion, motivoDevolucion, hayDiscrepanciaCritica: d.hayDiscrepanciaCritica },
+      },
     });
-    await this.auditar(AccionAuditada.DECISION_ACTA, validacionId, {
-      decision: dto.decision, recomendacion, apartaDeRecomendacion, motivoDevolucion: dto.decision === 'devolver' ? dto.motivo ?? null : null,
-      hayDiscrepanciaCritica: d.hayDiscrepanciaCritica,
-    }, actor, ahora);
-    return respuesta;
   }
 
   // ── Supervisión ──────────────────────────────────────────────────────────

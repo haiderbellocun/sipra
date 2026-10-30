@@ -34,17 +34,18 @@ describe('Registro (FUR) · «¿Quién asume la ARL?»', () => {
   });
 
   describe('la ayuda dice qué pasa, en lenguaje de quien registra', () => {
-    it('sin modalidad: explica que usted confirma', () => {
-      assert.match(ayudaArl(false, null, ''), /Usted confirma|usted confirma/);
+    it('sin modalidad: explica que quien registra confirma', () => {
+      assert.match(ayudaArl(false, null, ''), /Tú confirmas/);
     });
-    it('con sugerencia y sin cambios: «Sugerido por la modalidad»', () => {
-      assert.match(ayudaArl(true, 'empresa', 'empresa'), /^Sugerido por la modalidad: Empresa\./);
-      assert.match(ayudaArl(true, 'cun', 'cun'), /^Sugerido por la modalidad: CUN\./);
+    it('con sugerencia y sin cambios: «Sugerencia según la modalidad» y que se puede cambiar', () => {
+      assert.match(ayudaArl(true, 'empresa', 'empresa'), /^Sugerencia según la modalidad: Empresa\./);
+      assert.match(ayudaArl(true, 'cun', 'cun'), /^Sugerencia según la modalidad: CUN\./);
+      assert.match(ayudaArl(true, 'empresa', 'empresa'), /puedes cambiarla si el acuerdo de esta práctica establece algo diferente/);
     });
     it('si la persona eligió otra opción, lo dice y aclara que se guarda lo suyo', () => {
       const t = ayudaArl(true, 'empresa', 'cun');
-      assert.match(t, /La modalidad sugiere: Empresa/);
-      assert.match(t, /se guarda lo que usted elija/);
+      assert.match(t, /Sugerencia según la modalidad: Empresa/);
+      assert.match(t, /se guarda lo que tú elijas/);
     });
     it('sin sugerencia: pide indicar según lo acordado', () => {
       assert.match(ayudaArl(true, null, ''), /según lo acordado/);
