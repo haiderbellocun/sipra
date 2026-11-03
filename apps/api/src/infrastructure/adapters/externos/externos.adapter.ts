@@ -42,15 +42,27 @@ export class RuesSimuladoAdapter implements RuesPort {
   async consultarPorNit(nitNumero: string): Promise<ResultadoRues> {
     const limpio = nitNumero.replace(/\D/g, '');
     this.log.debug(`Consulta RUES simulada para NIT ${limpio}`);
-    return (
-      this.registro[limpio] ?? {
+    return {
+      ...(this.registro[limpio] ?? {
         encontrado: false,
         razonSocial: null,
         estadoMatricula: null,
         fechaMatricula: null,
         representanteLegal: null,
-      }
-    );
+      }),
+      fuente: 'simulada',
+    };
+  }
+}
+
+/**
+ * RUES en ambientes donde no hay una consulta real (qa, pre y prod mientras no exista el adaptador oficial).
+ * No devuelve datos de ninguna clase: el resultado es «no disponible / no verificable», que NO es «el NIT no existe».
+ */
+@Injectable()
+export class RuesNoDisponibleAdapter implements RuesPort {
+  async consultarPorNit(): Promise<ResultadoRues> {
+    return { encontrado: false, razonSocial: null, estadoMatricula: null, fechaMatricula: null, representanteLegal: null, fuente: 'no_disponible' };
   }
 }
 

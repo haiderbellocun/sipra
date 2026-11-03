@@ -27,6 +27,7 @@
     "piloto:evaluar": "ts-node --transpile-only herramientas/evaluar-piloto-eps.ts",
     "smoke:arranque": "node herramientas/smoke-arranque.js",
     "test:pg": "ts-node --transpile-only herramientas/verificar-concurrencia-pg.ts",
+    "test:pg:empresarial": "ts-node --transpile-only herramientas/verificar-documento-empresarial-pg.ts",
     "test:aislamiento": "jest --testPathPatterns=aislamiento --runInBand",
     "typeorm": "typeorm-ts-node-commonjs -d src/infrastructure/persistence/postgres/data-source.ts",
     "migration:generate": "npm run typeorm -- migration:generate",

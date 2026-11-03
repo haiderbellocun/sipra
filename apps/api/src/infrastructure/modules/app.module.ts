@@ -55,8 +55,11 @@ import {
 } from '../adapters/ia/extraccion.adapter';
 import { ExtraccionOpenAiAdapter } from '../adapters/ia/openai.adapter';
 import {
-  NotificacionConsolaAdapter, RuesSimuladoAdapter, SinuSimuladoAdapter,
+  NotificacionConsolaAdapter, RuesNoDisponibleAdapter, RuesSimuladoAdapter, SinuSimuladoAdapter,
 } from '../adapters/externos/externos.adapter';
+import { ambientePermiteRuesSimulado } from '../../domain/services/politica-rues';
+import { VALIDACION_DOCUMENTO_EMPRESARIAL_REPOSITORY } from '../../domain/ports/out/validacion-documento-empresarial.port';
+import { ValidacionDocumentoEmpresarialRepositoryAdapter } from '../adapters/persistence/postgres/validacion-documento-empresarial.adapter';
 import {
   NotificacionWorkspaceAdapter,
 } from '../adapters/externos/workspace.adapter';
@@ -242,6 +245,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: CONSENTIMIENTO_REPOSITORY, useClass: ConsentimientoRepositoryAdapter },
     { provide: VALIDACION_EPS_REPOSITORY, useClass: ValidacionEpsRepositoryAdapter },
     { provide: VALIDACION_ACTA_REPOSITORY, useClass: ValidacionActaRepositoryAdapter },
+    { provide: VALIDACION_DOCUMENTO_EMPRESARIAL_REPOSITORY, useClass: ValidacionDocumentoEmpresarialRepositoryAdapter },
     { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
@@ -302,7 +306,15 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     ExtraccionLocalAdapter,
     { provide: EXTRACCION_LOCAL, useExisting: ExtraccionLocalAdapter },
     { provide: COHERENCIA_CRUZADA, useClass: CoherenciaCruzadaAdapter },
-    { provide: RUES, useClass: RuesSimuladoAdapter },
+    // RUES simulado SOLO en desarrollo y pruebas. En qa, pre y prod no hay datos simulados: «no disponible / no verificable».
+    RuesSimuladoAdapter,
+    RuesNoDisponibleAdapter,
+    {
+      provide: RUES,
+      inject: [ConfigService, RuesSimuladoAdapter, RuesNoDisponibleAdapter],
+      useFactory: (config: ConfigService, simulado: RuesSimuladoAdapter, noDisponible: RuesNoDisponibleAdapter) =>
+        ambientePermiteRuesSimulado(config.get<string>('SIPRA_AMBIENTE'), process.env.NODE_ENV) ? simulado : noDisponible,
+    },
     { provide: SINU, useClass: SinuSimuladoAdapter },
     NotificacionConsolaAdapter,
     NotificacionWorkspaceAdapter,

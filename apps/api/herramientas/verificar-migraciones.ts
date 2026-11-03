@@ -39,7 +39,8 @@ const nombreDe = (m: new () => MigrationInterface): string => (new m() as Migrat
 const ESPERADAS = MIGRACIONES.map(nombreDe);
 const PRE_EPS = MIGRACIONES.slice(0, 11); // 0–10: hasta ConsentimientoVersionado
 const EPS = MIGRACIONES.slice(11, 16); // 11–15
-const ACTA = MIGRACIONES.slice(16); // 16–18: responsable de la ARL, validación del acta de iniciación y su Mesa (Bloques 3 y 4)
+const ACTA = MIGRACIONES.slice(16, 19); // 16–18: responsable de la ARL, validación del acta de iniciación y su Mesa (Bloques 3 y 4)
+const EMPRESARIAL = MIGRACIONES.slice(19); // 19: validación de documentos empresariales (RUT y Cámara)
 
 async function admin(): Promise<DataSource> {
   return new DataSource({ type: 'postgres', url: urlDe('postgres'), ssl: false }).initialize();
@@ -162,7 +163,7 @@ async function sintetizarPreEps(ds: DataSource): Promise<{ aprobador: string }> 
 
 async function main(): Promise<void> {
   const sufijo = randomUUID().slice(0, 6);
-  const bases = { cero: `mig_cero_${sufijo}`, rev: `mig_rev_${sufijo}`, up: `mig_up_${sufijo}`, acta: `mig_acta_${sufijo}`, acta2: `mig_acta2_${sufijo}` };
+  const bases = { cero: `mig_cero_${sufijo}`, rev: `mig_rev_${sufijo}`, up: `mig_up_${sufijo}`, acta: `mig_acta_${sufijo}`, acta2: `mig_acta2_${sufijo}`, emp: `mig_emp_${sufijo}` };
   try {
     // ── A. Desde cero ─────────────────────────────────────────────────────
     console.log('\nA. Migración completa desde una base vacía');
@@ -205,6 +206,9 @@ async function main(): Promise<void> {
     });
     // Bloque 3 (16–17) primero. Sin datos del acta el down es limpio y no toca el resto de lo que ya existía.
     const practicasAntes = await huella(ds, 'practicas', true);
+    // La 19 (documentos empresariales) primero: sin evidencias su down es limpio.
+    await ds.undoLastMigration({ transaction: 'each' });
+    comprobar('down de ValidacionDocumentoEmpresarial: revertida y sin tablas empresariales', !(await registradas(ds)).some((x) => x.startsWith('ValidacionDocumentoEmpresarial')) && !(await tablas(ds)).some((t) => t.includes('doc_empresarial') || t.includes('documento_empresarial')));
     for (const n of ['MesaActas', 'ValidacionActaIniciacion', 'ResponsableArlPractica']) {
       await ds.undoLastMigration({ transaction: 'each' });
       const regA = await registradas(ds);
@@ -235,14 +239,14 @@ async function main(): Promise<void> {
     await crearBase(sinDatos);
     ds = await abrir(sinDatos, MIGRACIONES);
     await ds.runMigrations({ transaction: 'each' });
-    for (let i = 0; i < ACTA.length + EPS.length; i += 1) await ds.undoLastMigration({ transaction: 'each' });
+    for (let i = 0; i < EMPRESARIAL.length + ACTA.length + EPS.length; i += 1) await ds.undoLastMigration({ transaction: 'each' });
     const quedan = await registradas(ds);
     comprobar('bloque EPS (11–15) y Bloque 3 (16–17) revertidos por completo sin datos', JSON.stringify(quedan) === JSON.stringify(ESPERADAS.slice(0, 11)), quedan.slice(-2).join(', '));
-    comprobar('sin tablas EPS ni del acta tras revertir', !(await tablas(ds)).some((t) => t.includes('eps') || t.includes('acta')));
+    comprobar('sin tablas EPS ni del acta tras revertir', !(await tablas(ds)).some((t) => t.includes('eps') || t.includes('acta') || t.includes('empresarial')));
     comprobar('la auditoría y su disparador siguen intactos (no pertenecen al bloque EPS)', (await tablas(ds)).includes('auditoria'));
     await integridad(ds, 'revertida');
     const re = await ds.runMigrations({ transaction: 'each' });
-    comprobar(`reaplicación de los bloques EPS y del acta (${EPS.length + ACTA.length} migraciones)`, re.length === EPS.length + ACTA.length, `${re.length}`);
+    comprobar(`reaplicación de los bloques EPS y del acta (${EPS.length + ACTA.length + EMPRESARIAL.length} migraciones)`, re.length === EPS.length + ACTA.length + EMPRESARIAL.length, `${re.length}`);
     await esquemaEps(ds, 'reaplicada');
     await esquemaActa(ds, 'reaplicada');
     await integridad(ds, 'reaplicada');
@@ -263,6 +267,8 @@ async function main(): Promise<void> {
     const vActa = randomUUID();
     await ds.query(`INSERT INTO validaciones_acta_iniciacion (id, documento_id, practica_id, estudiante_id) VALUES ($1,$2,$3,$4)`, [vActa, docActa, PRACTICAS[0], estActa]);
     await ds.query(`INSERT INTO evidencias_validacion_acta (id, validacion_acta_id, intento, tipo, resultado, metodo, fecha) VALUES ($1,$2,1,'procesamiento','ok','sintetico', now())`, [randomUUID(), vActa]);
+    // La 19 (documentos empresariales) se revierte sin problema: aquí no tiene evidencias.
+    await ds.undoLastMigration({ transaction: 'each' });
     // La 18 (Mesa) se revierte sin problema: no hay evidencia de cambio de datos de la práctica.
     await ds.undoLastMigration({ transaction: 'each' });
     comprobar('down de MesaActas sin evidencia de cambio de datos: revertida', !(await registradas(ds)).some((x) => x.startsWith('MesaActas')));
@@ -288,11 +294,33 @@ async function main(): Promise<void> {
     const vActa2 = randomUUID();
     await ds.query(`INSERT INTO validaciones_acta_iniciacion (id, documento_id, practica_id, estudiante_id) VALUES ($1,$2,$3,$4)`, [vActa2, docActa2, PRACTICAS[0], estActa2]);
     await ds.query(`INSERT INTO evidencias_validacion_acta (id, validacion_acta_id, intento, tipo, resultado, metodo, fecha, actor_id) VALUES ($1,$2,2,'cambio_datos_practica','recalculada','correccion', now(), $3)`, [randomUUID(), vActa2, actorActa2]);
+    await ds.undoLastMigration({ transaction: 'each' }); // la 19, sin evidencias
     const fallaMesa = await ds.undoLastMigration({ transaction: 'each' }).then(() => null, (e: Error) => e.message);
     comprobar('down de MesaActas se NIEGA con evidencia de cambio de datos (solo inserción)', fallaMesa !== null, 'no se negó');
     comprobar('tras el rechazo, la migración 18 sigue registrada y el esquema no quedó a medias',
       (await registradas(ds)).some((x) => x.startsWith('MesaActas')) &&
       (await ds.query(`SELECT 1 FROM information_schema.columns WHERE table_name='validaciones_acta_iniciacion' AND column_name='asignado_a'`)).length === 1);
+    await ds.destroy();
+
+    // Con una evidencia de documento empresarial (solo inserción), el down de la 19 se NIEGA.
+    await crearBase(bases.emp);
+    ds = await abrir(bases.emp, MIGRACIONES);
+    await ds.runMigrations({ transaction: 'each' });
+    await cargarCatalogos(ds);
+    await sembrar(ds);
+    const [{ id: estEmp }] = await ds.query(`SELECT id FROM usuarios WHERE rol='estudiante' LIMIT 1`);
+    const docEmp = randomUUID();
+    await ds.query(
+      `INSERT INTO documentos (id, practica_id, tipo, version, estado, nombre_original, mime_real, tamano_bytes, hash_sha256, ruta_almacenamiento) VALUES ($1,$2,'rut_natural',1,'en_revision','s.pdf','application/pdf',10,$3,'s/e.pdf')`,
+      [docEmp, PRACTICAS[0], createHash('sha256').update(docEmp).digest('hex')]);
+    const vEmp = randomUUID();
+    await ds.query(`INSERT INTO validaciones_documento_empresarial (id, documento_id, practica_id, estudiante_id) VALUES ($1,$2,$3,$4)`, [vEmp, docEmp, PRACTICAS[0], estEmp]);
+    await ds.query(`INSERT INTO evidencias_validacion_doc_empresarial (id, validacion_id, intento, tipo, resultado, metodo, fecha) VALUES ($1,$2,1,'lectura_documento','legible','sintetico', now())`, [randomUUID(), vEmp]);
+    const fallaEmp = await ds.undoLastMigration({ transaction: 'each' }).then(() => null, (e: Error) => e.message);
+    comprobar('down de ValidacionDocumentoEmpresarial se NIEGA con evidencia existente (solo inserción)', fallaEmp !== null, 'no se negó');
+    comprobar('tras el rechazo, la migración 19 sigue registrada y la evidencia intacta',
+      (await registradas(ds)).some((x) => x.startsWith('ValidacionDocumentoEmpresarial')) &&
+      (await ds.query(`SELECT count(*)::int AS n FROM evidencias_validacion_doc_empresarial`))[0].n === 1);
     await ds.destroy();
 
     // ── C. Upgrade desde PRE-EPS ──────────────────────────────────────────
@@ -321,8 +349,8 @@ async function main(): Promise<void> {
     await ds.destroy();
     ds = await abrir(bases.up, MIGRACIONES);
     const ultima = await ds.runMigrations({ transaction: 'each' });
-    comprobar('las migraciones 15 (Mesa EPS) y 16–18 (acta y su Mesa) se aplicaron sobre filas existentes',
-      ultima.length === 4 && ultima[0].name.startsWith('MesaEps') && ultima[1].name.startsWith('ResponsableArl') && ultima[2].name.startsWith('ValidacionActa') && ultima[3].name.startsWith('MesaActas'), ultima.map((m) => m.name).join(', '));
+    comprobar('las migraciones 15 (Mesa EPS), 16–18 (acta y su Mesa) y 19 (documentos empresariales) se aplicaron sobre filas existentes',
+      ultima.length === 5 && ultima[4].name.startsWith('ValidacionDocumentoEmpresarial') && ultima[0].name.startsWith('MesaEps') && ultima[1].name.startsWith('ResponsableArl') && ultima[2].name.startsWith('ValidacionActa') && ultima[3].name.startsWith('MesaActas'), ultima.map((m) => m.name).join(', '));
     const [{ n: sinRellenar }] = await ds.query(`SELECT count(*)::int AS n FROM practicas WHERE responsable_arl IS NOT NULL`);
     const [{ n: practicasN }] = await ds.query(`SELECT count(*)::int AS n FROM practicas`);
     comprobar(`las ${practicasN} prácticas históricas quedaron con responsable_arl NULL (no se rellenó ni se derivó de la modalidad)`, practicasN > 0 && sinRellenar === 0, `${sinRellenar} con valor`);

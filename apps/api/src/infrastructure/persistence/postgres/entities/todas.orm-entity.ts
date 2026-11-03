@@ -4,6 +4,9 @@ import {
 } from 'typeorm';
 import { ConsentimientoOrm, PoliticaConsentimientoOrm } from './consentimiento.orm-entity';
 import { EvidenciaValidacionActaOrm, ValidacionActaOrm } from './validacion-acta.orm-entity';
+import {
+  EvidenciaValidacionDocEmpresarialOrm, ValidacionDocumentoEmpresarialOrm,
+} from './validacion-documento-empresarial.orm-entity';
 import { EvidenciaValidacionEpsOrm, ValidacionEpsOrm } from './validacion-eps.orm-entity';
 
 /**
@@ -315,6 +318,7 @@ export class PqrsOrm {
 export const ENTIDADES_ORM = [
   ConsentimientoOrm, PoliticaConsentimientoOrm, ValidacionEpsOrm, EvidenciaValidacionEpsOrm,
   ValidacionActaOrm, EvidenciaValidacionActaOrm,
+  ValidacionDocumentoEmpresarialOrm, EvidenciaValidacionDocEmpresarialOrm,
   UsuarioOrm, EmpresaOrm, PracticaOrm, DocumentoOrm,
   ObligacionOrm, VacanteOrm, PostulacionOrm, AuditoriaOrm, ParametroOrm, PeriodoOrm, CartaOrm,
   BitacoraOrm, SolicitudArlOrm, PqrsOrm,

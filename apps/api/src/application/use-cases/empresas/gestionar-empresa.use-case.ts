@@ -107,7 +107,14 @@ export class GestionarEmpresaUseCase {
 
     try {
       const rues = await this.rues.consultarPorNit(datos.nitNumero);
-      if (!rues.encontrado) {
+      if (rues.fuente === 'no_disponible') {
+        // Sin consulta real en este ambiente: no es «el NIT no aparece»; simplemente no se pudo verificar.
+        senales.push({
+          codigo: 'RUES',
+          resultado: 'advertencia',
+          detalle: 'RUES no disponible en este ambiente: no verificable',
+        });
+      } else if (!rues.encontrado) {
         senales.push({
           codigo: 'RUES',
           resultado: 'critico',

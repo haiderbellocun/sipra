@@ -105,6 +105,11 @@ export interface ResultadoRues {
   estadoMatricula: string | null;
   fechaMatricula: Date | null;
   representanteLegal: string | null;
+  /**
+   * Origen del dato. `no_disponible` = no hay consulta real en este ambiente: NO significa «el NIT no existe» ni trae
+   * datos; el resultado es «no verificable». `simulada` solo existe en desarrollo y pruebas (`politica-rues.ts`).
+   */
+  fuente?: 'simulada' | 'oficial' | 'no_disponible';
 }
 
 export interface RuesPort {
