@@ -1,6 +1,6 @@
 import {
-  CLAVES_PROHIBIDAS_DOCUMENTO_EMPRESARIAL, DatosCamaraExtraidos, DatosRutExtraidos, EstadoRegistral, TipoPersona,
-  TipoCertificadoCamara,
+  CAMPOS_CON_CONFIANZA_RUT, CLAVES_PROHIBIDAS_DOCUMENTO_EMPRESARIAL, CONTROLES_NIT_RUT, CampoConConfianzaRut, ControlNitRut,
+  DatosCamaraExtraidos, DatosRutExtraidos, EstadoRegistral, TipoPersona, TipoCertificadoCamara,
 } from '../entities/documento-empresarial';
 import { clasificarContenidoQr } from './lectura-local.domain-service';
 
@@ -25,6 +25,18 @@ const fechaIso = (v: unknown): string | null => (typeof v === 'string' && /^\d{4
 const entero = (v: unknown, min: number, max: number): number | null =>
   typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null;
 
+/** Solo los campos conocidos, con un número entre 0 y 1 (o nulo). */
+function confianzas(v: unknown): { confianzaCampos?: DatosRutExtraidos['confianzaCampos'] } {
+  if (v === null || typeof v !== 'object') return {};
+  const salida: Partial<Record<CampoConConfianzaRut, number | null>> = {};
+  for (const c of CAMPOS_CON_CONFIANZA_RUT) {
+    const x = (v as Record<string, unknown>)[c];
+    if (x === null) salida[c] = null;
+    else if (typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 1) salida[c] = Math.round(x * 1000) / 1000;
+  }
+  return Object.keys(salida).length ? { confianzaCampos: salida } : {};
+}
+
 export function minimizarDatosRut(bruto: Bruto, tipoPersona: TipoPersona): DatosRutExtraidos {
   const comunes: DatosRutExtraidos = {
     tipoPersona,
@@ -34,6 +46,8 @@ export function minimizarDatosRut(bruto: Bruto, tipoPersona: TipoPersona): Datos
     ciiuPrincipal: soloDigitos(bruto['ciiuPrincipal'], 4, 4),
     // DIVIPOLA: 2 dígitos de departamento + 3 de municipio.
     divipolaMunicipio: soloDigitos(bruto['divipolaMunicipio'], 5, 5),
+    ...confianzas(bruto['confianzaCampos']),
+    ...(typeof bruto['controlNit'] === 'string' && (CONTROLES_NIT_RUT as readonly string[]).includes(bruto['controlNit']) ? { controlNit: bruto['controlNit'] as ControlNitRut } : {}),
   };
   return tipoPersona === TipoPersona.NATURAL
     ? {

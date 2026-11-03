@@ -59,6 +59,9 @@ import {
 } from '../adapters/externos/externos.adapter';
 import { ambientePermiteRuesSimulado } from '../../domain/services/politica-rues';
 import { VALIDACION_DOCUMENTO_EMPRESARIAL_REPOSITORY } from '../../domain/ports/out/validacion-documento-empresarial.port';
+import { LECTURA_RUT } from '../../domain/ports/out/lectura-rut.port';
+import { LecturaRutLocalAdapter } from '../adapters/lectura-local/lectura-rut-local.adapter';
+import { ValidacionRutUseCase } from '../../application/use-cases/documentos/validacion-rut.use-case';
 import { ValidacionDocumentoEmpresarialRepositoryAdapter } from '../adapters/persistence/postgres/validacion-documento-empresarial.adapter';
 import {
   NotificacionWorkspaceAdapter,
@@ -246,6 +249,10 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: VALIDACION_EPS_REPOSITORY, useClass: ValidacionEpsRepositoryAdapter },
     { provide: VALIDACION_ACTA_REPOSITORY, useClass: ValidacionActaRepositoryAdapter },
     { provide: VALIDACION_DOCUMENTO_EMPRESARIAL_REPOSITORY, useClass: ValidacionDocumentoEmpresarialRepositoryAdapter },
+    // Lectura LOCAL del RUT (geometría de pdf.js, Tesseract, ZXing): sin servicios externos.
+    LecturaRutLocalAdapter,
+    { provide: LECTURA_RUT, useExisting: LecturaRutLocalAdapter },
+    ValidacionRutUseCase,
     { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },

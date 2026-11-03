@@ -155,7 +155,16 @@ export interface DatosRutExtraidos {
   // Opcionales (solo informativos: los catálogos de CIIU y DIVIPOLA están incompletos)
   ciiuPrincipal?: string | null;
   divipolaMunicipio?: string | null;
+  /** Confianza (0–1) de CADA campo, no del documento: texto digital = 1; OCR = la mínima de las palabras leídas. */
+  confianzaCampos?: Partial<Record<CampoConConfianzaRut, number | null>>;
+  /** Resultado del control de DV sobre el NIT. «descartado_ocr»: leído por OCR sin DV que cuadre, no se conserva. */
+  controlNit?: ControlNitRut;
 }
+
+export type CampoConConfianzaRut = 'tipoPersona' | 'nit' | 'dv' | 'nombre' | 'fechaGeneracion' | 'divipola';
+export type ControlNitRut = 'confiable' | 'dv_no_coincide' | 'dv_ausente' | 'nit_ausente' | 'nit_invalido' | 'descartado_ocr';
+export const CONTROLES_NIT_RUT: readonly ControlNitRut[] = ['confiable', 'dv_no_coincide', 'dv_ausente', 'nit_ausente', 'nit_invalido', 'descartado_ocr'];
+export const CAMPOS_CON_CONFIANZA_RUT: readonly CampoConConfianzaRut[] = ['tipoPersona', 'nit', 'dv', 'nombre', 'fechaGeneracion', 'divipola'];
 
 export type TipoCertificadoCamara = 'matricula_mercantil' | 'existencia_representacion';
 
