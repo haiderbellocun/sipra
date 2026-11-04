@@ -30,6 +30,7 @@
     "test:pg:empresarial": "ts-node --transpile-only herramientas/verificar-documento-empresarial-pg.ts",
     "regresion:rut": "ts-node --transpile-only herramientas/regresion-rut-real.ts",
     "test:pg:rut": "ts-node --transpile-only herramientas/verificar-rut-pg.ts",
+    "test:pg:decision-rut": "ts-node --transpile-only herramientas/verificar-decision-rut-pg.ts",
     "test:aislamiento": "jest --testPathPatterns=aislamiento --runInBand",
     "typeorm": "typeorm-ts-node-commonjs -d src/infrastructure/persistence/postgres/data-source.ts",
     "migration:generate": "npm run typeorm -- migration:generate",

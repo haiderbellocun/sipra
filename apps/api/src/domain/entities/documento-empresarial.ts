@@ -82,13 +82,25 @@ export function expectativaDeTipoDocumento(tipo: TipoDocumento, personaEsperada:
 
 // ── Estados ─────────────────────────────────────────────────────────────────
 
-/** Estados de PROCESAMIENTO. La decisión humana llega en un bloque posterior. */
+/**
+ * Estados de la validación: procesamiento (pendiente, procesando, revision, error) y DECISIÓN HUMANA (aprobado_manual,
+ * devuelto, rechazado). Ningún estado lo fija el sistema solo: los terminales los pone una persona.
+ */
 export enum EstadoValidacionDocumentoEmpresarial {
   PENDIENTE = 'pendiente',
   PROCESANDO = 'procesando',
   REVISION = 'revision',
+  APROBADO_MANUAL = 'aprobado_manual',
+  DEVUELTO = 'devuelto',
+  RECHAZADO = 'rechazado',
   ERROR = 'error',
 }
+
+export const ESTADOS_DECIDIDOS_EMPRESARIAL: readonly EstadoValidacionDocumentoEmpresarial[] = [
+  EstadoValidacionDocumentoEmpresarial.APROBADO_MANUAL,
+  EstadoValidacionDocumentoEmpresarial.DEVUELTO,
+  EstadoValidacionDocumentoEmpresarial.RECHAZADO,
+];
 
 export enum EstadoRegistral {
   ACTIVO = 'activo',

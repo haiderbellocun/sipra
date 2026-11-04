@@ -129,7 +129,8 @@ export class ValidacionRutUseCase {
    */
   async recalcularComparacion(documentoId: string, ahora: Date = new Date()): Promise<ValidacionDocumentoEmpresarial | null> {
     const validacion = await this.validaciones.buscarPorDocumento(documentoId);
-    if (!validacion || !validacion.estaProcesada) return validacion;
+    // Solo un caso abierto (en revisión) se recalcula: una decisión humana no se altera; si SIPRA cambió después, lo dice la Mesa.
+    if (!validacion || !validacion.estaRevisable) return validacion;
     const v = validacion.instantanea();
     const sipra = await this.datosSipra(v.practicaId);
     if (!sipra) return validacion;

@@ -124,7 +124,9 @@ async function main(): Promise<void> {
     await rechaza('en revisión sin hash del documento', () => insertar(revision({ hash_documento: null })), /ck_vdemp_revision_completa/);
     await rechaza('hash que no es SHA-256', () => insertar(revision({ hash_documento: 'x'.repeat(64) })), /ck_vdemp_hash/);
     await rechaza('estado de error sin código de error', () => insertar({ estado: 'error' }), /ck_vdemp_error/);
-    await rechaza('estado de decisión humana (no existe todavía)', () => insertar({ estado: 'aprobado_manual' }), /ck_vdemp_estado/);
+    // Desde la migración 20 los estados de decisión existen, pero nunca sin quién y cuándo decidió.
+    await rechaza('estado de decisión humana sin quién ni cuándo', () => insertar(revision({ estado: 'aprobado_manual' })), /ck_vdemp_decision_humana/);
+    await rechaza('estado fuera del catálogo', () => insertar({ estado: 'autoaprobado' }), /ck_vdemp_estado/);
     await rechaza('clasificación fuera del catálogo', () => insertar(revision({ tipo_detectado: 'rut_vencido' })), /ck_vdemp_(tipo_detectado|persona_coherente)/);
     await rechaza('pendiente con clasificación', () => insertar({ estado: 'pendiente', tipo_detectado: 'rut_persona_natural', familia_documento: 'rut', tipo_persona: 'natural' }), /ck_vdemp_pendiente_sin_clasificar/);
 

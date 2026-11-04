@@ -29,7 +29,7 @@ const puertoLibre = () => new Promise((ok, mal) => {
 });
 process.env.LOG_NIVEL = process.env.LOG_NIVEL || 'warn';
 
-const RUTAS_PROTEGIDAS = ['/api/v1/mesa-eps', '/api/v1/validaciones-eps/adres/bandeja', '/api/v1/documentos/practica/00000000-0000-4000-8000-000000000041'];
+const RUTAS_PROTEGIDAS = ['/api/v1/mesa-eps', '/api/v1/mesa-rut', '/api/v1/validaciones-eps/adres/bandeja', '/api/v1/documentos/practica/00000000-0000-4000-8000-000000000041'];
 
 async function main() {
   const puerto = await puertoLibre();

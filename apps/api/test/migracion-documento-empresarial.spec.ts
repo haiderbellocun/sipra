@@ -36,7 +36,8 @@ describe('Migración de validación de documentos empresariales (sin ejecutar)',
     const i = MIGRACIONES.indexOf(ValidacionDocumentoEmpresarial1756000019000);
     expect(i).toBeGreaterThan(0);
     expect(MIGRACIONES[i - 1].name).toBe('MesaActas1756000018000');
-    expect(i).toBe(MIGRACIONES.length - 1);
+    // La decisión humana (Bloque 4) va justo después: la 19 sigue siendo la base de las validaciones empresariales.
+    expect(MIGRACIONES[i + 1].name).toBe('DecisionHumanaDocumentoEmpresarial1756000020000');
     expect(ENTIDADES_ORM).toEqual(expect.arrayContaining([ValidacionDocumentoEmpresarialOrm, EvidenciaValidacionDocEmpresarialOrm]));
   });
 

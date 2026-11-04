@@ -68,6 +68,15 @@ export enum AccionAuditada {
   ACTA_RECALCULADA = 'acta_recalculada',
   /** Los datos de la práctica cambiaron DESPUÉS de una decisión sobre el acta; la decisión no se tocó. */
   ACTA_DATOS_CAMBIARON_TRAS_DECISION = 'acta_datos_cambiaron_tras_decision',
+  /** Mesa de RUT: una persona tomó un caso (reserva) o lo liberó. */
+  RUT_ASIGNADO = 'rut_asignado',
+  RUT_LIBERADO = 'rut_liberado',
+  /** Contexto de la decisión de la Mesa de RUT (la decisión del documento se audita aparte). */
+  DECISION_RUT = 'decision_rut',
+  /** La comparación de un RUT aún sin decidir se recalculó porque cambiaron los datos de SIPRA. */
+  RUT_RECALCULADO = 'rut_recalculado',
+  /** Los datos de SIPRA cambiaron DESPUÉS de una decisión sobre el RUT; la decisión no se tocó. */
+  RUT_DATOS_CAMBIARON_TRAS_DECISION = 'rut_datos_cambiaron_tras_decision',
 }
 
 export interface RegistroAuditoria {

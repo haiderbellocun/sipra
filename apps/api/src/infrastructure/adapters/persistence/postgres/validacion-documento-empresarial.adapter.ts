@@ -11,8 +11,11 @@ import {
 } from '../../../../domain/entities/validacion-documento-empresarial.entity';
 import type { ComparacionDocumentoEmpresarial } from '../../../../domain/services/comparacion-documento-empresarial.domain-service';
 import {
-  DocumentoConHuella, ValidacionDocumentoEmpresarialRepositoryPort,
+  DocumentoConHuella, FiltroMesaRut, FilaMesaRut, ResumenSupervisionRut, ValidacionDocumentoEmpresarialRepositoryPort,
 } from '../../../../domain/ports/out/validacion-documento-empresarial.port';
+
+const TOPE_LISTADO_MESA_RUT = 200;
+const MINUTOS_RESERVA_POR_VENCER_RUT = 3;
 import { DocumentoOrm } from '../../../persistence/postgres/entities/todas.orm-entity';
 import {
   EvidenciaValidacionDocEmpresarialOrm, ValidacionDocumentoEmpresarialOrm,
@@ -35,6 +38,8 @@ export const ValidacionDocumentoEmpresarialMapper = {
       comparacion: orm.comparacion as unknown as ComparacionDocumentoEmpresarial | null,
       autenticidad: orm.autenticidad as unknown as AutenticidadDocumento,
       recibidaEn: orm.recibida_en, procesadaEn: orm.procesada_en,
+      decididoPor: orm.decidido_por, decididoEn: orm.decidido_en, motivoDecision: orm.motivo_decision,
+      asignadoA: orm.asignado_a, reservadoEn: orm.reservado_en, reservaHasta: orm.reserva_hasta, datosSipraCambiaronEn: orm.datos_sipra_cambiaron_en,
       version: orm.version, creadaEn: orm.creada_en, actualizadaEn: orm.actualizada_en,
     });
   },
@@ -48,7 +53,10 @@ export const ValidacionDocumentoEmpresarialMapper = {
       datos_extraidos: d.datosExtraidos as unknown as Record<string, unknown> | null,
       comparacion: d.comparacion as unknown as Record<string, unknown> | null,
       autenticidad_estado: d.autenticidad.estado, autenticidad: d.autenticidad as unknown as Record<string, unknown>,
-      recibida_en: d.recibidaEn, procesada_en: d.procesadaEn, actualizada_en: d.actualizadaEn,
+      recibida_en: d.recibidaEn, procesada_en: d.procesadaEn,
+      decidido_por: d.decididoPor, decidido_en: d.decididoEn, motivo_decision: d.motivoDecision,
+      asignado_a: d.asignadoA, reservado_en: d.reservadoEn, reserva_hasta: d.reservaHasta, datos_sipra_cambiaron_en: d.datosSipraCambiaronEn,
+      actualizada_en: d.actualizadaEn,
     };
   },
   aOrm(d: DatosValidacionDocumentoEmpresarial): ValidacionDocumentoEmpresarialOrm {
@@ -153,6 +161,125 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
   async listarEvidencias(validacionId: string): Promise<EvidenciaDocumentoEmpresarial[]> {
     const filas = await this.evidencias.find({ where: { validacion_id: validacionId }, order: { creado_en: 'ASC', intento: 'ASC' } });
     return filas.map((o) => EvidenciaDocumentoEmpresarialMapper.aDominio(o));
+  }
+
+  async reservar(id: string, actorId: string, ahora: Date, hasta: Date): Promise<boolean> {
+    const resultado = await this.repo
+      .createQueryBuilder()
+      .update(ValidacionDocumentoEmpresarialOrm)
+      .set({ asignado_a: actorId, reservado_en: ahora, reserva_hasta: hasta, actualizada_en: ahora, version: () => 'version + 1' })
+      .where(
+        `id = :id AND estado = 'revision'
+         AND (asignado_a IS NULL OR reserva_hasta <= :ahora OR asignado_a = :actorId)`,
+        { id, ahora, actorId },
+      )
+      .execute();
+    return (resultado.affected ?? 0) === 1;
+  }
+
+  async liberarReserva(id: string, actorId: string, ahora: Date, esSupervisor: boolean): Promise<boolean> {
+    const resultado = await this.repo
+      .createQueryBuilder()
+      .update(ValidacionDocumentoEmpresarialOrm)
+      .set({ asignado_a: null, reservado_en: null, reserva_hasta: null, actualizada_en: ahora, version: () => 'version + 1' })
+      .where(
+        `id = :id AND asignado_a IS NOT NULL
+         AND (asignado_a = :actorId OR :esSupervisor = true OR reserva_hasta <= :ahora)`,
+        { id, actorId, esSupervisor, ahora },
+      )
+      .execute();
+    return (resultado.affected ?? 0) === 1;
+  }
+
+  async listarMesaRut(filtro: FiltroMesaRut): Promise<FilaMesaRut[]> {
+    const filas: Record<string, unknown>[] = await this.repo.query(
+      `SELECT v.id AS validacion_id, v.documento_id, v.practica_id, v.estudiante_id, u.nombre AS estudiante_nombre,
+              p.escuela_id, COALESCE(e.razon_social, p.empresa_razon_social) AS empresa_razon_social, d.tipo AS tipo_documento,
+              p.fecha_inicio, d.version AS doc_version, d.cargado_en, v.estado, v.tipo_detectado, v.tipo_persona, v.expectativa, v.lectura_dudosa,
+              v.comparacion->>'veredicto' AS veredicto, COALESCE((v.comparacion->>'hayDiscrepancia')::boolean, false) AS hay_discrepancia,
+              v.asignado_a, a.nombre AS asignado_nombre, v.reserva_hasta, v.recibida_en, v.procesada_en,
+              v.datos_sipra_cambiaron_en, d.estado AS doc_estado
+         FROM validaciones_documento_empresarial v
+         JOIN documentos d ON d.id = v.documento_id
+         JOIN practicas p ON p.id = v.practica_id
+         LEFT JOIN empresas e ON e.id = p.empresa_id
+         JOIN usuarios u ON u.id = v.estudiante_id
+         LEFT JOIN usuarios a ON a.id = v.asignado_a
+        WHERE d.tipo IN ('rut_natural','rut_juridico')
+          AND d.version = (SELECT max(d2.version) FROM documentos d2 WHERE d2.practica_id = d.practica_id AND d2.tipo = d.tipo)
+          AND v.estado = ANY($1::text[])
+          AND ($2::text[] IS NULL OR p.escuela_id = ANY($2::text[]))
+        ORDER BY v.recibida_en ASC NULLS LAST, v.creada_en ASC
+        LIMIT ${TOPE_LISTADO_MESA_RUT}`,
+      [[...filtro.estados], filtro.escuelas ? [...filtro.escuelas] : null],
+    );
+    return filas.map((f) => ({
+      validacionId: f.validacion_id as string, documentoId: f.documento_id as string, practicaId: f.practica_id as string,
+      estudianteId: f.estudiante_id as string, estudianteNombre: f.estudiante_nombre as string, escuelaId: f.escuela_id as string,
+      empresaRazonSocial: (f.empresa_razon_social as string | null) ?? null, tipoDocumento: f.tipo_documento as string, fechaInicio: (f.fecha_inicio as Date | null) ?? null,
+      version: f.doc_version as number, cargadoEn: f.cargado_en as Date, estado: f.estado as string,
+      tipoDetectado: (f.tipo_detectado as string | null) ?? null, tipoPersona: (f.tipo_persona as string | null) ?? null,
+      expectativa: (f.expectativa as string | null) ?? null, lecturaDudosa: f.lectura_dudosa as boolean, veredicto: (f.veredicto as string | null) ?? null,
+      hayDiscrepancia: f.hay_discrepancia as boolean, asignadoA: (f.asignado_a as string | null) ?? null,
+      asignadoNombre: (f.asignado_nombre as string | null) ?? null, reservaHasta: (f.reserva_hasta as Date | null) ?? null,
+      recibidaEn: (f.recibida_en as Date | null) ?? null, procesadaEn: (f.procesada_en as Date | null) ?? null,
+      datosSipraCambiaronEn: (f.datos_sipra_cambiaron_en as Date | null) ?? null, estadoDocumento: f.doc_estado as string,
+    }));
+  }
+
+  async supervisionRut(ahora: Date, escuelas: readonly string[] | null): Promise<ResumenSupervisionRut> {
+    const alcance = escuelas ? [...escuelas] : null;
+    const base = `FROM validaciones_documento_empresarial v
+         JOIN documentos d ON d.id = v.documento_id
+         JOIN practicas p ON p.id = v.practica_id
+        WHERE d.tipo IN ('rut_natural','rut_juridico')
+          AND d.version = (SELECT max(d2.version) FROM documentos d2 WHERE d2.practica_id = d.practica_id AND d2.tipo = d.tipo)
+          AND ($1::text[] IS NULL OR p.escuela_id = ANY($1::text[]))`;
+    const resumen: Record<string, number>[] = await this.repo.query(
+      `SELECT count(*) FILTER (WHERE v.estado = 'revision')::int AS abiertas,
+              count(*) FILTER (WHERE v.estado = 'revision' AND (v.asignado_a IS NULL OR v.reserva_hasta <= $2))::int AS libres,
+              count(*) FILTER (WHERE v.estado = 'revision' AND v.asignado_a IS NOT NULL AND v.reserva_hasta > $2)::int AS tomadas,
+              count(*) FILTER (WHERE v.estado = 'revision' AND v.asignado_a IS NOT NULL AND v.reserva_hasta > $2
+                               AND v.reserva_hasta <= $2::timestamptz + make_interval(mins => $3))::int AS por_vencer,
+              count(*) FILTER (WHERE v.estado = 'revision' AND v.asignado_a IS NOT NULL AND v.reserva_hasta <= $2)::int AS vencidas,
+              count(*) FILTER (WHERE v.estado = 'revision' AND COALESCE((v.comparacion->>'hayDiscrepancia')::boolean, false))::int AS con_discrepancia,
+              count(*) FILTER (WHERE v.estado = 'revision' AND v.tipo_detectado = 'documento_incorrecto')::int AS incorrectos
+         ${base}`,
+      [alcance, ahora, MINUTOS_RESERVA_POR_VENCER_RUT],
+    );
+    const porEstado: { estado: string; n: number }[] = await this.repo.query(`SELECT v.estado, count(*)::int AS n ${base} GROUP BY v.estado`, [alcance]);
+    const funcionarios: { id: string; nombre: string; rol: string; vigentes: number; por_vencer: number; decididas: number }[] = await this.repo.query(
+      `SELECT u.id, u.nombre, u.rol,
+              count(v.id) FILTER (WHERE v.estado = 'revision' AND v.asignado_a = u.id AND v.reserva_hasta > $1)::int AS vigentes,
+              count(v.id) FILTER (WHERE v.estado = 'revision' AND v.asignado_a = u.id AND v.reserva_hasta > $1
+                                  AND v.reserva_hasta <= $1::timestamptz + make_interval(mins => $2))::int AS por_vencer,
+              count(v.id) FILTER (WHERE v.decidido_por = u.id AND v.decidido_en >= $1::timestamptz - interval '7 days')::int AS decididas
+         FROM usuarios u
+         LEFT JOIN validaciones_documento_empresarial v ON (v.asignado_a = u.id OR v.decidido_por = u.id)
+              AND v.documento_id IN (SELECT id FROM documentos WHERE tipo IN ('rut_natural','rut_juridico'))
+        WHERE u.rol IN ('tutor','coordinador','administrador') AND u.activo = true
+        GROUP BY u.id, u.nombre, u.rol
+       HAVING count(v.id) > 0
+        ORDER BY u.nombre`,
+      [ahora, MINUTOS_RESERVA_POR_VENCER_RUT],
+    );
+    const r = resumen[0];
+    return {
+      abiertas: r.abiertas, libres: r.libres, tomadas: r.tomadas, porVencer: r.por_vencer, vencidas: r.vencidas,
+      conDiscrepancia: r.con_discrepancia, documentoIncorrecto: r.incorrectos,
+      porEstado: Object.fromEntries(porEstado.map((e) => [e.estado, e.n])),
+      funcionarios: funcionarios.map((f) => ({
+        funcionarioId: f.id, nombre: f.nombre, rol: f.rol, reservasVigentes: f.vigentes, reservasPorVencer: f.por_vencer,
+        decididas7Dias: f.decididas,
+      })),
+    };
+  }
+
+  async versionMaximaDocumento(practicaId: string, tipoDocumento: string): Promise<number> {
+    const filas: { v: number | null }[] = await this.documentos.query(
+      'SELECT max(version)::int AS v FROM documentos WHERE practica_id = $1 AND tipo = $2', [practicaId, tipoDocumento],
+    );
+    return filas[0]?.v ?? 0;
   }
 
   async buscarDuplicados(practicaId: string, tipoDocumento: string, hashDocumento: string, excluirDocumentoId: string): Promise<DocumentoConHuella[]> {

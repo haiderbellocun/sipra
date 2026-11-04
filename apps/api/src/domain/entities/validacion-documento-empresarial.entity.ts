@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   AutenticidadDocumento, CLAVES_PROHIBIDAS_DOCUMENTO_EMPRESARIAL, ClasificacionDocumentoEmpresarial as C,
-  DatosCamaraExtraidos, DatosExtraidosEmpresariales, EstadoValidacionDocumentoEmpresarial as Estado, FamiliaDocumentoEmpresarial,
+  DatosCamaraExtraidos, DatosExtraidosEmpresariales, ESTADOS_DECIDIDOS_EMPRESARIAL, EstadoValidacionDocumentoEmpresarial as Estado, FamiliaDocumentoEmpresarial,
   MetodoLecturaEmpresarial, TipoPersona, autenticidadPorDefecto, familiaDe, personaDe,
 } from './documento-empresarial';
 import type { ComparacionDocumentoEmpresarial } from '../services/comparacion-documento-empresarial.domain-service';
@@ -60,6 +60,20 @@ export interface DatosValidacionDocumentoEmpresarial {
   autenticidad: AutenticidadDocumento;
   recibidaEn: Date | null;
   procesadaEn: Date | null;
+  // ── Decisión humana ──
+  decididoPor: string | null;
+  decididoEn: Date | null;
+  /** Código del catálogo de devolución; solo si se devolvió. */
+  motivoDecision: string | null;
+  // ── Reserva operativa (una persona a la vez) ──
+  asignadoA: string | null;
+  reservadoEn: Date | null;
+  reservaHasta: Date | null;
+  /**
+   * Los datos de SIPRA cambiaron DESPUÉS de una decisión humana. La decisión (y la comparación con que se tomó) no se tocan:
+   * solo queda constancia.
+   */
+  datosSipraCambiaronEn: Date | null;
   version: number;
   creadaEn: Date;
   actualizadaEn: Date;
@@ -95,6 +109,7 @@ export class ValidacionDocumentoEmpresarial {
       estado: Estado.PENDIENTE, intentos: 0, errorCodigo: null, metodoLectura: null, confianza: null, lecturaDudosa: false,
       hashDocumento: null, duplicadoDeDocumentoId: null, datosExtraidos: null, comparacion: null,
       autenticidad: autenticidadPorDefecto(), recibidaEn: base.recibidaEn, procesadaEn: null,
+      decididoPor: null, decididoEn: null, motivoDecision: null, asignadoA: null, reservadoEn: null, reservaHasta: null, datosSipraCambiaronEn: null,
       version: 1, creadaEn: base.ahora, actualizadaEn: base.ahora,
     });
   }
@@ -104,7 +119,22 @@ export class ValidacionDocumentoEmpresarial {
   get estado(): Estado { return this.datos.estado; }
   get version(): number { return this.datos.version; }
   get intentos(): number { return this.datos.intentos; }
-  get estaProcesada(): boolean { return this.datos.estado === Estado.REVISION; }
+  /** Ya tiene un resultado de lectura (en revisión o decidida): reprocesarla no hace falta ni se hace. */
+  get estaProcesada(): boolean { return this.datos.estado === Estado.REVISION || this.estaDecidida; }
+  get estaDecidida(): boolean { return ESTADOS_DECIDIDOS_EMPRESARIAL.includes(this.datos.estado); }
+  /** Lista para que una persona la decida. */
+  get estaRevisable(): boolean { return this.datos.estado === Estado.REVISION; }
+
+  /** ¿La tiene reservada ESTA persona y sigue vigente? */
+  reservadaPor(actorId: string, ahora: Date): boolean {
+    return this.datos.asignadoA === actorId && this.datos.reservaHasta !== null && this.datos.reservaHasta.getTime() > ahora.getTime();
+  }
+
+  /** ¿Otra persona la tiene reservada y su reserva sigue vigente? */
+  reservadaPorOtro(actorId: string, ahora: Date): boolean {
+    return this.datos.asignadoA !== null && this.datos.asignadoA !== actorId
+      && this.datos.reservaHasta !== null && this.datos.reservaHasta.getTime() > ahora.getTime();
+  }
 
   instantanea(): DatosValidacionDocumentoEmpresarial { return { ...this.datos, autenticidad: { ...this.datos.autenticidad } }; }
 
@@ -159,6 +189,33 @@ export class ValidacionDocumentoEmpresarial {
     this.datos.actualizadaEn = ahora;
   }
 
+  /** Refleja una decisión humana. No cambia ningún resultado de lectura ni de comparación; libera la reserva. */
+  registrarDecision(decision: 'aprobar' | 'devolver' | 'rechazar', actorId: string, ahora: Date, motivo: string | null = null): void {
+    if (this.estaDecidida) throw new ValidacionDocumentoEmpresarialYaProcesadaError();
+    if (!this.estaRevisable) throw new ResultadoDocumentoEmpresarialInvalidoError('solo una validación en revisión admite una decisión');
+    if (decision === 'devolver' && !motivo) throw new ResultadoDocumentoEmpresarialInvalidoError('devolver exige el motivo del catálogo');
+    this.datos.estado = decision === 'aprobar' ? Estado.APROBADO_MANUAL : decision === 'devolver' ? Estado.DEVUELTO : Estado.RECHAZADO;
+    this.datos.errorCodigo = null;
+    this.datos.decididoPor = actorId;
+    this.datos.decididoEn = ahora;
+    this.datos.motivoDecision = decision === 'devolver' ? motivo : null;
+    this.datos.asignadoA = null;
+    this.datos.reservadoEn = null;
+    this.datos.reservaHasta = null;
+    this.datos.actualizadaEn = ahora;
+  }
+
+  /**
+   * Cambiaron los datos de SIPRA DESPUÉS de una decisión: la decisión y la comparación con que se decidió son historia y no
+   * se tocan; solo queda constancia, en una ronda nueva de evidencias.
+   */
+  marcarCambioDeDatosPosterior(ahora: Date): void {
+    if (!this.estaDecidida) throw new ResultadoDocumentoEmpresarialInvalidoError('solo una validación decidida registra un cambio posterior de datos');
+    this.datos.datosSipraCambiaronEn = ahora;
+    this.datos.intentos += 1;
+    this.datos.actualizadaEn = ahora;
+  }
+
   marcarError(codigo: string, ahora: Date): void {
     if (this.estaProcesada) throw new ValidacionDocumentoEmpresarialYaProcesadaError();
     this.datos.estado = Estado.ERROR;
@@ -175,6 +232,8 @@ export enum TipoEvidenciaDocumentoEmpresarial {
   COMPARACION = 'comparacion',
   VERIFICACION = 'verificacion',
   DECISION_HUMANA = 'decision_humana',
+  /** Los datos de SIPRA cambiaron después de una decisión humana (constancia; la decisión no se toca). */
+  CAMBIO_DATOS_SIPRA = 'cambio_datos_sipra',
 }
 
 export class EvidenciaDocumentoEmpresarialInvalidaError extends Error {

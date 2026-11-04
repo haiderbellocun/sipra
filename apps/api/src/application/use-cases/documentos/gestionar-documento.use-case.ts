@@ -47,6 +47,8 @@ import { ConsentimientoUseCase } from '../consentimientos/consentimiento.use-cas
 import { ValidacionActaUseCase } from './validacion-acta.use-case';
 import { DECISION_ACTA, DecisionActaPort } from '../../../domain/ports/out/decision-acta.port';
 import { ConflictoDecisionActaError } from '../../../domain/services/decision-acta.domain-service';
+import { DECISION_RUT, DecisionRutPort } from '../../../domain/ports/out/decision-rut.port';
+import { ConflictoDecisionRutError } from '../../../domain/services/decision-rut.domain-service';
 import { ValidacionEpsUseCase } from './validacion-eps.use-case';
 import {
   puedeDecidirDocumento, puedeVerLecturaInterna,
@@ -88,6 +90,7 @@ export class GestionarDocumentoUseCase {
     private readonly validacionesEps: ValidacionEpsUseCase,
     @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
     @Optional() @Inject(DECISION_ACTA) private readonly decisionActa?: DecisionActaPort,
+    @Optional() @Inject(DECISION_RUT) private readonly decisionRut?: DecisionRutPort,
   ) {}
 
   async cargar(
@@ -301,7 +304,10 @@ export class GestionarDocumentoUseCase {
     documentoId: string,
     dto: DecisionDocumentoDto,
     actor: Actor,
-    opciones: { mesaActa?: { motivo: string | null; contexto: Record<string, unknown>; ahora: Date } } = {},
+    opciones: {
+      mesaActa?: { motivo: string | null; contexto: Record<string, unknown>; ahora: Date };
+      mesaRut?: { validacionId: string; motivo: string | null; contexto: Record<string, unknown>; ahora: Date };
+    } = {},
   ): Promise<DocumentoRespuestaDto> {
     // Docente, coordinación y administración deciden cualquier documento de su alcance; el
     // auxiliar entra aquí solo para el certificado de EPS (se comprueba más abajo).
@@ -322,6 +328,14 @@ export class GestionarDocumentoUseCase {
       // Primera barrera (barata): el 409 temprano. La definitiva está dentro de la transacción de `decisionActa`.
       const validacion = await this.validacionesActa.exigirRevisable(documentoId);
       return this.decidirActa(validacion.id, dto, actor, opciones.mesaActa);
+    }
+    // El RUT se decide SOLO desde la Mesa de RUT (reserva, versión vigente, justificación y motivo): ni el camino general ni nadie
+    // por encima de la persona que lo tiene reservado.
+    if (documento.tipo === TipoDocumento.RUT_NATURAL || documento.tipo === TipoDocumento.RUT_JURIDICO) {
+      if (!opciones.mesaRut || !this.decisionRut) {
+        throw new ForbiddenException('El RUT se revisa y se decide en la Mesa de RUT.');
+      }
+      return this.decidirRut(dto, actor, opciones.mesaRut);
     }
     // Un caso de EPS que otro funcionario tiene reservado no se decide por encima.
     if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
@@ -390,6 +404,29 @@ export class GestionarDocumentoUseCase {
       });
     } catch (error) {
       if (error instanceof ConflictoDecisionActaError || error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);
+      if (error instanceof DecisionSinJustificacionError) throw new BadRequestException(error.message);
+      throw error;
+    }
+    await this.notificarSiRequiereAccion(guardado, actor);
+    if (dto.decision === 'devolver') {
+      await this.bitacora.anotarDevolucion(guardado.practicaId, guardado.tipo, guardado.instantanea().motivoDevolucion, actor);
+    }
+    return this.aRespuesta(guardado, actor);
+  }
+
+  /** Decisión del RUT: misma atomicidad que el acta; avisos y bitácora solo después del commit. */
+  private async decidirRut(
+    dto: DecisionDocumentoDto, actor: Actor, mesa: { validacionId: string; motivo: string | null; contexto: Record<string, unknown>; ahora: Date },
+  ): Promise<DocumentoRespuestaDto> {
+    let guardado: Documento;
+    try {
+      guardado = await (this.decisionRut as DecisionRutPort).aplicar(mesa.validacionId, {
+        decision: dto.decision, justificacion: dto.justificacion, motivo: mesa.motivo, ahora: mesa.ahora,
+        actor: { id: actor.id, correo: actor.correo, rol: actor.rol, ip: actor.ip ?? null, agenteUsuario: actor.agenteUsuario ?? null },
+        contextoAuditoria: mesa.contexto,
+      });
+    } catch (error) {
+      if (error instanceof ConflictoDecisionRutError || error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);
       if (error instanceof DecisionSinJustificacionError) throw new BadRequestException(error.message);
       throw error;
     }

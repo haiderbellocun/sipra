@@ -121,12 +121,17 @@ import { VALIDACION_ACTA_REPOSITORY } from '../../domain/ports/out/validacion-ac
 import { ValidacionActaUseCase } from '../../application/use-cases/documentos/validacion-acta.use-case';
 import { ValidacionActaRepositoryAdapter } from '../adapters/persistence/postgres/validacion-acta.adapter';
 import { DECISION_ACTA } from '../../domain/ports/out/decision-acta.port';
+import { DECISION_RUT } from '../../domain/ports/out/decision-rut.port';
+import { DecisionRutPgAdapter } from '../adapters/persistence/postgres/decision-rut.adapter';
 import { DecisionActaPgAdapter } from '../adapters/persistence/postgres/decision-acta.adapter';
 import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
 import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/consulta-adres.use-case';
 import { MesaEpsUseCase } from '../../application/use-cases/documentos/mesa-eps.use-case';
 import { MesaEpsController } from '../controllers/mesa-eps.controller';
 import { ActasIniciacionController } from '../controllers/actas-iniciacion.controller';
+import { MesaRutController } from '../controllers/mesa-rut.controller';
+import { MesaRutUseCase } from '../../application/use-cases/documentos/mesa-rut.use-case';
+import { RutEstudianteUseCase } from '../../application/use-cases/documentos/rut-estudiante.use-case';
 import { MesaActasUseCase } from '../../application/use-cases/documentos/mesa-actas.use-case';
 import { ActaEstudianteUseCase } from '../../application/use-cases/documentos/acta-estudiante.use-case';
 import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
@@ -223,7 +228,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     EmpresasController, CumplimientoController, BolsaController, SaludController,
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
-    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController,
+    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController, MesaRutController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -254,6 +259,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: LECTURA_RUT, useExisting: LecturaRutLocalAdapter },
     ValidacionRutUseCase,
     { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
+    { provide: DECISION_RUT, useClass: DecisionRutPgAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
 
@@ -352,6 +358,8 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     ValidacionEpsUseCase,
     ValidacionActaUseCase,
     MesaActasUseCase,
+    MesaRutUseCase,
+    RutEstudianteUseCase,
     ActaEstudianteUseCase,
     // Verificación OFICIAL de certificados de EPS: registro de destinos permitidos (hoy vacío),
     // cliente HTTP con defensa SSRF y un adaptador por verificador (ninguno habilitado todavía).
