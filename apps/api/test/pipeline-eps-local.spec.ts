@@ -91,7 +91,8 @@ describe('Política de procesamiento por tipo (dominio)', () => {
   });
 
   it('el resto de los tipos conserva el procesamiento existente', () => {
-    const locales = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO];
+    // El RUT se sumó a los tipos solo locales y sin autoaprobación (Bloque 3): consistente no es aprobado.
+    const locales = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO];
     for (const tipo of Object.values(TipoDocumento).filter((t) => !locales.includes(t))) {
       expect(modoProcesamientoDe(tipo)).not.toBe(ModoProcesamiento.LOCAL);
       expect(permiteAutoAprobacionDelPipeline(tipo)).toBe(true);
