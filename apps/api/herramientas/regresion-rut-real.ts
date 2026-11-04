@@ -20,6 +20,7 @@ import { LecturaLocalRutService } from '../src/domain/services/lectura-local-rut
 import { DatosRutExtraidos } from '../src/domain/entities/documento-empresarial';
 import { esDestinoOficialDian } from '../src/domain/services/autenticidad-documento-empresarial.domain-service';
 import { tokensDeNombre } from '../src/domain/services/normalizacion-identidad';
+import { CampoRut, SipraParaRut, compararRut } from '../src/domain/services/comparacion-rut.domain-service';
 
 const carpetaMuestras = process.env.RUT_MUESTRAS?.trim();
 const archivoVerdad = process.env.RUT_VERDAD?.trim();
@@ -57,6 +58,9 @@ async function main(): Promise<void> {
     e.aplica += 1; e[r] += 1;
   };
   let duplicados = 0;
+  // Comparación RUT ↔ SIPRA (Bloque 3): SIPRA sintético en memoria, igual a lo que dice el RUT (la verdad local), y después
+  // UNA mutación por vez. Nada de esto sale de memoria ni se escribe.
+  const cmpRes = { documentos: 0, base_ok: 0, base_insuficiente: 0, base_diferente_falso: 0, mutaciones: {} as Record<string, { aplica: number; solo_su_campo: number; sin_efecto: number; falsos: number }> };
 
   for (const carpeta of readdirSync(carpetaMuestras).filter((d) => !d.includes('.')).sort()) {
     if (!carpeta.startsWith('RUT')) continue;
@@ -117,6 +121,39 @@ async function main(): Promise<void> {
         console.log(`   ${f.campo} | ${enmascarar(f.esperado)} | ${enmascarar(f.extraido)} | ${f.resultado} | ${l.metodo} | ${f.confianza === null ? '—' : f.confianza.toFixed(2)}`);
       }
       void esDestinoOficialDian;
+
+      // ── Comparación contra un SIPRA sintético equivalente a lo que dice el RUT ──
+      const base: SipraParaRut = v.persona === 'natural'
+        ? { usuario: { documento: v.numeroDocumento ?? v.nit, nombre: `${v.apellidos} ${v.nombres}` }, empresa: null }
+        : { usuario: { documento: null, nombre: null }, empresa: { nitNumero: v.nit, nitDv: Number(v.dv), razonSocial: v.razonSocial ?? null } };
+      const lectura = { tipoDetectado: i.clasificacion.clasificacion, datos: i.datos, lecturaDudosa: i.lecturaDudosa, expectativa: 'coincide' };
+      const criticos = (c: ReturnType<typeof compararRut>) => (c?.campos ?? []).filter((x) => x.criticidad === 'critico');
+      const c0 = compararRut(lectura, base, new Date());
+      cmpRes.documentos += 1;
+      if (criticos(c0).some((x) => x.resultado === 'diferente')) cmpRes.base_diferente_falso += 1;
+      else if (criticos(c0).length > 0 && criticos(c0).every((x) => x.resultado === 'coincide')) cmpRes.base_ok += 1;
+      else cmpRes.base_insuficiente += 1;
+      console.log(`   comparación (SIPRA = RUT): ${c0 ? c0.veredicto : 'sin comparación'} · críticos: ${criticos(c0).map((x) => `${x.campo}=${x.resultado}`).join(', ') || '—'}`);
+      const mutar = (n: string): string => n.slice(0, -1) + String((Number(n.slice(-1)) + 1) % 10);
+      const mutaciones: Record<string, SipraParaRut> = v.persona === 'natural'
+        ? {
+          documento: { ...base, usuario: { ...base.usuario, documento: mutar(base.usuario.documento ?? '0') } },
+          nombre: { ...base, usuario: { ...base.usuario, nombre: 'JUAN PABLO RUIZ TORRES' } },
+        }
+        : {
+          nit: { ...base, empresa: { ...base.empresa!, nitNumero: mutar(base.empresa!.nitNumero ?? '0') } },
+          dv: { ...base, empresa: { ...base.empresa!, nitDv: (base.empresa!.nitDv! + 1) % 10 } },
+          razon_social: { ...base, empresa: { ...base.empresa!, razonSocial: 'COMERCIALIZADORA ANDINA DEL SUR LTDA' } },
+        };
+      for (const [campoMutado, sipraMutado] of Object.entries(mutaciones)) {
+        const m = ((cmpRes.mutaciones[`${v.persona}:${campoMutado}`] ??= { aplica: 0, solo_su_campo: 0, sin_efecto: 0, falsos: 0 }));
+        m.aplica += 1;
+        const dif = criticos(compararRut(lectura, sipraMutado, new Date())).filter((x) => x.resultado === 'diferente').map((x) => x.campo as CampoRut);
+        // «Sin efecto»: la lectura no es confiable (dudosa, OCR) y el campo mutado no pudo compararse: es lo correcto.
+        if (dif.length === 0 && (i.lecturaDudosa || c0?.veredicto !== 'consistente')) m.sin_efecto += 1;
+        else if (dif.length === 1 && dif[0] === campoMutado) m.solo_su_campo += 1;
+        else m.falsos += 1;
+      }
     }
   }
 
@@ -128,6 +165,11 @@ async function main(): Promise<void> {
       console.log(`  ${campo} | ${e.aplica} | ${e.correcto} | ${e.incorrecto} | ${e.no_encontrado} | ${e.no_determinable} | ${Math.round((100 * e.correcto) / e.aplica)}%`);
     }
   }
+  console.log('\n══ COMPARACIÓN RUT ↔ SIPRA (SIPRA sintético en memoria, sin duplicados) ══');
+  console.log(`documentos comparados: ${cmpRes.documentos} · SIPRA=RUT y todos los críticos coinciden: ${cmpRes.base_ok} · información insuficiente (lectura dudosa o no confiable): ${cmpRes.base_insuficiente} · falsos «diferente»: ${cmpRes.base_diferente_falso}`);
+  console.log('  MUTACIÓN | APLICA | DIFIERE SOLO SU CAMPO | SIN EFECTO (lectura no confiable) | FALSOS POSITIVOS / CAMPOS AJENOS');
+  for (const [m, e] of Object.entries(cmpRes.mutaciones)) console.log(`  ${m} | ${e.aplica} | ${e.solo_su_campo} | ${e.sin_efecto} | ${e.falsos}`);
+  if (cmpRes.base_diferente_falso > 0 || Object.values(cmpRes.mutaciones).some((e) => e.falsos > 0)) silenciosos.push('comparacion');
   console.log(`\nduplicados exactos omitidos: ${duplicados}`);
   console.log(`falsos valores silenciosos (incorrecto con lectura NO dudosa): ${silenciosos.length}${silenciosos.length ? ' → ' + silenciosos.join(', ') : ''}`);
   void CAMPOS_COMUNES;

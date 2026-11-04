@@ -365,6 +365,21 @@ export class PipelineValidacionUseCase {
             'El archivo cargado no corresponde al documento solicitado. ' +
             `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,
         });
+      } else if (
+        (datos.tipo === TipoDocumento.RUT_NATURAL || datos.tipo === TipoDocumento.RUT_JURIDICO)
+        && extraido.lecturaRut
+        && ['documento_incorrecto', 'camara_matricula_persona_natural', 'camara_matricula_sociedad', 'camara_existencia_representacion'].includes(extraido.lecturaRut.tipoDetectado)
+      ) {
+        // El RUT tiene su propio clasificador local: se LEYÓ y es otro documento (una factura, un certificado de cámara…).
+        banderas.push({
+          codigo: 'C2_TIPO_INCORRECTO',
+          capa: 2,
+          severidad: SeveridadBandera.ALTA,
+          mensaje: 'El archivo no parece un RUT: se detectaron rasgos de otro tipo de documento',
+          mensajeUsuario:
+            'El archivo cargado no corresponde al documento solicitado. ' +
+            `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,
+        });
       } else if (extraido.tipoDetectado && extraido.tipoDetectado !== datos.tipo) {
         banderas.push({
           codigo: 'C2_TIPO_INCORRECTO',

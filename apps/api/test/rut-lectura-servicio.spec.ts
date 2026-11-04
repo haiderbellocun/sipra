@@ -3,15 +3,12 @@ import { Documento, EstadoDocumento, TipoDocumento } from '../src/domain/entitie
 import {
   ClasificacionDocumentoEmpresarial as C, EstadoAutenticidad, EstadoValidacionDocumentoEmpresarial as Estado,
 } from '../src/domain/entities/documento-empresarial';
-import {
-  DatosEvidenciaDocumentoEmpresarial, DatosValidacionDocumentoEmpresarial, EvidenciaDocumentoEmpresarial, ValidacionDocumentoEmpresarial,
-} from '../src/domain/entities/validacion-documento-empresarial.entity';
 import { CajaTexto, GeometriaDocumentoPort } from '../src/domain/ports/out/geometria-documento.port';
 import { LectorDocumentoLocalPort, LimitesLecturaLocal } from '../src/domain/ports/out/lector-documento-local.port';
-import { ValidacionDocumentoEmpresarialRepositoryPort } from '../src/domain/ports/out/validacion-documento-empresarial.port';
 import { calcularSha256 } from '../src/domain/services/duplicados-documento-empresarial.domain-service';
 import { LecturaLocalRutService } from '../src/domain/services/lectura-local-rut.domain-service';
 import { ValidacionRutUseCase } from '../src/application/use-cases/documentos/validacion-rut.use-case';
+import { RepoMemoria } from './soporte-repo-documento-empresarial';
 import { caja, rutSintetico } from './soporte-rut-sintetico';
 import { textoCamaraExistencia, textoFactura } from './soporte-documento-empresarial';
 
@@ -127,37 +124,6 @@ describe('Documentos que no son un RUT', () => {
 
 // ── Caso de uso con repositorios en memoria ────────────────────────────────────────
 
-class RepoMemoria implements ValidacionDocumentoEmpresarialRepositoryPort {
-  filas = new Map<string, DatosValidacionDocumentoEmpresarial>();
-  evidencias: DatosEvidenciaDocumentoEmpresarial[] = [];
-  documentos: { documentoId: string; practicaId: string; tipo: string; hash: string }[] = [];
-  async buscarPorId(id: string) { const f = this.filas.get(id); return f ? ValidacionDocumentoEmpresarial.desde(f) : null; }
-  async buscarPorDocumento(d: string) { const f = [...this.filas.values()].find((x) => x.documentoId === d); return f ? ValidacionDocumentoEmpresarial.desde(f) : null; }
-  async listarPorPractica(p: string) { return [...this.filas.values()].filter((x) => x.practicaId === p).map((f) => ValidacionDocumentoEmpresarial.desde(f)); }
-  async crearSiNoExiste(datos: DatosValidacionDocumentoEmpresarial) {
-    const existente = await this.buscarPorDocumento(datos.documentoId);
-    if (existente) return { validacion: existente, creada: false };
-    this.filas.set(datos.id, datos);
-    return { validacion: ValidacionDocumentoEmpresarial.desde(datos), creada: true };
-  }
-  async guardarSiVersion(datos: DatosValidacionDocumentoEmpresarial, v: number) {
-    const actual = this.filas.get(datos.id);
-    if (!actual || actual.version !== v) return false;
-    this.filas.set(datos.id, { ...datos, version: v + 1 });
-    return true;
-  }
-  async agregarEvidencia(d: DatosEvidenciaDocumentoEmpresarial) {
-    if (this.evidencias.some((e) => e.validacionId === d.validacionId && e.intento === d.intento && e.tipo === d.tipo)) return false;
-    this.evidencias.push(EvidenciaDocumentoEmpresarial.crear(d).instantanea());
-    return true;
-  }
-  async listarEvidencias(v: string) { return this.evidencias.filter((e) => e.validacionId === v).map((e) => EvidenciaDocumentoEmpresarial.desde(e)); }
-  async buscarDuplicados(practicaId: string, tipo: string, hash: string, excluir: string) {
-    return this.documentos.filter((d) => d.practicaId === practicaId && d.tipo === tipo && d.hash === hash && d.documentoId !== excluir)
-      .map((d) => ({ documentoId: d.documentoId, validacionId: '', version: 1, hashDocumento: d.hash }));
-  }
-}
-
 describe('ValidacionRutUseCase', () => {
   const PRACTICA = '00000000-0000-4000-8000-0000000000a1';
   const ESTUDIANTE = '00000000-0000-4000-8000-0000000000b1';
@@ -176,7 +142,7 @@ describe('ValidacionRutUseCase', () => {
       repo.documentos.push({ documentoId: id, practicaId: PRACTICA, tipo, hash: calcularSha256(Buffer.from(ruta)) });
     }
     const documentos = { buscarPorId: async (id: string) => docs.get(id) ?? null };
-    const practicas = { buscarPorId: async () => ({ estudianteId: ESTUDIANTE }) };
+    const practicas = { buscarPorId: async () => ({ estudianteId: ESTUDIANTE, instantanea: () => ({ empresaId: null, empresaRazonSocial: null, empresaNit: null }) }) };
     const almacen = { leer: async (ruta: string) => { if (fallaLectura) throw new Error('el contenido del documento no debe salir en el mensaje'); return Buffer.from(ruta); } };
     const lectura = {
       leer: async (contenido: Buffer, mime: string) => {
@@ -185,24 +151,28 @@ describe('ValidacionRutUseCase', () => {
         return new LecturaLocalRutService(lector, geometria).leer(contenido, mime);
       },
     };
-    const caso = new ValidacionRutUseCase(repo, documentos as never, practicas as never, almacen as never, lectura);
+    const usuarios = { buscarPorId: async () => ({ nombre: 'MARIA FERNANDA PEREZ GOMEZ', instantanea: () => ({ documento: '1000000001' }) }) };
+    const empresas = { buscarPorId: async () => null };
+    const caso = new ValidacionRutUseCase(repo, documentos as never, practicas as never, almacen as never, lectura, usuarios as never, empresas as never);
     return { caso, repo, ids: [...docs.keys()] };
   }
   const AHORA = new Date('2026-11-03T15:00:00Z');
 
-  it('procesa un RUT: clasifica por contenido, guarda lo minimizado, el hash, la autenticidad por defecto y DOS evidencias', async () => {
+  it('procesa un RUT: clasifica por contenido, guarda lo minimizado, el hash, la autenticidad por defecto y TRES evidencias', async () => {
     const { caso, repo, ids } = entorno({ a: rutSintetico({ persona: 'natural', conContacto: true }) }, { a: TipoDocumento.RUT_NATURAL });
     const v = (await caso.procesar(ids[0], AHORA))!.instantanea();
     expect(v).toMatchObject({
       estado: Estado.REVISION, familiaDocumento: 'rut', tipoDetectado: C.RUT_PERSONA_NATURAL, tipoPersona: 'natural', tipoEsperado: 'rut_natural',
       expectativa: 'coincide', metodoLectura: 'texto', confianza: 1, lecturaDudosa: false, hashDocumento: calcularSha256(Buffer.from('a')),
-      duplicadoDeDocumentoId: null, comparacion: null, procesadaEn: AHORA, practicaId: PRACTICA, estudianteId: ESTUDIANTE,
+      duplicadoDeDocumentoId: null, procesadaEn: AHORA, practicaId: PRACTICA, estudianteId: ESTUDIANTE,
     });
     expect(v.autenticidad).toMatchObject({ estado: 'no_verificable', qrDecodificado: true, qrDestinoOficial: true, firmaPdfValida: null });
     expect(v.datosExtraidos).toMatchObject({ nit: '1000000001', nombres: 'MARIA FERNANDA', divipolaMunicipio: '25290' });
     const guardado = JSON.stringify([v, repo.evidencias]);
     for (const prohibido of ['CALLE FALSA', 'persona.demo@ejemplo.test', '3000000000', 'SECRETO']) expect(guardado).not.toContain(prohibido);
-    expect(repo.evidencias.map((e) => e.tipo).sort()).toEqual(['clasificacion', 'lectura_documento']);
+    expect(repo.evidencias.map((e) => e.tipo).sort()).toEqual(['clasificacion', 'comparacion', 'lectura_documento']);
+    // La comparación (con el usuario sintético de la prueba) existe y no guarda valores.
+    expect(v.comparacion).toMatchObject({ version: 1, veredicto: 'consistente', hayDiscrepancia: false });
     expect(repo.evidencias.every((e) => e.hashDocumento === v.hashDocumento && e.actorId === null)).toBe(true);
   });
 
@@ -211,7 +181,7 @@ describe('ValidacionRutUseCase', () => {
     const primera = (await caso.procesar(ids[0], AHORA))!.instantanea();
     const segunda = (await caso.procesar(ids[0], new Date('2026-11-04T00:00:00Z')))!.instantanea();
     expect(repo.filas.size).toBe(1);
-    expect(repo.evidencias).toHaveLength(2);
+    expect(repo.evidencias).toHaveLength(3);
     expect(segunda.procesadaEn).toEqual(primera.procesadaEn);
     expect(segunda.version).toBe(primera.version);
   });

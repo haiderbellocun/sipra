@@ -11,7 +11,8 @@ import { TipoDocumento } from '../entities/documento.entity';
  *
  * El certificado de EPS es dato de salud con documento de identidad: se
  * procesa en local. El acta de iniciación lleva documento, dirección y teléfono
- * del estudiante y datos del representante de la empresa: también. Cambiar esto
+ * del estudiante y datos del representante de la empresa: también. El RUT trae cédula, dirección, correo y teléfono (persona
+ * natural) o datos de la empresa: también se lee solo en local, y NUNCA se autoaprueba (consistente ≠ aprobado). Cambiar esto
  * es una decisión institucional, no técnica.
  */
 export enum ModoProcesamiento {
@@ -19,7 +20,9 @@ export enum ModoProcesamiento {
   CONFIGURADO = 'configurado',
 }
 
-const SOLO_LOCAL: readonly TipoDocumento[] = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO];
+const SOLO_LOCAL: readonly TipoDocumento[] = [
+  TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO,
+];
 
 export function modoProcesamientoDe(tipo: TipoDocumento): ModoProcesamiento {
   return SOLO_LOCAL.includes(tipo) ? ModoProcesamiento.LOCAL : ModoProcesamiento.CONFIGURADO;
@@ -29,7 +32,9 @@ export function modoProcesamientoDe(tipo: TipoDocumento): ModoProcesamiento {
  * Tipos que el pipeline NUNCA autoaprueba: su autenticidad no la verifica el
  * pipeline común. Quedan en revisión humana aunque el puntaje sea verde.
  */
-const SIN_AUTOAPROBACION_DEL_PIPELINE: readonly TipoDocumento[] = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO];
+const SIN_AUTOAPROBACION_DEL_PIPELINE: readonly TipoDocumento[] = [
+  TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO,
+];
 
 export function permiteAutoAprobacionDelPipeline(tipo: TipoDocumento): boolean {
   return !SIN_AUTOAPROBACION_DEL_PIPELINE.includes(tipo);

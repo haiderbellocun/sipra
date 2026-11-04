@@ -1,4 +1,4 @@
-import { AutenticidadDocumento, MetodoLecturaEmpresarial } from '../entities/documento-empresarial';
+import { AutenticidadDocumento, ClasificacionDocumentoEmpresarial, DatosRutExtraidos, MetodoLecturaEmpresarial } from '../entities/documento-empresarial';
 import type { ResumenLecturaEmpresarial } from '../entities/validacion-documento-empresarial.entity';
 import { CajaTexto, GeometriaDocumentoPort } from '../ports/out/geometria-documento.port';
 import { LectorDocumentoLocalPort, LimitesLecturaLocal, PaginaRenderizada } from '../ports/out/lector-documento-local.port';
@@ -7,6 +7,7 @@ import { calcularSha256 } from './duplicados-documento-empresarial.domain-servic
 import { FuenteCajas } from './geometria-rut.domain-service';
 import { InterpretacionRut, PaginaCajas, interpretarRut } from './interpretacion-rut.domain-service';
 import { clasificarContenidoQr, evaluarTextoNativo } from './lectura-local.domain-service';
+import { minimizarDatosRut } from './minimizacion-documento-empresarial.domain-service';
 
 /**
  * Lectura LOCAL del RUT (PDF o imagen): texto nativo con posiciones (pdf.js), OCR de las páginas sin texto
@@ -108,4 +109,41 @@ export class LecturaLocalRutService {
       },
     };
   }
+}
+
+// ── Lo que se conserva de la lectura (en la extracción del documento) ───────────────────────
+
+/**
+ * Lectura minimizada de un RUT, lista para guardarse en la extracción del documento y para que la validación la
+ * registre SIN volver a leer el archivo. Solo datos minimizados, códigos y métricas: ni texto, ni OCR, ni imágenes, ni
+ * dirección, correo, teléfono o responsabilidades.
+ */
+export interface LecturaRutPersistible {
+  hashSha256: string;
+  tipoDetectado: ClasificacionDocumentoEmpresarial;
+  motivosClasificacion: string[];
+  metodo: MetodoLecturaEmpresarial;
+  confianzaDocumento: number | null;
+  lecturaDudosa: boolean;
+  datos: DatosRutExtraidos | null;
+  autenticidad: AutenticidadDocumento;
+  resumen: ResumenLecturaEmpresarial;
+  motivos: string[];
+}
+
+export function minimizarLecturaRut(l: LecturaLocalRut): LecturaRutPersistible {
+  const i = l.interpretacion;
+  const persona = i.clasificacion.tipoPersona;
+  return {
+    hashSha256: l.hashSha256,
+    tipoDetectado: i.clasificacion.clasificacion,
+    motivosClasificacion: [...i.clasificacion.motivos],
+    metodo: l.metodo,
+    confianzaDocumento: i.confianzaDocumento,
+    lecturaDudosa: i.lecturaDudosa,
+    datos: i.datos && persona ? minimizarDatosRut(i.datos as unknown as Record<string, unknown>, persona) : null,
+    autenticidad: { ...l.autenticidad },
+    resumen: { ...l.resumen, limitesAplicados: [...(l.resumen.limitesAplicados ?? [])] },
+    motivos: [...i.motivos],
+  };
 }

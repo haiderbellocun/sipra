@@ -11,6 +11,9 @@ import { GEOMETRIA_DOCUMENTO, GeometriaDocumentoPort } from '../../../domain/por
 import { minimizarLecturaActa } from '../../../domain/services/validacion-acta.domain-service';
 import { fechaDeActa } from '../../../domain/services/comparacion-acta.domain-service';
 import { LecturaActaLocalAdapter } from '../lectura-local/lectura-acta-local.adapter';
+import { LecturaRutLocalAdapter } from '../lectura-local/lectura-rut-local.adapter';
+import { ClasificacionDocumentoEmpresarial } from '../../../domain/entities/documento-empresarial';
+import { minimizarLecturaRut } from '../../../domain/services/lectura-local-rut.domain-service';
 import { ExtraccionSimuladaAdapter } from './extraccion.adapter';
 
 /** Documento ajeno que se reconoce al leer un acta → tipo documental de SIPRA (si lo hay). */
@@ -46,6 +49,7 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
     private readonly respaldo: ExtraccionSimuladaAdapter,
     @Optional() actas?: LecturaActaLocalAdapter,
     @Optional() @Inject(GEOMETRIA_DOCUMENTO) geometria?: GeometriaDocumentoPort,
+    @Optional() private readonly rut?: LecturaRutLocalAdapter,
   ) {
     this.servicio = new LecturaLocalEpsService(lector);
     this.actas = actas ?? new LecturaActaLocalAdapter(lector, geometria);
@@ -53,6 +57,7 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
 
   async extraer(contenido: Buffer, mime: string, tipoEsperado: TipoDocumento): Promise<ResultadoExtraccion> {
     if (tipoEsperado === TipoDocumento.ACTA_INICIO) return this.extraerActa(contenido, mime);
+    if ((tipoEsperado === TipoDocumento.RUT_NATURAL || tipoEsperado === TipoDocumento.RUT_JURIDICO) && this.rut) return this.extraerRut(contenido, mime);
     if (tipoEsperado !== TipoDocumento.CERTIFICADO_EPS) return this.respaldo.extraer(contenido, mime, tipoEsperado);
 
     const lectura = await this.servicio.leer(contenido, mime);
@@ -126,4 +131,42 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
     };
   }
 
+  /**
+   * RUT: la lectura completa (clasificación, geometría, NIT/DV, QR) vive en el dominio; aquí se traduce a la forma que
+   * consume el pipeline y se deja la lectura minimizada para que la validación se registre sin releer el archivo.
+   * No hay proveedor externo. La comparación con SIPRA no ocurre aquí: este puerto no conoce la práctica.
+   */
+  private async extraerRut(contenido: Buffer, mime: string): Promise<ResultadoExtraccion> {
+    const lectura = minimizarLecturaRut(await this.rut!.leer(contenido, mime));
+    const d = lectura.datos;
+    const fuente = lectura.metodo === 'ocr' ? 'ocr' : 'texto_nativo';
+    const campo = (valor: string | null | undefined, confianza: number | null | undefined): CampoExtraido => ({
+      valor: valor ?? null, confianza: valor ? (confianza ?? 0) : 0, evidencia: null, fuente: valor ? fuente : null,
+    });
+    const cc = d?.confianzaCampos ?? {};
+    // Solo códigos: ni el contenido del RUT ni datos personales llegan al registro.
+    this.log.debug(`Lectura local de RUT: ${lectura.tipoDetectado}, método=${lectura.metodo}, dudosa=${lectura.lecturaDudosa}`);
+    const campos: ResultadoExtraccion['campos'] = {
+      nit: campo(d?.nit, cc.nit),
+      nombres: campo(d?.nombres, cc.nombre),
+      apellidos: campo(d?.apellidos, cc.nombre),
+      razon_social: campo(d?.razonSocial, cc.nombre),
+      fecha_generacion: campo(d?.fechaGeneracion, cc.fechaGeneracion),
+      actividad_economica: campo(d?.ciiuPrincipal, null),
+    };
+    return {
+      tipoDetectado: lectura.tipoDetectado === ClasificacionDocumentoEmpresarial.RUT_PERSONA_NATURAL ? TipoDocumento.RUT_NATURAL
+        : lectura.tipoDetectado === ClasificacionDocumentoEmpresarial.RUT_PERSONA_JURIDICA ? TipoDocumento.RUT_JURIDICO : null,
+      campos,
+      // Una lectura insuficiente NO devuelve el documento al estudiante: lo revisa una persona.
+      ilegible: false,
+      modelo: 'local-pdfjs-tesseract-rut',
+      tokensEntrada: 0,
+      tokensSalida: 0,
+      costoUsd: 0,
+      proveedor: 'local',
+      duracionMs: 0,
+      lecturaRut: lectura,
+    };
+  }
 }

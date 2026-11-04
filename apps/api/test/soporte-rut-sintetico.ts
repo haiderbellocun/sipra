@@ -1,4 +1,5 @@
-import { CajaTexto } from '../src/domain/ports/out/geometria-documento.port';
+import { CajaTexto, GeometriaDocumentoPort } from '../src/domain/ports/out/geometria-documento.port';
+import { LectorDocumentoLocalPort, LimitesLecturaLocal } from '../src/domain/ports/out/lector-documento-local.port';
 import { Nit } from '../src/domain/value-objects/nit.vo';
 
 /**
@@ -145,3 +146,26 @@ export function rutSintetico(o: OpcionesRut): CajaTexto[] {
 
 /** Texto plano de unas cajas, solo para depurar una prueba. */
 export const textoDe = (cajas: CajaTexto[]): string => cajas.map((c) => c.texto).join(' ');
+
+// ── Puertos de lectura FALSOS (sin pdf.js, Tesseract ni ZXing): sirven cajas sintéticas y QR configurados ──
+
+
+export function puertosRutSinteticos(paginas: { nativo: CajaTexto[] | null; ocr?: CajaTexto[] }[], qr: Record<number, string[]> = {}) {
+  const renders: LimitesLecturaLocal[] = [];
+  const lector: LectorDocumentoLocalPort = {
+    extraerTextoNativo: async () => ({
+      paginas: paginas.length,
+      porPagina: paginas.map((p, i) => ({ pagina: i + 1, texto: p.nativo ? p.nativo.map((c) => c.texto).join(' ') : '' })),
+    }),
+    renderizarPagina: async (_c, pagina, limites) => { renders.push(limites); return { pagina, ancho: 10, alto: 10, imagen: Buffer.from([pagina]) }; },
+    prepararImagen: async (_c, _m, limites) => { renders.push(limites); return { pagina: 1, ancho: 10, alto: 10, imagen: Buffer.from([1]) }; },
+    detectarQr: async (imagen, pagina) => (qr[pagina ?? imagen[0]] ?? []).map((contenido) => ({ formato: 'QRCode', contenido, pagina, posicion: null })),
+    ejecutarOcr: async () => ({ pagina: 1, texto: '', confianza: 0, giro: 0 }),
+  };
+  const geometria: GeometriaDocumentoPort = {
+    cajasTextoNativo: async (_c, pagina) => paginas[pagina - 1].nativo ?? [],
+    cajasOcr: async (imagen) => paginas[imagen[0] - 1]?.ocr ?? [],
+    medirZonaFirma: async () => ({ legible: false, densidadTinta: 0, alturaRelativaTrazo: 0 }),
+  };
+  return { lector, geometria, renders };
+}
