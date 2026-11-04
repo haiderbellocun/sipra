@@ -53,6 +53,8 @@ export interface ResumenSupervisionRut {
   vencidas: number;
   conDiscrepancia: number;
   documentoIncorrecto: number;
+  lecturaDudosa: number;
+  personaDistinta: number;
   porEstado: Record<string, number>;
   funcionarios: { funcionarioId: string; nombre: string; rol: string; reservasVigentes: number; reservasPorVencer: number; decididas7Dias: number }[];
 }

@@ -17,6 +17,7 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
 import { formatearEntero, formatearUsd } from '@shared/utils/moneda';
 import { ActaEstudianteComponent } from '../actas/acta-estudiante.component';
+import { RutEstudianteComponent } from '../rut/rut-estudiante.component';
 import { guiaDocumento, lineaVersionAnterior } from './guia-documento';
 import { textoBandera } from './banderas';
 
@@ -31,7 +32,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
 @Component({
   selector: 'sipra-expediente',
   standalone: true,
-  imports: [EsqueletoComponent, FormsModule, DatePipe, DecimalPipe, RouterLink, EstadoComponent, EtiquetaPipe, ActaEstudianteComponent],
+  imports: [EsqueletoComponent, FormsModule, DatePipe, DecimalPipe, RouterLink, EstadoComponent, EtiquetaPipe, ActaEstudianteComponent, RutEstudianteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     .cab { display:flex; gap:var(--sp-3); align-items:flex-start; flex-wrap:wrap; margin-bottom:var(--sp-4); }
@@ -162,6 +163,10 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                   @if (esEstudiante() && d.tipo === 'acta_inicio') {
                     <div class="doc">
                       <sipra-acta-estudiante [practicaId]="id()" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir('acta_inicio')" />
+                    </div>
+                  } @else if (esEstudiante() && (d.tipo === 'rut_natural' || d.tipo === 'rut_juridico')) {
+                    <div class="doc">
+                      <sipra-rut-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir(d.tipo)" />
                     </div>
                   } @else {
                   <div class="doc">

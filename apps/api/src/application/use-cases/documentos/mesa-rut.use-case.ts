@@ -42,6 +42,8 @@ const ENTIDAD = 'validacion_documento_empresarial';
 const MENSAJE_INCONSISTENCIA_RUT = 'Inconsistencia operativa: el documento ya tiene decisión pero la validación sigue en revisión. Requiere reconciliación controlada por coordinación.';
 export const AVISO_DATOS_SIPRA_CAMBIARON = 'Los datos de SIPRA cambiaron después de esta validación.';
 export const AVISO_LECTURA_OCR = 'Leído por OCR · revisar contra el documento';
+/** Lectura dudosa de un PDF digital (p. ej. un NIT cuyo dígito de verificación no cuadra): no es OCR, y no se dice que lo sea. */
+export const AVISO_LECTURA_DUDOSA = 'Lectura poco segura · revisar contra el documento';
 const AVISO_AUTENTICIDAD = 'SIPRA no verifica la autenticidad del documento: la presencia de un QR no la acredita.';
 
 const ETIQUETA_EVENTO: Record<TipoEvidenciaDocumentoEmpresarial, string> = {
@@ -230,6 +232,8 @@ export class MesaRutUseCase {
         porVencer: abiertas.filter((f) => this.reservaVigente(f, ahora) && (f.reservaHasta as Date).getTime() <= ahora.getTime() + MINUTOS_RESERVA_POR_VENCER * MINUTO_MS).length,
         conDiscrepancia: abiertas.filter((f) => f.hayDiscrepancia).length,
         documentoIncorrecto: abiertas.filter((f) => this.recomendacionDe(f) === RecomendacionRut.DOCUMENTO_INCORRECTO).length,
+        lecturaDudosa: abiertas.filter((f) => f.lecturaDudosa).length,
+        personaDistinta: abiertas.filter((f) => this.recomendacionDe(f) === RecomendacionRut.PERSONA_DISTINTA).length,
       },
       total: items.length,
       items,
@@ -242,6 +246,7 @@ export class MesaRutUseCase {
     if (q.conDiscrepancias === 'no' && f.hayDiscrepancia) return false;
     if (q.documentoIncorrecto === 'si' && this.recomendacionDe(f) !== RecomendacionRut.DOCUMENTO_INCORRECTO) return false;
     if (q.lecturaDudosa === 'si' && !f.lecturaDudosa) return false;
+    if (q.personaDistinta === 'si' && this.recomendacionDe(f) !== RecomendacionRut.PERSONA_DISTINTA) return false;
     if (q.reenvio === 'si' && f.version <= 1) return false;
     if (q.antiguedadMinDias) {
       const dias = Math.floor((ahora.getTime() - (f.recibidaEn ?? f.cargadoEn).getTime()) / DIA_MS);
@@ -264,6 +269,7 @@ export class MesaRutUseCase {
     return {
       validacionId: f.validacionId, practicaId: f.practicaId, estudiante: { nombre: f.estudianteNombre }, empresa: f.empresaRazonSocial,
       tipoRut: f.tipoPersona === TipoPersona.NATURAL ? 'persona_natural' : f.tipoPersona === TipoPersona.JURIDICA ? 'persona_juridica' : null,
+      tipoEsperado: f.tipoDocumento, tipoDetectado: f.tipoDetectado, personaDistinta: this.recomendacionDe(f) === RecomendacionRut.PERSONA_DISTINTA,
       version: f.version, esReenvio: f.version > 1, estado: f.estado, hayDiscrepancia: f.hayDiscrepancia, lecturaDudosa: f.lecturaDudosa,
       recomendacion: this.recomendacionDe(f), prioridad: this.prioridadDe(f, ahora),
       reserva: this.reservaDe(f.asignadoA, f.reservaHasta, f.asignadoNombre, actor.id, ahora),
@@ -355,7 +361,7 @@ export class MesaRutUseCase {
     const inconsistencia = d.estado === Estado.REVISION && this.inconsistente(doc.estado);
     const datos = d.datosExtraidos as DatosRutExtraidos | null;
 
-    const campos = (guardada?.campos ?? []).map((c) => this.aCampo(c, datos, sipra, d.lecturaDudosa, valores));
+    const campos = (guardada?.campos ?? []).map((c) => this.aCampo(c, datos, sipra, d.lecturaDudosa, d.metodoLectura === 'ocr', valores));
     const aviso = sipraCambio || actualizado.recalculada || d.datosSipraCambiaronEn !== null ? AVISO_DATOS_SIPRA_CAMBIARON : null;
 
     const decididoPor = d.decididoPor ? (await this.usuarios.buscarPorId(d.decididoPor))?.nombre ?? null : null;
@@ -364,7 +370,7 @@ export class MesaRutUseCase {
     const versiones = delaPractica.map((x) => x.instantanea()).sort((a, b) => b.version - a.version).map((a) => {
       const vv = validacionesPractica.find((x) => x.documentoId === a.id)?.instantanea();
       return {
-        validacionId: vv?.id ?? '', documentoId: a.id, version: a.version, vigente: a.version === maxVersion, estado: vv?.estado ?? 'sin_validacion',
+        validacionId: vv?.id ?? '', documentoId: a.id, version: a.version, vigente: a.version === maxVersion, estado: vv?.estado ?? 'sin_validacion', motivo: vv?.motivoDecision ?? null,
         cargadaEn: a.cargadoEn.toISOString(), decididaEn: vv?.decididoEn ? vv.decididoEn.toISOString() : null,
       };
     });
@@ -382,7 +388,7 @@ export class MesaRutUseCase {
       tipoEsperado: d.tipoEsperado, tipoDetectado: d.tipoDetectado, tipoPersona: d.tipoPersona,
       lectura: {
         metodo: d.metodoLectura === 'ocr' ? 'ocr' : d.metodoLectura === 'texto' ? 'texto' : null, dudosa: d.lecturaDudosa,
-        aviso: d.lecturaDudosa ? AVISO_LECTURA_OCR : null,
+        aviso: d.lecturaDudosa ? (d.metodoLectura === 'ocr' ? AVISO_LECTURA_OCR : AVISO_LECTURA_DUDOSA) : null,
       },
       // Nunca «RUT auténtico»: la autenticidad sigue sin verificarse; el QR es solo una señal de presencia.
       autenticidad: {
@@ -405,7 +411,7 @@ export class MesaRutUseCase {
   }
 
   /** Una fila SIPRA | RUT | RESULTADO. Un campo crítico sin poder compararse NUNCA se muestra como «diferente». */
-  private aCampo(c: CampoComparacionRut, datos: DatosRutExtraidos | null, sipra: SipraParaRut, dudosa: boolean, valores: boolean): CampoComparadoRutDto {
+  private aCampo(c: CampoComparacionRut, datos: DatosRutExtraidos | null, sipra: SipraParaRut, dudosa: boolean, ocr: boolean, valores: boolean): CampoComparadoRutDto {
     const nombreRut = [datos?.nombres, datos?.apellidos].filter(Boolean).join(' ') || null;
     const nitSipra = sipra.empresa?.nitNumero ?? null;
     const por: Record<string, [string | null, string | null]> = {
@@ -425,7 +431,7 @@ export class MesaRutUseCase {
       campo: c.campo, etiqueta: ETIQUETA_CAMPO[c.campo] ?? c.campo,
       sipra: oculto && sipraValor ? enmascarar(sipraValor) : sipraValor, rut: oculto && rutValor ? enmascarar(rutValor) : rutValor,
       resultado, resultadoTexto: TEXTO_RESULTADO[resultado], criticidad: c.criticidad,
-      advertencia: dudosa && c.criticidad === 'critico' ? AVISO_LECTURA_OCR : null,
+      advertencia: dudosa && c.criticidad === 'critico' ? (ocr ? AVISO_LECTURA_OCR : AVISO_LECTURA_DUDOSA) : null,
     };
   }
 

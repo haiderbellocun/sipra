@@ -95,7 +95,8 @@ export class ValidacionesRutMemoria extends RepoMemoria {
       porVencer: rev.filter((x) => vigente(x) && (x.reservaHasta as Date).getTime() <= ahora.getTime() + 3 * MIN_RUT).length,
       vencidas: rev.filter((x) => x.asignadoA !== null && !vigente(x)).length,
       conDiscrepancia: rev.filter((x) => (x.comparacion as { hayDiscrepancia?: boolean } | null)?.hayDiscrepancia === true).length,
-      documentoIncorrecto: rev.filter((x) => x.tipoDetectado === C.DOCUMENTO_INCORRECTO).length, porEstado, funcionarios: [],
+      documentoIncorrecto: rev.filter((x) => x.tipoDetectado === C.DOCUMENTO_INCORRECTO).length,
+      lecturaDudosa: rev.filter((x) => x.lecturaDudosa).length, personaDistinta: rev.filter((x) => x.expectativa === 'persona_distinta').length, porEstado, funcionarios: [],
     };
   }
 }

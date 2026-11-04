@@ -38,6 +38,11 @@ export interface ItemBandejaRutDto {
   estudiante: { nombre: string };
   empresa: string | null;
   tipoRut: 'persona_natural' | 'persona_juridica' | null;
+  /** Lo que el estudiante indicó (tipo de documento cargado) y lo que el sistema detectó en el archivo. */
+  tipoEsperado: string;
+  tipoDetectado: string | null;
+  /** Se compara contra el tipo de persona esperado y salió el otro (natural ↔ jurídica). */
+  personaDistinta: boolean;
   version: number;
   esReenvio: boolean;
   estado: string;
@@ -55,6 +60,7 @@ export interface ItemBandejaRutDto {
 export interface ListadoBandejaRutDto {
   kpis: {
     abiertas: number; libres: number; mias: number; tomadas: number; porVencer: number; conDiscrepancia: number; documentoIncorrecto: number;
+    lecturaDudosa: number; personaDistinta: number;
   };
   total: number;
   items: ItemBandejaRutDto[];
@@ -100,7 +106,7 @@ export interface DetalleRutDto {
   avisoDatosSipra: string | null;
   datosSipraCambiaronEn: string | null;
   decision: { estado: string; por: string | null; en: string; motivo: string | null } | null;
-  versiones: { validacionId: string; documentoId: string; version: number; vigente: boolean; estado: string; cargadaEn: string; decididaEn: string | null }[];
+  versiones: { validacionId: string; documentoId: string; version: number; vigente: boolean; estado: string; motivo: string | null; cargadaEn: string; decididaEn: string | null }[];
   historial: { fecha: string; tipo: string; etiqueta: string; resultado: string; ronda: number; actor: string | null }[];
   inconsistenciaOperativa: { estadoDocumento: string; mensaje: string } | null;
 }
@@ -113,6 +119,8 @@ export interface SupervisionRutDto {
   vencidas: number;
   conDiscrepancia: number;
   documentoIncorrecto: number;
+  lecturaDudosa: number;
+  personaDistinta: number;
   porEstado: Record<string, number>;
   funcionarios: { funcionarioId: string; nombre: string; rol: string; reservasVigentes: number; reservasPorVencer: number; decididas7Dias: number }[];
 }

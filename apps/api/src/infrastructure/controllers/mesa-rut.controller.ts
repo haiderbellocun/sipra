@@ -40,6 +40,7 @@ export class MesaRutController {
   @ApiQuery({ name: 'conDiscrepancias', required: false, enum: ['si', 'no'] })
   @ApiQuery({ name: 'documentoIncorrecto', required: false, enum: ['si'] })
   @ApiQuery({ name: 'lecturaDudosa', required: false, enum: ['si'] })
+  @ApiQuery({ name: 'personaDistinta', required: false, enum: ['si'] })
   @ApiQuery({ name: 'reenvio', required: false, enum: ['si'] })
   @ApiQuery({ name: 'reserva', required: false, enum: ['libres', 'mias', 'otros', 'vencidas'] })
   @ApiQuery({ name: 'antiguedadMinDias', required: false })

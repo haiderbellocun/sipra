@@ -738,3 +738,70 @@ export interface CorreccionDatosPractica {
   practicaId: string; tipoRemuneracion: string | null; responsableArl: string | null;
   actaIniciacion: 'sin_acta' | 'sin_calculo' | 'recalculada' | 'marcada_posterior_a_decision' | 'sin_cambios';
 }
+
+// ── Mesa de RUT ────────────────────────────────────────────────────────────
+
+export interface ReservaRut { estado: 'libre' | 'mia' | 'otro' | 'vencida'; por: string | null; hasta: string | null; minutosRestantes: number | null }
+export interface PrioridadRut { puntaje: number; razones: string[] }
+
+export interface ItemBandejaRut {
+  validacionId: string; practicaId: string; estudiante: { nombre: string }; empresa: string | null;
+  tipoRut: 'persona_natural' | 'persona_juridica' | null; tipoEsperado: string; tipoDetectado: string | null; personaDistinta: boolean;
+  version: number; esReenvio: boolean; estado: string; hayDiscrepancia: boolean; lecturaDudosa: boolean; recomendacion: string;
+  prioridad: PrioridadRut; reserva: ReservaRut; recibidaEn: string; diasEnBandeja: number;
+  datosSipraCambiaronDespuesDeDecision: boolean; inconsistenciaOperativa: boolean;
+}
+
+export interface ListadoBandejaRut {
+  kpis: {
+    abiertas: number; libres: number; mias: number; tomadas: number; porVencer: number; conDiscrepancia: number;
+    documentoIncorrecto: number; lecturaDudosa: number; personaDistinta: number;
+  };
+  total: number;
+  items: ItemBandejaRut[];
+}
+
+export interface FiltrosRut {
+  estado?: string; tipoPersona?: string; conDiscrepancias?: string; documentoIncorrecto?: string; lecturaDudosa?: string;
+  personaDistinta?: string; reenvio?: string; reserva?: string; antiguedadMinDias?: string; prioridadMinima?: string; buscar?: string;
+}
+
+export interface CampoComparadoRut {
+  campo: string; etiqueta: string; sipra: string | null; rut: string | null;
+  resultado: 'coincide' | 'diferente' | 'informacion_insuficiente' | 'no_aplica' | 'informativo';
+  resultadoTexto: string; criticidad: 'critico' | 'informativo'; advertencia: string | null;
+}
+
+export interface DetalleRut {
+  validacionId: string; practicaId: string; documentoId: string; version: number; vigente: boolean; estado: string; recomendacion: string;
+  prioridad: PrioridadRut; reserva: ReservaRut; puedeDecidir: boolean;
+  tipoEsperado: string | null; tipoDetectado: string | null; tipoPersona: string | null;
+  lectura: { metodo: 'texto' | 'ocr' | null; dudosa: boolean; aviso: string | null };
+  autenticidad: { estado: string; qr: 'detectado' | 'no_determinado'; destinoOficialDian: boolean; aviso: string };
+  estudiante: { nombre: string; documento: string | null; documentoEnmascarado: string };
+  practica: { empresa: string | null; nit: string | null };
+  comparacion: { veredicto: string | null; calculadaEn: string | null; campos: CampoComparadoRut[] } | null;
+  avisoDatosSipra: string | null; datosSipraCambiaronEn: string | null;
+  decision: { estado: string; por: string | null; en: string; motivo: string | null } | null;
+  versiones: Array<{ validacionId: string; documentoId: string; version: number; vigente: boolean; estado: string; motivo: string | null; cargadaEn: string; decididaEn: string | null }>;
+  historial: Array<{ fecha: string; tipo: string; etiqueta: string; resultado: string; ronda: number; actor: string | null }>;
+  inconsistenciaOperativa: { estadoDocumento: string; mensaje: string } | null;
+}
+
+/** Un motivo de devolución del RUT, tal como lo entrega la API (fuente única del catálogo). */
+export interface MotivoDevolucionRut {
+  codigo: string; titulo: string; mensajeEstudiante: { que: string; hacer: string }; requiereDetalle: boolean; aplicaA: string[];
+}
+
+export interface DecisionRut { decision: 'aprobar' | 'devolver' | 'rechazar'; motivo?: string; justificacion?: string }
+
+export interface SupervisionRut {
+  abiertas: number; libres: number; tomadas: number; porVencer: number; vencidas: number; conDiscrepancia: number;
+  documentoIncorrecto: number; lecturaDudosa: number; personaDistinta: number; porEstado: Record<string, number>;
+  funcionarios: Array<{ funcionarioId: string; nombre: string; rol: string; reservasVigentes: number; reservasPorVencer: number; decididas7Dias: number }>;
+}
+
+export interface EstadoRutEstudiante {
+  estado: 'pendiente' | 'en_procesamiento' | 'en_revision' | 'necesita_correccion' | 'aprobado' | 'rechazado';
+  etiqueta: string; que: string; hacer: string; puedeReenviar: boolean;
+}

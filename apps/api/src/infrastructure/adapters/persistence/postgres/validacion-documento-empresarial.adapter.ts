@@ -243,7 +243,9 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
                                AND v.reserva_hasta <= $2::timestamptz + make_interval(mins => $3))::int AS por_vencer,
               count(*) FILTER (WHERE v.estado = 'revision' AND v.asignado_a IS NOT NULL AND v.reserva_hasta <= $2)::int AS vencidas,
               count(*) FILTER (WHERE v.estado = 'revision' AND COALESCE((v.comparacion->>'hayDiscrepancia')::boolean, false))::int AS con_discrepancia,
-              count(*) FILTER (WHERE v.estado = 'revision' AND v.tipo_detectado = 'documento_incorrecto')::int AS incorrectos
+              count(*) FILTER (WHERE v.estado = 'revision' AND v.tipo_detectado = 'documento_incorrecto')::int AS incorrectos,
+              count(*) FILTER (WHERE v.estado = 'revision' AND v.lectura_dudosa)::int AS dudosas,
+              count(*) FILTER (WHERE v.estado = 'revision' AND v.expectativa = 'persona_distinta')::int AS personas_distintas
          ${base}`,
       [alcance, ahora, MINUTOS_RESERVA_POR_VENCER_RUT],
     );
@@ -266,7 +268,7 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
     const r = resumen[0];
     return {
       abiertas: r.abiertas, libres: r.libres, tomadas: r.tomadas, porVencer: r.por_vencer, vencidas: r.vencidas,
-      conDiscrepancia: r.con_discrepancia, documentoIncorrecto: r.incorrectos,
+      conDiscrepancia: r.con_discrepancia, documentoIncorrecto: r.incorrectos, lecturaDudosa: r.dudosas, personaDistinta: r.personas_distintas,
       porEstado: Object.fromEntries(porEstado.map((e) => [e.estado, e.n])),
       funcionarios: funcionarios.map((f) => ({
         funcionarioId: f.id, nombre: f.nombre, rol: f.rol, reservasVigentes: f.vigentes, reservasPorVencer: f.por_vencer,

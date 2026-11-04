@@ -1544,6 +1544,24 @@ Una persona revisa un RUT ya procesado y decide **aprobar, devolver o rechazar**
 - **Pruebas.** `mesa-rut-dominio` (reglas, catálogo, permisos, planificador, entidad), `mesa-rut` (caso de uso real con repositorios en memoria: decisiones, reserva, concurrencia, rollback por punto, versiones, recálculo, datos cambiados, permisos, privacidad del estudiante), `migracion-decision-rut`, y `npm run test:pg:decision-rut` contra PostgreSQL desechable (25 reservas simultáneas → 1; 12 decisiones simultáneas → 1; rollback completo en cada punto; restricciones; evidencia y auditoría inmutables). `verificar:migraciones` cubre la 20 (desde cero, reversión, upgrade).
 - **Pendiente / decisiones de producto.** (1) **RUT natural de un tercero**: la política vigente es que debe corresponder al estudiante titular (si no, discrepancia en `documento`); no se soporta tercero hasta que producto lo defina. (2) Si el **auxiliar** debe poder decidir el RUT (hoy no, por coherencia con los permisos existentes). (3) Pantalla de la Mesa de RUT (no se construyó frontend). (4) Retención y purga (sin definir). (5) Retiro del legado «año en curso». (6) Cámara.
 
+
+### 7.27 Frontend de la Mesa de RUT (Bloque 5)
+
+Pantalla propia, independiente de las Mesas de EPS y de Actas (`features/rut`, ruta perezosa `/mesa-rut`, entrada «RUT» del menú solo para docente, coordinación y administración; el auxiliar no la ve ni entra). **El backend sigue siendo la fuente de verdad de la autorización**: la pantalla no la reemplaza.
+
+- **Estructura.** Lista de casos a la izquierda, documento y revisión a la derecha (el documento queda fijo mientras se revisa), barra de decisión fija abajo. En pantallas angostas se ve una sola cosa a la vez (lista → caso). Patrón y estado (`RutMesaEstado`, signals, `OnPush`) derivados de la Mesa de Actas, sin copiar su CSS.
+- **Cola.** Estudiante, empresa, tipo esperado/detectado, problema principal en una línea, antigüedad y reserva; KPI: pendientes, míos, discrepancias, leídos por OCR, persona distinta y documento incorrecto (supervisión suma «por vencer»). «Tomar siguiente» usa la reserva atómica del servidor.
+- **Visor.** PDF autenticado como blob local (cabecera Authorization, sin URL permanente ni credenciales en la URL; se libera al cambiar de caso) con página, zoom, ajustar ancho y pantalla ampliada.
+- **Revisión.** Resumen humano (Consistente, Revisión necesaria, Documento no corresponde, Persona distinta, Información insuficiente, Leído por OCR), método de lectura discreto («Texto digital» o «Leído por OCR · revisar contra el documento»; una lectura digital dudosa NO se dice leída por OCR), tabla **Campo | SIPRA | RUT | Resultado** con críticos (PN: documento y nombre; PJ: NIT, DV y razón social) y, aparte, informativos (CIIU, DIVIPOLA, fecha). «No coincide · CRÍTICO» con icono y texto; lo que no se pudo comparar nunca se muestra como «No coincide». Persona distinta: «El documento es un RUT válido, pero corresponde a un tipo de persona diferente al esperado.» Documento incorrecto: «El archivo no corresponde al tipo de documento esperado.» (se puede revisar el archivo; nada se rechaza solo). QR solo «detectado / no determinado» y «Destino DIAN detectado»; **autenticidad: no verificada**, nunca «RUT auténtico».
+- **Decisión.** Aprobar (consistente: sin justificación larga; con discrepancia, persona distinta, lectura dudosa, información insuficiente o documento incorrecto: advertencia y 40 caracteres con contador «0 / 40»), Devolver (motivos y mensajes del catálogo de la API, filtrados por tipo de RUT; «otro» exige detalle; vista previa «¿Qué pasó? / ¿Qué debo hacer?»), Rechazar («Esta versión quedará cerrada», justificación y confirmación explícita; 40 si el sistema lo ve consistente). Sin reserva válida no se decide ni se llama a la API; el servidor revalida todo.
+- **Versiones, evidencia e historial.** Pestañas con la versión vigente y las anteriores (estado, fecha, decisión y motivo); la revisión opera siempre sobre la vigente. La evidencia no muestra texto OCR ni hashes.
+- **Recálculo y datos de SIPRA.** Abrir un caso abierto recalcula la comparación (botón «Recalcular comparación»); con la decisión ya tomada, «Los datos de SIPRA cambiaron después de esta validación.» y la decisión no se altera.
+- **Supervisión** (coordinación y administración): libres, tomados, por vencer, vencidos, discrepancias, OCR, persona distinta, documento incorrecto, carga por funcionario y por estado; la reserva de otra persona se libera con confirmación y queda auditada.
+- **Estudiante** (`sipra-rut-estudiante` en el expediente de las modalidades que exigen RUT: CUNbre): Pendiente, En procesamiento, En revisión, Necesita corrección, Aprobado, Rechazado, con «¿Qué pasó? / ¿Qué debo hacer?» y «Subir nueva versión»; sin códigos, confianza, hashes ni detalle técnico.
+- **Cambios aditivos de API** (solo lectura): ítems con `tipoEsperado`, `tipoDetectado` y `personaDistinta`; KPI `lecturaDudosa` y `personaDistinta`; filtro `personaDistinta`; supervisión con `lecturaDudosa` y `personaDistinta`; versiones con `motivo`; aviso de lectura dudosa que dice «OCR» solo si el método fue OCR. Sin migraciones ni cambios de permisos.
+- **Pruebas.** Frontend: `rut-util` y `rut-mesa-estado` (147 pruebas del frontend en total). API: `mesa-rut` (103). E2E en Chrome real (`pruebas/e2e/mesa-rut.e2e.mjs`, 54 pasos, PDF sintéticos generados por `herramientas/preparar-e2e-rut.ts`): estudiante → docente (toma, revisa, devuelve) → estudiante (ve el mensaje y reenvía) → docente (aprueba la versión 2), más rechazo, discrepancia crítica con 40 caracteres, lectura por OCR, persona distinta, documento incorrecto, reserva concurrente y liberar, supervisión, datos de SIPRA cambiados, permisos y responsive 1920/1440/1366/1024/768/390.
+- **Limitaciones.** (1) La lectura por OCR real de un RUT escaneado sintético no es estable (se clasifica como otro documento): en el E2E el método «OCR» se marca por SQL sobre una lectura digital dudosa; el aviso sale de la misma regla. (2) El visor usa el visor PDF del navegador (en Chrome sin pantalla no renderiza el contenido; los controles actúan sobre su URL). (3) Sigue pendiente la decisión de producto sobre el RUT natural de un tercero y sobre si el auxiliar decide el RUT.
+
 ---
 
 ## 8. Cumplimiento normativo
@@ -3128,6 +3146,10 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.21.0 — 4 de noviembre de 2026
+
+Documentos empresariales, Bloque 5: frontend de la Mesa de RUT (ver §7.27). Pantalla propia con cola, visor autenticado, comparación SIPRA ↔ RUT, decisión (aprobar, devolver, rechazar) con justificación reforzada y catálogo de motivos de la API, versiones, evidencia, historial, supervisión y estado humano para el estudiante. La autenticidad se muestra siempre como no verificada. Campos aditivos de solo lectura en la API; sin migraciones, permisos nuevos, Cámara, RUES real ni cambios en el lector. Verificado con pruebas del frontend, E2E en Chrome (54 pasos) y responsive de 390 a 1920.
 
 ### 0.20.0 — 4 de noviembre de 2026
 

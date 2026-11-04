@@ -52,7 +52,7 @@ export class RepoMemoria implements ValidacionDocumentoEmpresarialRepositoryPort
   async versionMaximaDocumento(practicaId: string, tipo: string) { return this.ultimaVersion.get(`${practicaId}|${tipo}`) ?? 0; }
   async listarMesaRut(_filtro: FiltroMesaRut): Promise<FilaMesaRut[]> { return []; }
   async supervisionRut(_ahora: Date, _escuelas: readonly string[] | null): Promise<ResumenSupervisionRut> {
-    return { abiertas: 0, libres: 0, tomadas: 0, porVencer: 0, vencidas: 0, conDiscrepancia: 0, documentoIncorrecto: 0, porEstado: {}, funcionarios: [] };
+    return { abiertas: 0, libres: 0, tomadas: 0, porVencer: 0, vencidas: 0, conDiscrepancia: 0, documentoIncorrecto: 0, lecturaDudosa: 0, personaDistinta: 0, porEstado: {}, funcionarios: [] };
   }
   async buscarDuplicados(practicaId: string, tipo: string, hash: string, excluir: string) {
     return this.documentos.filter((d) => d.practicaId === practicaId && d.tipo === tipo && d.hash === hash && d.documentoId !== excluir)

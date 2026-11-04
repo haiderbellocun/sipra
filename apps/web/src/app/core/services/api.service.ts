@@ -12,6 +12,7 @@ import {
   ConsultaAdresPreparada, FilaBandejaAdres, ResultadoAdres,
   DecisionMesa, DetalleMesa, FiltrosMesa, ListadoMesa, ResultadoTomarSiguiente, SupervisionMesa,
   CorreccionDatosPractica, DecisionActa, MotivoDevolucionActa, DetalleActa, EstadoActaEstudiante, FiltrosActas, ListadoBandejaActa, ReservaActa, SupervisionActa,
+  DecisionRut, DetalleRut, EstadoRutEstudiante, FiltrosRut, ListadoBandejaRut, MotivoDevolucionRut, ReservaRut, SupervisionRut,
 } from '../models/modelos';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
@@ -95,6 +96,49 @@ export class ApiService {
 
   estadoDeMiActa(practicaId: string): Observable<EstadoActaEstudiante> {
     return this.http.get<EstadoActaEstudiante>(`${this.base}/actas-iniciacion/practica/${practicaId}/estado`);
+  }
+
+  // ── Mesa de RUT ────────────────────────────────────────────────────────
+  listarMesaRut(filtros: FiltrosRut = {}): Observable<ListadoBandejaRut> {
+    return this.http.get<ListadoBandejaRut>(`${this.base}/mesa-rut`, { params: aParams({ ...filtros }) });
+  }
+
+  detalleRut(id: string): Observable<DetalleRut> {
+    return this.http.get<DetalleRut>(`${this.base}/mesa-rut/${id}`);
+  }
+
+  /** El RUT llega por la sesión autenticada (cabecera Authorization): sin enlace firmado ni credencial en la URL. */
+  archivoRut(id: string): Observable<Blob> {
+    return this.http.get(`${this.base}/mesa-rut/${id}/archivo`, { responseType: 'blob' });
+  }
+
+  tomarRut(id: string): Observable<ReservaRut> {
+    return this.http.post<ReservaRut>(`${this.base}/mesa-rut/${id}/tomar`, {});
+  }
+
+  liberarRut(id: string): Observable<ReservaRut> {
+    return this.http.post<ReservaRut>(`${this.base}/mesa-rut/${id}/liberar`, {});
+  }
+
+  tomarSiguienteRut(criterios: { conDiscrepancias?: 'si' | 'no'; documentoIncorrecto?: 'si' } = {}): Observable<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }> {
+    return this.http.post<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }>(`${this.base}/mesa-rut/tomar-siguiente`, criterios);
+  }
+
+  /** Fuente única del catálogo de motivos de devolución: la pantalla no mantiene una copia. */
+  motivosDevolucionRut(): Observable<MotivoDevolucionRut[]> {
+    return this.http.get<MotivoDevolucionRut[]>(`${this.base}/mesa-rut/motivos-devolucion`);
+  }
+
+  decidirRut(id: string, dto: DecisionRut): Observable<unknown> {
+    return this.http.post(`${this.base}/mesa-rut/${id}/decision`, dto);
+  }
+
+  supervisionRut(): Observable<SupervisionRut> {
+    return this.http.get<SupervisionRut>(`${this.base}/mesa-rut/supervision`);
+  }
+
+  estadoDeMiRut(practicaId: string): Observable<EstadoRutEstudiante> {
+    return this.http.get<EstadoRutEstudiante>(`${this.base}/mesa-rut/practica/${practicaId}/estado`);
   }
 
   /** Corrección controlada (coordinación/administración): remuneración y/o quién asume la ARL, con justificación. */

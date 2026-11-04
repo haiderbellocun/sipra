@@ -590,3 +590,31 @@ describe('RUT · lo que ve el estudiante', () => {
     expect(await m.estudiante.estado(c.practicaId, actorDe(Rol.ESTUDIANTE, { id: c.estudianteId }))).toMatchObject({ estado: 'pendiente', puedeReenviar: true });
   });
 });
+
+describe('Mesa de RUT · lo que la pantalla necesita de la bandeja y la supervisión', () => {
+  it('cada ítem trae lo esperado y lo detectado; los KPI cuentan OCR dudoso y persona distinta; el filtro de persona distinta funciona', async () => {
+    const m = montarMesaRut();
+    await caso(m, 'normal');
+    await caso(m, 'ocr', { lectura: OCR_DUDOSO });
+    await caso(m, 'pd', { tipoDocumento: TipoDocumento.RUT_NATURAL, lectura: lecturaPj() });
+    const l = await m.mesa.listar(coordRut(), {}, AHORA);
+    expect(l.kpis).toMatchObject({ abiertas: 3, lecturaDudosa: 1, personaDistinta: 1 });
+    const pd = l.items.find((i) => i.personaDistinta)!;
+    expect(pd).toMatchObject({ tipoEsperado: 'rut_natural', tipoDetectado: 'rut_persona_juridica', tipoRut: 'persona_juridica' });
+    expect((await m.mesa.listar(coordRut(), { personaDistinta: 'si' }, AHORA)).items.map((i) => i.validacionId)).toEqual([pd.validacionId]);
+    expect((await m.mesa.listar(coordRut(), { lecturaDudosa: 'si' }, AHORA)).total).toBe(1);
+    const s = await m.mesa.supervision(coordRut(), AHORA);
+    expect(s).toMatchObject({ lecturaDudosa: 1, personaDistinta: 1 });
+  });
+
+  it('las versiones traen el motivo de la devolución para el historial', async () => {
+    const m = montarMesaRut();
+    const t = tutor();
+    const v1 = await caso(m, 'v1', { practicaId: 'p1', version: 1 }, t);
+    await m.mesa.decidir(v1.validacionId, t, { decision: 'devolver', motivo: MotivoDevolucionRut.ILEGIBLE }, AHORA);
+    const v2 = await caso(m, 'v2', { practicaId: 'p1', version: 2 });
+    const d = await m.mesa.detalle(v2.validacionId, t, AHORA);
+    expect(d.versiones.find((x) => x.version === 1)).toMatchObject({ estado: 'devuelto', motivo: 'documento_ilegible', vigente: false });
+    expect(d.versiones.find((x) => x.version === 2)).toMatchObject({ motivo: null, vigente: true });
+  });
+});
