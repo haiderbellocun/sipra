@@ -1562,6 +1562,28 @@ Pantalla propia, independiente de las Mesas de EPS y de Actas (`features/rut`, r
 - **Pruebas.** Frontend: `rut-util` y `rut-mesa-estado` (147 pruebas del frontend en total). API: `mesa-rut` (103). E2E en Chrome real (`pruebas/e2e/mesa-rut.e2e.mjs`, 54 pasos, PDF sintéticos generados por `herramientas/preparar-e2e-rut.ts`): estudiante → docente (toma, revisa, devuelve) → estudiante (ve el mensaje y reenvía) → docente (aprueba la versión 2), más rechazo, discrepancia crítica con 40 caracteres, lectura por OCR, persona distinta, documento incorrecto, reserva concurrente y liberar, supervisión, datos de SIPRA cambiados, permisos y responsive 1920/1440/1366/1024/768/390.
 - **Limitaciones.** (1) La lectura por OCR real de un RUT escaneado sintético no es estable (se clasifica como otro documento): en el E2E el método «OCR» se marca por SQL sobre una lectura digital dudosa; el aviso sale de la misma regla. (2) El visor usa el visor PDF del navegador (en Chrome sin pantalla no renderiza el contenido; los controles actúan sobre su URL). (3) Sigue pendiente la decisión de producto sobre el RUT natural de un tercero y sobre si el auxiliar decide el RUT.
 
+
+### 7.28 Decisión arquitectónica: Mesa de Validación Documental (futura)
+
+**Estado: decisión tomada, SIN implementar.** Este apartado solo la registra para que Cámara de Comercio y los bloques siguientes la respeten. No hay ruta, frontend, agregador, API de expediente ni cambios de navegación; EPS, Actas y RUT no se tocan.
+
+- **Problema operativo.** Hoy la revisión se reparte por documento (Mesa EPS, Mesa de Actas, Mesa de RUT y, después, Cámara). Un estudiante carga un **paquete** de documentos y el funcionario necesita revisar su **expediente**: con las Mesas actuales tiene que buscar al mismo estudiante en cuatro lugares distintos (cambio de contexto).
+- **Decisión.** La experiencia operativa final será una **Mesa de Validación Documental centrada en estudiante + práctica**. Los motores especializados **no desaparecen**: cada uno conserva su dominio, lectura, comparación, decisiones, evidencia y reservas (EPS: ADRES y verificación; Actas: clasificación y firmas; RUT: PN/PJ y QR; Cámara: su propio dominio). La Mesa unificada es una **capa de orquestación**; **no** se crea un megadominio documental, **no** se duplican reglas y **no** se copian decisiones al frontend. Al elegir un documento, la Mesa usa la API y los servicios del motor correspondiente.
+- **Cola futura.** Una fila por **práctica + estudiante**: estudiante, modalidad, escuela, cantidad de documentos aplicables, aprobados, pendientes, en revisión, devueltos, críticos, OCR/no determinables y antigüedad; con una vista por documento (p. ej. EPS en revisión, RUT revisión necesaria, Cámara pendiente, ARL pendiente, Acta no aplica), progreso («1 / 4 aprobados») y alertas («2 documentos requieren revisión»).
+- **Detalle del expediente.** Navegación por documento (EPS, RUT, Cámara, ARL, Acta y los demás que correspondan a la modalidad) con un estado común: pendiente, procesando, revisión, necesita corrección, aprobado, rechazado, no aplica. Flujo buscado: abrir estudiante → revisar un documento → siguiente documento → … sin volver a buscar al estudiante.
+- **Reservas (a analizar después; el modelo actual NO cambia).** Opción A, por documento; opción B, por expediente/práctica. **Preferencia inicial: por documento**, para que distintos especialistas trabajen documentos distintos del mismo expediente sin bloquearlo entero. La Mesa unificada solo mostraría quién tiene reservado cada documento. Hoy cada motor ya reserva por documento (una reserva por validación), así que esta opción no exige cambiar ninguno.
+- **Contrato que debe cumplir cada motor** (Cámara incluida) para que la Mesa unificada lo consuma igual que EPS, RUT y Actas:
+  1. validación propia, por documento y versión, con estados propios (y un estado humano derivable: pendiente, procesando, revisión, necesita corrección, aprobado, rechazado);
+  2. listado/bandeja con la última versión vigente, filtros y prioridad, y alcance por escuela;
+  3. detalle consultable (comparación contra SIPRA, método de lectura, avisos de datos de SIPRA cambiados, versiones, evidencia, historial);
+  4. archivo por la sesión autenticada, sin URL permanente, con apertura auditada;
+  5. decisión humana atómica (documento + validación + evidencia + auditoría en una transacción) con catálogo canónico de motivos de devolución en el dominio;
+  6. reservas con exclusión mutua en SQL (tomar, tomar siguiente, liberar, supervisión);
+  7. evidencia de solo inserción y auditoría;
+  8. estado humano para el estudiante, sin códigos internos;
+  9. API consistente con las existentes (mismos nombres de operaciones y formas de respuesta) y autorización declarada en cada ruta; el backend es la fuente de verdad de los permisos.
+- **Siguiente paso.** Construir Cámara de Comercio de punta a punta respetando ese contrato. Solo cuando esté completa, abrir un bloque separado, **Mesa Documental Unificada**, que agregue EPS, RUT, Cámara, Actas, ARL y los demás documentos aplicables.
+
 ---
 
 ## 8. Cumplimiento normativo
@@ -3146,6 +3168,10 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.21.1 — 4 de noviembre de 2026
+
+Decisión arquitectónica registrada, sin cambios de código (ver §7.28): la revisión final será una **Mesa de Validación Documental** centrada en estudiante + práctica, como capa de orquestación sobre los motores especializados (EPS, Actas, RUT y Cámara, que conservan su dominio, decisiones, evidencia y reservas). Reserva por documento como preferencia inicial, sin cambiar el modelo actual. Contrato común que Cámara de Comercio debe cumplir. Sin ruta, frontend, agregador ni API de expediente.
 
 ### 0.21.0 — 4 de noviembre de 2026
 
