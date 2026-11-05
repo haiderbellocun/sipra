@@ -16,6 +16,7 @@
  */
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { DataSource } from 'typeorm';
 import {
   ClasificacionDocumentoEmpresarial as C, EstadoValidacionDocumentoEmpresarial as Estado, TipoPersona,
@@ -195,6 +196,49 @@ async function main(): Promise<void> {
     comprobar('otra práctica no se mezcla', (await repo.buscarDuplicados(randomUUID(), 'camara_comercio', hashDup, copia)).length === 0);
     const [{ n: conservados }] = await ds.query('SELECT count(*)::int AS n FROM documentos WHERE id = ANY($1)', [[original, copia, otroTipo]]);
     comprobar('detectar no borra nada: los tres documentos siguen', conservados === 3, String(conservados));
+
+    console.log('\n— Cámara de Comercio: las tres variantes se guardan y se leen sin pérdida (sin migración nueva) —');
+    const comunes = {
+      nit: '900123456', dv: '7', matricula: '654321', camara: 'CIUDAD DEMO', fechaMatricula: '2018-01-17', ultimoAnioRenovado: 2026,
+      fechaRenovacion: null, estadoRegistral: 'no_determinable', domicilioMunicipio: 'Ciudad Demo', ciiu: '6201', fechaExpedicion: '2026-09-10',
+      codigoVerificacion: 'ZZ99YY88XX', urlVerificacion: 'https://verifica.ejemplo.test', diasVerificacionDocumento: 60, firmaPdfPresente: true,
+    } as const;
+    const variantes: [string, C, TipoPersona, Record<string, unknown>][] = [
+      ['matrícula de persona natural', C.CAMARA_MATRICULA_PERSONA_NATURAL, TipoPersona.NATURAL,
+        { ...comunes, tipoCertificado: 'matricula_mercantil', tipoPersona: 'natural', nombreORazonSocial: 'MARIA FERNANDA LOPEZ RIVERA', representanteLegal: null }],
+      ['matrícula de sociedad', C.CAMARA_MATRICULA_SOCIEDAD, TipoPersona.JURIDICA,
+        { ...comunes, tipoCertificado: 'matricula_mercantil', tipoPersona: 'juridica', nombreORazonSocial: 'ACME DEMOSTRACION S.A.S.', representanteLegal: null }],
+      ['existencia y representación', C.CAMARA_EXISTENCIA_REPRESENTACION, TipoPersona.JURIDICA,
+        { ...comunes, tipoCertificado: 'existencia_representacion', tipoPersona: 'juridica', nombreORazonSocial: 'ACME DEMOSTRACION S.A.S.', representanteLegal: 'CARLOS ANDRES PEREZ GOMEZ' }],
+    ];
+    const hashPrimera = 'e'.repeat(64);
+    const primera = await nuevoDocumento('camara_comercio', hashPrimera);
+    for (const [nombre, clasificacion, persona, datos] of variantes) {
+      const hash = nombre === 'existencia y representación' ? hashPrimera : randomUUID().replace(/-/g, '') + randomUUID().replace(/-/g, '');
+      const docId = nombre === 'existencia y representación' ? await nuevoDocumento('camara_comercio', hashPrimera) : await nuevoDocumento('camara_comercio', hash);
+      const vc = ValidacionDocumentoEmpresarial.pendiente({ id: randomUUID(), documentoId: docId, practicaId: practica, estudianteId: estudiante, tipoEsperado: 'camara_comercio', recibidaEn: ahora, ahora });
+      await repo.crearSiNoExiste(vc.instantanea());
+      const w = (await repo.buscarPorDocumento(docId))!;
+      w.iniciarProcesamiento(ahora);
+      await repo.guardarSiVersion(w.instantanea(), 1);
+      const w2 = (await repo.buscarPorDocumento(docId))!;
+      w2.registrarResultado({
+        tipoDetectado: clasificacion, expectativa: 'coincide', metodoLectura: 'texto', confianza: 1, lecturaDudosa: false, hashDocumento: hash,
+        duplicadoDeDocumentoId: nombre === 'existencia y representación' ? primera : null,
+        datosExtraidos: datos as never, comparacion: { campos: [{ campo: 'nit', resultado: 'coincide' }], hayDiscrepancia: false },
+      }, ahora);
+      comprobar(`${nombre}: se guarda`, await repo.guardarSiVersion(w2.instantanea(), 2));
+      const l = (await repo.buscarPorDocumento(docId))!.instantanea();
+      comprobar(`${nombre}: clasificación, familia y persona salen de la base intactas`, l.tipoDetectado === clasificacion && l.familiaDocumento === 'camara' && l.tipoPersona === persona);
+      comprobar(`${nombre}: los datos vuelven idénticos (estado registral no_determinable, renovación sin fecha, firma presente)`,
+        isDeepStrictEqual(l.datosExtraidos, datos) && l.autenticidad.estado === 'no_verificable', JSON.stringify(l.datosExtraidos));
+      if (nombre === 'existencia y representación') {
+        comprobar('el duplicado exacto se registra apuntando al primer documento (y no se borra ninguno)', l.duplicadoDeDocumentoId === primera);
+      }
+    }
+    await rechaza('Cámara: una bandera de «vigente» no entra en los datos', () => insertar(revision({
+      tipo_detectado: 'camara_matricula_sociedad', familia_documento: 'camara', tipo_persona: 'juridica', datos_extraidos: { tipoPersona: 'juridica', vigente: true },
+    })), /ck_vdemp_datos/);
   } finally {
     await ds.destroy();
   }

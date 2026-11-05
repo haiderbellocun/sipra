@@ -162,6 +162,12 @@ export class ValidacionDocumentoEmpresarial {
       if (r.tipoDetectado === C.CAMARA_MATRICULA_PERSONA_NATURAL && (r.datosExtraidos as DatosCamaraExtraidos).representanteLegal) {
         throw new ResultadoDocumentoEmpresarialInvalidoError('una matrícula de persona natural no tiene representante legal');
       }
+      if (familia === FamiliaDocumentoEmpresarial.CAMARA) {
+        const esperado = r.tipoDetectado === C.CAMARA_EXISTENCIA_REPRESENTACION ? 'existencia_representacion' : 'matricula_mercantil';
+        if ((r.datosExtraidos as DatosCamaraExtraidos).tipoCertificado !== esperado) {
+          throw new ResultadoDocumentoEmpresarialInvalidoError('el tipo de certificado de los datos no corresponde a la clasificación');
+        }
+      }
     }
     if (r.hashDocumento !== null && !esSha256(r.hashDocumento)) throw new ResultadoDocumentoEmpresarialInvalidoError('el hash no es un SHA-256');
     if (r.confianza !== null && (r.confianza < 0 || r.confianza > 1)) throw new ResultadoDocumentoEmpresarialInvalidoError('la confianza va de 0 a 1');

@@ -70,6 +70,22 @@ function clasificarCamara(t: string): ResultadoClasificacionEmpresarial | null {
   return null;
 }
 
+/**
+ * Rasgos de una factura o documento comercial. Una Cámara de Comercio también EMITE facturas (y cobra certificados):
+ * que un documento nombre a una Cámara, un NIT, una ciudad o el RUES no lo vuelve un certificado.
+ */
+const SENALES_FACTURA: readonly [string, string][] = [
+  ['factura_titulo', 'FACTURA ELECTRONICA'],
+  ['factura_venta', 'FACTURA DE VENTA'],
+  ['factura_cufe', 'CUFE'],
+  ['factura_forma_pago', 'FORMA DE PAGO'],
+  ['factura_medio_pago', 'MEDIO DE PAGO'],
+  ['factura_subtotal', 'SUBTOTAL'],
+  ['factura_total_pagar', 'TOTAL A PAGAR'],
+];
+/** Con al menos estas señales distintas el documento es una factura (una sola frase suelta no basta). */
+const MIN_SENALES_FACTURA = 2;
+
 export function clasificarDocumentoEmpresarial(textoCrudo: string | null | undefined): ResultadoClasificacionEmpresarial {
   const t = normalizarTexto(textoCrudo);
   if (t.length < MIN_CARACTERES_CLASIFICABLE) return resultado(C.NO_DETERMINABLE, ['texto_insuficiente']);
@@ -77,14 +93,25 @@ export function clasificarDocumentoEmpresarial(textoCrudo: string | null | undef
   const senalesRut = contar(t, SENALES_RUT);
   const rut = senalesRut.length >= MIN_SENALES_RUT;
   const camara = clasificarCamara(t);
+  const senalesFactura = contar(t, SENALES_FACTURA);
+  const factura = senalesFactura.length >= MIN_SENALES_FACTURA;
 
   // Un RUT y un certificado de Cámara a la vez no es una lectura que se pueda sostener.
   if (rut && camara && camara.clasificacion !== C.NO_DETERMINABLE) return resultado(C.NO_DETERMINABLE, ['rut_y_camara_a_la_vez']);
+  // Una factura que además lleva el título de un certificado (p. ej. cobra un «certificado de matrícula mercantil»): señales
+  // fuertes de tipos incompatibles. No se elige a la fuerza: lo decide una persona.
+  if (factura && (rut || camara)) return resultado(C.NO_DETERMINABLE, [...senalesFactura, 'factura_y_certificado_a_la_vez']);
   if (rut) return clasificarRut(t, senalesRut);
   if (camara) return camara;
+  if (factura) {
+    // Distingue «documento emitido por una Cámara» de «certificado de Cámara»: el emisor no cambia lo que el documento ES.
+    return resultado(C.DOCUMENTO_INCORRECTO, [...senalesFactura, ...(t.includes('CAMARA DE COMERCIO') ? ['emitido_por_camara_no_es_certificado'] : [])]);
+  }
 
-  // Texto suficiente, sin rasgos de RUT ni de certificado: es otro documento (p. ej. una factura de una Cámara).
-  return resultado(C.DOCUMENTO_INCORRECTO, ['sin_rasgos_de_rut_ni_certificado_de_camara']);
+  // Texto suficiente, sin rasgos de RUT ni de certificado: es otro documento.
+  return resultado(C.DOCUMENTO_INCORRECTO, [
+    'sin_rasgos_de_rut_ni_certificado_de_camara', ...(t.includes('CAMARA DE COMERCIO') ? ['emitido_por_camara_no_es_certificado'] : []),
+  ]);
 }
 
 // ── Expectativa ─────────────────────────────────────────────────────────────

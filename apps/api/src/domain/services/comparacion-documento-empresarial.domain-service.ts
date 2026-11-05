@@ -106,17 +106,72 @@ export function compararRutPersonaJuridica(datos: DatosRutExtraidos, empresa: Si
 
 // ── Cámara ──────────────────────────────────────────────────────────────────
 
+/** Titular esperado de una matrícula de persona natural: quien SIPRA dice que es el comerciante. */
+export interface SipraTitularCamara {
+  /** Cédula u otra identificación del comerciante (solo dígitos o con separadores; se normaliza). */
+  identificacion: string | null;
+  /** DV de SIPRA, si lo conoce. */
+  dv: number | null;
+  nombre: string | null;
+}
+
+/**
+ * Matrícula mercantil de una PERSONA NATURAL: identificación y nombre contra el titular esperado. No tiene representante
+ * legal, así que no se compara ni se exige. El DV, si el certificado lo trae, debe cuadrar con la identificación leída:
+ * si no cuadra, el número no es lectura confiable (nunca se corrige). Si el certificado no trae DV, se compara el número
+ * y el DV queda como `informacion_insuficiente`.
+ */
+export function compararCamaraPersonaNatural(datos: DatosCamaraExtraidos, titular: SipraTitularCamara): ComparacionDocumentoEmpresarial {
+  if (datos.tipoPersona !== TipoPersona.NATURAL) throw new Error('compararCamaraPersonaNatural exige una matrícula de persona natural');
+  const control = controlarNitLeido(datos.nit, datos.dv);
+  const idSipra = (titular.identificacion ?? '').replace(/\D/g, '');
+  let identificacion: CampoComparadoEmpresarial;
+  let dv: CampoComparadoEmpresarial;
+  if (control.estado === 'dv_ausente') {
+    identificacion = !idSipra ? campo('nit', 'informacion_insuficiente', 'sipra_sin_identificacion')
+      : campo('nit', idSipra === (datos.nit ?? '').replace(/\D/g, '') ? 'coincide' : 'diferente');
+    dv = campo('dv', 'informacion_insuficiente', 'dv_ausente');
+  } else if (!control.confiable) {
+    const nota = `lectura_no_confiable_${control.estado}`;
+    identificacion = campo('nit', 'informacion_insuficiente', nota);
+    dv = campo('dv', 'informacion_insuficiente', nota);
+  } else if (!idSipra) {
+    identificacion = campo('nit', 'informacion_insuficiente', 'sipra_sin_identificacion');
+    dv = campo('dv', 'informacion_insuficiente', 'sipra_sin_identificacion');
+  } else {
+    identificacion = campo('nit', idSipra === (datos.nit ?? '').replace(/\D/g, '') ? 'coincide' : 'diferente');
+    dv = titular.dv === null ? campo('dv', 'informacion_insuficiente', 'sipra_sin_dv') : campo('dv', titular.dv === Number(datos.dv) ? 'coincide' : 'diferente');
+  }
+  return cerrar([
+    identificacion, dv,
+    porNombre('nombre', titular.nombre, datos.nombreORazonSocial),
+    campo('representante_legal', 'no_aplica', 'persona_natural'),
+    ...informativos(datos.ciiu, null),
+  ]);
+}
+
+/**
+ * Cámara. Persona natural → `compararCamaraPersonaNatural` (la empresa de SIPRA hace de titular esperado).
+ * Persona jurídica → NIT, DV y razón social; el representante legal depende del certificado:
+ *  · existencia y representación: dato importante, pero su ausencia o ilegibilidad es `informacion_insuficiente`, no una
+ *    discrepancia ni un documento inválido;
+ *  · matrícula de sociedad: el representante es OPCIONAL (no necesariamente figura): solo se compara si hay dato de ambos lados.
+ */
 export function compararCamara(datos: DatosCamaraExtraidos, empresa: SipraEmpresa): ComparacionDocumentoEmpresarial {
-  const esNatural = datos.tipoPersona === TipoPersona.NATURAL;
+  if (datos.tipoPersona === TipoPersona.NATURAL) {
+    return compararCamaraPersonaNatural(datos, { identificacion: empresa.nitNumero, dv: empresa.nitDv, nombre: empresa.razonSocial });
+  }
+  const hayAmbos = !!empresa.representanteLegal && !!datos.representanteLegal;
+  const exigeRepresentante = datos.tipoCertificado === 'existencia_representacion';
+  const representante = hayAmbos
+    ? porNombre('representante_legal', empresa.representanteLegal, datos.representanteLegal)
+    : exigeRepresentante
+      ? campo('representante_legal', 'informacion_insuficiente', datos.representanteLegal ? 'sipra_sin_representante' : 'representante_no_legible_en_certificado')
+      : campo('representante_legal', 'no_aplica', 'opcional_en_matricula');
   return cerrar([
     ...nitYDv(empresa, datos.nit, datos.dv),
-    esNatural ? porNombre('nombre', empresa.razonSocial, datos.nombreORazonSocial) : porRazonSocial(empresa.razonSocial, datos.nombreORazonSocial),
-    // Una persona natural comerciante no tiene representante legal: no se le exige.
-    esNatural
-      ? campo('representante_legal', 'no_aplica', 'persona_natural')
-      : (empresa.representanteLegal && datos.representanteLegal
-        ? porNombre('representante_legal', empresa.representanteLegal, datos.representanteLegal)
-        : campo('representante_legal', 'informacion_insuficiente', 'dato_ausente')),
+    porRazonSocial(empresa.razonSocial, datos.nombreORazonSocial),
+    representante,
     ...informativos(datos.ciiu, null),
   ]);
 }

@@ -92,6 +92,27 @@ export function datosCamara(sobre: Partial<DatosCamaraExtraidos> = {}): DatosCam
   };
 }
 
+/** A. Matrícula de persona natural: sin representante legal, identificación = cédula + DV. */
+export function datosCamaraPn(sobre: Partial<DatosCamaraExtraidos> = {}): DatosCamaraExtraidos {
+  return datosCamara({
+    tipoCertificado: 'matricula_mercantil', tipoPersona: TipoPersona.NATURAL, nombreORazonSocial: NOMBRE_PERSONA,
+    nit: CEDULA_NATURAL, dv: DV_NATURAL, matricula: '123456', representanteLegal: null, ciiu: '4711', ...sobre,
+  });
+}
+
+/** B. Matrícula de sociedad: el representante legal es opcional (aquí no figura). */
+export function datosCamaraMatriculaSociedad(sobre: Partial<DatosCamaraExtraidos> = {}): DatosCamaraExtraidos {
+  return datosCamara({ tipoCertificado: 'matricula_mercantil', representanteLegal: null, ...sobre });
+}
+
+/** Una factura que COBRA un certificado: lleva el título del certificado como concepto, pero sigue siendo una factura. */
+export function textoFacturaConConceptoDeCertificado(): string {
+  return [
+    'FACTURA ELECTRÓNICA DE VENTA', 'Emisor: CÁMARA DE COMERCIO DE CIUDAD DEMO', 'Forma de pago: contado', 'Medio de pago: efectivo',
+    'Concepto: CERTIFICADO DE MATRÍCULA MERCANTIL DE PERSONA NATURAL', 'Cliente: PERSONA DE PRUEBA', RELLENO,
+  ].join('\n');
+}
+
 export function validacionPendiente(sobre: Partial<{ tipoEsperado: string | null }> = {}): ValidacionDocumentoEmpresarial {
   return ValidacionDocumentoEmpresarial.pendiente({
     id: '00000000-0000-4000-8000-0000000000e1', documentoId: '00000000-0000-4000-8000-0000000000d1',

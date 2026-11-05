@@ -1584,6 +1584,22 @@ Pantalla propia, independiente de las Mesas de EPS y de Actas (`features/rut`, r
   9. API consistente con las existentes (mismos nombres de operaciones y formas de respuesta) y autorización declarada en cada ruta; el backend es la fuente de verdad de los permisos.
 - **Siguiente paso.** Construir Cámara de Comercio de punta a punta respetando ese contrato. Solo cuando esté completa, abrir un bloque separado, **Mesa Documental Unificada**, que agregue EPS, RUT, Cámara, Actas, ARL y los demás documentos aplicables.
 
+
+### 7.29 Cámara de Comercio · Bloque 1 (dominio, sin lector)
+
+**Alcance:** dominio, políticas, comparación preparada y pruebas. No hay lector real, OCR, frontend, Mesa de Cámara, RUES real ni Mesa unificada. **Persistencia: se reutiliza** `validaciones_documento_empresarial` y sus evidencias; no hay migración nueva (ver auditoría abajo).
+
+- **Tres variantes, por contenido.** `camara_matricula_persona_natural`, `camara_matricula_sociedad` y `camara_existencia_representacion`, más `documento_incorrecto` y `no_determinable`. Lo que el estudiante eligió (`camara_comercio`) es solo una expectativa. Una factura emitida por una Cámara es `documento_incorrecto` (motivo `emitido_por_camara_no_es_certificado`): ni «Cámara de Comercio», ni un NIT, ni una ciudad, ni «RUES» clasifican por sí solos. Una factura que además cobra un «certificado de matrícula» como concepto, o dos títulos incompatibles, quedan `no_determinable` (no se elige a la fuerza).
+- **Persona natural.** Nombre del comerciante, identificación/NIT + DV, matrícula, Cámara, fecha de matrícula, último año renovado, fecha de renovación, domicilio, CIIU, expedición, código y URL de verificación, firma PDF presente. **Nunca** tiene representante legal: lo impiden la entidad (rechaza el resultado), la minimización (lo descarta) y la base (`ck_vdemp_pn_sin_representante`).
+- **Sociedad.** Matrícula: representante legal **opcional** (si no figura, `no_aplica`/`opcional_en_matricula`). Existencia y representación: el representante es dato importante, pero su ausencia o ilegibilidad es `informacion_insuficiente` (`representante_no_legible_en_certificado` o `sipra_sin_representante`), nunca discrepancia ni documento inválido.
+- **Cinco ejes, sin bandera «vigente».** (A) *estado registral*: `activo | cancelado | otro | no_determinable`; sin etiqueta explícita —lo normal— es `no_determinable` (`estadoRegistralDesdeEtiqueta`), y matrícula, renovación, firma o código **no** lo vuelven activo; (B) *renovación*: `ultimoAnioRenovado` y `fechaRenovacion` independientes (la fecha puede faltar); (C) *antigüedad*: `fechaExpedicion` y `diasDesdeExpedicion` (derivado, no se persiste) con `camaraMaxDiasExpedicion = null` por defecto: sin política institucional no se bloquea, devuelve ni rechaza; (D) *ventana de verificación*: `verificacionDisponibleHasta` (expedición + días que el propio certificado declara, p. ej. 60), distinta de vigencia, renovación y antigüedad; (E) *autenticidad*: `no_verificable` por defecto; `firmaPdfPresente` ≠ `firmaPdfValida`; `verificada` exige fuente.
+- **Comparación preparada.** Persona natural (`compararCamaraPersonaNatural`): identificación/NIT + DV y nombre contra el titular esperado; el representante `no_aplica`. Sociedad (`compararCamara`): NIT, DV, razón social (sin mayúsculas, tildes, puntuación ni forma jurídica SAS/S.A.S.; sin coincidencia difusa agresiva) y representante por tokens según el tipo de certificado. El DV valida el NIT leído: si no cuadra, el NIT no es lectura confiable (`informacion_insuficiente`) y nunca se corrige. CIIU, domicilio, dirección y fechas son **informativos** y no producen discrepancia crítica; `cat_ciiu` y `cat_divipola` (incompletos) no deciden. La entidad exige además que el `tipoCertificado` de los datos corresponda a la clasificación.
+- **Minimización.** No se persisten dirección, correo, teléfono, texto, OCR, imágenes ni el documento del representante; el representante es solo su nombre y solo en persona jurídica. La URL se sanea (sin credenciales, parámetros ni fragmento).
+- **Duplicados.** Se reutiliza el SHA-256: mismo archivo, práctica y tipo → `duplicado_de_documento_id`; no se borra nada.
+- **RUES.** Sin cambios: solo el simulado en dev/test; en `pre`/`qa`/`prod`, no disponible / no verificable hasta una integración real.
+- **Auditoría de persistencia.** Cubre los datos de las tres variantes (jsonb), la clasificación → familia/persona, representante de persona natural, claves prohibidas y banderas de vigencia (también `vigente` en Cámara), duplicados y evidencias (`lectura_documento`, `clasificacion`, `comparacion`, `verificacion`, `decision_humana`). Gap demostrado: ninguno que exija migración. `test:pg:empresarial` ahora guarda y relee sin pérdida las tres variantes contra PostgreSQL.
+- **Contrato de la Mesa documental (§7.28).** Este bloque entrega la validación propia y la comparación; lector, bandeja, detalle, archivo autenticado, decisión humana, motivos de devolución, reservas y estado para el estudiante quedan para los bloques siguientes de Cámara.
+
 ---
 
 ## 8. Cumplimiento normativo
@@ -3168,6 +3184,10 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.22.0 — 5 de noviembre de 2026
+
+Cámara de Comercio, Bloque 1 (solo dominio; ver §7.29). Clasificación: factura emitida por una Cámara y factura con título de certificado (`no_determinable`). Comparación: matrícula de persona natural contra el titular esperado; representante opcional en matrícula de sociedad e `informacion_insuficiente` en existencia y representación. Vigencia: `estadoRegistralDesdeEtiqueta`. Entidad: el tipo de certificado debe corresponder a la clasificación. Sin migración nueva, sin lector, frontend ni Mesa; EPS, Actas y RUT intactos.
 
 ### 0.21.1 — 4 de noviembre de 2026
 

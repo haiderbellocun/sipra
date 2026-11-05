@@ -70,6 +70,19 @@ export interface EvaluacionCamara {
   verificacionDisponibleHasta: string | null;
 }
 
+/**
+ * Estado registral a partir de la etiqueta que el certificado MUESTRA de forma explícita («Estado de la matrícula: ACTIVA»).
+ * Sin etiqueta —lo normal en los certificados— es `no_determinable`: la matrícula, la renovación, la firma o el código NO
+ * implican «activo». Una etiqueta que no es activa ni cancelada (liquidación, suspendida…) es `otro`.
+ */
+export function estadoRegistralDesdeEtiqueta(etiqueta: string | null | undefined): EstadoRegistral {
+  const e = (etiqueta ?? '').normalize('NFD').replace(/\p{M}/gu, '').trim().toUpperCase();
+  if (!e) return EstadoRegistral.NO_DETERMINABLE;
+  if (/^(ACTIV[OA])$/.test(e)) return EstadoRegistral.ACTIVO;
+  if (/^(CANCELAD[OA])$/.test(e)) return EstadoRegistral.CANCELADO;
+  return EstadoRegistral.OTRO;
+}
+
 /** Fecha civil de hoy en Colombia (AAAA-MM-DD). */
 function hoyEnColombia(ahora: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).format(ahora);
