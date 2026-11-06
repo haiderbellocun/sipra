@@ -204,6 +204,11 @@ export interface DatosCamaraExtraidos {
   urlVerificacion: string | null;
   /** Días de verificación en línea que el propio certificado declara (p. ej. 60). NO es vigencia registral. */
   diasVerificacionDocumento: number | null;
+  /**
+   * Hasta cuándo el certificado se puede verificar en línea: expedición + los días que el propio documento declara. Se
+   * calcula al leer; `null` si falta la fecha o el certificado no declara los días. NO es vigencia registral.
+   */
+  verificacionDisponibleHasta?: string | null;
   firmaPdfPresente: boolean | null;
 }
 

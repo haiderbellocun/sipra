@@ -62,6 +62,9 @@ import { VALIDACION_DOCUMENTO_EMPRESARIAL_REPOSITORY } from '../../domain/ports/
 import { LECTURA_RUT } from '../../domain/ports/out/lectura-rut.port';
 import { LecturaRutLocalAdapter } from '../adapters/lectura-local/lectura-rut-local.adapter';
 import { ValidacionRutUseCase } from '../../application/use-cases/documentos/validacion-rut.use-case';
+import { LECTURA_CAMARA } from '../../domain/ports/out/lectura-camara.port';
+import { LecturaCamaraLocalAdapter } from '../adapters/lectura-local/lectura-camara-local.adapter';
+import { ValidacionCamaraUseCase } from '../../application/use-cases/documentos/validacion-camara.use-case';
 import { ValidacionDocumentoEmpresarialRepositoryAdapter } from '../adapters/persistence/postgres/validacion-documento-empresarial.adapter';
 import {
   NotificacionWorkspaceAdapter,
@@ -258,6 +261,9 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     LecturaRutLocalAdapter,
     { provide: LECTURA_RUT, useExisting: LecturaRutLocalAdapter },
     ValidacionRutUseCase,
+    LecturaCamaraLocalAdapter,
+    { provide: LECTURA_CAMARA, useExisting: LecturaCamaraLocalAdapter },
+    ValidacionCamaraUseCase,
     { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
     { provide: DECISION_RUT, useClass: DecisionRutPgAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },

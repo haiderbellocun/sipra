@@ -18,6 +18,7 @@ import { MetricasService } from '../../../infrastructure/observability/metricas.
 import { PipelineValidacionUseCase, ProcesamientoEnCursoError } from './pipeline-validacion.use-case';
 import { ValidacionActaUseCase } from './validacion-acta.use-case';
 import { ValidacionRutUseCase } from './validacion-rut.use-case';
+import { ValidacionCamaraUseCase } from './validacion-camara.use-case';
 import { ValidacionEpsUseCase } from './validacion-eps.use-case';
 import { ConfigService } from '@nestjs/config';
 import { INTERRUPTORES_EPS, interruptorEps } from '../../services/interruptores-eps';
@@ -47,6 +48,7 @@ export class ProcesarTrabajoUseCase {
     @Optional() private readonly config?: ConfigService,
     @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
     @Optional() private readonly validacionesRut?: ValidacionRutUseCase,
+    @Optional() private readonly validacionesCamara?: ValidacionCamaraUseCase,
   ) {}
 
   async ejecutar(trabajo: Trabajo): Promise<void> {
@@ -81,6 +83,9 @@ export class ProcesarTrabajoUseCase {
     if (documento.tipo === TipoDocumento.RUT_NATURAL || documento.tipo === TipoDocumento.RUT_JURIDICO) {
       await this.validacionesRut?.registrarProcesamiento(documento);
     }
+    // Cámara de Comercio: lectura local → clasificación por contenido → persistencia. Sin decisión automática: queda en revisión
+    // (o en error con un código) y la decide una persona. Idempotente.
+    if (documento.tipo === TipoDocumento.CAMARA_COMERCIO) await this.validacionesCamara?.registrarProcesamiento(documento);
     // La validación de EPS se asegura SIEMPRE: si un intento anterior falló después de
     // procesar el documento, el reintento (que ya no ejecuta capas) la completa.
     if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
@@ -112,6 +117,8 @@ export class ProcesarTrabajoUseCase {
     if (esEps) await this.validacionesEps.marcarProcesando(documentoId);
     if (esActa) await this.validacionesActa?.marcarProcesando(documentoId);
     if (esRut) await this.validacionesRut?.marcarProcesando(documentoId);
+    const esCamara = previo?.tipo === TipoDocumento.CAMARA_COMERCIO;
+    if (esCamara) await this.validacionesCamara?.marcarProcesando(documentoId);
     try {
       return await this.pipeline.procesar(documentoId);
     } catch (error) {
@@ -120,6 +127,7 @@ export class ProcesarTrabajoUseCase {
         if (esEps) await this.validacionesEps.marcarErrorProcesamiento(documentoId, 'PROCESAMIENTO_FALLIDO').catch(() => undefined);
         if (esActa) await this.validacionesActa?.marcarErrorProcesamiento(documentoId, 'PROCESAMIENTO_FALLIDO').catch(() => undefined);
         if (esRut) await this.validacionesRut?.marcarErrorProcesamiento(documentoId, 'PROCESAMIENTO_FALLIDO').catch(() => undefined);
+        if (esCamara) await this.validacionesCamara?.marcarErrorProcesamiento(documentoId, 'PROCESAMIENTO_FALLIDO').catch(() => undefined);
       }
       throw error;
     }

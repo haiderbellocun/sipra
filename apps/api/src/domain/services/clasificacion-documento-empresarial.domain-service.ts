@@ -58,7 +58,14 @@ function clasificarCamara(t: string): ResultadoClasificacionEmpresarial | null {
   const matriculaGenerica = /CERTIFICADO DE MATRICULA MERCANTIL/.test(t);
   if (existencia && matriculaPn) return resultado(C.NO_DETERMINABLE, ['camara_titulos_contradictorios']);
   if (existencia) return resultado(C.CAMARA_EXISTENCIA_REPRESENTACION, ['camara_titulo_existencia_representacion']);
-  if (matriculaPn) return resultado(C.CAMARA_MATRICULA_PERSONA_NATURAL, ['camara_titulo_matricula_persona_natural']);
+  if (matriculaPn) {
+    // El título dice «persona natural» pero el contenido trae la identificación de una SOCIEDAD (razón social, sin nombre y
+    // apellidos del comerciante): señales fuertes incompatibles; no se elige a la fuerza.
+    const sociedad = /RAZON SOCIAL\s*:/.test(t);
+    const comerciante = /NOMBRES? Y APELLIDOS\s*:|\bNOMBRE\s*:/.test(t);
+    if (sociedad && !comerciante) return resultado(C.NO_DETERMINABLE, ['camara_titulo_persona_natural_con_contenido_de_sociedad']);
+    return resultado(C.CAMARA_MATRICULA_PERSONA_NATURAL, ['camara_titulo_matricula_persona_natural']);
+  }
   if (matriculaGenerica) {
     // El título no dice la persona: la dicen las etiquetas de identificación.
     const sociedad = /RAZON SOCIAL\s*:/.test(t);
@@ -86,6 +93,11 @@ const SENALES_FACTURA: readonly [string, string][] = [
 /** Con al menos estas señales distintas el documento es una factura (una sola frase suelta no basta). */
 const MIN_SENALES_FACTURA = 2;
 
+/** La estructura propia de un certificado de Cámara (no el nombre del certificado): la fórmula de certificación o el código de verificación. */
+function estructuraDeCertificado(t: string): boolean {
+  return /\bCODIGO DE VERIFICACION\b/.test(t) || /(?:CAMARA DE COMERCIO|CAMARA)[^.]{0,30}\bCERTIFICA\s*:/.test(t) || /\bCERTIFICA QUE\b/.test(t);
+}
+
 export function clasificarDocumentoEmpresarial(textoCrudo: string | null | undefined): ResultadoClasificacionEmpresarial {
   const t = normalizarTexto(textoCrudo);
   if (t.length < MIN_CARACTERES_CLASIFICABLE) return resultado(C.NO_DETERMINABLE, ['texto_insuficiente']);
@@ -98,15 +110,19 @@ export function clasificarDocumentoEmpresarial(textoCrudo: string | null | undef
 
   // Un RUT y un certificado de Cámara a la vez no es una lectura que se pueda sostener.
   if (rut && camara && camara.clasificacion !== C.NO_DETERMINABLE) return resultado(C.NO_DETERMINABLE, ['rut_y_camara_a_la_vez']);
-  // Una factura que además lleva el título de un certificado (p. ej. cobra un «certificado de matrícula mercantil»): señales
-  // fuertes de tipos incompatibles. No se elige a la fuerza: lo decide una persona.
-  if (factura && (rut || camara)) return resultado(C.NO_DETERMINABLE, [...senalesFactura, 'factura_y_certificado_a_la_vez']);
-  if (rut) return clasificarRut(t, senalesRut);
-  if (camara) return camara;
+  // Una factura que COBRA un certificado lo nombra como concepto («CERTIFICADO DE MATRICULA MERCANTIL $…»): eso no lo vuelve
+  // certificado. Solo si además trae la ESTRUCTURA de un certificado (la fórmula «la Cámara certifica» o el código de
+  // verificación) o un RUT, hay señales fuertes de tipos incompatibles: no se elige a la fuerza, lo decide una persona.
+  if (factura && (rut || estructuraDeCertificado(t))) return resultado(C.NO_DETERMINABLE, [...senalesFactura, 'factura_y_certificado_a_la_vez']);
   if (factura) {
     // Distingue «documento emitido por una Cámara» de «certificado de Cámara»: el emisor no cambia lo que el documento ES.
-    return resultado(C.DOCUMENTO_INCORRECTO, [...senalesFactura, ...(t.includes('CAMARA DE COMERCIO') ? ['emitido_por_camara_no_es_certificado'] : [])]);
+    return resultado(C.DOCUMENTO_INCORRECTO, [
+      ...senalesFactura, ...(camara ? ['certificado_solo_como_concepto_de_factura'] : []),
+      ...(t.includes('CAMARA DE COMERCIO') ? ['emitido_por_camara_no_es_certificado'] : []),
+    ]);
   }
+  if (rut) return clasificarRut(t, senalesRut);
+  if (camara) return camara;
 
   // Texto suficiente, sin rasgos de RUT ni de certificado: es otro documento.
   return resultado(C.DOCUMENTO_INCORRECTO, [

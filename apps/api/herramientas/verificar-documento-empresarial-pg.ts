@@ -17,6 +17,12 @@
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { ValidacionCamaraUseCase } from '../src/application/use-cases/documentos/validacion-camara.use-case';
+import { BandaPuntaje, DatosDocumento, Documento, EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
+import { GeometriaDocumentoPort } from '../src/domain/ports/out/geometria-documento.port';
+import { LectorDocumentoLocalPort } from '../src/domain/ports/out/lector-documento-local.port';
+import { LecturaLocalCamaraService } from '../src/domain/services/lectura-local-camara.domain-service';
+import { paginasCamaraExistencia } from '../test/soporte-camara-sintetico';
 import { DataSource } from 'typeorm';
 import {
   ClasificacionDocumentoEmpresarial as C, EstadoValidacionDocumentoEmpresarial as Estado, TipoPersona,
@@ -236,6 +242,47 @@ async function main(): Promise<void> {
         comprobar('el duplicado exacto se registra apuntando al primer documento (y no se borra ninguno)', l.duplicadoDeDocumentoId === primera);
       }
     }
+    console.log('\n— Cámara · el caso de uso lee (puertos locales), clasifica y persiste: idempotente, sin comparación ni decisión —');
+    const paginasSinteticas = paginasCamaraExistencia();
+    const lectorFalso: LectorDocumentoLocalPort = {
+      extraerTextoNativo: async () => ({ paginas: paginasSinteticas.length, porPagina: paginasSinteticas.map((texto, i) => ({ pagina: i + 1, texto })) }),
+      renderizarPagina: async () => { throw new Error('sin OCR'); }, prepararImagen: async () => { throw new Error('sin OCR'); },
+      detectarQr: async () => [], ejecutarOcr: async () => { throw new Error('sin OCR'); },
+    };
+    const geometriaFalsa: GeometriaDocumentoPort = {
+      cajasTextoNativo: async () => [], cajasOcr: async () => [], medirZonaFirma: async () => ({ legible: false, densidadTinta: 0, alturaRelativaTrazo: 0 }),
+    };
+    const lecturaServicio = new LecturaLocalCamaraService(lectorFalso, geometriaFalsa);
+    const documentoCamara = await nuevoDocumento('camara_comercio', 'b'.repeat(64));
+    const datosDoc: DatosDocumento = {
+      id: documentoCamara, practicaId: practica, tipo: TipoDocumento.CAMARA_COMERCIO, version: 1, estado: EstadoDocumento.EN_REVISION, nombreOriginal: 'camara.pdf', mimeReal: 'application/pdf',
+      tamanoBytes: 10, hashSha256: 'b'.repeat(64), hashPerceptual: null, rutaAlmacenamiento: 'ruta/x', calidadCaptura: null, banderas: [], puntaje: 90, banda: BandaPuntaje.VERDE, extraccion: null,
+      decididoPor: null, justificacionDecision: null, motivoDevolucion: null, cargadoEn: ahora, actualizadoEn: ahora, purgarDespuesDe: null,
+    };
+    const casoCamara = new ValidacionCamaraUseCase(
+      repo, { buscarPorId: async () => Documento.desde(datosDoc) } as never, { buscarPorId: async () => ({ estudianteId: estudiante }) } as never,
+      { leer: async () => Buffer.from('%PDF-1.7 /ByteRange [0 10 20 30]') } as never, { leer: (c: Buffer, m: string) => lecturaServicio.leer(c, m) },
+    );
+    const valCamara = (await casoCamara.procesar(documentoCamara, ahora))!.instantanea();
+    const [fila] = await ds.query(
+      `SELECT estado, familia_documento, tipo_detectado, tipo_persona, metodo_lectura, hash_documento, autenticidad_estado, procesada_en IS NOT NULL AS procesada,
+              comparacion IS NULL AS sin_comparacion, decidido_por IS NULL AS sin_decision, asignado_a IS NULL AS sin_reserva, datos_extraidos
+       FROM validaciones_documento_empresarial WHERE documento_id = $1`, [documentoCamara],
+    );
+    comprobar('Cámara: queda en revisión, clasificada por contenido (existencia y representación, persona jurídica, familia cámara)',
+      valCamara.estado === Estado.REVISION && fila.estado === 'revision' && fila.familia_documento === 'camara' && fila.tipo_detectado === 'camara_existencia_representacion' && fila.tipo_persona === 'juridica', JSON.stringify(fila).slice(0, 200));
+    comprobar('Cámara: método texto, hash, autenticidad no_verificable y procesada_en', fila.metodo_lectura === 'texto' && /^[0-9a-f]{64}$/.test(fila.hash_documento) && fila.autenticidad_estado === 'no_verificable' && fila.procesada === true);
+    comprobar('Cámara: SIN comparación, SIN decisión y SIN reserva', fila.sin_comparacion === true && fila.sin_decision === true && fila.sin_reserva === true);
+    comprobar('Cámara: los datos minimizados incluyen la firma PDF presente, la ventana de verificación y el representante, y no más',
+      fila.datos_extraidos.firmaPdfPresente === true && fila.datos_extraidos.verificacionDisponibleHasta === '2026-11-09' && typeof fila.datos_extraidos.representanteLegal === 'string'
+      && !('direccion' in fila.datos_extraidos) && !('texto' in fila.datos_extraidos), JSON.stringify(Object.keys(fila.datos_extraidos)));
+    const evidenciasCamara = ((await ds.query('SELECT tipo FROM evidencias_validacion_doc_empresarial WHERE validacion_id = $1', [valCamara.id])) as { tipo: string }[]).map((e) => e.tipo).sort();
+    comprobar('Cámara: dos evidencias (lectura_documento y clasificacion)', JSON.stringify(evidenciasCamara) === JSON.stringify(['clasificacion', 'lectura_documento']), JSON.stringify(evidenciasCamara));
+    await casoCamara.procesar(documentoCamara, ahora);
+    await casoCamara.registrarProcesamiento(Documento.desde(datosDoc), ahora);
+    const [{ n: filasCamara }] = await ds.query('SELECT count(*)::int AS n FROM validaciones_documento_empresarial WHERE documento_id = $1', [documentoCamara]);
+    comprobar('Cámara: repetir el procesamiento no duplica la validación ni las evidencias', filasCamara === 1 && (await repo.listarEvidencias(valCamara.id)).length === 2);
+
     await rechaza('Cámara: una bandera de «vigente» no entra en los datos', () => insertar(revision({
       tipo_detectado: 'camara_matricula_sociedad', familia_documento: 'camara', tipo_persona: 'juridica', datos_extraidos: { tipoPersona: 'juridica', vigente: true },
     })), /ck_vdemp_datos/);

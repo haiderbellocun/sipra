@@ -44,6 +44,16 @@ export function registrarSenalesAutenticidad(s: SenalesAutenticidad): Autenticid
   };
 }
 
+/**
+ * ¿El PDF CONTIENE una firma digital? Detección estructural: un diccionario de firma lleva `/ByteRange [ … ]`. Es solo
+ * presencia: no valida la firma, la cadena de certificados ni que el contenido no cambiara (eso sería `firmaPdfValida`, que
+ * este módulo nunca afirma). Un archivo que no es PDF no se evalúa (`null`).
+ */
+export function detectarFirmaPdfEstructural(contenido: Buffer, mime: string): boolean | null {
+  if (mime !== 'application/pdf') return null;
+  return /\/ByteRange\s*\[\s*\d+\s+\d+\s+\d+/.test(contenido.toString('latin1'));
+}
+
 export class AutenticidadInvalidaError extends Error {
   constructor(motivo: string) {
     super(`Autenticidad no válida: ${motivo}`);

@@ -12,8 +12,10 @@ import { minimizarLecturaActa } from '../../../domain/services/validacion-acta.d
 import { fechaDeActa } from '../../../domain/services/comparacion-acta.domain-service';
 import { LecturaActaLocalAdapter } from '../lectura-local/lectura-acta-local.adapter';
 import { LecturaRutLocalAdapter } from '../lectura-local/lectura-rut-local.adapter';
-import { ClasificacionDocumentoEmpresarial } from '../../../domain/entities/documento-empresarial';
+import { ClasificacionDocumentoEmpresarial, EstadoRegistral } from '../../../domain/entities/documento-empresarial';
 import { minimizarLecturaRut } from '../../../domain/services/lectura-local-rut.domain-service';
+import { minimizarLecturaCamara } from '../../../domain/services/lectura-local-camara.domain-service';
+import { LecturaCamaraLocalAdapter } from '../lectura-local/lectura-camara-local.adapter';
 import { ExtraccionSimuladaAdapter } from './extraccion.adapter';
 
 /** Documento ajeno que se reconoce al leer un acta → tipo documental de SIPRA (si lo hay). */
@@ -50,6 +52,7 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
     @Optional() actas?: LecturaActaLocalAdapter,
     @Optional() @Inject(GEOMETRIA_DOCUMENTO) geometria?: GeometriaDocumentoPort,
     @Optional() private readonly rut?: LecturaRutLocalAdapter,
+    @Optional() private readonly camara?: LecturaCamaraLocalAdapter,
   ) {
     this.servicio = new LecturaLocalEpsService(lector);
     this.actas = actas ?? new LecturaActaLocalAdapter(lector, geometria);
@@ -58,6 +61,7 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
   async extraer(contenido: Buffer, mime: string, tipoEsperado: TipoDocumento): Promise<ResultadoExtraccion> {
     if (tipoEsperado === TipoDocumento.ACTA_INICIO) return this.extraerActa(contenido, mime);
     if ((tipoEsperado === TipoDocumento.RUT_NATURAL || tipoEsperado === TipoDocumento.RUT_JURIDICO) && this.rut) return this.extraerRut(contenido, mime);
+    if (tipoEsperado === TipoDocumento.CAMARA_COMERCIO && this.camara) return this.extraerCamara(contenido, mime);
     if (tipoEsperado !== TipoDocumento.CERTIFICADO_EPS) return this.respaldo.extraer(contenido, mime, tipoEsperado);
 
     const lectura = await this.servicio.leer(contenido, mime);
@@ -167,6 +171,51 @@ export class ExtraccionLocalAdapter implements ExtraccionIaPort {
       proveedor: 'local',
       duracionMs: 0,
       lecturaRut: lectura,
+    };
+  }
+
+  /**
+   * Cámara de Comercio: la lectura completa (clasificación por contenido, datos, firma PDF, hash) vive en el dominio; aquí se
+   * traduce a la forma que consume el pipeline y se deja la lectura minimizada para que la validación se registre sin releer el
+   * archivo. Sin proveedor externo, sin abrir URLs y sin RUES. La comparación con SIPRA no ocurre aquí.
+   */
+  private async extraerCamara(contenido: Buffer, mime: string): Promise<ResultadoExtraccion> {
+    const lectura = minimizarLecturaCamara(await this.camara!.leer(contenido, mime));
+    const d = lectura.datos;
+    const fuente = lectura.metodo === 'texto' ? 'texto_nativo' : 'ocr';
+    const campo = (valor: string | null | undefined): CampoExtraido => ({
+      valor: valor ?? null, confianza: valor ? (lectura.confianzaDocumento ?? 0) : 0, evidencia: null, fuente: valor ? fuente : null,
+    });
+    // Solo códigos: ni el contenido del certificado ni datos personales llegan al registro.
+    this.log.debug(`Lectura local de Cámara: ${lectura.tipoDetectado}, método=${lectura.metodo}, dudosa=${lectura.lecturaDudosa}`);
+    const campos: ResultadoExtraccion['campos'] = {
+      nit: campo(d?.nit ? (d.dv ? `${d.nit}-${d.dv}` : d.nit) : null),
+      razon_social: campo(d?.nombreORazonSocial),
+      matricula: campo(d?.matricula),
+      fecha_matricula: campo(d?.fechaMatricula),
+      fecha_expedicion: campo(d?.fechaExpedicion),
+      // El estado registral solo cuenta si el certificado lo declara; si no, no hay valor (nunca «activo» por defecto).
+      estado: campo(d && d.estadoRegistral !== EstadoRegistral.NO_DETERMINABLE ? d.estadoRegistral : null),
+    };
+    const esCamara = [
+      ClasificacionDocumentoEmpresarial.CAMARA_MATRICULA_PERSONA_NATURAL, ClasificacionDocumentoEmpresarial.CAMARA_MATRICULA_SOCIEDAD,
+      ClasificacionDocumentoEmpresarial.CAMARA_EXISTENCIA_REPRESENTACION,
+    ].includes(lectura.tipoDetectado);
+    return {
+      // Un RUT subido como Cámara se informa como RUT (el pipeline lo marca como tipo incorrecto); un incorrecto o no determinable, sin tipo.
+      tipoDetectado: esCamara ? TipoDocumento.CAMARA_COMERCIO
+        : lectura.tipoDetectado === ClasificacionDocumentoEmpresarial.RUT_PERSONA_NATURAL ? TipoDocumento.RUT_NATURAL
+          : lectura.tipoDetectado === ClasificacionDocumentoEmpresarial.RUT_PERSONA_JURIDICA ? TipoDocumento.RUT_JURIDICO : null,
+      campos,
+      // Una lectura insuficiente NO devuelve el documento al estudiante: lo revisa una persona.
+      ilegible: false,
+      modelo: 'local-pdfjs-tesseract-camara',
+      tokensEntrada: 0,
+      tokensSalida: 0,
+      costoUsd: 0,
+      proveedor: 'local',
+      duracionMs: 0,
+      lecturaCamara: lectura,
     };
   }
 }

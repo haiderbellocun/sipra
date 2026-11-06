@@ -274,7 +274,8 @@ describe('Política y pipeline del RUT: solo local, jamás autoaprobado', () => 
     }
     expect(permiteAutoAprobacionDelPipeline(TipoDocumento.CEDULA)).toBe(true);
     expect(permiteAutoAprobacionDelPipeline(TipoDocumento.CERTIFICADO_ARL)).toBe(true);
-    expect(modoProcesamientoDe(TipoDocumento.CAMARA_COMERCIO)).toBe(ModoProcesamiento.CONFIGURADO);
+    // La Cámara de Comercio también es solo local desde su Bloque 2 (ver camara-lector.spec.ts).
+    expect(modoProcesamientoDe(TipoDocumento.CAMARA_COMERCIO)).toBe(ModoProcesamiento.LOCAL);
     expect(modoProcesamientoDe(TipoDocumento.CERTIFICADO_EPS)).toBe(ModoProcesamiento.LOCAL);
   });
 

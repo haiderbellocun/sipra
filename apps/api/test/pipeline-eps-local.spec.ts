@@ -91,8 +91,9 @@ describe('Política de procesamiento por tipo (dominio)', () => {
   });
 
   it('el resto de los tipos conserva el procesamiento existente', () => {
-    // El RUT se sumó a los tipos solo locales y sin autoaprobación (Bloque 3): consistente no es aprobado.
-    const locales = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO];
+    // El RUT se sumó a los tipos solo locales y sin autoaprobación (Bloque 3): consistente no es aprobado. La Cámara de Comercio,
+    // en su Bloque 2: trae el nombre y la identificación del comerciante o del representante; se lee solo en local y la decide una persona.
+    const locales = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO, TipoDocumento.CAMARA_COMERCIO];
     for (const tipo of Object.values(TipoDocumento).filter((t) => !locales.includes(t))) {
       expect(modoProcesamientoDe(tipo)).not.toBe(ModoProcesamiento.LOCAL);
       expect(permiteAutoAprobacionDelPipeline(tipo)).toBe(true);

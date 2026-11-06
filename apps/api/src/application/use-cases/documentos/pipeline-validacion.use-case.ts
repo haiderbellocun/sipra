@@ -25,6 +25,7 @@ import {
   ModoProcesamiento, modoProcesamientoDe, permiteAutoAprobacionDelPipeline,
 } from '../../../domain/services/politica-procesamiento';
 import { camposDe } from '../../../domain/entities/campos-extraccion';
+import { ClasificacionDocumentoEmpresarial } from '../../../domain/entities/documento-empresarial';
 import { inicioDelDiaEnColombia } from '../../../domain/services/fechas-colombia';
 import {
   DecodificadorImagenAdapter,
@@ -376,6 +377,17 @@ export class PipelineValidacionUseCase {
           capa: 2,
           severidad: SeveridadBandera.ALTA,
           mensaje: 'El archivo no parece un RUT: se detectaron rasgos de otro tipo de documento',
+          mensajeUsuario:
+            'El archivo cargado no corresponde al documento solicitado. ' +
+            `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,
+        });
+      } else if (datos.tipo === TipoDocumento.CAMARA_COMERCIO && extraido.lecturaCamara?.tipoDetectado === ClasificacionDocumentoEmpresarial.DOCUMENTO_INCORRECTO) {
+        // La Cámara tiene su propio clasificador local: se LEYÓ y es otro documento (p. ej. una factura emitida por una Cámara).
+        banderas.push({
+          codigo: 'C2_TIPO_INCORRECTO',
+          capa: 2,
+          severidad: SeveridadBandera.ALTA,
+          mensaje: 'El archivo no parece un certificado de Cámara de Comercio: se detectaron rasgos de otro tipo de documento',
           mensajeUsuario:
             'El archivo cargado no corresponde al documento solicitado. ' +
             `Revise que esté enviando el ${etiqueta(datos.tipo)}.`,

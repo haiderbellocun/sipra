@@ -22,6 +22,10 @@ const soloDigitos = (v: unknown, min: number, max: number): string | null => {
   return d.length >= min && d.length <= max ? d : null;
 };
 const fechaIso = (v: unknown): string | null => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+const sumarDiasIso = (iso: string, dias: number): string => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d) + dias * 86_400_000).toISOString().slice(0, 10);
+};
 const entero = (v: unknown, min: number, max: number): number | null =>
   typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null;
 
@@ -77,6 +81,8 @@ export function minimizarDatosCamara(
   const estado = typeof bruto['estadoRegistral'] === 'string' && ESTADOS_REGISTRALES.includes(bruto['estadoRegistral'])
     ? (bruto['estadoRegistral'] as EstadoRegistral)
     : EstadoRegistral.NO_DETERMINABLE;
+  const fechaExpedicion = fechaIso(bruto['fechaExpedicion']);
+  const diasVerificacion = entero(bruto['diasVerificacionDocumento'], 1, 3650);
   return {
     tipoCertificado,
     tipoPersona,
@@ -93,10 +99,12 @@ export function minimizarDatosCamara(
     ciiu: soloDigitos(bruto['ciiu'], 4, 4),
     // La persona natural no tiene representante legal: nunca se conserva uno.
     representanteLegal: tipoPersona === TipoPersona.JURIDICA ? texto(bruto['representanteLegal']) : null,
-    fechaExpedicion: fechaIso(bruto['fechaExpedicion']),
+    fechaExpedicion,
     codigoVerificacion: texto(bruto['codigoVerificacion'], 40),
     urlVerificacion: sanearUrlVerificacion(bruto['urlVerificacion']),
-    diasVerificacionDocumento: entero(bruto['diasVerificacionDocumento'], 1, 3650),
+    diasVerificacionDocumento: diasVerificacion,
+    // Derivada del propio certificado: expedición + los días que él declara. Nunca se supone un plazo.
+    verificacionDisponibleHasta: fechaExpedicion !== null && diasVerificacion !== null ? sumarDiasIso(fechaExpedicion, diasVerificacion) : null,
     firmaPdfPresente: typeof bruto['firmaPdfPresente'] === 'boolean' ? bruto['firmaPdfPresente'] : null,
   };
 }

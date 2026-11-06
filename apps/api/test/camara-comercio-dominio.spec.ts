@@ -57,10 +57,16 @@ describe('Cámara · las tres variantes se distinguen por el CONTENIDO', () => {
   it('H · señales fuertes incompatibles → NO_DETERMINABLE (no se elige a la fuerza)', () => {
     expect(clasificarDocumentoEmpresarial(`${textoCamaraExistencia()}\n${textoCamaraMatriculaPn()}`).clasificacion).toBe(C.NO_DETERMINABLE);
     expect(clasificarDocumentoEmpresarial(`${textoRut('juridica')}\n${textoCamaraExistencia()}`).clasificacion).toBe(C.NO_DETERMINABLE);
-    // Una factura que además cobra «certificado de matrícula» como concepto: contradicción, la decide una persona.
-    const factura = clasificarDocumentoEmpresarial(textoFacturaConConceptoDeCertificado());
+    // Una factura que además trae la ESTRUCTURA de un certificado (fórmula de certificación, código): contradicción.
+    const factura = clasificarDocumentoEmpresarial(`${textoFactura()}\n${textoCamaraExistencia()}`);
     expect(factura.clasificacion).toBe(C.NO_DETERMINABLE);
     expect(factura.motivos).toContain('factura_y_certificado_a_la_vez');
+  });
+
+  it('una factura que COBRA un certificado lo nombra como concepto: sigue siendo documento incorrecto', () => {
+    const r = clasificarDocumentoEmpresarial(textoFacturaConConceptoDeCertificado());
+    expect(r.clasificacion).toBe(C.DOCUMENTO_INCORRECTO);
+    expect(r.motivos).toContain('certificado_solo_como_concepto_de_factura');
   });
 });
 

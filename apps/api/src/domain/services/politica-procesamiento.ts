@@ -12,7 +12,9 @@ import { TipoDocumento } from '../entities/documento.entity';
  * El certificado de EPS es dato de salud con documento de identidad: se
  * procesa en local. El acta de iniciación lleva documento, dirección y teléfono
  * del estudiante y datos del representante de la empresa: también. El RUT trae cédula, dirección, correo y teléfono (persona
- * natural) o datos de la empresa: también se lee solo en local, y NUNCA se autoaprueba (consistente ≠ aprobado). Cambiar esto
+ * natural) o datos de la empresa: también se lee solo en local, y NUNCA se autoaprueba (consistente ≠ aprobado). El certificado de Cámara de Comercio también: trae
+ el nombre y la identificación del comerciante o el representante de la empresa, se lee solo en local y la decisión es humana
+ (tampoco hay verificación oficial todavía: la autenticidad es `no_verificable`). Cambiar esto
  * es una decisión institucional, no técnica.
  */
 export enum ModoProcesamiento {
@@ -22,6 +24,7 @@ export enum ModoProcesamiento {
 
 const SOLO_LOCAL: readonly TipoDocumento[] = [
   TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO,
+  TipoDocumento.CAMARA_COMERCIO,
 ];
 
 export function modoProcesamientoDe(tipo: TipoDocumento): ModoProcesamiento {
@@ -34,6 +37,7 @@ export function modoProcesamientoDe(tipo: TipoDocumento): ModoProcesamiento {
  */
 const SIN_AUTOAPROBACION_DEL_PIPELINE: readonly TipoDocumento[] = [
   TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO,
+  TipoDocumento.CAMARA_COMERCIO,
 ];
 
 export function permiteAutoAprobacionDelPipeline(tipo: TipoDocumento): boolean {

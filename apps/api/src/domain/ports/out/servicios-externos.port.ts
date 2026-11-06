@@ -3,6 +3,7 @@ import type { ResumenLecturaLocal } from './lector-documento-local.port';
 import { TipoDocumento } from '../../entities/documento.entity';
 import type { LecturaActaPersistible } from '../../entities/acta-iniciacion';
 import type { LecturaRutPersistible } from '../../services/lectura-local-rut.domain-service';
+import type { LecturaCamaraPersistible } from '../../services/lectura-local-camara.domain-service';
 
 /** Almacenamiento de documentos (Cloud Storage en GCP, disco en local). */
 export interface AlmacenamientoPort {
@@ -73,6 +74,8 @@ export interface ResultadoExtraccion {
   lecturaActa?: LecturaActaPersistible;
   /** RUT: lectura local minimizada (clasificación, datos, hash, autenticidad), para registrar la validación sin releer el archivo. */
   lecturaRut?: LecturaRutPersistible;
+  /** Cámara de Comercio: lectura local minimizada (clasificación, datos, hash, autenticidad), para registrar la validación sin releer el archivo. */
+  lecturaCamara?: LecturaCamaraPersistible;
 }
 
 export interface ExtraccionIaPort {
