@@ -36,7 +36,7 @@ export interface SipraEmpresa {
 }
 
 /** Formas jurídicas que el RUT y la Cámara escriben distinto de como se captura la razón social. */
-const FORMAS_JURIDICAS = /\b(S\.?\s?A\.?\s?S\.?|S\.?\s?A\.?|LTDA\.?|LIMITADA|E\.?\s?U\.?|S\.?\s?C\.?\s?A\.?|SOCIEDAD POR ACCIONES SIMPLIFICADA)\b/g;
+const FORMAS_JURIDICAS = /\b(S\.?\s?A\.?\s?S\.?|S\.?\s?A\.?|L\.?\s?T\.?\s?D\.?\s?A\.?|LIMITADA|E\.?\s?U\.?|S\.?\s?C\.?\s?A\.?|SOCIEDAD POR ACCIONES SIMPLIFICADA)\b/g;
 
 export function sinFormaJuridica(razon: string | null | undefined): string {
   return normalizarTexto(razon).replace(FORMAS_JURIDICAS, ' ').replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();

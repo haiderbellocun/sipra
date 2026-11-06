@@ -186,11 +186,13 @@ export class ValidacionDocumentoEmpresarial {
    * Cambiaron los datos de SIPRA y la validación sigue en revisión: se recalcula la comparación SIN releer el archivo y en
    * una ronda NUEVA (`intentos + 1`): las evidencias de las rondas anteriores se conservan intactas.
    */
-  aplicarRecalculoComparacion(comparacion: ComparacionDocumentoEmpresarial, ahora: Date): void {
+  aplicarRecalculoComparacion(comparacion: ComparacionDocumentoEmpresarial, ahora: Date, expectativa?: string | null): void {
     if (this.datos.estado !== Estado.REVISION || this.datos.datosExtraidos === null) {
       throw new ResultadoDocumentoEmpresarialInvalidoError('solo una validación leída y en revisión admite recalcular la comparación');
     }
     this.datos.comparacion = comparacion;
+    // La Cámara no distingue persona al elegir el tipo: la persona esperada sale de SIPRA y puede cambiar con él.
+    if (expectativa !== undefined) this.datos.expectativa = expectativa;
     this.datos.intentos += 1;
     this.datos.actualizadaEn = ahora;
   }
@@ -328,11 +330,11 @@ export function evidenciaDeClasificacion(
 /** Evidencia de comparación: campo, resultado y criticidad (nunca los valores), el veredicto y la huella de lo que SIPRA decía. */
 export function evidenciaDeComparacion(
   v: Pick<DatosValidacionDocumentoEmpresarial, 'id' | 'intentos' | 'hashDocumento'>,
-  comparacion: ComparacionDocumentoEmpresarial & { veredicto?: string; huellaSipra?: string }, ahora: Date,
+  comparacion: ComparacionDocumentoEmpresarial & { veredicto?: string; huellaSipra?: string }, ahora: Date, metodo = 'comparacion_rut_sipra',
 ): EvidenciaDocumentoEmpresarial {
   return EvidenciaDocumentoEmpresarial.crear({
     id: randomUUID(), validacionId: v.id, intento: v.intentos, tipo: TipoEvidenciaDocumentoEmpresarial.COMPARACION,
-    resultado: comparacion.veredicto ?? (comparacion.hayDiscrepancia ? 'discrepancia' : 'consistente'), metodo: 'comparacion_rut_sipra',
+    resultado: comparacion.veredicto ?? (comparacion.hayDiscrepancia ? 'discrepancia' : 'consistente'), metodo,
     fecha: ahora, actorId: null, hashDocumento: v.hashDocumento,
     datos: {
       veredicto: comparacion.veredicto ?? null, hayDiscrepancia: comparacion.hayDiscrepancia, huellaSipra: comparacion.huellaSipra ?? null,

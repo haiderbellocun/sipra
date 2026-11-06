@@ -424,6 +424,9 @@ const lecturaCamara = (texto: string[] = paginasCamaraExistencia(), sobre: Parti
   };
 };
 
+/** Lo que SIPRA sabe de la empresa de la práctica: equivale al certificado sintético. */
+const EMPRESA_SIPRA = { nitNumero: NIT_JURIDICA, nitDv: Number(DV_JURIDICA), razonSocial: RAZON_SOCIAL, representanteLegal: REPRESENTANTE };
+
 describe('ValidacionCamaraUseCase · flujo de carga', () => {
   function entorno(lector: { leer: jest.Mock } = { leer: jest.fn() }) {
     const repo = new RepoMemoria();
@@ -436,35 +439,37 @@ describe('ValidacionCamaraUseCase · flujo de carga', () => {
     };
     const caso = new ValidacionCamaraUseCase(
       repo, { buscarPorId: async (id: string) => docs.get(id) ?? null } as never,
-      { buscarPorId: async () => ({ estudianteId: ESTUDIANTE }) } as never, { leer: async () => Buffer.from('pdf') } as never, lector,
+      { buscarPorId: async () => ({ estudianteId: ESTUDIANTE, instantanea: () => ({ empresaId: 'e-1', empresaRazonSocial: null, empresaNit: null }) }) } as never,
+      { leer: async () => Buffer.from('pdf') } as never, lector,
+      { buscarPorId: async () => ({ instantanea: () => EMPRESA_SIPRA }) } as never,
     );
     return { caso, repo, docs, agregar, lector };
   }
 
-  it('registra la lectura que dejó el pipeline SIN releer el archivo: revisión, dos evidencias y SIN comparación ni decisión', async () => {
+  it('registra la lectura que dejó el pipeline SIN releer el archivo: revisión, tres evidencias, comparación consistente y SIN decisión', async () => {
     const { caso, repo, docs, agregar, lector } = entorno();
     const id = agregar({ lecturaCamara: lecturaCamara() });
     const v = (await caso.registrarProcesamiento(docs.get(id)!, AHORA))!.instantanea();
     expect(v).toMatchObject({
       estado: Estado.REVISION, familiaDocumento: 'camara', tipoDetectado: C.CAMARA_EXISTENCIA_REPRESENTACION, tipoPersona: 'juridica', metodoLectura: 'texto',
-      expectativa: 'coincide', hashDocumento: HASH, comparacion: null, decididoPor: null, motivoDecision: null, procesadaEn: AHORA,
+      expectativa: 'coincide', hashDocumento: HASH, comparacion: expect.objectContaining({ veredicto: 'consistente', hayDiscrepancia: false }), decididoPor: null, motivoDecision: null, procesadaEn: AHORA,
     });
     expect(v.autenticidad).toMatchObject({ estado: 'no_verificable', fuente: null, firmaPdfPresente: true, firmaPdfValida: null });
     expect(v.datosExtraidos).toMatchObject({ nit: NIT_JURIDICA, representanteLegal: REPRESENTANTE, firmaPdfPresente: true, verificacionDisponibleHasta: '2026-11-09' });
-    expect(repo.evidencias.map((e) => e.tipo).sort()).toEqual(['clasificacion', 'lectura_documento']);
+    expect(repo.evidencias.map((e) => e.tipo).sort()).toEqual(['clasificacion', 'comparacion', 'lectura_documento']);
     expect(lector.leer).not.toHaveBeenCalled();
     // Idempotente: repetirlo no duplica nada.
     await caso.registrarProcesamiento(docs.get(id)!, new Date('2026-11-04T00:00:00Z'));
     expect(repo.filas.size).toBe(1);
-    expect(repo.evidencias).toHaveLength(2);
+    expect(repo.evidencias).toHaveLength(3);
   });
 
-  it('documento incorrecto o no determinable: queda en revisión con su clasificación, sin datos', async () => {
+  it('documento incorrecto o no determinable: queda en revisión con su clasificación, sin datos y SIN comparación', async () => {
     for (const tipoDetectado of [C.DOCUMENTO_INCORRECTO, C.NO_DETERMINABLE]) {
       const { caso, docs, agregar } = entorno();
       const id = agregar({ lecturaCamara: lecturaCamara(undefined, { tipoDetectado, datos: null }) });
       const v = (await caso.registrarProcesamiento(docs.get(id)!, AHORA))!.instantanea();
-      expect(v).toMatchObject({ estado: Estado.REVISION, tipoDetectado, datosExtraidos: null, expectativa: tipoDetectado === C.DOCUMENTO_INCORRECTO ? 'documento_incorrecto' : 'no_determinable' });
+      expect(v).toMatchObject({ estado: Estado.REVISION, tipoDetectado, datosExtraidos: null, comparacion: null, expectativa: tipoDetectado === C.DOCUMENTO_INCORRECTO ? 'documento_incorrecto' : 'no_determinable' });
     }
   });
 
@@ -597,6 +602,28 @@ describe('Política y pipeline de la Cámara: solo local, jamás autoaprobada', 
     await pipeline.procesar('doc-camara');
     expect(JSON.stringify(actual().banderas)).not.toMatch(/VIGENTE|ANO_EN_CURSO|a[nñ]o en curso|vencid/i);
     expect(actual().estado).toBe(EstadoDocumento.EN_REVISION);
+  });
+
+  it('flujo completo de carga: lectura local → clasificación → comparación con SIPRA → persistencia; consistente o con discrepancia, siempre en revisión', async () => {
+    for (const [razonSocial, veredicto] of [[RAZON_SOCIAL, 'consistente'], ['OTRA COMERCIALIZADORA S.A.S.', 'discrepancia']] as const) {
+      const local = { extraer: jest.fn(async () => extraccionCamara(lecturaCamara(), TipoDocumento.CAMARA_COMERCIO)) };
+      const { pipeline, actual } = montarPipeline(TipoDocumento.CAMARA_COMERCIO, { extraer: jest.fn() }, local);
+      await pipeline.procesar('doc-camara');
+      const repo = new RepoMemoria();
+      repo.documentos.push({ documentoId: 'doc-camara', practicaId: PRACTICA, tipo: TipoDocumento.CAMARA_COMERCIO, hash: HASH });
+      const caso = new ValidacionCamaraUseCase(
+        repo, { buscarPorId: async () => Documento.desde(actual()) } as never,
+        { buscarPorId: async () => ({ estudianteId: ESTUDIANTE, instantanea: () => ({ empresaId: 'e-1', empresaRazonSocial: null, empresaNit: null }) }) } as never,
+        { leer: async () => Buffer.from('pdf') } as never, { leer: jest.fn() },
+        { buscarPorId: async () => ({ instantanea: () => ({ ...EMPRESA_SIPRA, razonSocial }) }) } as never,
+      );
+      const v = (await caso.registrarProcesamiento(Documento.desde(actual()), AHORA))!.instantanea();
+      expect(actual().estado).toBe(EstadoDocumento.EN_REVISION);
+      expect(v.estado).toBe(Estado.REVISION);
+      expect(v.comparacion).toMatchObject({ veredicto });
+      expect([EstadoDocumento.AUTO_APROBADO, EstadoDocumento.APROBADO]).not.toContain(actual().estado);
+      expect(v).toMatchObject({ decididoPor: null, asignadoA: null, autenticidad: { estado: 'no_verificable' } });
+    }
   });
 
   it('una factura se marca C2_TIPO_INCORRECTO y queda en revisión; un RUT subido como Cámara también', async () => {

@@ -21,11 +21,14 @@ import { ValidacionCamaraUseCase } from '../src/application/use-cases/documentos
 import { BandaPuntaje, DatosDocumento, Documento, EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
 import { GeometriaDocumentoPort } from '../src/domain/ports/out/geometria-documento.port';
 import { LectorDocumentoLocalPort } from '../src/domain/ports/out/lector-documento-local.port';
-import { LecturaLocalCamaraService } from '../src/domain/services/lectura-local-camara.domain-service';
+import { LecturaCamaraPersistible, LecturaLocalCamaraService } from '../src/domain/services/lectura-local-camara.domain-service';
+import {
+  DV_JURIDICA, NIT_JURIDICA, RAZON_SOCIAL, REPRESENTANTE, datosCamara, datosCamaraPn,
+} from '../test/soporte-documento-empresarial';
 import { paginasCamaraExistencia } from '../test/soporte-camara-sintetico';
 import { DataSource } from 'typeorm';
 import {
-  ClasificacionDocumentoEmpresarial as C, EstadoValidacionDocumentoEmpresarial as Estado, TipoPersona,
+  ClasificacionDocumentoEmpresarial as C, DatosCamaraExtraidos, EstadoValidacionDocumentoEmpresarial as Estado, TipoPersona,
 } from '../src/domain/entities/documento-empresarial';
 import {
   EvidenciaDocumentoEmpresarial, TipoEvidenciaDocumentoEmpresarial, ValidacionDocumentoEmpresarial,
@@ -242,7 +245,7 @@ async function main(): Promise<void> {
         comprobar('el duplicado exacto se registra apuntando al primer documento (y no se borra ninguno)', l.duplicadoDeDocumentoId === primera);
       }
     }
-    console.log('\n— Cámara · el caso de uso lee (puertos locales), clasifica y persiste: idempotente, sin comparación ni decisión —');
+    console.log('\n— Cámara · el caso de uso lee (puertos locales), clasifica, persiste y COMPARA con SIPRA: idempotente, sin decisión —');
     const paginasSinteticas = paginasCamaraExistencia();
     const lectorFalso: LectorDocumentoLocalPort = {
       extraerTextoNativo: async () => ({ paginas: paginasSinteticas.length, porPagina: paginasSinteticas.map((texto, i) => ({ pagina: i + 1, texto })) }),
@@ -259,29 +262,124 @@ async function main(): Promise<void> {
       tamanoBytes: 10, hashSha256: 'b'.repeat(64), hashPerceptual: null, rutaAlmacenamiento: 'ruta/x', calidadCaptura: null, banderas: [], puntaje: 90, banda: BandaPuntaje.VERDE, extraccion: null,
       decididoPor: null, justificacionDecision: null, motivoDevolucion: null, cargadoEn: ahora, actualizadoEn: ahora, purgarDespuesDe: null,
     };
+    // Lo que SIPRA sabe de la empresa de la práctica: mutable, para probar recálculo y huella.
+    const sipraEmpresa: Record<string, unknown> = { nitNumero: NIT_JURIDICA, nitDv: Number(DV_JURIDICA), razonSocial: RAZON_SOCIAL, representanteLegal: REPRESENTANTE };
+    const documentosCamara = new Map<string, Documento>([[documentoCamara, Documento.desde(datosDoc)]]);
     const casoCamara = new ValidacionCamaraUseCase(
-      repo, { buscarPorId: async () => Documento.desde(datosDoc) } as never, { buscarPorId: async () => ({ estudianteId: estudiante }) } as never,
+      repo, { buscarPorId: async (id: string) => documentosCamara.get(id) ?? null } as never,
+      { buscarPorId: async () => ({ estudianteId: estudiante, instantanea: () => ({ empresaId: 'e-1', empresaRazonSocial: null, empresaNit: null }) }) } as never,
       { leer: async () => Buffer.from('%PDF-1.7 /ByteRange [0 10 20 30]') } as never, { leer: (c: Buffer, m: string) => lecturaServicio.leer(c, m) },
+      { buscarPorId: async () => ({ instantanea: () => ({ ...sipraEmpresa }) }) } as never,
     );
     const valCamara = (await casoCamara.procesar(documentoCamara, ahora))!.instantanea();
     const [fila] = await ds.query(
       `SELECT estado, familia_documento, tipo_detectado, tipo_persona, metodo_lectura, hash_documento, autenticidad_estado, procesada_en IS NOT NULL AS procesada,
-              comparacion IS NULL AS sin_comparacion, decidido_por IS NULL AS sin_decision, asignado_a IS NULL AS sin_reserva, datos_extraidos
+              comparacion, decidido_por IS NULL AS sin_decision, asignado_a IS NULL AS sin_reserva, datos_extraidos, expectativa
        FROM validaciones_documento_empresarial WHERE documento_id = $1`, [documentoCamara],
     );
     comprobar('Cámara: queda en revisión, clasificada por contenido (existencia y representación, persona jurídica, familia cámara)',
       valCamara.estado === Estado.REVISION && fila.estado === 'revision' && fila.familia_documento === 'camara' && fila.tipo_detectado === 'camara_existencia_representacion' && fila.tipo_persona === 'juridica', JSON.stringify(fila).slice(0, 200));
     comprobar('Cámara: método texto, hash, autenticidad no_verificable y procesada_en', fila.metodo_lectura === 'texto' && /^[0-9a-f]{64}$/.test(fila.hash_documento) && fila.autenticidad_estado === 'no_verificable' && fila.procesada === true);
-    comprobar('Cámara: SIN comparación, SIN decisión y SIN reserva', fila.sin_comparacion === true && fila.sin_decision === true && fila.sin_reserva === true);
+    comprobar('Cámara: comparación guardada y consistente (campo, resultado y criticidad; sin valores), SIN decisión y SIN reserva',
+      fila.comparacion?.veredicto === 'consistente' && fila.comparacion.hayDiscrepancia === false && fila.expectativa === 'coincide' && !JSON.stringify(fila.comparacion).includes(NIT_JURIDICA)
+      && fila.sin_decision === true && fila.sin_reserva === true, JSON.stringify(fila.comparacion).slice(0, 200));
     comprobar('Cámara: los datos minimizados incluyen la firma PDF presente, la ventana de verificación y el representante, y no más',
       fila.datos_extraidos.firmaPdfPresente === true && fila.datos_extraidos.verificacionDisponibleHasta === '2026-11-09' && typeof fila.datos_extraidos.representanteLegal === 'string'
       && !('direccion' in fila.datos_extraidos) && !('texto' in fila.datos_extraidos), JSON.stringify(Object.keys(fila.datos_extraidos)));
     const evidenciasCamara = ((await ds.query('SELECT tipo FROM evidencias_validacion_doc_empresarial WHERE validacion_id = $1', [valCamara.id])) as { tipo: string }[]).map((e) => e.tipo).sort();
-    comprobar('Cámara: dos evidencias (lectura_documento y clasificacion)', JSON.stringify(evidenciasCamara) === JSON.stringify(['clasificacion', 'lectura_documento']), JSON.stringify(evidenciasCamara));
+    comprobar('Cámara: tres evidencias (lectura_documento, clasificacion y comparacion)', JSON.stringify(evidenciasCamara) === JSON.stringify(['clasificacion', 'comparacion', 'lectura_documento']), JSON.stringify(evidenciasCamara));
     await casoCamara.procesar(documentoCamara, ahora);
     await casoCamara.registrarProcesamiento(Documento.desde(datosDoc), ahora);
     const [{ n: filasCamara }] = await ds.query('SELECT count(*)::int AS n FROM validaciones_documento_empresarial WHERE documento_id = $1', [documentoCamara]);
-    comprobar('Cámara: repetir el procesamiento no duplica la validación ni las evidencias', filasCamara === 1 && (await repo.listarEvidencias(valCamara.id)).length === 2);
+    comprobar('Cámara: repetir el procesamiento no duplica la validación ni las evidencias', filasCamara === 1 && (await repo.listarEvidencias(valCamara.id)).length === 3);
+
+    console.log('\n— Cámara · comparación con SIPRA: escenarios, recálculo, huella y concurrencia (PostgreSQL real) —');
+    const hashes = ['c', 'd', 'e', 'f', '1', '2', '3', '4', '5'];
+    let usados = 0;
+    const lecturaPersistible = (tipo: C, datos: DatosCamaraExtraidos | null, hash: string, dudosa: boolean): LecturaCamaraPersistible => ({
+      hashSha256: hash, tipoDetectado: tipo, motivosClasificacion: [], metodo: 'texto', confianzaDocumento: dudosa ? 0.6 : 1, lecturaDudosa: dudosa, datos,
+      autenticidad: {
+        estado: 'no_verificable', fuente: null, qrPresente: null, qrDecodificado: null, qrDestinoOficial: null,
+        firmaPdfPresente: true, firmaPdfValida: null, codigoVerificacionPresente: true, urlVerificacionPresente: true,
+      } as never,
+      resumen: { metodo: 'texto', paginas: 1, paginasOcr: 0, confianzaOcrMedia: null, lecturaDudosa: dudosa, limitesAplicados: [] }, motivos: [],
+    });
+    const consulta = async (id: string) => {
+      const [f] = await ds.query('SELECT id, estado, expectativa, comparacion, decidido_por, intentos FROM validaciones_documento_empresarial WHERE documento_id = $1', [id]);
+      const evs = (await ds.query(
+        'SELECT tipo, intento, resultado, metodo FROM evidencias_validacion_doc_empresarial WHERE validacion_id = $1 ORDER BY intento, tipo', [f.id],
+      )) as { tipo: string; intento: number; resultado: string; metodo: string }[];
+      return { f, evs, comparaciones: evs.filter((e) => e.tipo === 'comparacion') };
+    };
+    const registrarLectura = async (tipo: C, datos: DatosCamaraExtraidos | null, dudosa = false) => {
+      const hash = hashes[usados++].repeat(64);
+      const id = await nuevoDocumento('camara_comercio', hash);
+      documentosCamara.set(id, Documento.desde({ ...datosDoc, id, hashSha256: hash, extraccion: { lecturaCamara: lecturaPersistible(tipo, datos, hash, dudosa) } }));
+      await casoCamara.registrarProcesamiento(documentosCamara.get(id)!, ahora);
+      return { id, ...(await consulta(id)) };
+    };
+    const camaraInicial = { ...sipraEmpresa };
+
+    sipraEmpresa['razonSocial'] = 'OTRA COMERCIALIZADORA S.A.S.';
+    const discrepancia = await registrarLectura(C.CAMARA_EXISTENCIA_REPRESENTACION, datosCamara());
+    sipraEmpresa['razonSocial'] = camaraInicial['razonSocial'];
+    const camposDif = (discrepancia.f.comparacion.campos as { campo: string; resultado: string }[]).filter((c) => c.resultado === 'diferente').map((c) => c.campo);
+    comprobar('discrepancia crítica: veredicto discrepancia, diferencia SOLO en razon_social, sigue en revisión (nunca decidida)',
+      discrepancia.f.estado === 'revision' && discrepancia.f.comparacion.veredicto === 'discrepancia' && JSON.stringify(camposDif) === '["razon_social"]' && discrepancia.f.decidido_por === null);
+    comprobar('discrepancia: la evidencia de comparación usa el método de Cámara y su resultado',
+      discrepancia.comparaciones.length === 1 && discrepancia.comparaciones[0].metodo === 'comparacion_camara_sipra' && discrepancia.comparaciones[0].resultado === 'discrepancia');
+
+    const dudosa = await registrarLectura(C.CAMARA_EXISTENCIA_REPRESENTACION, datosCamara(), true);
+    comprobar('lectura dudosa: información insuficiente / revisión necesaria, sin ninguna diferencia',
+      dudosa.f.comparacion.veredicto === 'revision_necesaria' && dudosa.f.comparacion.hayDiscrepancia === false);
+
+    const distinta = await registrarLectura(C.CAMARA_MATRICULA_PERSONA_NATURAL, datosCamaraPn());
+    comprobar('persona distinta: expectativa persona_distinta, críticos no_aplica, veredicto no_aplica y sin diferencias',
+      distinta.f.expectativa === 'persona_distinta' && distinta.f.comparacion.veredicto === 'no_aplica' && distinta.f.comparacion.hayDiscrepancia === false && distinta.f.estado === 'revision');
+
+    for (const tipo of [C.DOCUMENTO_INCORRECTO, C.NO_DETERMINABLE]) {
+      const sinDatos = await registrarLectura(tipo, null);
+      comprobar(`${tipo}: SIN comparación y SIN evidencia de comparación (revisión humana)`,
+        sinDatos.f.estado === 'revision' && sinDatos.f.comparacion === null && sinDatos.comparaciones.length === 0 && sinDatos.evs.length === 2);
+    }
+
+    // Recálculo y huella sobre la Cámara consistente del inicio (sin releer el PDF).
+    const antes = await consulta(documentoCamara);
+    const datosAntes = (await repo.buscarPorDocumento(documentoCamara))!.instantanea().datosExtraidos;
+    comprobar('huella: SIPRA no ha cambiado', (await casoCamara.datosSipraCambiaronCamara(documentoCamara)) === false);
+    await casoCamara.recalcularComparacionCamara(documentoCamara, ahora);
+    const igual = await consulta(documentoCamara);
+    comprobar('recálculo sin cambios en SIPRA: no abre ronda ni agrega evidencia', igual.f.intentos === antes.f.intentos && igual.comparaciones.length === 1);
+    sipraEmpresa['representanteLegal'] = 'LUIS MIGUEL TORRES DIAZ';
+    comprobar('huella: SIPRA cambió después de la lectura', (await casoCamara.datosSipraCambiaronCamara(documentoCamara)) === true);
+    await casoCamara.recalcularComparacionCamara(documentoCamara, ahora);
+    const recalculada = await consulta(documentoCamara);
+    comprobar('recálculo: ronda nueva, comparación actualizada (representante diferente) y evidencia nueva; la anterior se conserva',
+      recalculada.f.intentos === antes.f.intentos + 1 && recalculada.f.comparacion.veredicto === 'discrepancia' && recalculada.f.estado === 'revision'
+      && recalculada.comparaciones.length === 2 && recalculada.comparaciones[0].resultado === 'consistente' && recalculada.comparaciones[1].resultado === 'discrepancia'
+      && recalculada.comparaciones[0].intento !== recalculada.comparaciones[1].intento, JSON.stringify(recalculada.comparaciones));
+    comprobar('huella: tras recalcular vuelve a coincidir', (await casoCamara.datosSipraCambiaronCamara(documentoCamara)) === false);
+    comprobar('los datos extraídos NO cambiaron con el recálculo (no se releyó el PDF)',
+      isDeepStrictEqual((await repo.buscarPorDocumento(documentoCamara))!.instantanea().datosExtraidos, datosAntes));
+    sipraEmpresa['representanteLegal'] = camaraInicial['representanteLegal'];
+
+    // Concurrencia: varios recálculos simultáneos tras un cambio de SIPRA producen UNA sola ronda y UNA sola evidencia nueva.
+    const concurrente = await registrarLectura(C.CAMARA_EXISTENCIA_REPRESENTACION, datosCamara({ matricula: '999999' }));
+    sipraEmpresa['razonSocial'] = 'EMPRESA CONCURRENTE S.A.S.';
+    await Promise.all(Array.from({ length: 8 }, () => casoCamara.recalcularComparacionCamara(concurrente.id, ahora)));
+    const trasConcurrencia = await consulta(concurrente.id);
+    comprobar('concurrencia (8 recálculos simultáneos): UNA ronda nueva y UNA evidencia de comparación nueva',
+      trasConcurrencia.f.intentos === concurrente.f.intentos + 1 && trasConcurrencia.comparaciones.length === 2, JSON.stringify(trasConcurrencia.comparaciones));
+
+    // Un caso ya decidido NO se recalcula: la decisión es historia; solo se informa que SIPRA cambió.
+    await ds.query("UPDATE validaciones_documento_empresarial SET estado = 'aprobado_manual', decidido_por = $2, decidido_en = now() WHERE id = $1", [trasConcurrencia.f.id, estudiante]);
+    sipraEmpresa['razonSocial'] = 'TERCERA RAZON SOCIAL S.A.S.';
+    await casoCamara.recalcularComparacionCamara(concurrente.id, ahora);
+    const decidida = await consulta(concurrente.id);
+    comprobar('caso decidido: no se recalcula (misma comparación, sin evidencia nueva) y la huella avisa que SIPRA cambió',
+      decidida.f.estado === 'aprobado_manual' && decidida.comparaciones.length === 2 && decidida.f.intentos === trasConcurrencia.f.intentos
+      && isDeepStrictEqual(decidida.f.comparacion, trasConcurrencia.f.comparacion) && (await casoCamara.datosSipraCambiaronCamara(concurrente.id)) === true);
+    sipraEmpresa['razonSocial'] = camaraInicial['razonSocial'];
 
     await rechaza('Cámara: una bandera de «vigente» no entra en los datos', () => insertar(revision({
       tipo_detectado: 'camara_matricula_sociedad', familia_documento: 'camara', tipo_persona: 'juridica', datos_extraidos: { tipoPersona: 'juridica', vigente: true },

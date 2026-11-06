@@ -2,34 +2,43 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Documento, EstadoDocumento, TipoDocumento } from '../../../domain/entities/documento.entity';
 import {
-  EstadoValidacionDocumentoEmpresarial, expectativaDeTipoDocumento, familiaDe, personaDe,
+  ClasificacionDocumentoEmpresarial, DatosCamaraExtraidos, EstadoValidacionDocumentoEmpresarial, expectativaDeTipoDocumento, familiaDe, personaDe,
 } from '../../../domain/entities/documento-empresarial';
 import {
-  ValidacionDocumentoEmpresarial, evidenciaDeClasificacion, evidenciaDeLectura,
+  ValidacionDocumentoEmpresarial, evidenciaDeClasificacion, evidenciaDeComparacion, evidenciaDeLectura,
 } from '../../../domain/entities/validacion-documento-empresarial.entity';
 import { LECTURA_CAMARA, LecturaCamaraPort } from '../../../domain/ports/out/lectura-camara.port';
 import { DocumentoLocalIlegibleError, LimiteLecturaLocalError } from '../../../domain/ports/out/lector-documento-local.port';
 import {
-  DOCUMENTO_REPOSITORY, DocumentoRepositoryPort, PRACTICA_REPOSITORY, PracticaRepositoryPort,
+  DOCUMENTO_REPOSITORY, DocumentoRepositoryPort, EMPRESA_REPOSITORY, EmpresaRepositoryPort, PRACTICA_REPOSITORY, PracticaRepositoryPort,
 } from '../../../domain/ports/out/repositorios.port';
 import { ALMACENAMIENTO, AlmacenamientoPort } from '../../../domain/ports/out/servicios-externos.port';
 import {
   VALIDACION_DOCUMENTO_EMPRESARIAL_REPOSITORY, ValidacionDocumentoEmpresarialRepositoryPort,
 } from '../../../domain/ports/out/validacion-documento-empresarial.port';
 import { evaluarExpectativa } from '../../../domain/services/clasificacion-documento-empresarial.domain-service';
+import {
+  ComparacionCamara, SipraParaCamara, compararCamaraConSipra, datosSipraParaCamara, sipraCambioDespuesCamara,
+} from '../../../domain/services/comparacion-camara.domain-service';
 import { LecturaCamaraPersistible, minimizarLecturaCamara } from '../../../domain/services/lectura-local-camara.domain-service';
 
 /**
  * Procesamiento del certificado de Cámara de Comercio de una práctica: lectura local → clasificación por contenido →
- * persistencia (validación + evidencias de lectura y de clasificación).
+ * persistencia (validación + evidencias de lectura y de clasificación) → comparación con SIPRA (evidencia de comparación).
  *
- * NO decide y NO compara con SIPRA todavía (viene en un bloque posterior): la validación queda en `revision` (o en `error` con un
- * código controlado). No autoaprueba, no consulta el RUES, no abre URLs de verificación y no usa servicios externos. Un documento
- * incorrecto o no determinable también queda en `revision`, con su clasificación.
+ * NO decide: la validación queda en `revision` (o en `error` con un código controlado). Una Cámara consistente NO está aprobada: la
+ * decisión es siempre humana y viene después. No autoaprueba, no consulta el RUES, no abre URLs de verificación y no usa servicios
+ * externos. Un documento incorrecto o no determinable también queda en `revision`, con su clasificación y SIN comparación.
+ *
+ * Lectura y comparación están separadas: la lectura minimizada vive en la validación, así que si cambian los datos de SIPRA la
+ * comparación se RECALCULA sin releer el archivo y sin tocar las evidencias pasadas (ronda nueva). La comparación guarda campo,
+ * resultado, criticidad y causa —nunca valores— y una huella de lo que SIPRA decía.
  *
  * Idempotente: repetir el procesamiento no duplica la validación ni las evidencias (se identifican por validación, ronda y tipo) y
  * no pisa un resultado. Un duplicado exacto (mismo archivo, práctica y tipo) se reporta y no impide la lectura.
  */
+const METODO_COMPARACION = 'comparacion_camara_sipra';
+
 @Injectable()
 export class ValidacionCamaraUseCase {
   private readonly log = new Logger(ValidacionCamaraUseCase.name);
@@ -40,6 +49,7 @@ export class ValidacionCamaraUseCase {
     @Inject(PRACTICA_REPOSITORY) private readonly practicas: PracticaRepositoryPort,
     @Inject(ALMACENAMIENTO) private readonly almacen: AlmacenamientoPort,
     @Inject(LECTURA_CAMARA) private readonly lector: LecturaCamaraPort,
+    @Inject(EMPRESA_REPOSITORY) private readonly empresas: EmpresaRepositoryPort,
   ) {}
 
   // ── Flujo de carga (lo invoca el worker) ─────────────────────────────────
@@ -110,7 +120,65 @@ export class ValidacionCamaraUseCase {
     return this.completar(d, lectura, ahora);
   }
 
+  // ── Recálculo de la comparación (sin releer el archivo) ──────────────────
+
+  /**
+   * Los datos de SIPRA pudieron cambiar: recalcula la comparación con la lectura ya guardada. Si lo que SIPRA dice no cambió, no
+   * hace nada. Si cambió, abre una ronda nueva y agrega su evidencia; las anteriores quedan intactas. Un caso ya decidido NO se
+   * toca (la decisión es historia): para ese caso `datosSipraCambiaronCamara` solo informa.
+   */
+  async recalcularComparacionCamara(documentoId: string, ahora: Date = new Date()): Promise<ValidacionDocumentoEmpresarial | null> {
+    const validacion = await this.validaciones.buscarPorDocumento(documentoId);
+    if (!validacion || !validacion.estaRevisable) return validacion;
+    const v = validacion.instantanea();
+    const sipra = await this.datosSipra(v.practicaId);
+    if (!sipra) return validacion;
+    const nueva = compararCamaraConSipra({
+      tipoDetectado: v.tipoDetectado, datos: v.datosExtraidos as DatosCamaraExtraidos | null, lecturaDudosa: v.lecturaDudosa,
+    }, sipra, ahora);
+    if (!nueva) return validacion;
+    if ((v.comparacion as ComparacionCamara | null)?.huellaSipra === nueva.huellaSipra) return validacion;
+
+    validacion.aplicarRecalculoComparacion(nueva, ahora, this.expectativaDe(v.tipoDetectado, sipra));
+    const resultado = validacion.instantanea();
+    await this.validaciones.agregarEvidencia(evidenciaDeComparacion(resultado, nueva, ahora, METODO_COMPARACION).instantanea());
+    if (!(await this.validaciones.guardarSiVersion(resultado, v.version))) {
+      this.log.warn(`Comparación de la Cámara ${v.id}: la modificó otro proceso; se conserva su resultado`);
+    }
+    return (await this.validaciones.buscarPorId(v.id)) ?? validacion;
+  }
+
+  /** Para una futura Mesa: ¿los datos de SIPRA cambiaron después de la comparación guardada? No modifica nada. */
+  async datosSipraCambiaronCamara(documentoId: string): Promise<boolean> {
+    const validacion = await this.validaciones.buscarPorDocumento(documentoId);
+    const comparacion = validacion?.instantanea().comparacion as ComparacionCamara | null | undefined;
+    if (!validacion || !comparacion?.huellaSipra) return false;
+    const sipra = await this.datosSipra(validacion.instantanea().practicaId);
+    return sipra ? sipraCambioDespuesCamara(comparacion, sipra) : false;
+  }
+
   // ── Internos ─────────────────────────────────────────────────────────────
+
+  /** Lo que SIPRA sabe: la empresa de la práctica (o, sin empresa registrada, lo que dice el FUR). En persona natural es el titular. */
+  private async datosSipra(practicaId: string): Promise<SipraParaCamara | null> {
+    const practica = await this.practicas.buscarPorId(practicaId);
+    if (!practica) return null;
+    const dp = practica.instantanea();
+    const empresa = dp.empresaId ? await this.empresas.buscarPorId(dp.empresaId) : null;
+    const e = empresa?.instantanea() ?? null;
+    return datosSipraParaCamara({
+      empresa: e ? { nitNumero: e.nitNumero, nitDv: e.nitDv, razonSocial: e.razonSocial, representanteLegal: e.representanteLegal } : null,
+      formulario: { razonSocial: dp.empresaRazonSocial, nit: dp.empresaNit },
+    });
+  }
+
+  /** La Cámara no distingue persona al elegir el tipo: la persona esperada sale de lo que SIPRA sabe de la empresa. */
+  private expectativaDe(tipoDetectado: ClasificacionDocumentoEmpresarial | null, sipra: SipraParaCamara | null): string | null {
+    if (!tipoDetectado) return null;
+    return evaluarExpectativa(expectativaDeTipoDocumento(TipoDocumento.CAMARA_COMERCIO, sipra?.personaEsperada ?? null)!, {
+      clasificacion: tipoDetectado, familia: familiaDe(tipoDetectado), tipoPersona: personaDe(tipoDetectado), motivos: [],
+    }).resultado;
+  }
 
   private async obtenerOCrear(d: ReturnType<Documento['instantanea']>, ahora: Date): Promise<ValidacionDocumentoEmpresarial | null> {
     const existente = await this.validaciones.buscarPorDocumento(d.id);
@@ -143,10 +211,12 @@ export class ValidacionCamaraUseCase {
     const validacion = await this.abrirRonda(d, ahora);
     if (!validacion || validacion.estaProcesada) return validacion;
 
-    const expectativa = evaluarExpectativa(expectativaDeTipoDocumento(d.tipo)!, {
-      clasificacion: lectura.tipoDetectado, familia: familiaDe(lectura.tipoDetectado), tipoPersona: personaDe(lectura.tipoDetectado), motivos: lectura.motivosClasificacion,
-    }).resultado;
+    const sipra = await this.datosSipra(d.practicaId);
+    const expectativa = this.expectativaDe(lectura.tipoDetectado, sipra);
     const duplicados = await this.validaciones.buscarDuplicados(d.practicaId, d.tipo, lectura.hashSha256, d.id);
+    const comparacion = sipra
+      ? compararCamaraConSipra({ tipoDetectado: lectura.tipoDetectado, datos: lectura.datos, lecturaDudosa: lectura.lecturaDudosa }, sipra, ahora)
+      : null;
 
     const versionLeida = validacion.version;
     validacion.registrarResultado({
@@ -158,8 +228,7 @@ export class ValidacionCamaraUseCase {
       hashDocumento: lectura.hashSha256,
       duplicadoDeDocumentoId: duplicados[0]?.documentoId ?? null,
       datosExtraidos: lectura.datos,
-      // La comparación con SIPRA es de un bloque posterior.
-      comparacion: null,
+      comparacion,
       autenticidad: lectura.autenticidad,
     }, ahora);
     const resultado = validacion.instantanea();
@@ -168,6 +237,7 @@ export class ValidacionCamaraUseCase {
     // aquí el reintento las completa sin duplicar.
     await this.validaciones.agregarEvidencia(evidenciaDeLectura(resultado, lectura.resumen, ahora).instantanea());
     await this.validaciones.agregarEvidencia(evidenciaDeClasificacion(resultado, [...lectura.motivosClasificacion, ...lectura.motivos], ahora).instantanea());
+    if (comparacion) await this.validaciones.agregarEvidencia(evidenciaDeComparacion(resultado, comparacion, ahora, METODO_COMPARACION).instantanea());
 
     if (!(await this.validaciones.guardarSiVersion(resultado, versionLeida))) {
       this.log.warn(`Validación de Cámara ${resultado.id}: la modificó otro proceso; se conserva su resultado`);
