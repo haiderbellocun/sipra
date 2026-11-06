@@ -135,6 +135,9 @@ import { ActasIniciacionController } from '../controllers/actas-iniciacion.contr
 import { MesaRutController } from '../controllers/mesa-rut.controller';
 import { MesaRutUseCase } from '../../application/use-cases/documentos/mesa-rut.use-case';
 import { RutEstudianteUseCase } from '../../application/use-cases/documentos/rut-estudiante.use-case';
+import { MesaCamaraController } from '../controllers/mesa-camara.controller';
+import { MesaCamaraUseCase } from '../../application/use-cases/documentos/mesa-camara.use-case';
+import { CamaraEstudianteUseCase } from '../../application/use-cases/documentos/camara-estudiante.use-case';
 import { MesaActasUseCase } from '../../application/use-cases/documentos/mesa-actas.use-case';
 import { ActaEstudianteUseCase } from '../../application/use-cases/documentos/acta-estudiante.use-case';
 import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
@@ -231,7 +234,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     EmpresasController, CumplimientoController, BolsaController, SaludController,
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
-    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController, MesaRutController,
+    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController, MesaRutController, MesaCamaraController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -366,6 +369,8 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     MesaActasUseCase,
     MesaRutUseCase,
     RutEstudianteUseCase,
+    MesaCamaraUseCase,
+    CamaraEstudianteUseCase,
     ActaEstudianteUseCase,
     // Verificación OFICIAL de certificados de EPS: registro de destinos permitidos (hoy vacío),
     // cliente HTTP con defensa SSRF y un adaptador por verificador (ninguno habilitado todavía).

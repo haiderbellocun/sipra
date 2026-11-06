@@ -307,6 +307,7 @@ export class GestionarDocumentoUseCase {
     opciones: {
       mesaActa?: { motivo: string | null; contexto: Record<string, unknown>; ahora: Date };
       mesaRut?: { validacionId: string; motivo: string | null; contexto: Record<string, unknown>; ahora: Date };
+      mesaCamara?: { validacionId: string; motivo: string | null; contexto: Record<string, unknown>; ahora: Date };
     } = {},
   ): Promise<DocumentoRespuestaDto> {
     // Docente, coordinación y administración deciden cualquier documento de su alcance; el
@@ -336,6 +337,16 @@ export class GestionarDocumentoUseCase {
         throw new ForbiddenException('El RUT se revisa y se decide en la Mesa de RUT.');
       }
       return this.decidirRut(dto, actor, opciones.mesaRut);
+    }
+    // El certificado de Cámara de Comercio se decide SOLO desde la Mesa de Cámara: mismas garantías que el RUT (reserva, versión vigente,
+    // justificación y motivo, transacción única). Los roles que lo decidían por el camino general son los mismos que operan la Mesa.
+    if (documento.tipo === TipoDocumento.CAMARA_COMERCIO) {
+      if (!opciones.mesaCamara || !this.decisionRut) {
+        throw new ForbiddenException('El certificado de Cámara de Comercio se revisa y se decide en la Mesa de Cámara.');
+      }
+      return this.decidirRut(dto, actor, opciones.mesaCamara, {
+        nombreDocumento: 'certificado de Cámara', accionContexto: AccionAuditada.DECISION_CAMARA, tiposPermitidos: [TipoDocumento.CAMARA_COMERCIO],
+      });
     }
     // Un caso de EPS que otro funcionario tiene reservado no se decide por encima.
     if (documento.tipo === TipoDocumento.CERTIFICADO_EPS) {
@@ -414,16 +425,20 @@ export class GestionarDocumentoUseCase {
     return this.aRespuesta(guardado, actor);
   }
 
-  /** Decisión del RUT: misma atomicidad que el acta; avisos y bitácora solo después del commit. */
+  /**
+   * Decisión del RUT (y, con `extra`, del certificado de Cámara): misma atomicidad que el acta; avisos y bitácora solo después del
+   * commit.
+   */
   private async decidirRut(
     dto: DecisionDocumentoDto, actor: Actor, mesa: { validacionId: string; motivo: string | null; contexto: Record<string, unknown>; ahora: Date },
+    extra: { nombreDocumento?: string; accionContexto?: AccionAuditada; tiposPermitidos?: readonly string[] } = {},
   ): Promise<DocumentoRespuestaDto> {
     let guardado: Documento;
     try {
       guardado = await (this.decisionRut as DecisionRutPort).aplicar(mesa.validacionId, {
         decision: dto.decision, justificacion: dto.justificacion, motivo: mesa.motivo, ahora: mesa.ahora,
         actor: { id: actor.id, correo: actor.correo, rol: actor.rol, ip: actor.ip ?? null, agenteUsuario: actor.agenteUsuario ?? null },
-        contextoAuditoria: mesa.contexto,
+        contextoAuditoria: mesa.contexto, ...extra,
       });
     } catch (error) {
       if (error instanceof ConflictoDecisionRutError || error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);

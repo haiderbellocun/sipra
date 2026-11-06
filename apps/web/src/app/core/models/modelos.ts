@@ -805,3 +805,70 @@ export interface EstadoRutEstudiante {
   estado: 'pendiente' | 'en_procesamiento' | 'en_revision' | 'necesita_correccion' | 'aprobado' | 'rechazado';
   etiqueta: string; que: string; hacer: string; puedeReenviar: boolean;
 }
+
+// ── Mesa de Cámara de Comercio ─────────────────────────────────────────────
+
+export type ReservaCamara = ReservaRut;
+export type PrioridadCamara = PrioridadRut;
+
+export interface ItemBandejaCamara {
+  validacionId: string; practicaId: string; estudianteId: string; documentoId: string; tipo: 'camara_comercio'; estado: string;
+  estadoHumano: { etiqueta: string; nivel: 'ok' | 'atencion' | 'alerta' }; reserva: ReservaCamara; problemaPrincipal: string | null; fechaCarga: string;
+  estudiante: { nombre: string }; modalidad: string | null; empresa: string | null; tipoEsperado: string; tipoDetectado: string | null;
+  tipoCertificado: 'persona_natural' | 'persona_juridica' | null; personaDistinta: boolean; version: number; esReenvio: boolean;
+  hayDiscrepancia: boolean; representanteDiferente: boolean; matriculaCancelada: boolean; lecturaDudosa: boolean; lecturaOcr: boolean;
+  recomendacion: string; prioridad: PrioridadCamara; diasEnBandeja: number; datosSipraCambiaronDespuesDeDecision: boolean; inconsistenciaOperativa: boolean;
+}
+
+export interface ListadoBandejaCamara {
+  kpis: {
+    abiertas: number; libres: number; mias: number; tomadas: number; porVencer: number; conDiscrepancia: number;
+    documentoIncorrecto: number; lecturaDudosa: number; personaDistinta: number;
+  };
+  total: number;
+  items: ItemBandejaCamara[];
+}
+
+export type FiltrosCamara = FiltrosRut;
+
+export interface CampoComparadoCamara {
+  campo: string; etiqueta: string; sipra: string | null; camara: string | null;
+  resultado: 'coincide' | 'diferente' | 'informacion_insuficiente' | 'no_aplica' | 'informativo';
+  resultadoTexto: string; criticidad: 'critico' | 'importante' | 'informativo'; causa: string | null; advertencia: string | null;
+}
+
+export interface DetalleCamara {
+  validacionId: string; practicaId: string; estudianteId: string; documentoId: string; tipo: 'camara_comercio'; estado: string;
+  estadoHumano: { etiqueta: string; nivel: 'ok' | 'atencion' | 'alerta' }; reserva: ReservaCamara; problemaPrincipal: string | null; fechaCarga: string;
+  version: number; vigente: boolean; recomendacion: string;
+  resumen: { etiqueta: string; nivel: 'ok' | 'atencion' | 'alerta'; problemaPrincipal: string | null };
+  prioridad: PrioridadCamara; puedeDecidir: boolean;
+  aprobarExigeJustificacion: boolean; minimoJustificacionAprobar: number; minimoJustificacionRechazar: number;
+  tipoEsperado: string | null; tipoDetectado: string | null; tipoCertificado: 'persona_natural' | 'persona_juridica' | null; certificado: string | null;
+  lectura: { metodo: 'texto' | 'ocr' | null; dudosa: boolean; aviso: string | null };
+  estudiante: { nombre: string }; practica: { empresa: string | null; nit: string | null; modalidad: string | null };
+  criticos: CampoComparadoCamara[];
+  representante: (CampoComparadoCamara & { aviso: string | null }) | null;
+  informativos: Array<{ campo: string; etiqueta: string; valor: string | null }>;
+  estadoRegistral: { estado: 'activo' | 'cancelado' | 'otro' | 'no_determinable'; etiqueta: string; alerta: string | null };
+  renovacion: { ultimoAnioRenovado: number | null; fechaRenovacion: string | null };
+  expedicion: { fecha: string | null; diasDesdeExpedicion: number | null; politicaDias: number | null; cumplePolitica: boolean | null };
+  verificacion: {
+    codigoDetectado: boolean; urlDetectada: boolean; firmaPdfPresente: boolean | null; disponibleHasta: string | null;
+    autenticidad: { estado: string; etiqueta: string; aviso: string };
+  };
+  comparacion: { veredicto: string | null; calculadaEn: string | null } | null;
+  avisoDatosSipra: string | null; datosSipraCambiaronEn: string | null;
+  decision: { estado: string; por: string | null; en: string; motivo: string | null } | null;
+  versiones: Array<{ validacionId: string; documentoId: string; version: number; vigente: boolean; estado: string; motivo: string | null; cargadaEn: string; decididaEn: string | null }>;
+  historial: Array<{ fecha: string; tipo: string; etiqueta: string; resultado: string; ronda: number; actor: string | null }>;
+  inconsistenciaOperativa: { estadoDocumento: string; mensaje: string } | null;
+}
+
+/** Un motivo de devolución de la Cámara, tal como lo entrega la API (fuente única del catálogo). */
+export type MotivoDevolucionCamara = MotivoDevolucionRut;
+
+export interface DecisionCamara { decision: 'aprobar' | 'devolver' | 'rechazar'; motivo?: string; justificacion?: string; confirmar?: boolean }
+
+export type SupervisionCamara = SupervisionRut;
+export type EstadoCamaraEstudiante = EstadoRutEstudiante;

@@ -13,6 +13,7 @@ import {
   DecisionMesa, DetalleMesa, FiltrosMesa, ListadoMesa, ResultadoTomarSiguiente, SupervisionMesa,
   CorreccionDatosPractica, DecisionActa, MotivoDevolucionActa, DetalleActa, EstadoActaEstudiante, FiltrosActas, ListadoBandejaActa, ReservaActa, SupervisionActa,
   DecisionRut, DetalleRut, EstadoRutEstudiante, FiltrosRut, ListadoBandejaRut, MotivoDevolucionRut, ReservaRut, SupervisionRut,
+  DecisionCamara, DetalleCamara, EstadoCamaraEstudiante, FiltrosCamara, ListadoBandejaCamara, MotivoDevolucionCamara, ReservaCamara, SupervisionCamara,
 } from '../models/modelos';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
@@ -139,6 +140,49 @@ export class ApiService {
 
   estadoDeMiRut(practicaId: string): Observable<EstadoRutEstudiante> {
     return this.http.get<EstadoRutEstudiante>(`${this.base}/mesa-rut/practica/${practicaId}/estado`);
+  }
+
+  // ── Mesa de Cámara de Comercio ─────────────────────────────────────────
+  listarMesaCamara(filtros: FiltrosCamara = {}): Observable<ListadoBandejaCamara> {
+    return this.http.get<ListadoBandejaCamara>(`${this.base}/mesa-camara`, { params: aParams({ ...filtros }) });
+  }
+
+  detalleCamara(id: string): Observable<DetalleCamara> {
+    return this.http.get<DetalleCamara>(`${this.base}/mesa-camara/${id}`);
+  }
+
+  /** El certificado llega por la sesión autenticada (cabecera Authorization): sin enlace firmado ni credencial en la URL. */
+  archivoCamara(id: string): Observable<Blob> {
+    return this.http.get(`${this.base}/mesa-camara/${id}/archivo`, { responseType: 'blob' });
+  }
+
+  tomarCamara(id: string): Observable<ReservaCamara> {
+    return this.http.post<ReservaCamara>(`${this.base}/mesa-camara/${id}/tomar`, {});
+  }
+
+  liberarCamara(id: string): Observable<ReservaCamara> {
+    return this.http.post<ReservaCamara>(`${this.base}/mesa-camara/${id}/liberar`, {});
+  }
+
+  tomarSiguienteCamara(criterios: { conDiscrepancias?: 'si' | 'no'; documentoIncorrecto?: 'si' } = {}): Observable<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }> {
+    return this.http.post<{ estado: 'tomado' | 'sin_casos'; validacionId: string | null }>(`${this.base}/mesa-camara/tomar-siguiente`, criterios);
+  }
+
+  /** Fuente única del catálogo de motivos de devolución: la pantalla no mantiene una copia. */
+  motivosDevolucionCamara(): Observable<MotivoDevolucionCamara[]> {
+    return this.http.get<MotivoDevolucionCamara[]>(`${this.base}/mesa-camara/motivos-devolucion`);
+  }
+
+  decidirCamara(id: string, dto: DecisionCamara): Observable<unknown> {
+    return this.http.post(`${this.base}/mesa-camara/${id}/decision`, dto);
+  }
+
+  supervisionCamara(): Observable<SupervisionCamara> {
+    return this.http.get<SupervisionCamara>(`${this.base}/mesa-camara/supervision`);
+  }
+
+  estadoDeMiCamara(practicaId: string): Observable<EstadoCamaraEstudiante> {
+    return this.http.get<EstadoCamaraEstudiante>(`${this.base}/mesa-camara/practica/${practicaId}/estado`);
   }
 
   /** Corrección controlada (coordinación/administración): remuneración y/o quién asume la ARL, con justificación. */

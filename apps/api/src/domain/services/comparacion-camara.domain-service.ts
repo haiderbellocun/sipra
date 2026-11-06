@@ -16,8 +16,10 @@ import { compararNombres, tokensDeNombre } from './normalizacion-identidad';
  *  · Con `lecturaDudosa` los campos críticos quedan `informacion_insuficiente`: una lectura dudosa jamás produce «coincide»
  *    ni «diferente». Lo mismo con un NIT cuyo DV no valida (nunca se corrige el NIT para que coincida).
  *  · Críticos: persona natural → identificación (`nit`), `dv` y `nombre`; persona jurídica → `nit`, `dv` y `razon_social`.
- *    El representante legal es IMPORTANTE en existencia y representación, informativo en matrícula de sociedad y no aplica a la
- *    persona natural. Su ausencia o ilegibilidad es `informacion_insuficiente`, nunca una diferencia.
+ *    El representante legal es IMPORTANTE (no crítico) en existencia y representación, informativo en matrícula de sociedad y no
+ *    aplica a la persona natural. Su ausencia (en SIPRA o en el certificado) es `informacion_insuficiente` y NO frena el veredicto: se
+ *    muestra como dato pendiente de contraste humano. Solo si ambos lados lo tienen y son distintos es una discrepancia IMPORTANTE:
+ *    veredicto `revision_necesaria` y `discrepanciaImportante`, sin llegar al nivel de NIT/DV.
  *  · Sin DV en el certificado, el número se compara igual y el DV queda `informacion_insuficiente` (no bloquea la comparación).
  *  · Matrícula, Cámara, fechas, renovación, domicilio, CIIU, código de verificación, firma PDF y ventana de verificación son
  *    INFORMATIVOS: no tienen contraparte canónica en SIPRA y no causan discrepancias. La renovación y el estado «activo» no
@@ -51,8 +53,10 @@ export interface ComparacionCamara extends ComparacionDocumentoEmpresarial {
   version: 1;
   veredicto: VeredictoComparacionCamara;
   campos: CampoComparacionCamara[];
-  /** Hay al menos un campo CRÍTICO o IMPORTANTE `diferente`. */
+  /** Hay al menos un campo CRÍTICO `diferente` (NIT, DV, razón social o nombre). */
   hayDiscrepancia: boolean;
+  /** Un campo IMPORTANTE (el representante legal) es `diferente`: pide revisión, pero no es crítica. */
+  discrepanciaImportante: boolean;
   /** Señales separadas que una persona debe ver (p. ej. `estado_registral_cancelado`). No son una decisión. */
   senales: string[];
   /** SHA-256 de lo que SIPRA decía al comparar (no los valores): permite saber si cambió después. */
@@ -139,13 +143,16 @@ export function sipraCambioDespuesCamara(comparacion: Pick<ComparacionCamara, 'h
 
 // ── Comparación ─────────────────────────────────────────────────────────────
 
-const esRelevante = (c: CampoComparacionCamara): boolean => c.criticidad !== 'informativo';
+const criticosDe = (campos: readonly CampoComparacionCamara[]): CampoComparacionCamara[] => campos.filter((c) => c.criticidad === 'critico');
+const importantesDe = (campos: readonly CampoComparacionCamara[]): CampoComparacionCamara[] => campos.filter((c) => c.criticidad === 'importante');
 
+/** Solo lo CRÍTICO decide discrepancia o falta de información; lo importante solo pide revisión cuando es distinto en ambos lados. */
 function veredictoDe(campos: readonly CampoComparacionCamara[]): VeredictoComparacionCamara {
-  const relevantes = campos.filter(esRelevante);
-  if (relevantes.length === 0 || relevantes.every((c) => c.resultado === 'no_aplica')) return 'no_aplica';
-  if (relevantes.some((c) => c.resultado === 'diferente')) return 'discrepancia';
-  if (relevantes.some((c) => c.resultado === 'informacion_insuficiente')) return 'revision_necesaria';
+  const criticos = criticosDe(campos);
+  if (criticos.length === 0 || criticos.every((c) => c.resultado === 'no_aplica')) return 'no_aplica';
+  if (criticos.some((c) => c.resultado === 'diferente')) return 'discrepancia';
+  if (criticos.some((c) => c.resultado === 'informacion_insuficiente')) return 'revision_necesaria';
+  if (importantesDe(campos).some((c) => c.resultado === 'diferente')) return 'revision_necesaria';
   return 'consistente';
 }
 
@@ -153,7 +160,8 @@ function cerrar(campos: CampoComparacionCamara[], sipra: SipraParaCamara, ahora:
   const senales = campos.filter((c) => c.campo === 'estado_registral' && c.resultado === 'diferente').map(() => 'estado_registral_cancelado');
   return {
     version: 1, veredicto: veredictoDe(campos), campos,
-    hayDiscrepancia: campos.some((c) => esRelevante(c) && c.resultado === 'diferente'),
+    hayDiscrepancia: criticosDe(campos).some((c) => c.resultado === 'diferente'),
+    discrepanciaImportante: importantesDe(campos).some((c) => c.resultado === 'diferente'),
     senales, huellaSipra: huellaSipraCamara(sipra), calculadaEn: ahora.toISOString(),
   };
 }

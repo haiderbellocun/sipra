@@ -42,7 +42,7 @@ export class DecisionRutPgAdapter implements DecisionRutPort {
       if (!vOrm) throw new ConflictoDecisionRutError('no_encontrada');
       const dOrm = await m.getRepository(DocumentoOrm).createQueryBuilder('d')
         .setLock('pessimistic_write').where('d.id = :id', { id: vOrm.documento_id }).getOne();
-      if (!dOrm || !TIPOS_RUT.includes(dOrm.tipo)) throw new ConflictoDecisionRutError('no_encontrada');
+      if (!dOrm || !(entrada.tiposPermitidos ?? TIPOS_RUT).includes(dOrm.tipo)) throw new ConflictoDecisionRutError('no_encontrada');
       const maxima: { v: number }[] = await m.query(
         'SELECT coalesce(max(version), 0)::int AS v FROM documentos WHERE practica_id = $1 AND tipo = $2', [dOrm.practica_id, dOrm.tipo],
       );
@@ -67,7 +67,7 @@ export class DecisionRutPgAdapter implements DecisionRutPort {
       const v = await m.getRepository(ValidacionDocumentoEmpresarialOrm).createQueryBuilder().update(ValidacionDocumentoEmpresarialOrm)
         .set({ ...ValidacionDocumentoEmpresarialMapper.columnasMutables(plan.validacion.instantanea()), version: () => 'version + 1' } as never)
         .where('id = :id AND version = :version', { id: validacionId, version: plan.versionValidacionLeida }).execute();
-      if ((v.affected ?? 0) !== 1) throw new ConflictoDecisionRutError('no_revisable');
+      if ((v.affected ?? 0) !== 1) throw new ConflictoDecisionRutError('no_revisable', entrada.nombreDocumento);
       await this.alPunto?.('tras_validacion');
 
       await m.getRepository(EvidenciaValidacionDocEmpresarialOrm).insert(EvidenciaDocumentoEmpresarialMapper.aOrm(plan.evidencia) as never);

@@ -22,20 +22,21 @@ import { DecisionRevisionRut } from './mesa-rut.domain-service';
 export type MotivoConflictoDecisionRut =
   | 'ya_decidida' | 'inconsistente' | 'no_revisable' | 'version_vieja' | 'reserva' | 'documento_cambio' | 'no_encontrada';
 
-const MENSAJES: Readonly<Record<MotivoConflictoDecisionRut, string>> = {
-  ya_decidida: 'El caso ya fue decidido',
-  inconsistente: 'El documento ya tiene una decisión pero la validación del RUT sigue en revisión: avise a coordinación para reconciliarlo',
-  no_revisable: 'El RUT todavía no está listo para revisión o ya no lo está: recargue el caso',
-  version_vieja: 'El estudiante cargó una versión más reciente del RUT: revise esa versión',
-  reserva: 'Su reserva del caso venció o es de otro funcionario: tómelo de nuevo antes de decidir',
-  documento_cambio: 'El documento cambió mientras se decidía: recárguelo e inténtelo de nuevo',
-  no_encontrada: 'Caso no encontrado',
+/** El mismo núcleo sirve a los documentos empresariales (RUT y Cámara): el mensaje nombra el documento (por defecto, el RUT). */
+const MENSAJES: Readonly<Record<MotivoConflictoDecisionRut, (documento: string) => string>> = {
+  ya_decidida: () => 'El caso ya fue decidido',
+  inconsistente: (d) => `El documento ya tiene una decisión pero la validación del ${d} sigue en revisión: avise a coordinación para reconciliarlo`,
+  no_revisable: (d) => `El ${d} todavía no está listo para revisión o ya no lo está: recargue el caso`,
+  version_vieja: (d) => `El estudiante cargó una versión más reciente del ${d}: revise esa versión`,
+  reserva: () => 'Su reserva del caso venció o es de otro funcionario: tómelo de nuevo antes de decidir',
+  documento_cambio: () => 'El documento cambió mientras se decidía: recárguelo e inténtelo de nuevo',
+  no_encontrada: () => 'Caso no encontrado',
 };
 
 /** La decisión no procede por el estado del caso. Siempre un 409 controlado, nunca un 500. */
 export class ConflictoDecisionRutError extends Error {
-  constructor(public readonly motivo: MotivoConflictoDecisionRut) {
-    super(MENSAJES[motivo]);
+  constructor(public readonly motivo: MotivoConflictoDecisionRut, documento = 'RUT') {
+    super(MENSAJES[motivo](documento));
     this.name = 'ConflictoDecisionRutError';
   }
 }
@@ -57,6 +58,12 @@ export interface EntradaDecisionRut {
   ahora: Date;
   /** Contexto de la decisión para la auditoría (recomendación, apartamiento…). Sin datos del documento. */
   contextoAuditoria: Record<string, unknown>;
+  /** Cómo se llama el documento en los mensajes (por defecto «RUT»; la Cámara dice «certificado de Cámara»). */
+  nombreDocumento?: string;
+  /** Acción de auditoría del contexto de la decisión (por defecto la del RUT). */
+  accionContexto?: AccionAuditada;
+  /** Tipos documentales que esta decisión admite (por defecto los del RUT). Lo comprueba el adaptador. */
+  tiposPermitidos?: readonly string[];
 }
 
 export interface EstadoLeidoDecisionRut {
@@ -78,11 +85,12 @@ export interface PlanDecisionRut {
 export function planificarDecisionRut(leido: EstadoLeidoDecisionRut, entrada: EntradaDecisionRut): PlanDecisionRut {
   const { validacion, documento } = leido;
   const { actor, ahora } = entrada;
-  if (documento.estaDecidido) throw new ConflictoDecisionRutError(validacion.estaDecidida ? 'ya_decidida' : 'inconsistente');
-  if (validacion.estaDecidida) throw new ConflictoDecisionRutError('ya_decidida');
-  if (!validacion.estaRevisable) throw new ConflictoDecisionRutError('no_revisable');
-  if (documento.instantanea().version < leido.versionMaximaRut) throw new ConflictoDecisionRutError('version_vieja');
-  if (!validacion.reservadaPor(actor.id, ahora)) throw new ConflictoDecisionRutError('reserva');
+  const nombre = entrada.nombreDocumento ?? 'RUT';
+  if (documento.estaDecidido) throw new ConflictoDecisionRutError(validacion.estaDecidida ? 'ya_decidida' : 'inconsistente', nombre);
+  if (validacion.estaDecidida) throw new ConflictoDecisionRutError('ya_decidida', nombre);
+  if (!validacion.estaRevisable) throw new ConflictoDecisionRutError('no_revisable', nombre);
+  if (documento.instantanea().version < leido.versionMaximaRut) throw new ConflictoDecisionRutError('version_vieja', nombre);
+  if (!validacion.reservadaPor(actor.id, ahora)) throw new ConflictoDecisionRutError('reserva', nombre);
 
   const estadoDocumentoLeido = documento.estado;
   const versionValidacionLeida = validacion.version;
@@ -114,7 +122,7 @@ export function planificarDecisionRut(leido: EstadoLeidoDecisionRut, entrada: En
     }).instantanea(),
     auditorias: [
       auditoria(AccionAuditada.DECISION_DOCUMENTO, 'documento', doc.id, { decision: entrada.decision, puntaje: doc.puntaje, banda: doc.banda }, entrada.justificacion),
-      auditoria(AccionAuditada.DECISION_RUT, 'validacion_documento_empresarial', validacion.id, entrada.contextoAuditoria, null),
+      auditoria(entrada.accionContexto ?? AccionAuditada.DECISION_RUT, 'validacion_documento_empresarial', validacion.id, entrada.contextoAuditoria, null),
     ],
   };
 }

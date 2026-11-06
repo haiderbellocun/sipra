@@ -355,8 +355,8 @@ async function main(): Promise<void> {
     await casoCamara.recalcularComparacionCamara(documentoCamara, ahora);
     const recalculada = await consulta(documentoCamara);
     comprobar('recálculo: ronda nueva, comparación actualizada (representante diferente) y evidencia nueva; la anterior se conserva',
-      recalculada.f.intentos === antes.f.intentos + 1 && recalculada.f.comparacion.veredicto === 'discrepancia' && recalculada.f.estado === 'revision'
-      && recalculada.comparaciones.length === 2 && recalculada.comparaciones[0].resultado === 'consistente' && recalculada.comparaciones[1].resultado === 'discrepancia'
+      recalculada.f.intentos === antes.f.intentos + 1 && recalculada.f.comparacion.veredicto === 'revision_necesaria' && recalculada.f.comparacion.discrepanciaImportante === true && recalculada.f.estado === 'revision'
+      && recalculada.comparaciones.length === 2 && recalculada.comparaciones[0].resultado === 'consistente' && recalculada.comparaciones[1].resultado === 'revision_necesaria'
       && recalculada.comparaciones[0].intento !== recalculada.comparaciones[1].intento, JSON.stringify(recalculada.comparaciones));
     comprobar('huella: tras recalcular vuelve a coincidir', (await casoCamara.datosSipraCambiaronCamara(documentoCamara)) === false);
     comprobar('los datos extraídos NO cambiaron con el recálculo (no se releyó el PDF)',

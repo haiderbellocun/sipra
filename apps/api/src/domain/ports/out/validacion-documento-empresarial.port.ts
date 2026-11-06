@@ -37,9 +37,18 @@ export interface FilaMesaRut {
   procesadaEn: Date | null;
   datosSipraCambiaronEn: Date | null;
   estadoDocumento: string;
+  /** Solo las llena la consulta de la bandeja (la Mesa de Cámara las usa; las del RUT las ignoran). */
+  modalidad?: string | null;
+  metodoLectura?: string | null;
+  /** Hay una discrepancia IMPORTANTE (representante legal distinto), no crítica. */
+  discrepanciaImportante?: boolean;
+  /** El certificado declara la matrícula cancelada. */
+  estadoCancelado?: boolean;
 }
 
 export interface FiltroMesaRut {
+  /** Tipos documentales de la bandeja; por defecto, los del RUT. La Mesa de Cámara pide `camara_comercio`. */
+  tipos?: readonly string[];
   estados: readonly string[];
   /** `null` = sin restricción de escuela. */
   escuelas: readonly string[] | null;
@@ -69,7 +78,7 @@ export interface ValidacionDocumentoEmpresarialRepositoryPort {
   liberarReserva(id: string, actorId: string, ahora: Date, esSupervisor: boolean): Promise<boolean>;
   /** Solo la ÚLTIMA versión de cada (práctica, tipo de RUT); una versión vieja es histórica y no entra a la bandeja. */
   listarMesaRut(filtro: FiltroMesaRut): Promise<FilaMesaRut[]>;
-  supervisionRut(ahora: Date, escuelas: readonly string[] | null): Promise<ResumenSupervisionRut>;
+  supervisionRut(ahora: Date, escuelas: readonly string[] | null, tipos?: readonly string[]): Promise<ResumenSupervisionRut>;
   /** Mayor versión documental del tipo dado en la práctica (0 si no hay). */
   versionMaximaDocumento(practicaId: string, tipoDocumento: string): Promise<number>;
   buscarPorId(id: string): Promise<ValidacionDocumentoEmpresarial | null>;

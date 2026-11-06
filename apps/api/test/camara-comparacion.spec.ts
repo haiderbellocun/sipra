@@ -136,10 +136,10 @@ describe('Comparación Cámara · matrícula de sociedad y existencia/representa
     expect(resultadoDe(comparar(doc('EMPRESA PRUEBA SAS'), sipra('EMPRESA PRUEBA DEL NORTE SAS')), 'razon_social')).toBe('diferente');
   });
 
-  it('representante diferente (existencia): diferencia SOLO en el representante, con criticidad importante', () => {
+  it('representante diferente (existencia): diferencia SOLO en el representante; es IMPORTANTE, no crítica: revisión necesaria', () => {
     const c = comparar(existencia(), conEmpresa(SIPRA_PJ, { representanteLegal: 'LUIS MIGUEL TORRES DIAZ' }));
     expect(diferentes(c)).toEqual(['representante_legal']);
-    expect(c).toMatchObject({ veredicto: 'discrepancia', hayDiscrepancia: true });
+    expect(c).toMatchObject({ veredicto: 'revision_necesaria', hayDiscrepancia: false, discrepanciaImportante: true });
   });
 
   it('representante: orden flexible por tokens; un nombre parcial es insuficiente antes que una coincidencia dudosa', () => {
@@ -150,14 +150,14 @@ describe('Comparación Cámara · matrícula de sociedad y existencia/representa
     expect(diferentes(parcial)).toEqual([]);
   });
 
-  it('representante ausente (en el certificado, en SIPRA o en ambos): informacion_insuficiente, nunca una diferencia', () => {
+  it('representante ausente (en el certificado, en SIPRA o en ambos): informacion_insuficiente; NO frena el veredicto si NIT, DV y razón social son consistentes', () => {
     const sinLeer = comparar(existencia({ representanteLegal: null }), SIPRA_PJ);
     const sinSipra = comparar(existencia(), conEmpresa(SIPRA_PJ, { representanteLegal: null }));
     const ninguno = comparar(existencia({ representanteLegal: null }), conEmpresa(SIPRA_PJ, { representanteLegal: null }));
     for (const c of [sinLeer, sinSipra, ninguno]) {
       expect(resultadoDe(c, 'representante_legal')).toBe('informacion_insuficiente');
       expect(diferentes(c)).toEqual([]);
-      expect(c.veredicto).toBe('revision_necesaria');
+      expect(c).toMatchObject({ veredicto: 'consistente', hayDiscrepancia: false, discrepanciaImportante: false });
     }
     expect(notaDe(sinLeer, 'representante_legal')).toBe('representante_no_leido_en_certificado');
     expect(notaDe(sinSipra, 'representante_legal')).toBe('sipra_sin_representante');

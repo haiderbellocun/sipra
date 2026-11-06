@@ -17,6 +17,7 @@ import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
 import { formatearEntero, formatearUsd } from '@shared/utils/moneda';
 import { ActaEstudianteComponent } from '../actas/acta-estudiante.component';
+import { CamaraEstudianteComponent } from '../camara/camara-estudiante.component';
 import { RutEstudianteComponent } from '../rut/rut-estudiante.component';
 import { guiaDocumento, lineaVersionAnterior } from './guia-documento';
 import { textoBandera } from './banderas';
@@ -32,7 +33,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
 @Component({
   selector: 'sipra-expediente',
   standalone: true,
-  imports: [EsqueletoComponent, FormsModule, DatePipe, DecimalPipe, RouterLink, EstadoComponent, EtiquetaPipe, ActaEstudianteComponent, RutEstudianteComponent],
+  imports: [EsqueletoComponent, FormsModule, DatePipe, DecimalPipe, RouterLink, EstadoComponent, EtiquetaPipe, ActaEstudianteComponent, RutEstudianteComponent, CamaraEstudianteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     .cab { display:flex; gap:var(--sp-3); align-items:flex-start; flex-wrap:wrap; margin-bottom:var(--sp-4); }
@@ -168,6 +169,10 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                     <div class="doc">
                       <sipra-rut-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir(d.tipo)" />
                     </div>
+                  } @else if (esEstudiante() && d.tipo === 'camara_comercio') {
+                    <div class="doc">
+                      <sipra-camara-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir(d.tipo)" />
+                    </div>
                   } @else {
                   <div class="doc">
                     <div class="doc-cab">
@@ -240,6 +245,8 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                       }
                       @if (doc.tipo === 'acta_inicio') {
                         <p class="pista" style="margin:var(--sp-2) 0 0" data-acta-mesa>El Acta de iniciación se revisa y se decide en la Mesa de Actas.@if (puedeMesaActas()) { <a routerLink="/actas">Abrir la Mesa de Actas</a> }</p>
+                      } @else if (doc.tipo === 'camara_comercio') {
+                        <p class="pista" style="margin:var(--sp-2) 0 0" data-camara-mesa>El certificado de Cámara de Comercio se revisa y se decide en la Mesa de Cámara.@if (puedeMesaCamara()) { <a routerLink="/mesa-camara">Abrir la Mesa de Cámara</a> }</p>
                       } @else if (puedeDecidir() && decidible(doc)) {
                         <div class="campo" style="margin:var(--sp-2) 0 var(--sp-1)"><input type="text" [ngModel]="justificacionDoc()[doc.id] ?? ''" (ngModelChange)="anotar(doc.id, $event)" placeholder="Justificación de la decisión (mínimo 10 caracteres)" /></div>
                         <div class="acciones">
@@ -461,6 +468,7 @@ export class ExpedienteComponent implements OnInit {
   readonly vac: VacanteEditable = {};
 
   readonly puedeAdministrar = computed(() => ['administrador', 'coordinador'].includes(this.sesion.rol() ?? ''));
+  readonly puedeMesaCamara = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeMesaActas = computed(() => ['auxiliar', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeDecidir = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeCargar = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? '') && !this.terminal());

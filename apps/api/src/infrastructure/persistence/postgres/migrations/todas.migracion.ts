@@ -22,6 +22,7 @@ import { ValidacionActaIniciacion1756000017000 } from './1756000017000-Validacio
 import { MesaActas1756000018000 } from './1756000018000-MesaActas';
 import { ValidacionDocumentoEmpresarial1756000019000 } from './1756000019000-ValidacionDocumentoEmpresarial';
 import { DecisionHumanaDocumentoEmpresarial1756000020000 } from './1756000020000-DecisionHumanaDocumentoEmpresarial';
+import { MotivosDecisionCamara1756000021000 } from './1756000021000-MotivosDecisionCamara';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -53,4 +54,5 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   MesaActas1756000018000,
   ValidacionDocumentoEmpresarial1756000019000,
   DecisionHumanaDocumentoEmpresarial1756000020000,
+  MotivosDecisionCamara1756000021000,
 ];

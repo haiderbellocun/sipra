@@ -27,9 +27,11 @@ describe('Migración de decisión humana del RUT (sin ejecutar)', () => {
   let up: string;
   beforeAll(async () => { up = (await sqlDe('up')).sql.join('\n'); });
 
-  it('está registrada al final, después de la validación empresarial', () => {
-    expect(MIGRACIONES[MIGRACIONES.length - 1]).toBe(DecisionHumanaDocumentoEmpresarial1756000020000);
-    expect(MIGRACIONES[MIGRACIONES.length - 2].name).toBe('ValidacionDocumentoEmpresarial1756000019000');
+  it('está registrada justo después de la validación empresarial', () => {
+    // Después de ella solo hay migraciones posteriores (la 21 amplía los motivos de devolución para la Cámara).
+    const posicion = MIGRACIONES.indexOf(DecisionHumanaDocumentoEmpresarial1756000020000);
+    expect(posicion).toBeGreaterThan(0);
+    expect(MIGRACIONES[posicion - 1].name).toBe('ValidacionDocumentoEmpresarial1756000019000');
   });
 
   it('es aditiva: no toca datos ni borra tablas', () => {

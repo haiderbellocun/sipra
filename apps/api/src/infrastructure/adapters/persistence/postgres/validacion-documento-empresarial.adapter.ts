@@ -16,6 +16,17 @@ import {
 
 const TOPE_LISTADO_MESA_RUT = 200;
 const MINUTOS_RESERVA_POR_VENCER_RUT = 3;
+const TIPOS_RUT_POR_DEFECTO: readonly string[] = ['rut_natural', 'rut_juridico'];
+
+/**
+ * Lista de tipos documentales para el SQL. Los valores salen de código (nunca de la petición) y aun así se validan: solo minúsculas y
+ * guion bajo, así que no hay forma de inyectar nada.
+ */
+function listaTipos(tipos: readonly string[] | undefined): string {
+  const lista = tipos && tipos.length > 0 ? tipos : TIPOS_RUT_POR_DEFECTO;
+  if (!lista.every((t) => /^[a-z_]+$/.test(t))) throw new Error('Tipo documental no válido para la bandeja');
+  return lista.map((t) => `'${t}'`).join(',');
+}
 import { DocumentoOrm } from '../../../persistence/postgres/entities/todas.orm-entity';
 import {
   EvidenciaValidacionDocEmpresarialOrm, ValidacionDocumentoEmpresarialOrm,
@@ -198,14 +209,16 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
               p.fecha_inicio, d.version AS doc_version, d.cargado_en, v.estado, v.tipo_detectado, v.tipo_persona, v.expectativa, v.lectura_dudosa,
               v.comparacion->>'veredicto' AS veredicto, COALESCE((v.comparacion->>'hayDiscrepancia')::boolean, false) AS hay_discrepancia,
               v.asignado_a, a.nombre AS asignado_nombre, v.reserva_hasta, v.recibida_en, v.procesada_en,
-              v.datos_sipra_cambiaron_en, d.estado AS doc_estado
+              v.datos_sipra_cambiaron_en, d.estado AS doc_estado, p.modalidad, v.metodo_lectura,
+              COALESCE((v.comparacion->>'discrepanciaImportante')::boolean, false) AS discrepancia_importante,
+              COALESCE((v.comparacion->'senales') @> '"estado_registral_cancelado"'::jsonb, false) AS estado_cancelado
          FROM validaciones_documento_empresarial v
          JOIN documentos d ON d.id = v.documento_id
          JOIN practicas p ON p.id = v.practica_id
          LEFT JOIN empresas e ON e.id = p.empresa_id
          JOIN usuarios u ON u.id = v.estudiante_id
          LEFT JOIN usuarios a ON a.id = v.asignado_a
-        WHERE d.tipo IN ('rut_natural','rut_juridico')
+        WHERE d.tipo IN (${listaTipos(filtro.tipos)})
           AND d.version = (SELECT max(d2.version) FROM documentos d2 WHERE d2.practica_id = d.practica_id AND d2.tipo = d.tipo)
           AND v.estado = ANY($1::text[])
           AND ($2::text[] IS NULL OR p.escuela_id = ANY($2::text[]))
@@ -224,15 +237,18 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
       asignadoNombre: (f.asignado_nombre as string | null) ?? null, reservaHasta: (f.reserva_hasta as Date | null) ?? null,
       recibidaEn: (f.recibida_en as Date | null) ?? null, procesadaEn: (f.procesada_en as Date | null) ?? null,
       datosSipraCambiaronEn: (f.datos_sipra_cambiaron_en as Date | null) ?? null, estadoDocumento: f.doc_estado as string,
+      modalidad: (f.modalidad as string | null) ?? null, metodoLectura: (f.metodo_lectura as string | null) ?? null,
+      discrepanciaImportante: f.discrepancia_importante as boolean, estadoCancelado: f.estado_cancelado as boolean,
     }));
   }
 
-  async supervisionRut(ahora: Date, escuelas: readonly string[] | null): Promise<ResumenSupervisionRut> {
+  async supervisionRut(ahora: Date, escuelas: readonly string[] | null, tipos?: readonly string[]): Promise<ResumenSupervisionRut> {
     const alcance = escuelas ? [...escuelas] : null;
+    const tiposSql = listaTipos(tipos);
     const base = `FROM validaciones_documento_empresarial v
          JOIN documentos d ON d.id = v.documento_id
          JOIN practicas p ON p.id = v.practica_id
-        WHERE d.tipo IN ('rut_natural','rut_juridico')
+        WHERE d.tipo IN (${tiposSql})
           AND d.version = (SELECT max(d2.version) FROM documentos d2 WHERE d2.practica_id = d.practica_id AND d2.tipo = d.tipo)
           AND ($1::text[] IS NULL OR p.escuela_id = ANY($1::text[]))`;
     const resumen: Record<string, number>[] = await this.repo.query(
@@ -258,7 +274,7 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
               count(v.id) FILTER (WHERE v.decidido_por = u.id AND v.decidido_en >= $1::timestamptz - interval '7 days')::int AS decididas
          FROM usuarios u
          LEFT JOIN validaciones_documento_empresarial v ON (v.asignado_a = u.id OR v.decidido_por = u.id)
-              AND v.documento_id IN (SELECT id FROM documentos WHERE tipo IN ('rut_natural','rut_juridico'))
+              AND v.documento_id IN (SELECT id FROM documentos WHERE tipo IN (${tiposSql}))
         WHERE u.rol IN ('tutor','coordinador','administrador') AND u.activo = true
         GROUP BY u.id, u.nombre, u.rol
        HAVING count(v.id) > 0

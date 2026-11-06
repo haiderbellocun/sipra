@@ -62,6 +62,12 @@ export const rutas: Routes = [
         loadComponent: () => import('./features/rut/rut.component').then((m) => m.RutComponent),
       },
       {
+        path: 'mesa-camara',
+        title: 'Mesa de Cámara de Comercio · SIPRA PRÁCTICAS',
+        canActivate: [rolGuard('tutor', 'coordinador', 'administrador')],
+        loadComponent: () => import('./features/camara/camara.component').then((m) => m.CamaraComponent),
+      },
+      {
         path: 'ayuda',
         title: 'Centro de ayuda · SIPRA PRÁCTICAS',
         loadComponent: () => import('./features/ayuda/ayuda.component').then((m) => m.AyudaComponent),

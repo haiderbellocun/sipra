@@ -77,6 +77,12 @@ export enum AccionAuditada {
   RUT_RECALCULADO = 'rut_recalculado',
   /** Los datos de SIPRA cambiaron DESPUÉS de una decisión sobre el RUT; la decisión no se tocó. */
   RUT_DATOS_CAMBIARON_TRAS_DECISION = 'rut_datos_cambiaron_tras_decision',
+  /** Mesa de Cámara de Comercio: reserva, liberación, recálculo, contexto de la decisión y cambio de datos posterior. */
+  CAMARA_ASIGNADA = 'camara_asignada',
+  CAMARA_LIBERADA = 'camara_liberada',
+  DECISION_CAMARA = 'decision_camara',
+  CAMARA_RECALCULADA = 'camara_recalculada',
+  CAMARA_DATOS_CAMBIARON_TRAS_DECISION = 'camara_datos_cambiaron_tras_decision',
 }
 
 export interface RegistroAuditoria {
