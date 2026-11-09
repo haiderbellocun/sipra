@@ -138,6 +138,10 @@ import { RutEstudianteUseCase } from '../../application/use-cases/documentos/rut
 import { MesaCamaraController } from '../controllers/mesa-camara.controller';
 import { MesaCamaraUseCase } from '../../application/use-cases/documentos/mesa-camara.use-case';
 import { CamaraEstudianteUseCase } from '../../application/use-cases/documentos/camara-estudiante.use-case';
+import { ValidacionDocumentalController } from '../controllers/validacion-documental.controller';
+import { ExpedienteDocumentalUseCase } from '../../application/use-cases/documentos/expediente-documental.use-case';
+import { EXPEDIENTE_DOCUMENTAL_LECTURA } from '../../domain/ports/out/expediente-documental.port';
+import { ExpedienteDocumentalLecturaAdapter } from '../adapters/persistence/postgres/expediente-documental.adapter';
 import { MesaActasUseCase } from '../../application/use-cases/documentos/mesa-actas.use-case';
 import { ActaEstudianteUseCase } from '../../application/use-cases/documentos/acta-estudiante.use-case';
 import { LECTOR_DOCUMENTO_LOCAL } from '../../domain/ports/out/lector-documento-local.port';
@@ -234,7 +238,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     EmpresasController, CumplimientoController, BolsaController, SaludController,
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
-    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController, MesaRutController, MesaCamaraController,
+    PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController, MesaRutController, MesaCamaraController, ValidacionDocumentalController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -269,6 +273,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     ValidacionCamaraUseCase,
     { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
     { provide: DECISION_RUT, useClass: DecisionRutPgAdapter },
+    { provide: EXPEDIENTE_DOCUMENTAL_LECTURA, useClass: ExpedienteDocumentalLecturaAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
 
@@ -371,6 +376,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     RutEstudianteUseCase,
     MesaCamaraUseCase,
     CamaraEstudianteUseCase,
+    ExpedienteDocumentalUseCase,
     ActaEstudianteUseCase,
     // Verificación OFICIAL de certificados de EPS: registro de destinos permitidos (hoy vacío),
     // cliente HTTP con defensa SSRF y un adaptador por verificador (ninguno habilitado todavía).

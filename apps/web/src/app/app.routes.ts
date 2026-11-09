@@ -56,6 +56,15 @@ export const rutas: Routes = [
         loadComponent: () => import('./features/actas/actas.component').then((m) => m.ActasComponent),
       },
       {
+        // Un solo registro para /validacion-documental y /validacion-documental/:practicaId: así la pantalla se conserva al abrir otro expediente.
+        matcher: (segmentos) => (segmentos[0]?.path === 'validacion-documental' && segmentos.length <= 2
+          ? (segmentos[1] ? { consumed: segmentos, posParams: { practicaId: segmentos[1] } } : { consumed: segmentos })
+          : null),
+        title: 'Validación documental · SIPRA PRÁCTICAS',
+        canActivate: [rolGuard('tutor', 'auxiliar', 'coordinador', 'administrador')],
+        loadComponent: () => import('./features/validacion-documental/validacion-documental.component').then((m) => m.ValidacionDocumentalComponent),
+      },
+      {
         path: 'mesa-rut',
         title: 'Mesa de RUT · SIPRA PRÁCTICAS',
         canActivate: [rolGuard('tutor', 'coordinador', 'administrador')],

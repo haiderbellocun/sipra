@@ -293,6 +293,7 @@ export class ShellComponent {
     },
     { ruta: '/costos-ia', etiqueta: 'Costos de IA', icono: 'sipra-indicadores', roles: ['administrador', 'coordinador'] },
     { ruta: '/vistas', etiqueta: 'Vistas SINU', icono: 'sipra-buscar', roles: ['coordinador', 'administrador', 'auxiliar', 'tutor'] },
+    { ruta: '/validacion-documental', etiqueta: 'Validación documental', icono: 'sipra-documentos', roles: ['tutor', 'auxiliar', 'coordinador', 'administrador'] },
     { ruta: '/eps', etiqueta: 'Validación de EPS', icono: 'sipra-seguridad', roles: ['auxiliar', 'coordinador', 'administrador'] },
     { ruta: '/actas', etiqueta: 'Actas de iniciación', icono: 'sipra-verificado', roles: ['auxiliar', 'coordinador', 'administrador'] },
     { ruta: '/mesa-rut', etiqueta: 'RUT', icono: 'sipra-verificado', roles: ['tutor', 'coordinador', 'administrador'] },

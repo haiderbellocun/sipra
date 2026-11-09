@@ -15,6 +15,7 @@ import {
 import { EstadoComponent } from '@shared/components/estado.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
+import { decisionGeneralPermitida } from '@shared/utils/motores-documentales';
 import { formatearEntero, formatearUsd } from '@shared/utils/moneda';
 import { ActaEstudianteComponent } from '../actas/acta-estudiante.component';
 import { CamaraEstudianteComponent } from '../camara/camara-estudiante.component';
@@ -247,6 +248,8 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                         <p class="pista" style="margin:var(--sp-2) 0 0" data-acta-mesa>El Acta de iniciación se revisa y se decide en la Mesa de Actas.@if (puedeMesaActas()) { <a routerLink="/actas">Abrir la Mesa de Actas</a> }</p>
                       } @else if (doc.tipo === 'camara_comercio') {
                         <p class="pista" style="margin:var(--sp-2) 0 0" data-camara-mesa>El certificado de Cámara de Comercio se revisa y se decide en la Mesa de Cámara.@if (puedeMesaCamara()) { <a routerLink="/mesa-camara">Abrir la Mesa de Cámara</a> }</p>
+                      } @else if (!decisionGeneralPermitida(doc.tipo)) {
+                        <p class="pista" style="margin:var(--sp-2) 0 0" data-motor-mesa>Este documento se revisa y se decide en su motor especializado, desde la Mesa de Validación Documental.@if (puedeValidacionDocumental()) { <a [routerLink]="['/validacion-documental', id()]" [queryParams]="{ doc: doc.tipo }">Abrir en la Mesa de Validación Documental</a> }</p>
                       } @else if (puedeDecidir() && decidible(doc)) {
                         <div class="campo" style="margin:var(--sp-2) 0 var(--sp-1)"><input type="text" [ngModel]="justificacionDoc()[doc.id] ?? ''" (ngModelChange)="anotar(doc.id, $event)" placeholder="Justificación de la decisión (mínimo 10 caracteres)" /></div>
                         <div class="acciones">
@@ -469,6 +472,9 @@ export class ExpedienteComponent implements OnInit {
 
   readonly puedeAdministrar = computed(() => ['administrador', 'coordinador'].includes(this.sesion.rol() ?? ''));
   readonly puedeMesaCamara = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  /** Los documentos con motor especializado NO se deciden por el camino general: su decisión es de la Mesa de su motor. */
+  protected readonly decisionGeneralPermitida = decisionGeneralPermitida;
+  readonly puedeValidacionDocumental = computed(() => ['tutor', 'auxiliar', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeMesaActas = computed(() => ['auxiliar', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeDecidir = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
   readonly puedeCargar = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? '') && !this.terminal());

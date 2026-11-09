@@ -15,6 +15,7 @@ import {
   DecisionRut, DetalleRut, EstadoRutEstudiante, FiltrosRut, ListadoBandejaRut, MotivoDevolucionRut, ReservaRut, SupervisionRut,
   DecisionCamara, DetalleCamara, EstadoCamaraEstudiante, FiltrosCamara, ListadoBandejaCamara, MotivoDevolucionCamara, ReservaCamara, SupervisionCamara,
 } from '../models/modelos';
+import { Expediente, FiltrosExpedientes, ListadoExpedientes, SupervisionDocumental, VersionDocumento } from '../models/validacion-documental.model';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
   let params = new HttpParams();
@@ -183,6 +184,23 @@ export class ApiService {
 
   estadoDeMiCamara(practicaId: string): Observable<EstadoCamaraEstudiante> {
     return this.http.get<EstadoCamaraEstudiante>(`${this.base}/mesa-camara/practica/${practicaId}/estado`);
+  }
+
+  // ── Mesa de Validación Documental (solo consulta: tomar y decidir son de cada motor) ───────────────
+  listarExpedientes(filtros: FiltrosExpedientes = {}): Observable<ListadoExpedientes> {
+    return this.http.get<ListadoExpedientes>(`${this.base}/validacion-documental`, { params: aParams({ ...filtros }) });
+  }
+
+  expedienteDocumental(practicaId: string): Observable<Expediente> {
+    return this.http.get<Expediente>(`${this.base}/validacion-documental/${practicaId}`);
+  }
+
+  versionesDocumento(practicaId: string, tipo: string): Observable<VersionDocumento[]> {
+    return this.http.get<VersionDocumento[]>(`${this.base}/validacion-documental/${practicaId}/documentos/${tipo}/versiones`);
+  }
+
+  supervisionDocumental(): Observable<SupervisionDocumental> {
+    return this.http.get<SupervisionDocumental>(`${this.base}/validacion-documental/supervision`);
   }
 
   /** Corrección controlada (coordinación/administración): remuneración y/o quién asume la ARL, con justificación. */

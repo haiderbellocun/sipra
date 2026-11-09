@@ -19,7 +19,7 @@ import {
   EvidenciaValidacionEpsOrm, ValidacionEpsOrm,
 } from '../../../persistence/postgres/entities/validacion-eps.orm-entity';
 
-const ValidacionEpsMapper = {
+export const ValidacionEpsMapper = {
   aDominio(orm: ValidacionEpsOrm): ValidacionEps {
     return ValidacionEps.desde({
       id: orm.id,

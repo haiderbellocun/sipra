@@ -34,6 +34,7 @@
     "test:pg:rut": "ts-node --transpile-only herramientas/verificar-rut-pg.ts",
     "test:pg:decision-rut": "ts-node --transpile-only herramientas/verificar-decision-rut-pg.ts",
     "test:pg:decision-camara": "ts-node --transpile-only herramientas/verificar-decision-camara-pg.ts",
+    "test:pg:expediente": "ts-node --transpile-only herramientas/verificar-expediente-documental-pg.ts",
     "test:aislamiento": "jest --testPathPatterns=aislamiento --runInBand",
     "typeorm": "typeorm-ts-node-commonjs -d src/infrastructure/persistence/postgres/data-source.ts",
     "migration:generate": "npm run typeorm -- migration:generate",
