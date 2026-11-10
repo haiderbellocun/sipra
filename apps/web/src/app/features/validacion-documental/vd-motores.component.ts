@@ -209,10 +209,10 @@ export class VdPielBahiaComponent {}
   #vd-motor .barra-decision.barra-decision button:focus-visible { clip-path:none; outline:2px solid var(--foco); outline-offset:2px; }
   @media (width >= 1024px) {
     #vd-motor .est.est { grid-template-columns:minmax(0, 1fr) var(--c-inspector-ancho); flex:1 1 auto; min-height:0; align-items:stretch; }
-    #vd-motor .est.est > .col-rev { overflow-y:auto; min-height:0; overscroll-behavior:contain; scrollbar-width:thin; margin-bottom:var(--vd-alto-decision, 74px);
+    #vd-motor .est.est > .col-rev { overflow-y:auto; min-height:0; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--text-primary) 22%, transparent) transparent; margin-bottom:var(--vd-alto-decision, 74px);
       border-bottom:0; border-radius:var(--radius-6) var(--radius-6) 0 0; box-shadow:none; }
     #vd-motor :has(> .barra-decision :is(.pista, .decidida)) .est.est > .col-rev { --vd-alto-decision:98px; }
-    #vd-motor .barra-decision.barra-decision { position:absolute; right:0; bottom:0; width:var(--c-inspector-ancho); min-height:var(--vd-alto-decision, 74px); margin:0; align-content:flex-end;
+    #vd-motor .barra-decision.barra-decision { position:sticky; bottom:0; align-self:flex-end; width:var(--c-inspector-ancho); min-height:var(--vd-alto-decision, 74px); margin:calc(-1 * var(--vd-alto-decision, 74px)) 0 0; align-content:flex-end;
       border-top:0; border-radius:0 0 var(--radius-6) var(--radius-6); }
     #vd-motor :has(> .barra-decision :is(.pista, .decidida)) > .barra-decision { --vd-alto-decision:98px; }
   }

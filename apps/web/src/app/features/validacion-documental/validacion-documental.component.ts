@@ -131,13 +131,15 @@ const ANCHO_COLA_PLEGADA = 1280;
 
     /* ≥ 1024: estación de alto completo (Figma 1440 × 1024): cola 340 px, 24 px de calle, márgenes 8/16/8/12. */
     @media (width >= 1024px) {
-      .cuerpo { grid-template-columns:var(--c-cola-ancho) minmax(0, 1fr); column-gap:24px; padding:8px 16px 8px 12px; height:calc(100dvh - var(--alto-cinta, 0px)); align-items:stretch; overflow:hidden; }
+      .cuerpo { grid-template-columns:var(--c-cola-ancho) minmax(0, 1fr); column-gap:24px; padding:8px 16px 8px 12px; min-height:calc(100dvh - var(--alto-cinta, 0px)); align-items:start; }
       .cuerpo.cola-no { grid-template-columns:minmax(0, 1fr); padding-left:24px; }
       .cuerpo.cola-no .p-cola { display:none; }
-      .p-cola { min-height:0; overflow:hidden; }
-      .cola-lista { flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+      /* La cola acompaña al desplazamiento (sticky, alto del viewport) y desplaza su propia lista. */
+      .p-cola { position:sticky; top:calc(var(--alto-cinta, 0px) + 8px); height:calc(100dvh - var(--alto-cinta, 0px) - 16px); min-height:0; overflow:hidden; }
+      .cola-lista { flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--text-primary) 22%, transparent) transparent; }
       .ws { min-height:0; }
-      .p-doc { flex:1 1 auto; min-height:0; }
+      /* Mesa del documento a alto completo: bahía e inspector usan todo el viewport tras desplazar el encabezado. */
+      .p-doc { flex:none; height:calc(100dvh - var(--alto-cinta, 0px) - 16px); min-height:520px; }
       .p-vacio { display:grid; place-items:center; height:100%; }
       .cuerpo:not(.sin-exp) .p-vacio { display:none; }
     }

@@ -1,6 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
-import { EsqueletoComponent } from '@shared/components/esqueleto.component';
+import { ChangeDetectionStrategy, Component, Injector, OnInit, afterNextRender, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -12,7 +11,10 @@ import {
   CampoLectura, Documento, EntradaBitacora, EscribirBitacora, EstadoCierre, EstadoPractica, Practica,
   TipoEntradaBitacora, VacanteEditable,
 } from '@core/models/modelos';
-import { EstadoComponent } from '@shared/components/estado.component';
+import { CargaSenalComponent } from '@shared/components/carga-senal.component';
+import { EstadoVacioComponent } from '@shared/components/estado-vacio.component';
+import { SenalEstadoComponent } from '@shared/components/senal-estado.component';
+import { MetricaV3, TiraMetricasComponent } from '@shared/components/tira-metricas.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
 import { decisionGeneralPermitida } from '@shared/utils/motores-documentales';
@@ -22,6 +24,7 @@ import { CamaraEstudianteComponent } from '../camara/camara-estudiante.component
 import { RutEstudianteComponent } from '../rut/rut-estudiante.component';
 import { guiaDocumento, lineaVersionAnterior } from './guia-documento';
 import { textoBandera } from './banderas';
+import { ExpedienteSenalComponent } from './expediente-senal.component';
 
 type Pestana = 'documentos' | 'bitacora' | 'datos';
 
@@ -34,50 +37,97 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
 @Component({
   selector: 'sipra-expediente',
   standalone: true,
-  imports: [EsqueletoComponent, FormsModule, DatePipe, DecimalPipe, RouterLink, EstadoComponent, EtiquetaPipe, ActaEstudianteComponent, RutEstudianteComponent, CamaraEstudianteComponent],
+  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, EtiquetaPipe, ActaEstudianteComponent, RutEstudianteComponent, CamaraEstudianteComponent,
+    SenalEstadoComponent, TiraMetricasComponent, CargaSenalComponent, EstadoVacioComponent, ExpedienteSenalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    .cab { display:flex; gap:var(--sp-3); align-items:flex-start; flex-wrap:wrap; margin-bottom:var(--sp-4); }
-    .cab .t { flex:1; min-width:240px; } .cab h1 { margin-bottom:2px; }
-    .cab .chips { display:flex; gap:var(--sp-2); flex-wrap:wrap; }
-    .progreso { display:grid; gap:var(--sp-3); grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); margin-bottom:var(--sp-4); }
-    /* Móvil: los dos avances lado a lado y el resto a todo el ancho; así los documentos no quedan a 1000 px del inicio. */
-    @media (width < 600px) { .progreso { grid-template-columns:1fr 1fr; } .progreso > :nth-child(n+3) { grid-column:1 / -1; } }
-    .atencion { display:flex; gap:var(--sp-3); align-items:center; flex-wrap:wrap; padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-4); border-radius:var(--r-sm); background:var(--aviso-suave); }
-    .atencion p { margin:0; flex:1 1 16rem; } .atencion strong { display:block; }
-    .pct .n { font-size:var(--fs-xl); font-weight:600; font-variant-numeric:tabular-nums; }
-    .pct .barra { height:6px; border-radius:3px; background:var(--superficie-2); overflow:hidden; margin-top:var(--sp-1); }
-    .pct .barra span { display:block; height:100%; background:var(--marca); transform-origin:left; animation:crecer .9s var(--ease-out) both; transition:width var(--dur-5) var(--ease-out); } .pct.ok .barra span { background:var(--ok); }
-    .pestanas { display:flex; gap:2px; border-bottom:1px solid var(--borde); margin-bottom:var(--sp-4); overflow-x:auto; }
-    .pestanas button { flex:none; font:inherit; font-size:var(--fs-sm); font-weight:600; color:var(--texto-tenue); background:none; border:0; border-bottom:2px solid transparent; padding:var(--sp-2) var(--sp-3); min-height:44px; cursor:pointer; white-space:nowrap; }
-    .pestanas button { position:relative; border-bottom-color:transparent !important; transition:color var(--dur-2); }
-    .pestanas button::after { content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--marca); border-radius:2px; transform:scaleX(0); transform-origin:center; transition:transform var(--dur-3) var(--ease-out); }
-    .pestanas button.activa { color:var(--marca); } .pestanas button.activa::after { transform:scaleX(1); }
-    .pestanas ~ * { animation:aparecer var(--dur-5) var(--ease-out) both; }
-    .columnas { display:grid; gap:var(--sp-4); grid-template-columns:1fr; } @media (width >= 1000px) { .columnas { grid-template-columns:1.5fr 1fr; align-items:start; } }
-    .momento { margin-bottom:var(--sp-4); } .momento h3 { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; }
-    .momento h3 .pista { font-weight:500; }
-    .doc { padding:var(--sp-2) 0; border-bottom:1px solid var(--borde); } .doc:last-child { border-bottom:0; }
-    .doc-cab { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; } .doc-cab .nombre { font-weight:600; flex:1; min-width:150px; font-size:var(--fs-sm); }
-    /* Quien estudia: qué pasó y qué hacer, con el motivo de una devolución como protagonista. */
-    .guia { margin:var(--sp-1) 0 0; font-size:var(--fs-sm); } .guia strong { font-weight:600; }
-    .devolucion { margin-top:var(--sp-2); padding:var(--sp-3); border-radius:var(--r-sm); background:var(--aviso-suave); display:grid; gap:var(--sp-1); }
-    .devolucion h4 { margin:0; font-size:var(--fs-base); } .devolucion p { margin:0; font-size:var(--fs-sm); overflow-wrap:break-word; }
-    .devolucion .rotulo { font-weight:700; } .devolucion .boton { justify-self:start; margin-top:var(--sp-1); }
-    .anteriores { list-style:none; margin:var(--sp-1) 0 0; padding:0; font-size:var(--fs-sm); color:var(--texto-tenue); }
-    .bandera { font-size:var(--fs-xs); padding:var(--sp-1) var(--sp-2); border-radius:var(--r-sm); margin-top:var(--sp-1); background:var(--superficie-2); }
-    .bandera.critica { background:var(--peligro-suave); color:var(--peligro); } .bandera.alta { background:var(--aviso-suave); color:var(--aviso); }
-    .revision { display:inline-flex; gap:var(--sp-2); align-items:center; margin-top:var(--sp-1); padding:var(--sp-1) var(--sp-3); border-radius:30px; font-size:var(--fs-sm); font-weight:700; background:var(--aviso-suave); color:var(--aviso); border:1px solid color-mix(in oklab, var(--aviso) 45%, transparent); }
-    .revision svg { width:16px; height:16px; flex:none; }
-    .lectura { margin-top:var(--sp-2); border:1px solid var(--borde); border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-3); font-size:var(--fs-sm); background:var(--superficie-2); }
-    .lectura summary { cursor:pointer; font-weight:600; display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; min-height:28px; }
-    .lectura .linea { margin-top:var(--sp-2); }
-    .criterios { list-style:none; padding:0; margin:var(--sp-2) 0; display:grid; gap:var(--sp-2); }
-    .criterios li { display:flex; gap:var(--sp-2); align-items:flex-start; }
-    .criterios .m { flex:none; width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:var(--fs-xs); font-weight:700; background:var(--superficie); color:var(--texto-tenue); }
-    .criterios .si .m { background:var(--ok-suave); color:var(--ok); } .criterios .no .m { background:var(--peligro-suave); color:var(--peligro); }
-    .zona { display:grid; gap:var(--sp-1); width:100%; font:inherit; color:inherit; border:1.5px dashed var(--borde); border-radius:var(--r-md); padding:var(--sp-4); background:var(--superficie); text-align:center; cursor:pointer; }
-    .zona:hover, .zona.encima { border-color:var(--marca); background:var(--marca-suave); }
+    :host { display:block; --rg: var(--vd-regla, var(--border-subtle)); --sr: var(--status-review); --sa: var(--signal-active); --sf: var(--surface-raised); --eo: var(--ease-out); --enlace: var(--signal-default); --aviso-x: var(--status-review); --peligro-x: var(--status-critical); --ok-x: var(--status-success); }
+    :host-context([data-theme="dark"]) { --text-muted: #94aeac; }
+    :host-context([data-theme="light"]) { --enlace: #03587a; --aviso-x: #7a4a00; --peligro-x: #b8231f; --ok-x: #06695d; }
+    .cod { font-family: var(--fuente-mono); }
+    .kicker { margin: 0; font: 600 12px/16px var(--fuente); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+    .kicker .cod { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-muted); }
+
+    .migas { display: flex; gap: 8px; align-items: center; margin: 0 0 10px; font-size: 13px; color: var(--text-muted); }
+    .migas a { color: var(--enlace); text-decoration: none; font-weight: 500; }
+    .migas a:hover { text-decoration: underline; }
+    .cabecera { display: flex; gap: 12px 32px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--rg); animation: entra 200ms var(--eo) both; }
+    .cabecera h1 { margin: 4px 0 2px; font: 600 28px/34px var(--fuente); letter-spacing: -.02em; color: var(--text-primary); }
+    .cabecera .meta { margin: 0; font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+    .sin-docente { color: var(--aviso-x); font-weight: 600; }
+    .estado-prin { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .nota { font-size: 13px; color: var(--text-secondary); } .nota b { font: 600 16px/1 var(--fuente-mono); color: var(--text-primary); }
+    .nota.ok b { color: var(--ok-x); } .nota.mal b { color: var(--peligro-x); }
+
+    .atencion { display: flex; gap: 12px 20px; align-items: center; flex-wrap: wrap; margin: 12px 0 0; padding: 10px 0 10px 14px; border-left: 2px solid var(--aviso-x); background: linear-gradient(90deg, color-mix(in srgb, var(--sr) 10%, transparent), transparent 70%); }
+    .atencion p { margin: 0; flex: 1 1 16rem; font-size: 14px; color: var(--text-primary); } .atencion strong { color: var(--aviso-x); }
+    .senalada { margin: 12px 0 0; padding-left: 14px; border-left: 2px solid var(--peligro-x); font-size: 13px; color: var(--text-primary); }
+    .senalada strong { color: var(--peligro-x); }
+
+    .progreso { display: grid; gap: 16px 28px; margin: 16px 0 0; padding: 16px 0 18px; border-bottom: 1px solid var(--rg); animation: entra 200ms var(--eo) 40ms both; }
+    @media (width >= 1100px) { .progreso { grid-template-columns: minmax(0, 1fr) 300px; } }
+    .lateral-prog { display: grid; gap: 14px; align-content: start; padding-top: 28px; }
+    @media (width < 1100px) { .lateral-prog { padding-top: 0; } }
+    .condiciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 24px; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid var(--rg); font-size: 13px; }
+    .condiciones > div { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: start; }
+    .condiciones dt { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+    .condiciones dd { margin: 0; display: grid; gap: 4px; justify-items: start; }
+    .condiciones ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+    .condiciones li { display: flex; gap: 8px; align-items: center; color: var(--text-secondary); } .condiciones li.si { color: var(--ok-x); font-weight: 600; }
+    .condiciones a { color: var(--enlace); font-size: 12px; }
+
+    .pestanas { display: flex; gap: 4px; margin: 14px 0 16px; border-bottom: 1px solid var(--rg); overflow-x: auto; }
+    .pestanas button { position: relative; flex: none; min-height: 44px; padding: 0 14px; font: 600 14px/1 var(--fuente); color: var(--text-secondary); background: none; border: 0; cursor: pointer; white-space: nowrap; transition: color 160ms var(--eo); }
+    .pestanas button::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--signal-active); box-shadow: 0 0 8px var(--signal-active); transform: scaleX(0); transition: transform 180ms var(--eo); }
+    .pestanas button.activa { color: var(--text-primary); } .pestanas button.activa::after { transform: scaleX(1); }
+    .pestanas button:focus-visible { outline: 2px solid var(--signal-active); outline-offset: -2px; }
+    .pestanas ~ * { animation: entra 200ms var(--eo) both; }
+    .columnas { display: grid; gap: 20px; grid-template-columns: 1fr; } @media (width >= 1000px) { .columnas { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); align-items: start; } }
+    .superficie { min-width: 0; padding: 16px 20px; background: color-mix(in srgb, var(--sf) 64%, transparent); border: 1px solid var(--border-subtle); border-radius: 8px; }
+    .superficie h2 { margin: 0 0 12px; font: 600 16px/22px var(--fuente); color: var(--text-primary); }
+
+    .momento { margin: 0 0 18px; } .momento:last-child { margin-bottom: 4px; }
+    .momento h3 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 0 0 4px; padding-bottom: 8px; font: 600 13px/18px var(--fuente); color: var(--text-primary); border-bottom: 1px solid var(--border-default); }
+    .momento h3 .avance-m { font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
+    .momento h3 .marca-m { font-size: 12px; font-weight: 600; color: var(--ok-x); } .momento h3 .marca-m.actual { color: var(--enlace); }
+    .doc { padding: 12px 8px; margin: 0 -8px; border-bottom: 1px solid var(--rg); border-radius: 4px; scroll-margin-top: 120px; transition: background 300ms var(--eo); }
+    .doc:last-child { border-bottom: 0; }
+    .doc.resaltado { background: color-mix(in srgb, var(--sa) 12%, transparent); }
+    .doc:focus { outline: none; } .doc:focus-visible { outline: 2px solid var(--signal-active); }
+    .doc-cab { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; }
+    .doc-cab .nombre { flex: 1; min-width: 150px; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .doc.hecho .doc-cab .nombre { font-weight: 500; color: var(--text-secondary); }
+    .ver { font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
+    .guia { margin: 4px 0 0; font-size: 13px; line-height: 20px; color: var(--text-secondary); } .guia strong { font-weight: 600; color: var(--text-primary); }
+    .doc.hecho .guia { display: none; }
+    .archivo { margin: 2px 0 0; font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
+    .devolucion { display: grid; gap: 4px; margin-top: 10px; padding: 8px 0 8px 14px; border-left: 2px solid var(--aviso-x); background: linear-gradient(90deg, color-mix(in srgb, var(--sr) 9%, transparent), transparent 75%); }
+    .devolucion h4 { margin: 0; font-size: 14px; color: var(--aviso-x); } .devolucion p { margin: 0; font-size: 13px; overflow-wrap: break-word; color: var(--text-primary); }
+    .devolucion .rotulo { font-weight: 700; } .devolucion .boton { justify-self: start; margin-top: 4px; }
+    .anteriores { list-style: none; margin: 6px 0 0; padding: 0; font: 500 12px/18px var(--fuente-mono); color: var(--text-muted); }
+    .bandera { margin-top: 6px; padding-left: 12px; font-size: 12px; border-left: 2px solid var(--border-strong); color: var(--text-secondary); }
+    .bandera.critica { border-color: var(--peligro-x); color: var(--peligro-x); } .bandera.alta { border-color: var(--aviso-x); color: var(--aviso-x); }
+    .revision { display: inline-flex; gap: 8px; align-items: center; margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--aviso-x); }
+    .revision svg { width: 16px; height: 16px; flex: none; }
+    .lectura { margin-top: 8px; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; font-size: 13px; background: color-mix(in srgb, var(--sf) 50%, transparent); }
+    .lectura summary { cursor: pointer; font-weight: 600; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-height: 28px; }
+    .lectura .linea { margin-top: 8px; }
+    .criterios { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+    .criterios li { display: flex; gap: 8px; align-items: flex-start; }
+    .criterios .m { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; border: 1.5px solid var(--border-strong); color: var(--text-secondary); }
+    .criterios .si .m { border-color: var(--ok-x); color: var(--ok-x); } .criterios .no .m { border-color: var(--peligro-x); color: var(--peligro-x); }
+    .zona { display: grid; gap: 4px; width: 100%; font: inherit; color: inherit; border: 1.5px dashed var(--border-strong); border-radius: 8px; padding: 18px; background: color-mix(in srgb, var(--sf) 40%, transparent); text-align: center; cursor: pointer; transition: border-color 160ms var(--eo), background 160ms var(--eo); }
+    .zona:hover, .zona.encima { border-color: var(--signal-active); background: color-mix(in srgb, var(--sa) 8%, transparent); }
+    .zona:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 2px; }
+    @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .cabecera, .progreso, .pestanas ~ * { animation: none; }
+      .doc, .pestanas button, .pestanas button::after, .zona { transition: none; }
+    }
+    @media (width < 700px) {
+      .cabecera h1 { font-size: 22px; line-height: 28px; }
+      .condiciones > div { grid-template-columns: 90px 1fr; }
+    }
     .chat { display:flex; flex-direction:column; gap:var(--sp-2); max-height:60vh; overflow:auto; padding:var(--sp-1); }
     .msg { max-width:min(100%,60ch); border:1px solid var(--borde); border-radius:var(--r-md); padding:var(--sp-2) var(--sp-3); font-size:var(--sm, var(--fs-sm)); background:var(--superficie); }
     .msg.propia { align-self:flex-end; background:var(--marca-suave); border-color:transparent; }
@@ -95,103 +145,110 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
   `],
   template: `
     @if (cargando()) {
-      <sipra-esqueleto tipo="bloque" /><div style="height:var(--sp-4)"></div><sipra-esqueleto tipo="cifras" [cantidad]="4" />
+      <sipra-carga-senal texto="Cargando el expediente…" />
     } @else if (!practica()) {
-      <div class="tarjeta vacio">Expediente no encontrado o fuera de su alcance.</div>
+      <sipra-estado-vacio titulo="Expediente no disponible" texto="Expediente no encontrado o fuera de su alcance.">
+        <a routerLink="/practicas" class="boton compacto" style="margin-top:8px">Volver a Prácticas</a>
+      </sipra-estado-vacio>
     } @else if (practica(); as p) {
-      <div class="cab">
-        <div class="t">
-          <p class="et-sec" style="margin-bottom:2px">FUR n.º {{ p.numeroFur ?? '—' }} · {{ p.periodoAcademico }} · {{ p.estadoSgp }}</p>
+      <nav class="migas" aria-label="Ruta"><a routerLink="/practicas">← Prácticas</a><span aria-hidden="true">/</span><span aria-current="page">Expediente</span></nav>
+      <header class="cabecera">
+        <div>
+          <p class="kicker">Expediente <span class="cod">· FUR n.º {{ p.numeroFur ?? '—' }} · {{ p.periodoAcademico }} · {{ p.estadoSgp }}</span></p>
           <h1>{{ p.estudianteNombre }}</h1>
-          <div class="pista">{{ p.modalidad | etiqueta }} · {{ p.ciclo | etiqueta }} · {{ p.programaId }}
-            @if (p.tutorNombre) { · docente {{ p.tutorNombre }} } @else if (veDocente()) { · <span style="color:var(--aviso)">sin docente asignado</span> }</div>
+          <p class="meta">{{ p.modalidad | etiqueta }} · {{ p.ciclo | etiqueta }} · <span class="cod">{{ p.programaId }}</span>@if (p.empresaRazonSocial) { · {{ p.empresaRazonSocial }} }
+            @if (p.tutorNombre) { · docente {{ p.tutorNombre }} } @else if (veDocente()) { · <span class="sin-docente">sin docente asignado</span> }</p>
         </div>
-        <div class="chips">
-          <sipra-estado [valor]="p.estado" />
-          @if (sesion.esInterno()) { <sipra-estado [valor]="p.senal" /> }
-          @if (p.nota !== null) { <span class="etiqueta" [class.etiqueta--ok]="p.nota >= 3" [class.etiqueta--peligro]="p.nota < 3">Nota {{ p.nota | number: '1.1-1' }}</span> }
+        <div class="estado-prin">
+          <sipra-senal-estado [valor]="p.estado" />
+          @if (sesion.esInterno()) { <sipra-senal-estado [valor]="p.senal" /> }
+          @if (p.nota !== null) { <span class="nota" [class.ok]="p.nota >= 3" [class.mal]="p.nota < 3">Nota <b>{{ p.nota | number: '1.1-1' }}</b></span> }
         </div>
-      </div>
-
+      </header>
 
       @for (t of pendientesCorreccion(); track t) {
         <div class="atencion" role="status">
-          <p><strong>Tu {{ enMinuscula(t | etiqueta) }} necesita una corrección</strong>Mira el motivo y sube una nueva versión.</p>
+          <p><strong>Tu {{ enMinuscula(t | etiqueta) }} necesita una corrección.</strong> Mira el motivo y sube una nueva versión.</p>
           <button type="button" class="boton boton--primario" (click)="corregir(t)">Corregir ahora</button>
         </div>
       }
-      <div class="progreso">
-        @if (veAvance()) {
-        <div class="tarjeta compacto pct"><div class="t pista">Documentos cargados</div><div class="n">{{ p.avance.porcentajeCargado }} %</div>
-          <div class="barra"><span [style.width.%]="p.avance.porcentajeCargado"></span></div><div class="pista">{{ p.avance.cargados }} de {{ p.avance.exigidos }}</div></div>
-        <div class="tarjeta compacto pct ok"><div class="t pista">Documentos aprobados</div><div class="n">{{ p.avance.porcentajeAprobado }} %</div>
-          <div class="barra"><span [style.width.%]="p.avance.porcentajeAprobado"></span></div><div class="pista">{{ p.avance.aprobados }} de {{ p.avance.exigidos }}</div></div>
-        }
-        <div class="tarjeta compacto"><div class="pista">Afiliación a ARL</div>
-          <div style="margin-top:var(--sp-1)"><span class="etiqueta" [class.etiqueta--ok]="p.arlVerificada" [class.etiqueta--peligro]="!p.arlVerificada">{{ p.arlVerificada ? 'verificada' : 'sin afiliación' }}</span></div>
-          @if (!p.arlVerificada && solicitaArl()) { <a routerLink="/arl" class="pista">Solicitar la ARL a la CUN →</a> }</div>
-        @if (cierre(); as c) {
-          <div class="tarjeta compacto cierre"><div class="pista">Cierre del proceso</div>
-            <ul><li [class.si]="c.documentosAprobados" [class.no]="!c.documentosAprobados">{{ c.documentosAprobados ? '✓' : '○' }} 100 % aprobado</li>
-              <li [class.si]="c.evaluaTuProceso" [class.no]="!c.evaluaTuProceso">{{ c.evaluaTuProceso ? '✓' : '○' }} Evalúa tu proceso</li>
-              <li [class.si]="c.calificacion" [class.no]="!c.calificacion">{{ c.calificacion ? '✓' : '○' }} Calificación docente</li></ul>
-            @if (c.cerradaEn) { <div class="pista">Cerrado el {{ c.cerradaEn | date: 'd MMM y' }}</div> }
-            @else if (c.puedeCerrar && puedeCalificar()) { <button type="button" class="boton compacto boton--primario" (click)="cerrar()" [disabled]="guardando()">Cerrar proceso</button> }
-          </div>
-        }
-      </div>
-
       @if (sesion.esInterno() && p.disparadoresSenal.length > 0) {
-        <div class="aviso aviso--info" style="margin-bottom:var(--sp-4)"><strong>Por qué está señalada:</strong> {{ p.disparadoresSenal.join(' · ') }}</div>
+        <p class="senalada"><strong>Por qué está señalada:</strong> {{ p.disparadoresSenal.join(' · ') }}</p>
       }
 
-      <div class="pestanas" role="tablist">
-        <button type="button" role="tab" [class.activa]="pestana() === 'documentos'" (click)="pestana.set('documentos')">Documentos por momento</button>
+      <section class="progreso" aria-label="Progreso documental">
+        <div>
+          @if (veAvance()) {
+            <p class="kicker">Document Signal <span class="cod">· {{ p.avance.aprobados }}/{{ p.avance.exigidos }} aprobados</span></p>
+            <sipra-expediente-senal [momentos]="p.avance.momentos" [largo]="p.avance.exigidos > 8" (ir)="irADocumento($event)" />
+          }
+          <dl class="condiciones">
+            <div><dt>Afiliación a ARL</dt><dd>
+              <sipra-senal-estado [tono]="p.arlVerificada ? 'ok' : 'peligro'" [texto]="p.arlVerificada ? 'verificada' : 'sin afiliación'" />
+              @if (!p.arlVerificada && solicitaArl()) { <a routerLink="/arl">Solicitar la ARL a la CUN →</a> }</dd></div>
+            @if (cierre(); as c) {
+              <div><dt>Cierre del proceso</dt><dd>
+                <ul><li [class.si]="c.documentosAprobados">{{ c.documentosAprobados ? '✓' : '○' }} 100 % aprobado</li>
+                  <li [class.si]="c.evaluaTuProceso">{{ c.evaluaTuProceso ? '✓' : '○' }} Evalúa tu proceso</li>
+                  <li [class.si]="c.calificacion">{{ c.calificacion ? '✓' : '○' }} Calificación docente</li></ul>
+                @if (c.cerradaEn) { <span class="ver">Cerrado el {{ c.cerradaEn | date: 'd MMM y' }}</span> }
+                @else if (c.puedeCerrar && puedeCalificar()) { <button type="button" class="boton compacto boton--primario" (click)="cerrar()" [disabled]="guardando()">Cerrar proceso</button> }
+              </dd></div>
+            }
+          </dl>
+        </div>
+        <div class="lateral-prog">
+          @if (veAvance()) { <sipra-tira-metricas class="estrecha" [metricas]="cifras()" etiqueta="Avance documental" /> }
+        </div>
+      </section>
+
+      <div class="pestanas" role="tablist" aria-label="Secciones del expediente">
+        <button type="button" role="tab" [class.activa]="pestana() === 'documentos'" [attr.aria-selected]="pestana() === 'documentos'" (click)="pestana.set('documentos')">Documentos por momento</button>
         @if (puedeVerBitacora()) {
-          <button type="button" role="tab" [class.activa]="pestana() === 'bitacora'" (click)="pestana.set('bitacora')">Bitácora ({{ bitacora().length }})</button>
+          <button type="button" role="tab" [class.activa]="pestana() === 'bitacora'" [attr.aria-selected]="pestana() === 'bitacora'" (click)="pestana.set('bitacora')">Bitácora ({{ bitacora().length }})</button>
         }
-        <button type="button" role="tab" [class.activa]="pestana() === 'datos'" (click)="pestana.set('datos')">Datos de la práctica</button>
+        <button type="button" role="tab" [class.activa]="pestana() === 'datos'" [attr.aria-selected]="pestana() === 'datos'" (click)="pestana.set('datos')">Datos de la práctica</button>
       </div>
 
       <!-- ── Documentos ─────────────────────────────────────────────────── -->
       @if (pestana() === 'documentos') {
         <div class="columnas">
-          <div class="tarjeta">
+          <div class="superficie">
             @for (m of p.avance.momentos; track m.momento) {
               <section class="momento">
-                <h3>{{ m.etiqueta }} <span class="pista">{{ m.aprobados }}/{{ m.exigidos }} aprobados</span>
-                  @if (m.completo) { <span class="etiqueta etiqueta--ok">completo</span> } @else if (p.avance.momentoActual === m.momento) { <span class="etiqueta etiqueta--info">momento actual</span> }</h3>
+                <h3>{{ m.etiqueta }} <span class="avance-m">{{ m.aprobados }}/{{ m.exigidos }} aprobados</span>
+                  @if (m.completo) { <span class="marca-m">✓ completo</span> } @else if (p.avance.momentoActual === m.momento) { <span class="marca-m actual">● momento actual</span> }</h3>
                 @for (d of m.documentos; track d.tipo) {
                   @if (esEstudiante() && d.tipo === 'acta_inicio') {
-                    <div class="doc">
+                    <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
                       <sipra-acta-estudiante [practicaId]="id()" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir('acta_inicio')" />
                     </div>
                   } @else if (esEstudiante() && (d.tipo === 'rut_natural' || d.tipo === 'rut_juridico')) {
-                    <div class="doc">
+                    <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
                       <sipra-rut-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir(d.tipo)" />
                     </div>
                   } @else if (esEstudiante() && d.tipo === 'camara_comercio') {
-                    <div class="doc">
+                    <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
                       <sipra-camara-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir(d.tipo)" />
                     </div>
                   } @else {
-                  <div class="doc">
+                  <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
                     <div class="doc-cab">
                       <span class="nombre">{{ d.tipo | etiqueta }}</span>
                       @if (esEstudiante()) {
-                        @if (d.version && d.version > 1) { <span class="pista">versión {{ d.version }}</span> }
-                        <span class="etiqueta etiqueta--{{ guia(d.tipo, d.estado).tono }}">{{ guia(d.tipo, d.estado).estado }}</span>
+                        @if (d.version && d.version > 1) { <span class="ver">versión {{ d.version }}</span> }
+                        <sipra-senal-estado [tono]="guia(d.tipo, d.estado).tono" [texto]="guia(d.tipo, d.estado).estado" />
                         @if (puedeCargar() && !d.estado) { <button type="button" class="boton compacto" (click)="tipoSeleccionado.set(d.tipo)">Cargar</button> }
                       } @else {
-                        @if (d.version) { <span class="pista">v{{ d.version }}</span> }
-                        @if (d.estado) { <sipra-estado [valor]="d.estado" /> } @else { <span class="etiqueta etiqueta--neutra">sin cargar</span> }
+                        @if (d.version) { <span class="ver">v{{ d.version }}</span> }
+                        <sipra-senal-estado [valor]="d.estado ?? ''" [texto]="d.estado ? null : 'sin cargar'" />
                         @if (puedeCargar()) { <button type="button" class="boton compacto" (click)="tipoSeleccionado.set(d.tipo)">Cargar</button> }
                       }
                     </div>
                     @if (esEstudiante()) {
                       <p class="guia">{{ guia(d.tipo, d.estado).que }} <strong>{{ guia(d.tipo, d.estado).hacer }}</strong></p>
                       @if (ultimoDe(d.tipo); as ult) {
-                        <p class="pista" style="margin:2px 0 0">{{ ult.nombreOriginal }} · {{ ult.cargadoEn | date: 'd MMM y, HH:mm' }}</p>
+                        <p class="archivo">{{ ult.nombreOriginal }} · {{ ult.cargadoEn | date: 'd MMM y, HH:mm' }}</p>
                         @if (guia(d.tipo, ult.estado).necesitaCorreccion) {
                           <div class="devolucion" role="status">
                             <h4>Tu {{ enMinuscula(d.tipo | etiqueta) }} necesita una corrección</h4>
@@ -207,8 +264,8 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                         }
                       }
                     } @else if (ultimoDe(d.tipo); as doc) {
-                      <div class="pista">{{ doc.nombreOriginal }} · {{ doc.cargadoEn | date: 'd MMM y, HH:mm' }}@if (doc.puntaje !== null) { · {{ doc.puntaje }}/100 }</div>
-                      @if (doc.motivoDevolucion) { <div class="aviso aviso--info" style="margin-top:var(--sp-1)">{{ doc.motivoDevolucion }}</div> }
+                      <div class="archivo">{{ doc.nombreOriginal }} · {{ doc.cargadoEn | date: 'd MMM y, HH:mm' }}@if (doc.puntaje !== null) { · {{ doc.puntaje }}/100 }</div>
+                      @if (doc.motivoDevolucion) { <div class="devolucion"><p><span class="rotulo">Motivo:</span> {{ doc.motivoDevolucion }}</p></div> }
                       @for (b of doc.banderas ?? []; track b.codigo) {
                         <div class="bandera" [class.critica]="b.severidad === 'critica'" [class.alta]="b.severidad === 'alta'"><span [attr.title]="'Código: ' + b.codigo">{{ textoBandera(b.codigo, b.mensaje) }}</span></div>
                       }
@@ -266,7 +323,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
             }
           </div>
 
-          <div class="tarjeta">
+          <div class="superficie">
             <h2>Cargar documento</h2>
             @if (!puedeCargar()) {
               <div class="vacio">Su perfil no carga documentos en este expediente.</div>
@@ -296,7 +353,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
       <!-- ── Bitácora ───────────────────────────────────────────────────── -->
       @if (pestana() === 'bitacora') {
         <div class="columnas">
-          <div class="tarjeta">
+          <div class="superficie">
             <h2>Bitácora de seguimiento</h2>
             @if (bitacora().length === 0) { <div class="vacio">Aún no hay mensajes. La bitácora es la trazabilidad del acompañamiento.</div> }
             <div class="chat">
@@ -311,7 +368,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
             </div>
           </div>
 
-          <div class="tarjeta">
+          <div class="superficie">
             <h2>Nuevo mensaje</h2>
             @if (!puedeEscribir()) { <div class="vacio">Su perfil consulta la bitácora; no escribe en ella.</div> }
             @else {
@@ -373,7 +430,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
       <!-- ── Datos de la práctica ───────────────────────────────────────── -->
       @if (pestana() === 'datos') {
         <div class="columnas">
-          <div class="tarjeta">
+          <div class="superficie">
             <h2>Organización y vacante</h2>
             <div class="datos">
               <div class="dato"><div class="k">Organización</div><div class="v">{{ p.empresaRazonSocial ?? '—' }}</div></div>
@@ -411,7 +468,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
             }
           </div>
 
-          <div class="tarjeta">
+          <div class="superficie">
             <h2>Gestión del expediente</h2>
             @if (puedeAdministrar() && !p.arlVerificada) {
               <div class="aviso aviso--error">La práctica no pasa a <strong>activa</strong> sin afiliación a ARL anterior al inicio (Decreto 055 de 2015).</div>
@@ -443,6 +500,7 @@ export class ExpedienteComponent implements OnInit {
   private readonly avisos = inject(AvisosService);
   private readonly captura = inject(CapturaGuiadaService);
   private readonly etiqueta = new EtiquetaPipe();
+  private readonly injector = inject(Injector);
 
   readonly practica = signal<Practica | null>(null);
   readonly documentos = signal<Documento[]>([]);
@@ -507,6 +565,31 @@ export class ExpedienteComponent implements OnInit {
     return this.documentos().filter((d) => d.tipo === tipo).sort((a, b) => b.version - a.version)[0] ?? null;
   }
   readonly textoBandera = textoBandera;
+  /** Documento al que se acaba de saltar desde el Document Signal (resaltado breve). */
+  readonly resaltado = signal<string | null>(null);
+  /** Cifras del avance: las mismas que ya trae la práctica (exigidos, cargados, aprobados, pendientes). */
+  readonly cifras = computed<MetricaV3[]>(() => {
+    const a = this.practica()?.avance;
+    if (!a) return [];
+    const de = `de ${a.exigidos}`;
+    return [
+      { n: a.aprobados, t: 'Aprobados', tono: 'ok', contexto: de },
+      { n: a.cargados, t: 'Cargados', tono: 'info', contexto: de },
+      { n: a.pendientes.length, t: 'Pendientes', tono: 'aviso', contexto: de },
+    ];
+  });
+  /** Del Document Signal a la fila del documento (pestaña Documentos), con foco y resaltado de 1,2 s. */
+  irADocumento(tipo: string): void {
+    this.pestana.set('documentos');
+    this.resaltado.set(tipo);
+    afterNextRender(() => {
+      const fila = document.getElementById('doc-' + tipo);
+      const reducido = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      fila?.scrollIntoView({ block: 'center', behavior: reducido ? 'auto' : 'smooth' });
+      fila?.focus({ preventScroll: true });
+    }, { injector: this.injector });
+    setTimeout(() => { if (this.resaltado() === tipo) this.resaltado.set(null); }, 1200);
+  }
   readonly esEstudiante = computed(() => this.sesion.rol() === 'estudiante');
   /** Tipos cuyo último documento necesita corrección: se avisa arriba, sin obligar a buscarlo entre los momentos. */
   readonly pendientesCorreccion = computed(() => {

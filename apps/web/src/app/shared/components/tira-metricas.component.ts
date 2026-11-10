@@ -20,6 +20,7 @@ export interface MetricaV3 { n: number; t: string; tono: TonoV3; contexto: strin
     .rotulo { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); }
     .ctx { font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
     :host-context([data-theme='dark']) .ctx { color: #94aeac; }
+    :host-context([data-theme='light']) .ctx { color: var(--text-secondary); }
     .punto { width: 7px; height: 7px; border-radius: 50%; flex: none; }
     :host { --t-aviso: var(--status-review); --t-peligro: var(--status-critical); }
     :host-context([data-theme='light']) { --t-aviso: #7a4a00; --t-peligro: #b8231f; }
@@ -29,6 +30,12 @@ export interface MetricaV3 { n: number; t: string; tono: TonoV3; contexto: strin
     /* Compacta (pantallas de trabajo): cifra de 24 px en una línea con su rótulo. */
     :host(.compacta) li { grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; padding-block: 2px; }
     :host(.compacta) .valor { grid-row: 1 / span 2; font-size: 26px; line-height: 32px; }
+    /* Estrecha (columna lateral de ~300 px): tres columnas apiladas, cifra sobre rótulo. Opt-in por clase. */
+    :host(.estrecha) ul { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
+    :host(.estrecha) li { padding: 0 10px; }
+    :host(.estrecha) li:first-child { padding-left: 0; }
+    :host(.estrecha) .valor { font-size: 28px; line-height: 34px; }
+    :host(.estrecha) .rotulo { font-size: 12px; gap: 6px; }
     @media (width < 700px) {
       ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       li { padding: 8px 12px; border-left: 0; border-top: 1px solid var(--vd-regla, var(--border-subtle)); }

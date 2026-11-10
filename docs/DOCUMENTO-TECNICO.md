@@ -3313,6 +3313,44 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.32.1 — 10 de noviembre de 2026
+
+**Validación documental: ergonomía de scroll (≥ 1024).** La mesa estaba fijada al viewport: `.cuerpo` tenía `height: calc(100dvh − cinta)` con `overflow: hidden`. Con encabezado y Document Signal (~355 px), la bahía y el inspector quedaban en ~615 px a 1024 de alto y en ~360 a 768, sin forma de desplazar la página.
+
+Ahora:
+
+- `.cuerpo` crece (`min-height`) y la página se desplaza.
+- La cola es sticky, con el alto del viewport, y desplaza su propia lista.
+- `.p-doc` toma el alto del viewport: al bajar el encabezado, bahía e inspector ocupan toda la pantalla (928 px a 1440×1024).
+- La barra de decisión pasa de `absolute` a `sticky` al pie de la columna del inspector, sin salir del motor, y se ve con o sin desplazamiento.
+- Scrollbars finas con tokens.
+
+La rueda mueve la región bajo el puntero (cola → lista, inspector → inspector, PDF → visor y luego página). Verificado a 1440×1024, 1440×900, 1366×768 y 1920×1080. E2E de la Mesa 35/35 (incluye 390 px); `pruebas/vd-scroll.spec.ts`. Sin cambios de plantilla, lógica, reservas ni decisiones.
+
+### 0.32.0 — 10 de noviembre de 2026
+
+**Expediente V3 (`/practicas/:id`, capa A).** Cambian `features/practicas/expediente.component.ts` y un componente nuevo de la feature, `expediente-senal.component.ts`. Las vistas de dominio (`acta-`, `rut-`, `camara-estudiante`) no se tocaron: se montan con las mismas entradas y salidas. Llamadas, carga (input, tipos, captura guiada), decisiones, bitácora, cierre, vacante, ARL, transiciones y permisos son los de siempre.
+
+- **Contexto:** migas «← Prácticas / Expediente»; kicker con FUR, periodo y estado SGP; nombre; modalidad, ciclo, programa, empresa y docente (o «sin docente asignado»); estado y señal con `sipra-senal-estado`; nota.
+- **Atención:** «necesita una corrección» y «por qué está señalada» se muestran con línea de señal, sin caja.
+- **Progreso:** Document Signal con un nodo por documento exigido, en el orden real de `avance.momentos` y sin tipos fijos.
+  - Cada nodo muestra el estado en texto de `guiaDocumento`.
+  - Es un botón que cambia a «Documentos», enfoca la fila y la resalta 1,2 s (`afterNextRender`).
+  - En móvil pasa a lista vertical; con más de 8 nodos, desvanecido de desplazamiento.
+  - Junto al rail, cifras reales (aprobados, cargados y pendientes, «de N») y condiciones de ARL y cierre.
+- **Documentos:** pestañas como reglas con `aria-selected`; filas con hairline. El aprobado queda en silencio; la devolución lleva motivo con línea ámbar. Versiones y archivo en mono; estados con `sipra-senal-estado`. Carga con `sipra-carga-senal`; expediente fuera de alcance con `sipra-estado-vacio` y regreso.
+
+**Kit V3:**
+
+- `sipra-senal-estado`: entradas opcionales `tono`/`texto` y tonos de estado de documento, con el criterio de `sipra-estado` y sin lógica de dominio.
+- `sipra-tira-metricas`: variante `estrecha`; en claro, el contexto usa `--text-secondary`.
+
+Inicio y Prácticas se volvieron a medir sin cambios.
+
+Los estilos del expediente se mantienen bajo el presupuesto de 12 kB por componente al separar el Document Signal; el presupuesto no se subió.
+
+Contraste medido sobre píxeles: 32/32 en ambos temas; Inicio 21/21 y Prácticas 29/29. Pruebas: `expediente-v3.spec.ts`; web 340/340; 15 comprobaciones funcionales en navegador sin modificar datos.
+
 ### 0.31.0 — 10 de noviembre de 2026
 
 **Prácticas V3 (lista, Operations Workspace).** Solo cambió `features/practicas/practicas.component.ts`, una pantalla hoja según el grafo. No toqué el expediente. La consulta, los 13 controles de filtro (con sus ids), la señal en el cliente, el orden, «Limpiar» y la navegación al expediente por el enlace del nombre son los de siempre. Cambia la presentación:
