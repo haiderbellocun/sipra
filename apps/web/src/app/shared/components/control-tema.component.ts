@@ -17,7 +17,7 @@ import { TemaService } from '@core/ui/tema.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[attr.data-variante]': 'variante()' },
   styles: [`
-    :host { display: inline-flex; position: relative; }
+    :host { display: inline-flex; position: relative; flex: none; }
     button {
       position: relative; display: inline-grid; place-items: center; padding: 0; cursor: pointer; font: inherit; color: var(--text-secondary);
       border: 1px solid var(--border-strong); background: color-mix(in srgb, var(--text-primary) 6%, transparent);

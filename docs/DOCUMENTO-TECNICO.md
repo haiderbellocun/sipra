@@ -3313,6 +3313,23 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.30.0 — 10 de noviembre de 2026
+
+**Inicio V3 (Operations Home).** Solo cambió `features/inicio/inicio.component.ts`, una pantalla hoja según el grafo. Los datos, las llamadas y el orden de prioridad son los mismos; solo cambia la presentación:
+
+- **Contexto sin caja:** rol, fecha y chip del periodo; saludo; ruta del rol.
+- **«Siguiente paso»** (estudiante y auxiliar): el CTA primario de siempre, con chaflán, y *command links* con fila, metadato y flecha.
+- **Franja de métricas:** las mismas cifras, con punto de señal y contexto «de N».
+- **«Requiere tu atención»:** la lista priorizada, con estados en punto + texto y disparadores con línea crítica.
+- **Para el estudiante, «Mi práctica»:** telemetría `aprobados/exigidos`, nodos por momento y la lista de `pendientes`, todos datos ya existentes en `avance`.
+- **«Próximos hitos»:** envuelve `sipra-cronograma` sin modificarlo.
+- **Estados:** vacío con Topology Orb; carga con Document Signal en vez de esqueleto.
+- **Movimiento:** entrada de 220 ms y hover de 160 ms; nada se anima con movimiento reducido.
+
+Las clases son propias porque los nombres genéricos de `estilos.css` (`.hero`, `.n`, `.t`, `.vacio`, `.cargando`, `.mono`, `.et`) chocaban con ellos; `pruebas/inicio-v3.spec.ts` lo vigila. Contraste medido sobre píxeles: coordinación 21/21 y estudiante 16/16 en ambos temas. En claro, el enlace usa #03587a y los avisos #7a4a00/#b8231f.
+
+**Corrección del Kit V3:** con el rail replegado, `sipra-control-tema` y `sipra-control-cuenta` se encogían a 2–5 px como ítems flex. Ahora llevan `flex: none` y el punto del avatar se posiciona contra el botón.
+
 ### 0.29.0 — 10 de noviembre de 2026
 
 Shell V3-02: primeros componentes del Kit V3 (opt-in, encapsulados, sin tocar hojas globales).

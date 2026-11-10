@@ -47,8 +47,8 @@ let siguienteId = 0;
     '(document:keydown.escape)': 'alEscape()',
   },
   styles: [`
-    :host { position: relative; display: inline-flex; }
-    .disparador { cursor: pointer; font: inherit; color: var(--rail-ink-active, var(--text-primary)); padding: 0; background: transparent; }
+    :host { position: relative; display: inline-flex; flex: none; }
+    .disparador { position: relative; flex: none; cursor: pointer; font: inherit; color: var(--rail-ink-active, var(--text-primary)); padding: 0; background: transparent; }
     .disparador:focus-visible, .salir:focus-visible { outline: 2px solid var(--focus-ring, var(--signal-active)); outline-offset: 2px; }
     :host([data-variante='rail']) .disparador {
       width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
