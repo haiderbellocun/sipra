@@ -5,19 +5,11 @@ import { SesionService } from '@core/auth/sesion.service';
 import { ApiService } from '@core/services/api.service';
 import { Periodo, Practica, TableroCumplimiento } from '@core/models/modelos';
 import { CronogramaComponent } from '@shared/components/cronograma.component';
+import { CargaSenalComponent } from '@shared/components/carga-senal.component';
+import { EstadoVacioComponent } from '@shared/components/estado-vacio.component';
+import { SenalEstadoComponent } from '@shared/components/senal-estado.component';
+import { MetricaV3, TiraMetricasComponent } from '@shared/components/tira-metricas.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
-
-type Tono = 'ok' | 'aviso' | 'peligro' | 'info' | 'neutra';
-
-/** Tono de los estados y señales de práctica (el mismo criterio que `sipra-estado`). */
-const TONO: Record<string, Tono> = {
-  activa: 'ok', certificada: 'ok', finalizada: 'info',
-  en_validacion: 'aviso', documentacion: 'aviso', inscrita: 'neutra',
-  suspendida: 'peligro', cancelada: 'peligro', anulada: 'neutra', reprobada: 'peligro',
-  al_dia: 'ok', requiere_atencion: 'aviso', en_riesgo: 'peligro',
-};
-
-interface Metrica { n: number; t: string; tono: Tono; contexto: string }
 
 /**
  * Inicio orientado al perfil (V3 · Operations Home).
@@ -32,7 +24,7 @@ interface Metrica { n: number; t: string; tono: Tono; contexto: string }
 @Component({
   selector: 'sipra-inicio',
   standalone: true,
-  imports: [RouterLink, EtiquetaPipe, CronogramaComponent],
+  imports: [RouterLink, EtiquetaPipe, CronogramaComponent, SenalEstadoComponent, TiraMetricasComponent, CargaSenalComponent, EstadoVacioComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host { display: block; --enlace: var(--signal-default); --ok: var(--status-success); --aviso: var(--status-review); --peligro: var(--status-critical); --info: var(--status-available); }
@@ -72,19 +64,8 @@ interface Metrica { n: number; t: string; tono: Tono; contexto: string }
     .comandos .fl { font: 500 14px/1 var(--fuente-mono); color: var(--text-muted); transition: transform 160ms var(--ease-out); }
     .comandos a:hover .fl { transform: translateX(2px); color: var(--enlace); }
 
-    /* ── C · Telemetría: metric strip (una sola franja, separadores finos) ── */
-    .tira { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); margin: 20px 0 0; padding: 0; list-style: none; animation: entra 220ms var(--ease-out) 40ms both; }
-    .tira li { display: grid; gap: 2px; padding: 4px 20px 4px 18px; border-left: 1px solid var(--vd-regla, var(--border-subtle)); }
-    .tira li:first-child { border-left: 0; padding-left: 0; }
-    .tira .valor { font: 500 34px/40px var(--fuente-mono); letter-spacing: -.03em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-    .tira .rotulo { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); }
-    .tira .ctx { font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
-    .punto { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--c); }
-
-    /* ── Señal de estado: punto + texto (nunca solo color) ── */
-    .senal { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; line-height: 16px; white-space: nowrap; color: var(--c, var(--text-secondary)); }
-    .senal::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
-    .tono-ok { --c: var(--ok); } .tono-aviso { --c: var(--aviso); } .tono-peligro { --c: var(--peligro); } .tono-info { --c: var(--info); } .tono-neutra { --c: var(--text-secondary); }
+    /* ── C · Telemetría: franja de métricas (Kit V3) ── */
+    .tira { margin: 20px 0 0; animation: entra 220ms var(--ease-out) 40ms both; }
 
     /* ── D · Atención + hitos ── */
     .cuerpo { display: grid; gap: 24px; margin-top: 28px; }
@@ -139,24 +120,10 @@ interface Metrica { n: number; t: string; tono: Tono; contexto: string }
     .hitos sipra-cronograma { margin-top: 14px; }
     .ayuda { margin: 14px 0 0; font-size: 13px; color: var(--text-secondary); }
 
-    /* Vacío: Topology Orb. */
-    .sin-datos { display: grid; justify-items: center; gap: 6px; padding: 28px 12px 24px; text-align: center; }
-    .sin-datos svg { width: 120px; height: 84px; margin-bottom: 6px; }
-    .sin-datos strong { font-size: 15px; color: var(--text-primary); }
-    .sin-datos span { font-size: 13px; color: var(--text-secondary); }
-
-    /* Carga: Document Signal (cinco nodos, la señal viaja); sin spinner. */
-    .espera { display: grid; justify-items: center; gap: 14px; padding: 72px 0; color: var(--text-secondary); font-size: 13px; }
-    .carril { position: relative; width: 200px; height: 14px; }
-    .carril::before { content: ""; position: absolute; left: 7px; right: 7px; top: 6.5px; height: 1px; background: var(--border-default); }
-    .carril i { position: absolute; top: 0; width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--surface-canvas); animation: nodo 2.4s var(--ease-out) infinite; }
-    .carril i:nth-child(1) { left: 0; } .carril i:nth-child(2) { left: 46.75px; animation-delay: .3s; } .carril i:nth-child(3) { left: 93.5px; animation-delay: .6s; } .carril i:nth-child(4) { left: 140.25px; animation-delay: .9s; } .carril i:nth-child(5) { left: 187px; animation-delay: 1.2s; }
-
     @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     @keyframes pulso { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--signal-active) 40%, transparent); } 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal-active) 18%, transparent); } }
-    @keyframes nodo { 0%, 100% { border-color: var(--border-strong); background: var(--surface-canvas); } 30% { border-color: var(--signal-active); background: var(--signal-active); box-shadow: 0 0 8px var(--signal-active); } }
     @media (prefers-reduced-motion: reduce) {
-      .contexto, .tira, .zona, .momentos li.actual .nodo, .carril i { animation: none; }
+      .contexto, .tira, .zona, .momentos li.actual .nodo { animation: none; }
       .cta, .comandos a, .comandos .fl, .filas li { transition: none; }
     }
 
@@ -169,11 +136,6 @@ interface Metrica { n: number; t: string; tono: Tono; contexto: string }
       .contexto h1 { font-size: 24px; line-height: 30px; }
       .periodo { display: flex; width: fit-content; margin: 8px 0 0; }
       .siguiente { max-width: none; }
-      .tira { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .tira li { padding: 8px 12px; border-left: 0; border-top: 1px solid var(--vd-regla, var(--border-subtle)); }
-      .tira li:nth-child(-n+2) { border-top: 0; }
-      .tira li:first-child { padding-left: 12px; }
-      .tira .valor { font-size: 28px; line-height: 34px; }
       .zona { padding: 16px 14px 4px; }
       .filas li { grid-template-columns: minmax(0, 1fr); }
       .estados { grid-column: 1; grid-row: auto; justify-items: start; grid-auto-flow: column; justify-content: start; gap: 12px; }
@@ -230,21 +192,10 @@ interface Metrica { n: number; t: string; tono: Tono; contexto: string }
     </section>
 
     @if (cargando()) {
-      <div class="espera" role="status">
-        <div class="carril" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-        Cargando su inicio…
-      </div>
+      <sipra-carga-senal texto="Cargando su inicio…" />
     } @else {
       @if (rol !== 'estudiante') {
-        <ul class="tira" aria-label="Cifras del alcance">
-          @for (m of metricas(); track m.t) {
-            <li [class]="'tono-' + m.tono">
-              <span class="valor">{{ m.n }}</span>
-              <span class="rotulo"><span class="punto" aria-hidden="true"></span>{{ m.t }}</span>
-              <span class="ctx">{{ m.contexto }}</span>
-            </li>
-          }
-        </ul>
+        <sipra-tira-metricas class="tira" [metricas]="metricas()" etiqueta="Cifras del alcance" />
       }
 
       <div class="cuerpo">
@@ -258,20 +209,12 @@ interface Metrica { n: number; t: string; tono: Tono; contexto: string }
           </div>
 
           @if (priorizadas().length === 0) {
-            <div class="sin-datos">
-              <svg viewBox="0 0 120 84" aria-hidden="true">
-                <defs><radialGradient id="orbe-inicio" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--signal-active)" stop-opacity=".35"/><stop offset="1" stop-color="var(--signal-active)" stop-opacity="0"/></radialGradient></defs>
-                <circle cx="60" cy="42" r="40" fill="url(#orbe-inicio)"/>
-                <g fill="none" stroke="var(--signal-default)" stroke-width="1"><ellipse cx="60" cy="42" rx="26" ry="26" opacity=".7"/><ellipse cx="60" cy="42" rx="26" ry="9" opacity=".5"/><ellipse cx="60" cy="42" rx="9" ry="26" opacity=".5"/></g>
-                <g fill="var(--signal-active)"><circle cx="34" cy="42" r="2.5"/><circle cx="86" cy="42" r="2.5"/><circle cx="60" cy="16" r="2.5"/><circle cx="60" cy="68" r="2.5"/></g>
-              </svg>
-              <strong>Sin expedientes</strong><span>No hay expedientes dentro de su alcance todavía.</span>
-            </div>
+            <sipra-estado-vacio titulo="Sin expedientes" texto="No hay expedientes dentro de su alcance todavía." />
           } @else if (rol === 'estudiante' && miPractica(); as p) {
             <div class="mia">
               <div class="tit">
                 <a [routerLink]="['/practicas', p.id]">{{ p.estudianteNombre }}</a>
-                <span [class]="'senal tono-' + tono(p.estado)">{{ p.estado | etiqueta }}</span>
+                <sipra-senal-estado [valor]="p.estado" />
               </div>
               <div class="detalle">{{ p.modalidad | etiqueta }} · {{ p.empresaRazonSocial ?? 'sin empresa asignada' }} · <span class="cod">{{ p.periodoAcademico }}</span></div>
               <p class="telemetria">
@@ -312,8 +255,8 @@ interface Metrica { n: number; t: string; tono: Tono; contexto: string }
                     <div class="disparadores">{{ practica.disparadoresSenal.join(' · ') }}</div>
                   }
                   <div class="estados">
-                    <span [class]="'senal tono-' + tono(practica.estado)">{{ practica.estado | etiqueta }}</span>
-                    @if (interno) { <span [class]="'senal tono-' + tono(practica.senal)">{{ practica.senal | etiqueta }}</span> }
+                    <sipra-senal-estado [valor]="practica.estado" />
+                    @if (interno) { <sipra-senal-estado [valor]="practica.senal" /> }
                   </div>
                 </li>
               }
@@ -385,10 +328,10 @@ export class InicioComponent implements OnInit {
   readonly miPractica = computed(() => this.practicas()[0] ?? null);
 
   /** Metric strip: las mismas cifras de siempre, con contexto relativo al total del alcance. */
-  readonly metricas = computed<Metrica[]>(() => {
+  readonly metricas = computed<MetricaV3[]>(() => {
     const total = this.practicas().length;
     const de = `de ${total}`;
-    const lista: Metrica[] = [
+    const lista: MetricaV3[] = [
       { n: total, t: 'Expedientes en mi alcance', tono: 'info', contexto: 'total' },
       { n: this.activas(), t: 'Activas', tono: 'ok', contexto: de },
     ];
@@ -402,10 +345,6 @@ export class InicioComponent implements OnInit {
     }
     return lista;
   });
-
-  tono(valor: string): Tono {
-    return TONO[valor] ?? 'neutra';
-  }
 
   async ngOnInit(): Promise<void> {
     try {

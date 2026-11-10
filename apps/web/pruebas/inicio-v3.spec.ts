@@ -27,7 +27,8 @@ describe('Inicio V3', () => {
     assert.match(plantilla, /<sipra-cronograma \[periodo\]="per" \/>/);
   });
   it('estados con punto + texto (no solo color) y sin spinner ni canvas', () => {
-    assert.match(plantilla, /\{\{ practica\.estado \| etiqueta \}\}/);
+    assert.match(plantilla, /<sipra-senal-estado \[valor\]="practica\.estado" \/>/);
+    assert.match(plantilla, /<sipra-tira-metricas /);
     assert.doesNotMatch(inicio.replace(/\/\*[\s\S]*?\*\//g, ''), /<canvas|spinner|WebGL|getContext\(/i);
   });
   it('respeta movimiento reducido', () => {

@@ -3313,6 +3313,35 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.31.0 — 10 de noviembre de 2026
+
+**Prácticas V3 (lista, Operations Workspace).** Solo cambió `features/practicas/practicas.component.ts`, una pantalla hoja según el grafo. No toqué el expediente. La consulta, los 13 controles de filtro (con sus ids), la señal en el cliente, el orden, «Limpiar» y la navegación al expediente por el enlace del nombre son los de siempre. Cambia la presentación:
+
+- **Encabezado compacto**, con la acción existente.
+- **Franja de cifras del listado visible:** conteos directos de estado `activa` y de señal.
+- **Barra de herramientas:** búsqueda de 38 px, «Filtros» con contador de filtros activos y un panel en divulgación progresiva (`aria-expanded`/`aria-controls`), señal, Filtrar, Limpiar y conteo.
+- **Lista estructurada en `<table>`:**
+  - estudiante (programa, ciclo, regional y FUR);
+  - disparadores de señal con línea crítica (solo para internos);
+  - práctica (modalidad y empresa), periodo y último movimiento, docente;
+  - estado con punto + texto y el estado SGP;
+  - telemetría de cargados/aprobados con microseñal de 40 px;
+  - señal.
+
+  La fila del estudiante lleva borde de señal. Las columnas secundarias salen por debajo de 1280 y 1180 px; por debajo de 900 px cada práctica se apila en una fila.
+- **Vacíos:** se distinguen «Sin práctica registrada», «Sin resultados para estos filtros» (con «Limpiar filtros») y «Sin resultados». La carga usa Document Signal.
+
+**Kit V3 compartido con Inicio**, extraído porque ambos lo necesitan exactamente igual. Inicio sustituyó sus versiones locales sin cambiar de apariencia.
+
+- `shared/components/senal-estado.component.ts` (`sipra-senal-estado`, `tonoDe`);
+- `tira-metricas.component.ts` (`sipra-tira-metricas`, variante `compacta`);
+- `carga-senal.component.ts` (`sipra-carga-senal`);
+- `estado-vacio.component.ts` (`sipra-estado-vacio`, Topology Orb).
+
+Encabezado de sección y enlaces de acción no se extrajeron: solo Inicio los usa.
+
+Contraste medido sobre píxeles: Prácticas 29/29 e Inicio 21/21 en ambos temas. En claro, la señal «ok» pasa a #06695d. Pruebas: `practicas-v3.spec.ts` (sin choques con clases globales, filtros e ids, divulgación, enlace real, tres vacíos, kit) y `inicio-v3.spec.ts` actualizado.
+
 ### 0.30.0 — 10 de noviembre de 2026
 
 **Inicio V3 (Operations Home).** Solo cambió `features/inicio/inicio.component.ts`, una pantalla hoja según el grafo. Los datos, las llamadas y el orden de prioridad son los mismos; solo cambia la presentación:
