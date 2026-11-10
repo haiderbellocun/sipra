@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ItemExpediente } from '@core/models/validacion-documental.model';
 import { VdColaComponent } from './vd-cola.component';
 import { VdCargandoComponent, VdEstadoComponent } from './vd-estados.component';
-import { VdActaComponent, VdCamaraComponent, VdEpsComponent, VdGeneralComponent, VdPielBahiaComponent, VdPielInspectorComponent, VdRutComponent } from './vd-motores.component';
+import { VdActaComponent, VdCamaraComponent, VdEpsComponent, VdGeneralComponent, VdPielBahiaComponent, VdPielInspectorComponent, VdPielNormalComponent, VdRutComponent } from './vd-motores.component';
 import { VdProgresoComponent } from './vd-progreso.component';
 import { VdSignalRailComponent } from './vd-signal-rail.component';
 import { VdSupervisionComponent } from './vd-supervision.component';
@@ -26,7 +26,7 @@ const ANCHO_COLA_PLEGADA = 1280;
 @Component({
   selector: 'sipra-validacion-documental',
   standalone: true,
-  imports: [FormsModule, VdColaComponent, VdEstadoComponent, VdCargandoComponent, VdProgresoComponent, VdSignalRailComponent, VdEpsComponent, VdActaComponent, VdRutComponent, VdCamaraComponent, VdGeneralComponent, VdPielBahiaComponent, VdPielInspectorComponent, VdSupervisionComponent],
+  imports: [FormsModule, VdColaComponent, VdEstadoComponent, VdCargandoComponent, VdProgresoComponent, VdSignalRailComponent, VdEpsComponent, VdActaComponent, VdRutComponent, VdCamaraComponent, VdGeneralComponent, VdPielBahiaComponent, VdPielInspectorComponent, VdPielNormalComponent, VdSupervisionComponent],
   providers: [ValidacionDocumentalEstado],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -96,7 +96,8 @@ const ANCHO_COLA_PLEGADA = 1280;
     .enc h2 { margin:2px 0 1px; font-size:1.875rem; line-height:39px; font-weight:600; letter-spacing:-.02em; overflow-wrap:anywhere; }
     .meta { margin:0; font-size:var(--fs-sm); line-height:18px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .meta2 { display:flex; flex-wrap:nowrap; overflow:hidden; white-space:nowrap; gap:0 14px; margin:3px 0 0; font-size:var(--fs-meta); line-height:16px; color:var(--text-muted); }
-    .meta2 > div { display:inline-flex; gap:5px; } .meta2 dt { font-weight:500; } .meta2 dd { margin:0; color:var(--text-secondary); }
+    .meta2 { -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+    .meta2 > div { flex:none; display:inline-flex; gap:6px; } .meta2 > div + div::before { content:"·"; margin-right:8px; color:var(--text-muted); } .meta2 dt { font-weight:500; } .meta2 dd { margin:0; color:var(--text-primary); }
     .enc-der { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; margin-top:-2px; }
     .chip-reserva { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:0 14px 0 12px; font-family:var(--fuente-mono); font-size:var(--fs-meta); font-weight:500; white-space:nowrap;
       color:var(--vd-reserva-texto); background:var(--vd-reserva); clip-path:polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); }
@@ -169,7 +170,7 @@ const ANCHO_COLA_PLEGADA = 1280;
     }
   `],
   template: `
-    <sipra-vd-piel-bahia /><sipra-vd-piel-inspector />
+    <sipra-vd-piel-bahia /><sipra-vd-piel-inspector /><sipra-vd-piel-normal />
     <div class="cuerpo v-{{ estado.vista() }}" [class.sin-exp]="!estado.practicaId()" [class.cola-no]="!!estado.practicaId() && !estado.colaVisible()">
       <!-- OPERATIONS FEED: la cola de expedientes -->
       <section class="p-cola" aria-labelledby="vd-cola-titulo">

@@ -156,7 +156,9 @@ export class RutMesaEstado {
     if (!id) return false;
     return this.ejecutar(async () => {
       await firstValueFrom(this.api.tomarRut(id));
-      await Promise.all([this.refrescarDetalle(), this.cargar()]);
+      await this.refrescarDetalle();
+      // La bandeja se actualiza aparte: con el detalle ya tomado, la decisión no debe esperar a la lista (cargar() maneja sus errores).
+      void this.cargar();
     }, 'Caso tomado. Es suyo por 15 minutos; se renueva mientras trabaja.');
   }
 

@@ -3,6 +3,8 @@ import { DatePipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { Documento, EstadoActaEstudiante } from '@core/models/modelos';
 import { ApiService } from '@core/services/api.service';
+import { ExplicacionDocumentoComponent } from '@shared/components/explicacion-documento.component';
+import { SenalEstadoComponent, TonoV3 } from '@shared/components/senal-estado.component';
 import { tonoEstudiante } from './actas.util';
 
 /**
@@ -13,38 +15,29 @@ import { tonoEstudiante } from './actas.util';
 @Component({
   selector: 'sipra-acta-estudiante',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, SenalEstadoComponent, ExplicacionDocumentoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host { display:block; }
-    .doc-cab { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; }
-    .doc-cab .nombre { font-weight:700; }
-    .pq { display:grid; gap:var(--sp-1); margin:var(--sp-2) 0 0; }
-    .pq p { margin:0; font-size:var(--fs-sm); overflow-wrap:anywhere; }
-    .pq .rotulo { font-weight:700; }
-    .accion { margin-top:var(--sp-2); }
-    .caja { margin-top:var(--sp-2); padding:var(--sp-3); border-radius:var(--r-sm); background:var(--aviso-suave); }
-    .caja.ok { background:var(--ok-suave); } .caja.peligro { background:var(--peligro-suave); } .caja.info { background:var(--info-suave); } .caja.neutra { background:var(--superficie-2); }
-    ul.anteriores { list-style:none; margin:var(--sp-2) 0 0; padding:0; display:grid; gap:2px; font-size:var(--fs-sm); color:var(--texto-tenue); }
-    .archivo { margin:var(--sp-1) 0 0; font-size:var(--fs-sm); color:var(--texto-tenue); }
+    .doc-cab { display:flex; gap:8px 14px; align-items:center; flex-wrap:wrap; }
+    .doc-cab .nombre { flex:1; min-width:150px; font-size:14px; font-weight:600; color:var(--text-primary); }
+    .ver { font:500 12px/16px var(--fuente-mono); color:var(--text-muted); }
+    :host-context([data-theme='dark']) .ver, :host-context([data-theme='dark']) .archivo, :host-context([data-theme='dark']) ul.anteriores { color:#94aeac; }
+    .archivo { margin:6px 0 0; font:500 12px/16px var(--fuente-mono); color:var(--text-secondary); }
+    ul.anteriores { list-style:none; margin:4px 0 0; padding:0; display:grid; gap:2px; font:500 12px/18px var(--fuente-mono); color:var(--text-secondary); }
+    .espera { margin:6px 0 0; font-size:13px; color:var(--text-secondary); }
   `],
   template: `
     @if (estado(); as e) {
       <div class="doc-cab">
         <span class="nombre">Acta de iniciación</span>
-        @if ((e.versionActual ?? 0) > 1) { <span class="pista">versión {{ e.versionActual }}</span> }
-        <span class="etiqueta etiqueta--{{ tono(e) }}" data-acta-estado>{{ e.etiqueta }}</span>
+        @if ((e.versionActual ?? 0) > 1) { <span class="ver">versión {{ e.versionActual }}</span> }
+        <sipra-senal-estado data-acta-estado [tono]="tono(e)" [texto]="e.etiqueta" />
         @if (e.estado === 'sin_cargar' && puedeCargar()) { <button type="button" class="boton compacto" (click)="cargar.emit()">Cargar</button> }
       </div>
-      <div class="caja {{ tono(e) }}" role="status" data-acta-mensaje>
-        <div class="pq">
-          <p><span class="rotulo">¿Qué pasó?</span> {{ e.que }}</p>
-          <p><span class="rotulo">¿Qué debo hacer?</span> {{ e.hacer }}</p>
-        </div>
-        @if (e.puedeReenviar && e.estado !== 'sin_cargar' && puedeCargar()) {
-          <div class="accion"><button type="button" class="boton boton--primario" (click)="cargar.emit()">{{ e.estado === 'rechazada' ? 'Subir una nueva Acta' : 'Subir nueva versión' }}</button></div>
-        }
-      </div>
+      <sipra-explicacion-documento data-acta-mensaje [tono]="tono(e)" [que]="e.que" [hacer]="e.hacer">
+        @if (e.puedeReenviar && e.estado !== 'sin_cargar' && puedeCargar()) { <button type="button" class="boton boton--primario" (click)="cargar.emit()">{{ e.estado === 'rechazada' ? 'Subir una nueva Acta' : 'Subir nueva versión' }}</button> }
+      </sipra-explicacion-documento>
       @if (ultimo(); as u) { <p class="archivo">{{ u.nombreOriginal }} · {{ u.cargadoEn | date: 'd MMM y, HH:mm' }}</p> }
       @if (anteriores(e).length > 0) {
         <ul class="anteriores" aria-label="Versiones anteriores del Acta">
@@ -53,10 +46,10 @@ import { tonoEstudiante } from './actas.util';
       }
     } @else if (error()) {
       <div class="doc-cab"><span class="nombre">Acta de iniciación</span></div>
-      <p class="pista" role="status">No pudimos consultar el estado de tu Acta ahora. Inténtalo de nuevo en un momento.</p>
+      <p class="espera" role="status">No pudimos consultar el estado de tu Acta ahora. Inténtalo de nuevo en un momento.</p>
     } @else {
       <div class="doc-cab"><span class="nombre">Acta de iniciación</span></div>
-      <p class="pista" role="status">Consultando el estado de tu Acta…</p>
+      <p class="espera" role="status">Consultando el estado de tu Acta…</p>
     }
   `,
 })
@@ -98,5 +91,5 @@ export class ActaEstudianteComponent {
   anteriores(e: EstadoActaEstudiante) {
     return [...e.versiones].sort((a, b) => b.version - a.version).filter((v) => v.version !== e.versionActual);
   }
-  tono(e: EstadoActaEstudiante): string { return tonoEstudiante(e.estado); }
+  tono(e: EstadoActaEstudiante): TonoV3 { return tonoEstudiante(e.estado) as TonoV3; }
 }

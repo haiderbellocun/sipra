@@ -50,6 +50,8 @@ const ANCHO_NODO_MOVIL = 88;
     .nodos > li { flex:0 0 var(--w); width:var(--w); display:flex; }
     .nodo-btn { position:relative; display:grid; justify-items:center; align-content:start; gap:0; width:100%; padding:0 8px 8px; background:transparent; border:0; border-radius:8px; color:var(--text-primary);
       font:inherit; text-align:center; cursor:pointer; transition:transform 160ms var(--ease-out); }
+    /* Alto fijo del nodo (nombre en 2 líneas + estado + versión + reserva): tomar o cambiar de documento no mueve la mesa. */
+    .nodo-btn { min-height:calc(var(--nodo) + 112px); }
     .nodo-btn:hover { transform:translateY(-1px); }
     .nodo-btn:hover .nombre { color:var(--text-primary); }
     .nodo-btn:focus-visible { outline:3px solid var(--foco); outline-offset:-2px; }

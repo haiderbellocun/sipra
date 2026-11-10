@@ -163,7 +163,9 @@ export class EpsMesaEstado {
     if (!id) return false;
     return this.ejecutar(async () => {
       await firstValueFrom(this.api.tomarCasoEps(id));
-      await Promise.all([this.refrescarDetalle(), this.cargar()]);
+      await this.refrescarDetalle();
+      // La bandeja se actualiza aparte: con el detalle ya tomado, la decisión no debe esperar a la lista (cargar() maneja sus errores).
+      void this.cargar();
     }, 'Caso tomado. Tiene 15 minutos; se renueva mientras trabaja.');
   }
 

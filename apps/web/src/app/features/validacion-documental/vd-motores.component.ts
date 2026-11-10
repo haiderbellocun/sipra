@@ -194,15 +194,15 @@ export class VdPielBahiaComponent {}
   #vd-motor .barra-decision.barra-decision button:nth-of-type(3) { order:0; margin:0 auto 0 0; }
   #vd-motor .barra-decision.barra-decision button:nth-of-type(2) { order:2; margin:0; }
   #vd-motor .barra-decision.barra-decision button:nth-of-type(1) { order:3; }
-  #vd-motor .barra-decision.barra-decision button { min-height:42px; min-width:112px; padding:0 20px; border-radius:var(--radius-6); font-size:var(--fs-sm); font-weight:500;
+  #vd-motor .barra-decision.barra-decision button { flex:1 1 auto; min-height:42px; min-width:0; padding:0 16px; white-space:nowrap; border-radius:var(--radius-6); font-size:var(--fs-sm); font-weight:500;
     background:transparent; color:var(--text-primary); border:1px solid var(--vd-boton-sec-borde); clip-path:none; box-shadow:none; transform:none; transition:background-color 160ms var(--ease-out), box-shadow 220ms var(--ease-out); }
   #vd-motor .barra-decision.barra-decision button:hover:not(:disabled) { background:var(--vd-boton); }
-  #vd-motor .barra-decision.barra-decision button:nth-of-type(3) { min-width:0; padding:0 4px; border-color:transparent; color:var(--text-danger); }
+  #vd-motor .barra-decision.barra-decision button:nth-of-type(3) { flex:none; min-width:0; padding:0 4px; border-color:transparent; color:var(--text-danger); }
   #vd-motor .barra-decision.barra-decision button:nth-of-type(3):hover:not(:disabled) { background:transparent; text-decoration:underline; }
   #vd-motor .barra-decision.barra-decision button:disabled { opacity:.5; }
   #vd-motor[data-enfasis='aprobar'] .barra-decision.barra-decision button:nth-of-type(1):not(:disabled),
   #vd-motor[data-enfasis='devolver'] .barra-decision.barra-decision button:nth-of-type(2):not(:disabled) {
-    min-width:150px; background:var(--action-primary); color:var(--action-on-primary); border-color:transparent; font-weight:600; box-shadow:var(--vd-primario-glow);
+    background:var(--action-primary); color:var(--action-on-primary); border-color:transparent; font-weight:600; box-shadow:var(--vd-primario-glow);
     clip-path:polygon(0 0, calc(100% - var(--chaflan)) 0, 100% var(--chaflan), 100% 100%, var(--chaflan) 100%, 0 calc(100% - var(--chaflan))); }
   #vd-motor[data-enfasis='aprobar'] .barra-decision.barra-decision button:nth-of-type(1):not(:disabled):hover,
   #vd-motor[data-enfasis='devolver'] .barra-decision.barra-decision button:nth-of-type(2):not(:disabled):hover { background:var(--action-primary-hover); }
@@ -228,6 +228,54 @@ export class VdPielBahiaComponent {}
   template: '',
 })
 export class VdPielInspectorComponent {}
+
+/**
+ * Normalización entre motores (Mesa Única): la misma gramática del inspector para EPS, RUT, Cámara y Actas sin tocar su lógica.
+ * Criterios clave del Acta y datos/comparación de EPS como filas con hairline (no tarjetas), valores en mono, etiquetas de
+ * sección como señal (sin píldora) y numeración continua cuando EPS agrupa secciones. Todo anclado en #vd-motor.
+ */
+@Component({
+  selector: 'sipra-vd-piel-normal',
+  standalone: true,
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { hidden: '' },
+  styles: [`
+  #vd-motor .col-rev.col-rev > .par > .sec:has(> h3) { counter-increment:vdsec; }
+  #vd-motor .col-rev.col-rev > .par > .sec > h3 { margin:0 0 10px; font-size:var(--fs-meta); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-secondary); }
+  #vd-motor .col-rev.col-rev > .par > .sec > h3::before { content:counter(vdsec, decimal-leading-zero); display:inline-block; width:24px; font-family:var(--fuente-mono); font-weight:500; letter-spacing:0; color:var(--text-muted); }
+  #vd-motor .par.par { display:grid; gap:16px; border-left:0; border-right:0; border-bottom:0; border-radius:0; background:transparent; box-shadow:none; }
+  #vd-motor .par.par > .sec { padding:0; border:0; background:transparent; }
+  #vd-motor .vigencia.vigencia { margin:0 0 6px; font-size:var(--fs-xs); color:var(--text-primary); }
+  #vd-motor :is(dl.campos.campos, ul.claves.claves) { display:grid; grid-template-columns:minmax(0, 1fr); gap:0; margin:6px 0 0; padding:0; }
+  #vd-motor dl.campos.campos > div { display:grid; grid-template-columns:9.5rem minmax(0, 1fr); column-gap:12px; padding:6px 0; border-bottom:1px solid var(--vd-regla); }
+  #vd-motor dl.campos.campos dt { font-size:var(--fs-meta); font-weight:500; color:var(--text-secondary); }
+  #vd-motor dl.campos.campos dd { margin:0; font-family:var(--fuente-mono); font-size:var(--fs-meta); font-weight:500; color:var(--text-primary); overflow-wrap:anywhere; }
+  #vd-motor ul.claves.claves > li.clave { display:grid; grid-template-columns:8.5rem minmax(0, 1fr) auto; column-gap:12px; row-gap:2px; align-items:baseline; margin:0; padding:8px 0;
+    border:0; border-bottom:1px solid var(--vd-regla); border-radius:0; background:transparent; box-shadow:none; }
+  #vd-motor li.clave.clave > .k { grid-column:1; grid-row:1 / span 2; font-size:var(--fs-meta); font-weight:600; color:var(--text-secondary); }
+  #vd-motor li.clave.clave > .v { grid-column:2; display:flex; gap:8px; align-items:baseline; min-width:0; }
+  #vd-motor li.clave.clave > .v .r { min-width:3.4rem; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted); }
+  #vd-motor li.clave.clave > .v strong { font-family:var(--fuente-mono); font-size:var(--fs-meta); font-weight:500; color:var(--text-primary); overflow-wrap:anywhere; }
+  #vd-motor li.clave.clave > :is(.est-campo, .grande) { grid-column:3; grid-row:1 / span 2; align-self:center; font-size:var(--fs-meta); font-weight:600; }
+  #vd-motor li.clave.clave > .grande { grid-column:2 / -1; justify-self:start; }
+  #vd-motor .dos.dos { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:0 16px; }
+  #vd-motor .dos.dos > div + div { padding-left:16px; border-left:1px solid var(--vd-regla); }
+  #vd-motor .dos.dos :is(p, dl) { font-size:var(--fs-meta); color:var(--text-secondary); }
+  #vd-motor .col-rev .sec span.etiqueta:not(.cmp *) { display:inline-flex; align-items:center; gap:6px; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none;
+    font-size:var(--fs-meta); font-weight:600; letter-spacing:.02em; text-transform:none; }
+  #vd-motor sipra-eps-comparacion ul { display:grid; gap:0; margin:8px 0 0; padding:0; }
+  #vd-motor sipra-eps-comparacion li { display:grid; gap:4px; margin:0; padding:8px 0; border:0; border-bottom:1px solid var(--vd-regla); border-radius:0; background:transparent; box-shadow:none; }
+  #vd-motor sipra-eps-comparacion li .cab { display:flex; justify-content:space-between; gap:8px; align-items:baseline; margin:0; }
+  #vd-motor sipra-eps-comparacion li h4 { margin:0; font-size:var(--fs-xs); font-weight:500; color:var(--text-primary); }
+  #vd-motor sipra-eps-comparacion li dl { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin:0; }
+  #vd-motor sipra-eps-comparacion li dt { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted); }
+  #vd-motor sipra-eps-comparacion li dd { margin:0; font-family:var(--fuente-mono); font-size:var(--fs-meta); font-weight:500; color:var(--text-primary); overflow-wrap:anywhere; }
+  #vd-motor sipra-eps-comparacion .etiqueta { padding:0; border:0; background:transparent; font-size:11px; font-weight:600; }
+`],
+  template: '',
+})
+export class VdPielNormalComponent {}
 
 @Component({
   selector: 'sipra-vd-eps',
@@ -355,39 +403,81 @@ export class VdCamaraComponent {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    :host { display:block; }
-    .fila { display:flex; flex-wrap:wrap; gap:var(--sp-2); align-items:center; }
-    dl.datos { display:grid; grid-template-columns:max-content 1fr; gap:var(--sp-1) var(--sp-3); margin:var(--sp-2) 0; }
-    dl.datos dt { color:var(--texto-tenue); } dl.datos dd { margin:0; }
+    :host { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
+    .gen { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
+    .cab { display:flex; align-items:center; gap:10px; min-height:32px; margin:0 0 8px; font-size:var(--fs-xs); color:var(--text-secondary); }
+    .cab .k { font-size:var(--fs-meta); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-secondary); }
+    .mesa { display:grid; grid-template-columns:minmax(0, 1fr); gap:16px; flex:1 1 auto; min-height:0; }
+    @media (width >= 1024px) { .mesa { grid-template-columns:minmax(0, 1fr) var(--c-inspector-ancho); } }
+    .bahia { display:grid; justify-items:center; align-content:start; gap:12px; min-height:320px; padding:14px 24px 24px; border-radius:var(--radius-6);
+      background:var(--vd-bahia); border:1px solid var(--vd-bahia-borde); }
+    .pildora { display:inline-flex; align-items:center; gap:8px; max-width:100%; min-height:32px; padding:0 6px 0 14px; border-radius:999px; font-size:var(--fs-xs);
+      background:var(--vd-pildora); border:1px solid var(--vd-pildora-borde, var(--border-default)); color:var(--text-primary); }
+    .pildora .n { font-family:var(--fuente-mono); font-size:var(--fs-meta); color:var(--text-secondary); white-space:nowrap; }
+    .pildora .nombre { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .lnk { min-height:26px; padding:0 10px; border:0; border-radius:999px; background:transparent; color:var(--signal-default); font:inherit; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
+    .lnk:hover:not(:disabled) { text-decoration:underline; } .lnk:disabled { opacity:.55; cursor:default; }
+    :host-context([data-theme='light']) .lnk { color:#03587a; }
+    .insp { display:flex; flex-direction:column; min-height:0; overflow-y:auto; padding:18px 20px 0; border-radius:var(--radius-6);
+      background:var(--vd-inspector); border:1px solid var(--vd-inspector-borde); box-shadow:var(--vd-inspector-sombra); scrollbar-width:thin; }
+    .insp::before { content:"Inspector"; display:block; margin-bottom:20px; font-size:var(--fs-meta); font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--text-secondary); }
+    .rotulo { margin:0 0 6px; font-size:var(--fs-meta); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-secondary); }
+    .rotulo .num { display:inline-block; width:24px; font-family:var(--fuente-mono); font-weight:500; letter-spacing:0; color:var(--text-muted); }
+    h3 { margin:0 0 10px; font-size:1.25rem; font-weight:600; line-height:25px; letter-spacing:-.015em; color:var(--text-primary); }
+    dl.datos { display:grid; grid-template-columns:minmax(0, 1fr); margin:0; }
+    dl.datos > div { display:grid; grid-template-columns:6.5rem minmax(0, 1fr); column-gap:12px; padding:7px 0; border-bottom:1px solid var(--vd-regla); }
+    dl.datos dt { font-size:var(--fs-meta); font-weight:500; color:var(--text-secondary); } dl.datos dd { margin:0; font-size:var(--fs-xs); color:var(--text-primary); }
+    .pista { margin:12px 0 0; font-size:var(--fs-meta); color:var(--text-secondary); }
+    .decision { display:grid; gap:10px; margin-top:auto; padding:14px 0 18px; position:sticky; bottom:0; background:var(--vd-inspector); border-top:1px solid var(--vd-regla); }
+    .decision label { font-size:var(--fs-meta); font-weight:600; color:var(--text-secondary); }
+    .decision input { min-height:38px; padding:0 10px; font:inherit; font-size:var(--fs-xs); color:var(--text-primary); background:var(--vd-campo); border:1px solid var(--vd-campo-borde); border-radius:var(--radius-6); }
+    .decision input:focus-visible, .bt:focus-visible { outline:2px solid var(--foco); outline-offset:2px; }
+    .botones { display:flex; gap:10px; align-items:center; }
+    .bt { flex:1 1 auto; min-height:42px; padding:0 16px; white-space:nowrap; font:inherit; font-size:var(--fs-sm); font-weight:500; cursor:pointer; border-radius:var(--radius-6);
+      background:transparent; color:var(--text-primary); border:1px solid var(--vd-boton-sec-borde); }
+    .bt:disabled { opacity:.5; cursor:default; }
+    .bt.rechazar { order:0; flex:none; margin-right:auto; padding:0 4px; border-color:transparent; color:var(--text-danger); }
+    .bt.devolver { order:2; } .bt.aprobar { order:3; }
+    .bt.aprobar:not(:disabled) { background:var(--action-primary); color:var(--action-on-primary); border-color:transparent; font-weight:600; box-shadow:var(--vd-primario-glow);
+      clip-path:polygon(0 0, calc(100% - var(--chaflan)) 0, 100% var(--chaflan), 100% 100%, var(--chaflan) 100%, 0 calc(100% - var(--chaflan))); }
   `],
   template: `
     @let d = documento();
-    <section aria-labelledby="vd-gen-titulo" data-vd-general>
-      <h3 id="vd-gen-titulo" style="margin:0">{{ d.nombreHumano }}</h3>
-      <dl class="datos">
-        <dt>Estado</dt><dd>{{ d.estadoHumanoEtiqueta }}</dd>
-        <dt>Versión</dt><dd>{{ d.version ?? '—' }}@if (d.versionesAnteriores > 0) { <span class="pista"> · {{ d.versionesAnteriores }} anterior(es)</span> }</dd>
-        <dt>Revisión</dt><dd>Flujo general (este documento no tiene un motor de validación especializado).</dd>
-      </dl>
-      @if (d.documentoId) {
-        <div class="fila">
-          <button type="button" class="boton compacto" [disabled]="abriendo()" (click)="abrir(d.documentoId)">Abrir el documento</button>
-          @if (enlace(); as url) { <a [href]="url" target="_blank" rel="noopener noreferrer" data-vd-enlace>Abrir en una pestaña nueva</a> }
+    <section class="gen" aria-labelledby="vd-gen-titulo" data-vd-general>
+      <div class="cab"><span class="k">Flujo general</span><span>{{ d.estadoHumanoEtiqueta }}</span></div>
+      <div class="mesa">
+        <div class="bahia">
+          <div class="pildora">
+            <span class="nombre">{{ d.nombreHumano }}</span>@if (d.version) { <span class="n">· v{{ d.version }}</span> }
+            @if (d.documentoId) {
+              <button type="button" class="lnk" [disabled]="abriendo()" (click)="abrir(d.documentoId)">Abrir el documento</button>
+              @if (enlace(); as url) { <a class="lnk" [href]="url" target="_blank" rel="noopener noreferrer" data-vd-enlace>Abrir en una pestaña nueva</a> }
+            }
+          </div>
         </div>
-      }
-      @if (!d.operable) {
-        <p class="pista" role="note">Su perfil puede ver este documento, pero no decidirlo.</p>
-      } @else if (d.puedeDecidir && d.documentoId) {
-        <div class="campo" style="margin-top:var(--sp-3)">
-          <label for="vd-gen-just">Justificación de la decisión (mínimo 10 caracteres)</label>
-          <input id="vd-gen-just" type="text" [ngModel]="justificacion()" (ngModelChange)="justificacion.set($event)" />
+        <div class="insp">
+          <p class="rotulo"><span class="num">01</span>Documento</p>
+          <h3 id="vd-gen-titulo">{{ d.nombreHumano }}</h3>
+          <dl class="datos">
+            <div><dt>Estado</dt><dd>{{ d.estadoHumanoEtiqueta }}</dd></div>
+            <div><dt>Versión</dt><dd>{{ d.version ?? '—' }}@if (d.versionesAnteriores > 0) { <span class="pista"> · {{ d.versionesAnteriores }} anterior(es)</span> }</dd></div>
+            <div><dt>Revisión</dt><dd>Flujo general (este documento no tiene un motor de validación especializado).</dd></div>
+          </dl>
+          @if (!d.operable) {
+            <p class="pista" role="note">Su perfil puede ver este documento, pero no decidirlo.</p>
+          } @else if (d.puedeDecidir && d.documentoId) {
+            <div class="decision">
+              <label for="vd-gen-just">Justificación de la decisión (mínimo 10 caracteres)</label>
+              <input id="vd-gen-just" type="text" [ngModel]="justificacion()" (ngModelChange)="justificacion.set($event)" />
+              <div class="botones">
+                <button type="button" class="bt aprobar" [disabled]="!valida() || guardando()" (click)="decidir(d.documentoId, 'aprobar')">Aprobar</button>
+                <button type="button" class="bt devolver" [disabled]="!valida() || guardando()" (click)="decidir(d.documentoId, 'devolver')">Devolver al estudiante</button>
+                <button type="button" class="bt rechazar" [disabled]="!valida() || guardando()" (click)="decidir(d.documentoId, 'rechazar')">Rechazar</button>
+              </div>
+            </div>
+          }
         </div>
-        <div class="acciones">
-          <button type="button" class="boton compacto" [disabled]="!valida() || guardando()" (click)="decidir(d.documentoId, 'aprobar')">Aprobar</button>
-          <button type="button" class="boton compacto" [disabled]="!valida() || guardando()" (click)="decidir(d.documentoId, 'devolver')">Devolver al estudiante</button>
-          <button type="button" class="boton compacto boton--peligro" [disabled]="!valida() || guardando()" (click)="decidir(d.documentoId, 'rechazar')">Rechazar</button>
-        </div>
-      }
+      </div>
     </section>
   `,
 })

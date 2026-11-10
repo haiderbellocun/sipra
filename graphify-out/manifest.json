@@ -2826,10 +2826,10 @@
     "semantic_hash": "8b9e5382c4e79821ee3d2a16d9e0bd54"
   },
   "apps/web/pruebas/tema.spec.ts": {
-    "mtime": 1794256412.1719797,
-    "seen": 1794319155.1085548,
-    "ast_hash": "c179375df965afec5a662b0ac4b2ca2d",
-    "semantic_hash": "c179375df965afec5a662b0ac4b2ca2d"
+    "mtime": 1794320842.4676437,
+    "seen": 1794343118.421047,
+    "ast_hash": "2d14d29d81cfd3eaccd6479ae588bd8b",
+    "semantic_hash": ""
   },
   "apps/web/pruebas/usuarios-prueba.spec.ts": {
     "mtime": 1794256462.9046025,
@@ -2922,16 +2922,16 @@
     "semantic_hash": "81713ae8903e178c77c18058c7ab9959"
   },
   "apps/web/src/app/core/ui/tema.service.ts": {
-    "mtime": 1794256412.17098,
-    "seen": 1794319155.1085687,
-    "ast_hash": "d8a66b153dc7b46fcaa4640c5cbf950f",
-    "semantic_hash": "d8a66b153dc7b46fcaa4640c5cbf950f"
+    "mtime": 1794320840.103056,
+    "seen": 1794343118.4210923,
+    "ast_hash": "20c481081d1289ae8d83bfc71f1f4b08",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/actas/acta-estudiante.component.ts": {
-    "mtime": 1793379199.2888408,
-    "seen": 1794319155.1085696,
-    "ast_hash": "c8c2a32ec5d47bb5693199978c9c7e45",
-    "semantic_hash": "c8c2a32ec5d47bb5693199978c9c7e45"
+    "mtime": 1794329338.6600134,
+    "seen": 1794343118.4210947,
+    "ast_hash": "eeb9ced8a986bf0483873c55c26dafcd",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/actas/actas-correccion.component.ts": {
     "mtime": 1793378962.738975,
@@ -2952,10 +2952,10 @@
     "semantic_hash": "c695354fc91a62d96934071104431194"
   },
   "apps/web/src/app/features/actas/actas-mesa.estado.ts": {
-    "mtime": 1793381519.4043734,
-    "seen": 1794319155.1085732,
-    "ast_hash": "4ead861a0d5e7d2837177a8241da15e7",
-    "semantic_hash": "4ead861a0d5e7d2837177a8241da15e7"
+    "mtime": 1794331756.982229,
+    "seen": 1794343118.4211047,
+    "ast_hash": "3a28c5929f714813fc977e493754417f",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/actas/actas-supervision.component.ts": {
     "mtime": 1793380207.8125646,
@@ -3018,16 +3018,16 @@
     "semantic_hash": "bc75c7b08e11af4f92bdfc17a6223ebf"
   },
   "apps/web/src/app/features/camara/camara-estudiante.component.ts": {
-    "mtime": 1793979742.1651847,
-    "seen": 1794319155.1085832,
-    "ast_hash": "100448446baea6ca1138386b6b128749",
-    "semantic_hash": "100448446baea6ca1138386b6b128749"
+    "mtime": 1794329338.658104,
+    "seen": 1794343118.4211316,
+    "ast_hash": "12f7b655b7f4cd3ed93fb26b5ed60976",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/camara/camara-mesa.estado.ts": {
-    "mtime": 1793979854.3392406,
-    "seen": 1794319155.108584,
-    "ast_hash": "48a7801b68157831228acf6a07253e3f",
-    "semantic_hash": "48a7801b68157831228acf6a07253e3f"
+    "mtime": 1794331756.9802222,
+    "seen": 1794343118.4211338,
+    "ast_hash": "d3bd445fba4868960470e2f7868c997b",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/camara/camara-supervision.component.ts": {
     "mtime": 1793979854.2287948,
@@ -3102,10 +3102,10 @@
     "semantic_hash": "9723f93a839f7e2c640dc15d4a2fa047"
   },
   "apps/web/src/app/features/eps/eps-mesa.estado.ts": {
-    "mtime": 1793050577.2137103,
-    "seen": 1794319155.1085951,
-    "ast_hash": "f0dacbe4d392d3f0c2c07a854880f3c3",
-    "semantic_hash": "f0dacbe4d392d3f0c2c07a854880f3c3"
+    "mtime": 1794331756.9832199,
+    "seen": 1794343118.4211664,
+    "ast_hash": "d65ae5f438e938756f67d5a5c85a49d3",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/eps/eps-visor.component.ts": {
     "mtime": 1793194401.6599536,
@@ -3150,10 +3150,10 @@
     "semantic_hash": "8053a7e9cba8c3753e0affaa62fbaf2e"
   },
   "apps/web/src/app/features/ingreso/ingreso.component.ts": {
-    "mtime": 1794261729.5238538,
-    "seen": 1794319155.108602,
-    "ast_hash": "9288fa75ce67fa60d28a5e675c1907e8",
-    "semantic_hash": "9288fa75ce67fa60d28a5e675c1907e8"
+    "mtime": 1794320852.0601995,
+    "seen": 1794343118.4211853,
+    "ast_hash": "b21b8e1781b76846f15663bfba0c9897",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/ingreso/signal-field.component.ts": {
     "mtime": 1794262151.4891098,
@@ -3174,10 +3174,10 @@
     "semantic_hash": "a5d23230abeb3f25b47e3a41cbcbabb4"
   },
   "apps/web/src/app/features/inicio/inicio.component.ts": {
-    "mtime": 1793221092.6677952,
-    "seen": 1794319155.1086056,
-    "ast_hash": "6650749cb3070bc8bb0bc65ebd45dc32",
-    "semantic_hash": "6650749cb3070bc8bb0bc65ebd45dc32"
+    "mtime": 1794325911.3024104,
+    "seen": 1794343118.421195,
+    "ast_hash": "bb17b46993b567ae4862b1d170ea0f70",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/pqrs/pqrs.component.ts": {
     "mtime": 1792078635.9790986,
@@ -3192,10 +3192,10 @@
     "semantic_hash": "c4bdb131f69fd51ff9117613982e7c84"
   },
   "apps/web/src/app/features/practicas/expediente.component.ts": {
-    "mtime": 1794236146.1785743,
-    "seen": 1794319155.1086082,
-    "ast_hash": "1d0a75565a91f6b6000251e5a040bf4a",
-    "semantic_hash": "1d0a75565a91f6b6000251e5a040bf4a"
+    "mtime": 1794327831.9000125,
+    "seen": 1794343118.4212046,
+    "ast_hash": "ce5befba3ee7472b8ec2bd3e8355f290",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/practicas/guia-documento.ts": {
     "mtime": 1793218225.7864525,
@@ -3204,10 +3204,10 @@
     "semantic_hash": "da6c2c1cf58ed95b9725622cda87b998"
   },
   "apps/web/src/app/features/practicas/practicas.component.ts": {
-    "mtime": 1793217216.5871248,
-    "seen": 1794319155.1086097,
-    "ast_hash": "5742b56fe9273a99038baccbada20035",
-    "semantic_hash": "5742b56fe9273a99038baccbada20035"
+    "mtime": 1794326485.9360814,
+    "seen": 1794343118.4212096,
+    "ast_hash": "e66e59124b01b0c3af592c0c7ca8353e",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/registro/arl-registro.ts": {
     "mtime": 1793381434.9613106,
@@ -3240,16 +3240,16 @@
     "semantic_hash": "721496311f9c0f3d3c32c2a86fa7e237"
   },
   "apps/web/src/app/features/rut/rut-estudiante.component.ts": {
-    "mtime": 1793809085.4999664,
-    "seen": 1794319155.1086152,
-    "ast_hash": "fe1016d80a6b5ee5322150663a8be16f",
-    "semantic_hash": "fe1016d80a6b5ee5322150663a8be16f"
+    "mtime": 1794329338.6550179,
+    "seen": 1794343118.4212239,
+    "ast_hash": "895dd727e6e5379e64c89d14b01f1281",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/rut/rut-mesa.estado.ts": {
-    "mtime": 1793808878.5204873,
-    "seen": 1794319155.108616,
-    "ast_hash": "cea7f494e0b9775f3d7b8649e280290c",
-    "semantic_hash": "cea7f494e0b9775f3d7b8649e280290c"
+    "mtime": 1794331756.9703677,
+    "seen": 1794343118.421226,
+    "ast_hash": "8f970156af0eff8f12fc8ddbb0b1bad5",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/rut/rut-supervision.component.ts": {
     "mtime": 1793808949.580161,
@@ -3276,10 +3276,10 @@
     "semantic_hash": "3eb41708a65c74893ec727fa6e1c90ab"
   },
   "apps/web/src/app/features/validacion-documental/validacion-documental.component.ts": {
-    "mtime": 1794268202.7940776,
-    "seen": 1794319155.1086204,
-    "ast_hash": "5900730851cea5ddf7c680f2f91cf13a",
-    "semantic_hash": "5900730851cea5ddf7c680f2f91cf13a"
+    "mtime": 1794341571.328788,
+    "seen": 1794343118.421238,
+    "ast_hash": "735d74fa68ae95c5443e85cc22512508",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/validacion-documental/vd-cola.component.ts": {
     "mtime": 1794268144.6535373,
@@ -3294,10 +3294,10 @@
     "semantic_hash": "9bda6bb30f7688a10f41069928ade88c"
   },
   "apps/web/src/app/features/validacion-documental/vd-motores.component.ts": {
-    "mtime": 1794267809.6949072,
-    "seen": 1794319155.108623,
-    "ast_hash": "39be643c18691225172a6c8889c54a57",
-    "semantic_hash": "39be643c18691225172a6c8889c54a57"
+    "mtime": 1794341571.333373,
+    "seen": 1794343118.421245,
+    "ast_hash": "b77b3aa50ca19c50cbe5b7fb263cc789",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/validacion-documental/vd-progreso.component.ts": {
     "mtime": 1794268408.786354,
@@ -3306,10 +3306,10 @@
     "semantic_hash": "3404826da99ff3f99b1211178cefc99d"
   },
   "apps/web/src/app/features/validacion-documental/vd-signal-rail.component.ts": {
-    "mtime": 1794268296.7696154,
-    "seen": 1794319155.108625,
-    "ast_hash": "fc0d9ee10790b8fc02c09164c2cea405",
-    "semantic_hash": "fc0d9ee10790b8fc02c09164c2cea405"
+    "mtime": 1794341339.514828,
+    "seen": 1794343118.4212499,
+    "ast_hash": "855703dd679b1816e4e0c192d0709b75",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/validacion-documental/vd-supervision.component.ts": {
     "mtime": 1794236119.07453,
@@ -3342,10 +3342,10 @@
     "semantic_hash": "e7dea4a675e9b4db304bc0d428ac8918"
   },
   "apps/web/src/app/layout/shell.component.ts": {
-    "mtime": 1794267737.7998219,
-    "seen": 1794319155.10863,
-    "ast_hash": "ef89487c36ec705bb1d2511b84498c01",
-    "semantic_hash": "ef89487c36ec705bb1d2511b84498c01"
+    "mtime": 1794320817.199637,
+    "seen": 1794343118.4212642,
+    "ast_hash": "4d715752f92334b00d593c210915e1a6",
+    "semantic_hash": ""
   },
   "apps/web/src/app/shared/components/avisos.component.ts": {
     "mtime": 1792078636.0670593,
@@ -3540,10 +3540,10 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1794272797.3720326,
-    "seen": 1794319155.10866,
-    "ast_hash": "3a623069eda7193d5f060bf25df6c067",
-    "semantic_hash": "3a623069eda7193d5f060bf25df6c067"
+    "mtime": 1794332515.8687866,
+    "seen": 1794343118.421363,
+    "ast_hash": "42dc8f378c0e79a8320050ba6f02873d",
+    "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
     "mtime": 1792078636.283844,
@@ -3676,5 +3676,95 @@
     "seen": 1794319155.1086798,
     "ast_hash": "346c3d6ea61d2ddae0cece6175ce1c76",
     "semantic_hash": "346c3d6ea61d2ddae0cece6175ce1c76"
+  },
+  "apps/web/pruebas/expediente-v3.spec.ts": {
+    "mtime": 1794327896.9846964,
+    "seen": 1794343118.4210176,
+    "ast_hash": "5c481dc985cd3046e6f51a1a0611e6f9",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/inicio-v3.spec.ts": {
+    "mtime": 1794326536.020277,
+    "seen": 1794343118.4210255,
+    "ast_hash": "c93e74ee89a332f119305fa5c695de94",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/kit-v3-controles.spec.ts": {
+    "mtime": 1794321365.7732685,
+    "seen": 1794343118.4210286,
+    "ast_hash": "784507db305d399397d1e092d20d2a64",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/practicas-v3.spec.ts": {
+    "mtime": 1794326537.2003727,
+    "seen": 1794343118.4210343,
+    "ast_hash": "64ac715a94946878cc5f65d1e0816d1f",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/vd-scroll.spec.ts": {
+    "mtime": 1794328965.229174,
+    "seen": 1794343118.4210572,
+    "ast_hash": "fc5880108ed19c520dceb63cc797e697",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/vistas-estudiante-v3.spec.ts": {
+    "mtime": 1794330164.318972,
+    "seen": 1794343118.4210627,
+    "ast_hash": "74344f05a3d890504755fac2efc79b5f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/practicas/expediente-senal.component.ts": {
+    "mtime": 1794327846.6361175,
+    "seen": 1794343118.4212022,
+    "ast_hash": "6969287fdc17152c946bf4b382df45e4",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/carga-senal.component.ts": {
+    "mtime": 1794325895.676103,
+    "seen": 1794343118.421269,
+    "ast_hash": "6e48ff8da5308c9d034714f25a225622",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/control-cuenta.component.ts": {
+    "mtime": 1794322324.7501335,
+    "seen": 1794343118.4212713,
+    "ast_hash": "8e33acea2f2585901dd94be708b19adf",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/control-tema.component.ts": {
+    "mtime": 1794322324.7521253,
+    "seen": 1794343118.4212732,
+    "ast_hash": "f713b180e1545b6c03f87558d0bcdc1e",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/estado-vacio.component.ts": {
+    "mtime": 1794325896.9384859,
+    "seen": 1794343118.4212825,
+    "ast_hash": "0e3d75b4a47fe2c43941b8be8668c093",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/explicacion-documento.component.ts": {
+    "mtime": 1794329405.1515448,
+    "seen": 1794343118.421287,
+    "ast_hash": "610e0f2d14fb2888828c4b2088a93570",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/senal-estado.component.ts": {
+    "mtime": 1794327085.6054282,
+    "seen": 1794343118.4212892,
+    "ast_hash": "89ffe35135091c532c873b18d0ed935a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/tira-metricas.component.ts": {
+    "mtime": 1794327509.5992908,
+    "seen": 1794343118.4212914,
+    "ast_hash": "2ecc2f5fb23582611d27b05088bcb151",
+    "semantic_hash": ""
+  },
+  "package-lock.json": {
+    "mtime": 1794255891.5036156,
+    "seen": 1794343118.4214206,
+    "ast_hash": "8cff15da586260c8fa0ae049688bef0a",
+    "semantic_hash": ""
   }
 }

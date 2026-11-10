@@ -3313,6 +3313,81 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.34.0 — 10 de noviembre de 2026
+
+**Validación documental V3: consolidación de motores.**
+
+- **Validación documental es la Mesa Única.** El funcionario revisa ahí todo el expediente.
+- **Los motores son adaptadores.** EPS, RUT, Cámara y Actas son adaptadores especializados que conservan su lógica, sus estados (`*MesaEstado`) y sus reglas de decisión, sin megacomponente.
+- **Las rutas históricas no son la experiencia operativa principal.** `/eps`, `/mesa-rut`, `/mesa-camara` y `/actas` se mantienen por compatibilidad, E2E, soporte y supervisión.
+
+Auditoría medida en la Mesa Única (base sintética recién sembrada, coordinación, ambos temas, caso libre y tomado). Antes, al cambiar de motor:
+
+- la barra de decisión de EPS medía 125 px frente a 74, porque «Devolver al estudiante» no cabía en una fila;
+- la bahía se desplazaba 18 px al tomar el caso (el nodo activo del Document Signal sumaba una línea);
+- EPS mostraba sus datos y su comparación como tarjetas con valores de 16/600, y el Acta sus criterios como tarjetas con «Detectada» a 18/700;
+- había píldoras de estado en EPS y Cámara;
+- el documento general era un bloque aparte;
+- la línea de metadatos del encabezado se solapaba cuando el chip de reserva estrechaba la columna.
+
+Cambios, solo de presentación:
+
+- **Barra de decisión:** una fila en todos los motores (los botones se reparten el ancho; Rechazar discreto); sin cambios en condiciones, motivos ni justificaciones.
+- **Document Signal:** alto fijo por nodo (`vd-signal-rail`).
+- **Nueva piel `sipra-vd-piel-normal`** (`ViewEncapsulation.None`, anclada en `#vd-motor`, separada para respetar el presupuesto de 12 kB):
+  - criterios clave del Acta, datos extraídos y comparación de EPS como filas con hairline y valores en mono;
+  - etiquetas de sección como señal sin píldora;
+  - numeración continua 01–0N también cuando EPS agrupa secciones.
+- **Documento general:** la misma estructura de franja, bahía (con la píldora del documento) e inspector numerado, con la decisión al pie en el mismo orden Rechazar · Devolver · Aprobar. Lógica y ganchos de E2E intactos.
+- **Encabezado:** pares de la línea de metadatos sin encogerse, con separador y desvanecido.
+
+Resultado medido: bahía `[440, 401, 534 × 928]`, inspector `[990, 401, 434 × 854]` y barra `[990, 950, 434 × 74]` idénticos en los cuatro motores, en ambos temas, libre o tomado. Tomar habilita las decisiones de inmediato en los cuatro.
+
+Verificación:
+
+- contraste 17–18/18 por motor en cada tema;
+- E2E: Validación documental 35/35, RUT 54/54, Actas 51/51, Cámara 47/47, EPS 26/26;
+- web 355/355;
+- el grafo se actualizó con `graphify update` (sin LLM).
+
+### 0.33.1 — 10 de noviembre de 2026
+
+**Arquitectura de revisión: Mesa Única.** La experiencia operativa del funcionario es `/validacion-documental`: revisa ahí todos los documentos del expediente. EPS, RUT, Cámara y Actas son motores especializados dentro de esa mesa. Las rutas históricas (`/eps`, `/mesa-rut`, `/mesa-camara`, `/actas`) se mantienen por compatibilidad, E2E, soporte y supervisión, pero no son la experiencia que se sigue diseñando. Ambos caminos usan la misma clase de estado de cada motor (p. ej. `RutMesaEstado`, provista también por `sipra-vd-rut`), así que la regla de decisión es una sola.
+
+**Corrección: decisiones bloqueadas justo después de «Tomar el caso».** El E2E de la Mesa de RUT quedaba en 53/54 de forma reproducible (3 de 3 corridas sobre base limpia).
+
+- **Qué pasaba:** tras tomar, el servidor ya respondía `puedeDecidir: true` con la reserva propia y vigente, pero la pantalla mostraba «Tomado por usted» y el visor con Aprobar, Devolver y Rechazar deshabilitados («En este momento no se puede decidir»).
+- **Causa:** `tomar()` mantenía `ocupado = true` hasta terminar `Promise.all([refrescarDetalle(), cargar()])`. La recarga de la bandeja, que no influye en el caso, terminaba después del detalle y del archivo y retenía la decisión.
+- **Corrección:** en `tomar()` de los cuatro motores (`eps-`, `rut-`, `camara-`, `actas-mesa.estado.ts`) se espera solo el detalle y la bandeja se recarga aparte (`void this.cargar()`, que maneja sus errores). `puedeDecidir` sigue igual: servidor + reserva vigente + no ocupado. No se añadió ninguna condición y el test no se modificó.
+- **Verificación:** RUT 54/54 en 3 corridas; Actas 51/51; Cámara 47/47; EPS 26/26; Validación documental 35/35; web 355/355.
+
+### 0.33.0 — 10 de noviembre de 2026
+
+**Vistas estudiante V3 (RUT, Cámara, Acta), embebidas en el Expediente.** Solo presentación en `rut/rut-estudiante`, `camara/camara-estudiante` y `actas/acta-estudiante`, cuyo único consumidor según el grafo es el expediente.
+
+Se conservan:
+
+- entradas, salida `cargar`, consultas (`estadoDeMiRut/Camara/Acta`) y textos del servidor;
+- botones («Cargar», «Subir nueva versión», «Subir un nuevo …»), versiones y ganchos de E2E (`data-*-estado`, `data-*-mensaje`).
+
+Cambios:
+
+- **Estado:** `sipra-senal-estado`, con la etiqueta exacta.
+- **Explicación:** nuevo componente del Kit V3 `shared/components/explicacion-documento.component.ts` (`sipra-explicacion-documento`).
+  - Muestra «¿Qué pasó?» y «¿Qué debo hacer?» con una línea de señal del tono, sin caja; en revisión y corrección el rótulo de la acción va en ámbar.
+  - Aprobado: silenciosa, sin línea ni fondo.
+  - La acción existente se proyecta; `role="status"`.
+- **Archivo y versiones:** en mono, en segundo plano.
+
+No se agregaron campos: las vistas no exponen lo leído del documento, por diseño.
+
+Verificación:
+
+- contraste medido 12/12 (RUT y Cámara) y 4/4 (Acta) en cada tema;
+- E2E de la Mesa de Actas 51/51 y de la Mesa de Cámara 47/47, que recorren pendiente, revisión, devolución, nueva versión y aprobado en la vista del estudiante;
+- E2E de la Mesa de RUT 53/54. Todos sus pasos del estudiante pasan; falla, en dos corridas sobre base limpia, el paso del funcionario «al tomar el caso… las decisiones deben habilitarse», cuyo código no se tocó (queda para la fase de Mesas);
+- web 355/355 (`vistas-estudiante-v3.spec.ts`).
+
 ### 0.32.1 — 10 de noviembre de 2026
 
 **Validación documental: ergonomía de scroll (≥ 1024).** La mesa estaba fijada al viewport: `.cuerpo` tenía `height: calc(100dvh − cinta)` con `overflow: hidden`. Con encabezado y Document Signal (~355 px), la bahía y el inspector quedaban en ~615 px a 1024 de alto y en ~360 a 768, sin forma de desplazar la página.
