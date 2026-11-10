@@ -1,268 +1,199 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { EsqueletoComponent } from '@shared/components/esqueleto.component';
-import { firstValueFrom } from 'rxjs';
-import { entorno } from '../../../environments/environment';
-import { FormsModule } from '@angular/forms';
 import { SesionService } from '@core/auth/sesion.service';
-import { ApiService } from '@core/services/api.service';
-import { AvisosService } from '@core/ui/avisos.service';
-import { EstadoCatalogo, Periodo, ReporteTabla } from '@core/models/modelos';
+import { CargaSenalComponent } from '@shared/components/carga-senal.component';
+import { EstadoVacioComponent } from '@shared/components/estado-vacio.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
-import { descargarBlob, leerError, nombreDeCabecera } from '@shared/utils/errores';
+import { ReportesDetalleComponent } from './reportes-detalle.component';
+import { ReportesDocumentosComponent } from './reportes-documentos.component';
+import { ReportesEstudiantesComponent } from './reportes-estudiantes.component';
+import { ReportesExportacionesComponent } from './reportes-exportaciones.component';
+import { ReportesGeneralComponent } from './reportes-general.component';
+import { ReportesPeriodosComponent } from './reportes-periodos.component';
+import { hayDatos } from './reportes-analitica.util';
+import { PestanaReportes, ReportesEstado } from './reportes.estado';
 
-type ReporteSgp = 'practicas' | 'bitacoras' | 'cartas';
+/** Perfiles que consultan la analítica (los mismos del servidor). Extensión solo ve las exportaciones regulatorias. */
+export const ROLES_ANALITICA = ['administrador', 'coordinador', 'auxiliar', 'tutor'];
 
+export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
+  { id: 'general', texto: 'General' },
+  { id: 'estudiantes', texto: 'Estudiantes' },
+  { id: 'documentos', texto: 'Documentos' },
+  { id: 'periodos', texto: 'Períodos' },
+  { id: 'exportaciones', texto: 'Exportaciones' },
+];
+
+/**
+ * Reportes V3 · inteligencia operativa de prácticas. Solo datos reales de SIPRA, calculados en el servidor con las
+ * mismas reglas del Expediente. El periodo es el eje principal; los demás filtros van en divulgación progresiva.
+ * Las exportaciones existentes (Excel del SGP y archivos del SPE) quedan en su propia pestaña, sin cambios.
+ */
 @Component({
   selector: 'sipra-reportes',
   standalone: true,
-  imports: [EsqueletoComponent, DecimalPipe, DatePipe, FormsModule, EtiquetaPipe],
+  imports: [
+    DatePipe, EtiquetaPipe, CargaSenalComponent, EstadoVacioComponent, ReportesGeneralComponent, ReportesEstudiantesComponent,
+    ReportesDocumentosComponent, ReportesPeriodosComponent, ReportesDetalleComponent, ReportesExportacionesComponent,
+  ],
+  providers: [ReportesEstado],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
-    .catalogo { padding:0.8rem 0; border-bottom:1px solid var(--borde); display:grid; gap:0.35rem; }
-    .catalogo:last-child { border-bottom:none; }
-    .fila { display:flex; gap:0.7rem; align-items:center; flex-wrap:wrap; }
-    .fila .nombre { font-weight:640; flex:1; min-width:180px; }
-    .barra { height:6px; border-radius:3px; background:var(--superficie-2); overflow:hidden; }
-    .barra span { display:block; height:100%; background:var(--ok); }
-    .barra.parcial span { background:var(--aviso); }
-    .acciones { display:flex; gap:0.6rem; flex-wrap:wrap; margin-top:1rem; }
-    .sgp { display:grid; gap:var(--sp-3); grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); }
-    .sgp .campo { margin-bottom:var(--sp-2); }
-    .et-campo { font-size:var(--fs-sm); font-weight:600; color:var(--texto-tenue); }
-    .chk { display:inline-flex; gap:4px; align-items:center; white-space:nowrap; min-width:max-content; }
-    .vista td, .vista th { font-size:var(--fs-xs); white-space:nowrap; }
+    :host { display: block; --rp-regla: var(--vd-regla, var(--border-subtle)); }
+    :host-context([data-theme='dark']) { --text-muted: #94aeac; }
+    .sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .cabecera { display: flex; flex-wrap: wrap; gap: 8px 32px; align-items: flex-end; justify-content: space-between; animation: entra 200ms var(--ease-out) both; }
+    .kicker { margin: 0; font: 600 12px/16px var(--fuente); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+    .cabecera h1 { margin: 2px 0; font: 600 24px/30px var(--fuente); letter-spacing: -.02em; color: var(--text-primary); }
+    .ayuda { margin: 0; max-width: 92ch; font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+    .sello { font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
+    :host-context([data-theme='light']) .sello, :host-context([data-theme='light']) .actualizando { color: var(--text-secondary); }
+
+    .herramientas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 14px 0 0; padding: 10px 0; border-top: 1px solid var(--rp-regla); border-bottom: 1px solid var(--rp-regla); }
+    .rotulo { font: 600 11px/16px var(--fuente); letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+    .periodos { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1 1 420px; }
+    .chip { height: 30px; padding: 0 12px; font: 500 13px/1 var(--fuente-mono); color: var(--text-primary); background: transparent; border: 1px solid var(--border-default); border-radius: 15px; cursor: pointer; transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out); }
+    .chip:hover { border-color: var(--border-strong); }
+    .chip[aria-pressed='true'] { color: var(--text-inverse); background: var(--signal-active); border-color: transparent; font-weight: 600; }
+    .bt { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; font: 500 13px/1 var(--fuente); color: var(--text-primary); background: transparent; border: 1px solid var(--border-default); border-radius: 6px; cursor: pointer; transition: border-color 160ms var(--ease-out); }
+    .bt:hover { border-color: var(--border-strong); }
+    .bt[aria-expanded='true'] { border-color: color-mix(in srgb, var(--signal-active) 60%, var(--border-strong)); }
+    .bt:disabled { opacity: .55; cursor: default; }
+    .bt svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .contador { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: inline-grid; place-items: center; font: 600 11px/1 var(--fuente-mono); color: var(--text-inverse); background: var(--signal-active); }
+    .chip:focus-visible, .bt:focus-visible, .ctl:focus-visible, [role='tab']:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 2px; }
+    .panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px 16px; padding: 12px 0; border-bottom: 1px solid var(--rp-regla); }
+    .panel label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+    .ctl { height: 36px; padding: 0 8px; font: inherit; font-size: 13px; font-weight: 400; color: var(--text-primary); background: var(--vd-campo, color-mix(in srgb, var(--surface-raised) 70%, transparent)); border: 1px solid var(--border-default); border-radius: 6px; }
+
+    .pestanas { display: flex; gap: 2px; margin: 16px 0 20px; border-bottom: 1px solid var(--border-default); overflow-x: auto; scrollbar-width: none; }
+    [role='tab'] { position: relative; flex: none; height: 40px; padding: 0 14px; font: 500 14px/1 var(--fuente); color: var(--text-secondary); background: none; border: 0; cursor: pointer; }
+    [role='tab']:hover { color: var(--text-primary); }
+    [role='tab'][aria-selected='true'] { color: var(--text-primary); font-weight: 600; }
+    [role='tab'][aria-selected='true']::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--signal-active); }
+    .actualizando { margin: -12px 0 12px; font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
+    .error { display: grid; justify-items: start; gap: 10px; padding: 24px 0; }
+    .error strong { font-size: 15px; color: var(--text-primary); }
+    .error span { font-size: 13px; color: var(--text-secondary); }
+    @keyframes entra { from { opacity: 0; transform: translateY(4px); } }
+    @media (prefers-reduced-motion: reduce) { .cabecera { animation: none; } .chip, .bt { transition: none; } }
+    @media (width < 700px) { .cabecera h1 { font-size: 21px; line-height: 28px; } [role='tab'] { padding: 0 10px; font-size: 13px; } }
   `],
   template: `
-    <h1>Reportes del proceso de prácticas</h1>
-    <p class="pista" style="max-width:74ch;margin-bottom:1.2rem">Bases en Excel con las columnas del manual de coordinación. Cada generación queda en la auditoría. El alcance de su perfil acota lo que sale.</p>
-    <div class="sgp" style="margin-bottom:1.2rem">
-      <div class="tarjeta">
-        <h2>Reporte de prácticas</h2>
-        <div class="campo"><span class="et-campo">Periodos</span>
-          <div style="display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-3);font-size:var(--fs-sm)">
-            @for (p of periodos(); track p.codigo) { <label class="chk"><input type="checkbox" [checked]="periodosSel().includes(p.codigo)" (change)="alternarPeriodo(p.codigo)" /> {{ p.codigo }}</label> }
-          </div></div>
-        <div class="campo"><label for="rp-mod">Modalidad</label><input id="rp-mod" [(ngModel)]="rpModalidad" placeholder="Código, p. ej. pasantia (vacío = todas)" /></div>
-        <div class="campo"><label for="rp-est">Estado</label><select id="rp-est" [(ngModel)]="rpEstado"><option value="">Todos</option><option value="inscrita">Inscrito</option><option value="activa">En práctica</option><option value="certificada">Cerrado</option><option value="reprobada">Reprueba</option><option value="anulada">Anulado</option></select></div>
-        <div class="acciones" style="margin-top:0"><button type="button" class="boton boton--primario" [class.cargando]="ocupado()" [disabled]="ocupado() || periodosSel().length === 0" (click)="sgp('practicas', 'xlsx')">Descargar Excel</button><button type="button" class="boton" [disabled]="ocupado() || periodosSel().length === 0" (click)="sgp('practicas', 'json')">Vista previa</button></div>
+    <header class="cabecera">
+      <div>
+        <p class="kicker">Inteligencia operativa</p>
+        <h1>Reportes</h1>
+        <p class="ayuda">Cifras reales del proceso de prácticas dentro de su alcance. Estudiantes se cuentan una vez; los documentos, una vez por obligación exigida.</p>
       </div>
-      <div class="tarjeta">
-        <h2>Reporte de bitácoras</h2>
-        <div class="campo"><label for="rb-tipo">Tipo</label><select id="rb-tipo" [(ngModel)]="rbTipo"><option value="seguimiento">Bitácora de seguimiento</option><option value="evalua_tu_proceso">Evalúa tu proceso</option><option value="mensaje_libre">Mensaje libre</option><option value="calificacion_docente">Calificación docente</option></select></div>
-        <div class="campo"><label for="rb-per">Periodo</label><select id="rb-per" [(ngModel)]="rbPeriodo"><option value="">Todos</option>@for (p of periodos(); track p.codigo) { <option [value]="p.codigo">{{ p.codigo }}</option> }</select></div>
-        <div class="campo"><label for="rb-est">Estado de la práctica</label><select id="rb-est" [(ngModel)]="rbEstado"><option value="">Todos</option><option value="activa">En práctica</option><option value="certificada">Cerrado</option><option value="reprobada">Reprueba</option></select></div>
-        <div class="acciones" style="margin-top:0"><button type="button" class="boton boton--primario" [class.cargando]="ocupado()" [disabled]="ocupado()" (click)="sgp('bitacoras', 'xlsx')">Descargar Excel</button><button type="button" class="boton" [disabled]="ocupado()" (click)="sgp('bitacoras', 'json')">Vista previa</button></div>
-      </div>
-      <div class="tarjeta">
-        <h2>Reporte de cartas</h2>
-        <div class="campo"><label for="rc-per">Periodo</label><select id="rc-per" [(ngModel)]="rcPeriodo"><option value="">Todos</option>@for (p of periodos(); track p.codigo) { <option [value]="p.codigo">{{ p.codigo }}</option> }</select></div>
-        <div class="campo"><label for="rc-desde">Desde</label><input id="rc-desde" type="date" [(ngModel)]="rcDesde" /></div>
-        <div class="campo"><label for="rc-hasta">Hasta</label><input id="rc-hasta" type="date" [(ngModel)]="rcHasta" /></div>
-        <div class="acciones" style="margin-top:0"><button type="button" class="boton boton--primario" [class.cargando]="ocupado()" [disabled]="ocupado()" (click)="sgp('cartas', 'xlsx')">Descargar Excel</button><button type="button" class="boton" [disabled]="ocupado()" (click)="sgp('cartas', 'json')">Vista previa</button></div>
-      </div>
-    </div>
-    @if (vista(); as v) {
-      <div class="tarjeta" style="margin-bottom:1.2rem;padding:0">
-        <div style="padding:var(--sp-3) var(--sp-4);display:flex;gap:var(--sp-3);align-items:center"><strong>Vista previa</strong><span class="pista">{{ v.total }} fila(s) · se muestran hasta 50</span><button type="button" class="boton compacto" style="margin-left:auto" (click)="vista.set(null)">Cerrar</button></div>
-        <div class="tabla-envoltura"><table class="tabla vista"><thead><tr>@for (c of v.columnas; track c.clave) { <th>{{ c.encabezado }}</th> }</tr></thead>
-          <tbody>@for (f of v.filas.slice(0, 50); track $index) { <tr>@for (c of v.columnas; track c.clave) { <td>{{ celda(f[c.clave]) }}</td> }</tr> }</tbody></table></div>
-      </div>
-    }
+      @if (estado.datos(); as r) { <span class="sello">Calculado {{ r.generadoEn | date: 'yyyy-MM-dd HH:mm' : '-0500' }} · hora de Colombia</span> }
+    </header>
 
-    @if (esRegulatorio()) {
-    <h1 style="margin-top:var(--sp-6)">Reportes regulatorios</h1>
-    <p class="pista" style="max-width:74ch;margin-bottom:1.2rem">
-      Archivos para la Unidad del Servicio Público de Empleo. Solo entran las vacantes en marco
-      laboral: las de marco práctica son un requisito académico y no constituyen intermediación.
-    </p>
-
-
-    @if (bloqueado()) {
-      <div class="aviso aviso--error" style="margin-bottom:1.2rem;max-width:78ch">
-        <strong>Los archivos no son radicables todavía.</strong> Un archivo con códigos fuera de la
-        nomenclatura oficial se radica, queda en firme y luego hay que corregirlo ante la entidad.
-        Por eso, en preproducción y producción, el sistema se niega a generarlos mientras un
-        catálogo requerido siga incompleto.
-      </div>
-    }
-
-    <div class="tarjeta" style="margin-bottom:1.2rem">
-      <h2>Catálogos oficiales</h2>
-      @if (cargando()) {
-        <sipra-esqueleto tipo="bloque" />
-      } @else {
-        @for (catalogo of catalogos(); track catalogo.nombre) {
-          <div class="catalogo">
-            <div class="fila">
-              <span class="nombre">{{ catalogo.nombre | etiqueta }}</span>
-              <span class="etiqueta"
-                    [class.etiqueta--ok]="catalogo.estado === 'completo'"
-                    [class.etiqueta--aviso]="catalogo.estado === 'parcial'"
-                    [class.etiqueta--peligro]="catalogo.estado === 'ausente'">
-                {{ catalogo.estado }}
-              </span>
-              <span class="pista mono">
-                {{ catalogo.filasCargadas | number }} de
-                {{ catalogo.filasEsperadas === null ? '—' : (catalogo.filasEsperadas | number) }}
-              </span>
-            </div>
-            <div class="barra" [class.parcial]="catalogo.estado !== 'completo'">
-              <span [style.width.%]="porcentaje(catalogo)"></span>
-            </div>
-            @if (catalogo.justificacion) {
-              <div class="pista">{{ catalogo.justificacion }}</div>
-            }
-          </div>
-        }
-      }
-    </div>
-
-    <div class="tarjeta">
-      <h2>Generar archivos</h2>
-      <p class="pista">
-        Cada generación queda en la auditoría con el hash del archivo producido, que es lo que
-        se conserva junto al acuse para poder demostrar después qué se envió exactamente.
-      </p>
-      <div class="acciones">
-        <button type="button" class="boton boton--primario" [disabled]="descargando() !== null"
-                (click)="descargar('vacantes')">
-          {{ descargando() === 'vacantes' ? 'Generando…' : 'Archivo de vacantes' }}
-        </button>
-        <button type="button" class="boton" [disabled]="descargando() !== null"
-                (click)="descargar('plazas')">
-          {{ descargando() === 'plazas' ? 'Generando…' : 'Archivo de plazas de práctica' }}
-        </button>
-      </div>
-      @if (ultimo(); as u) {
-        <div class="aviso" style="margin-top:1rem"
-             [class.aviso--ok]="u.radicable" [class.aviso--info]="!u.radicable">
-          <strong>{{ u.nombre }}</strong> · {{ u.registros }} registro(s) ·
-          {{ u.radicable ? 'radicable' : 'borrador, no radicar' }}
-          <div class="pista mono" style="margin-top:0.3rem">sha256 {{ u.hash }}</div>
-          <div class="pista">generado {{ u.momento | date: 'd MMM y, HH:mm' }}</div>
+    @if (analitica()) {
+      <div class="herramientas" role="group" aria-label="Filtros del reporte">
+        <div class="periodos" role="group" aria-labelledby="rp-per">
+          <span class="rotulo" id="rp-per">Periodo</span>
+          <button type="button" class="chip" [attr.aria-pressed]="estado.filtros().periodos.length === 0" (click)="estado.filtrar({ periodos: [] })">Todos</button>
+          @for (p of estado.opciones().periodos; track p) {
+            <button type="button" class="chip" [attr.aria-pressed]="estado.filtros().periodos.includes(p)" (click)="estado.alternarPeriodo(p)">{{ p }}</button>
+          }
         </div>
+        <button type="button" class="bt" [attr.aria-expanded]="panel()" aria-controls="rp-filtros" (click)="panel.set(!panel())">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtros
+          @if (otrosActivos()) { <span class="contador" [attr.aria-label]="otrosActivos() + ' activos'">{{ otrosActivos() }}</span> }
+        </button>
+        <button type="button" class="bt" [disabled]="!estado.activos()" (click)="estado.limpiar()">Limpiar</button>
+      </div>
+      <div class="panel" id="rp-filtros" [hidden]="!panel()">
+        <label for="rp-escuela">Escuela
+          <select id="rp-escuela" class="ctl" [value]="estado.filtros().escuela" (change)="estado.filtrar({ escuela: valor($event) })">
+            <option value="">Todas</option>
+            @for (e of estado.opciones().escuelas; track e.codigo) { <option [value]="e.codigo" [selected]="e.codigo === estado.filtros().escuela">{{ e.nombre }}</option> }
+          </select></label>
+        <label for="rp-programa">Programa
+          <select id="rp-programa" class="ctl" [value]="estado.filtros().programa" (change)="estado.filtrar({ programa: valor($event) })">
+            <option value="">Todos</option>
+            @for (p of estado.programas(); track p) { <option [value]="p" [selected]="p === estado.filtros().programa">{{ p }}</option> }
+          </select></label>
+        <label for="rp-modalidad">Modalidad
+          <select id="rp-modalidad" class="ctl" [value]="estado.filtros().modalidad" (change)="estado.filtrar({ modalidad: valor($event) })">
+            <option value="">Todas</option>
+            @for (m of estado.opciones().modalidades; track m) { <option [value]="m" [selected]="m === estado.filtros().modalidad">{{ m | etiqueta }}</option> }
+          </select></label>
+        <label for="rp-estado">Estado de la práctica
+          <select id="rp-estado" class="ctl" [value]="estado.filtros().estado" (change)="estado.filtrar({ estado: valor($event) })">
+            <option value="">Todos</option>
+            @for (s of estado.opciones().estados; track s) { <option [value]="s" [selected]="s === estado.filtros().estado">{{ s | etiqueta }}</option> }
+          </select></label>
+      </div>
+    }
+
+    <div class="pestanas" role="tablist" aria-label="Vistas del reporte">
+      @for (p of pestanas(); track p.id) {
+        <button type="button" role="tab" [id]="'tab-' + p.id" [attr.aria-selected]="estado.pestana() === p.id" [attr.aria-controls]="'vista-' + p.id"
+                [attr.tabindex]="estado.pestana() === p.id ? 0 : -1" (click)="estado.pestana.set(p.id)" (keydown)="teclado($event)">{{ p.texto }}</button>
       }
     </div>
-    }
+
+    <div role="tabpanel" [id]="'vista-' + estado.pestana()" [attr.aria-labelledby]="'tab-' + estado.pestana()" tabindex="0">
+      @if (estado.pestana() === 'exportaciones') {
+        <sipra-reportes-exportaciones />
+      } @else if (estado.error() && !estado.datos()) {
+        <div class="error" role="alert">
+          <strong>No fue posible calcular el reporte</strong>
+          <span>{{ estado.error() }}. Los datos no se perdieron: vuelva a intentarlo.</span>
+          <button type="button" class="bt" (click)="estado.cargar()">Reintentar</button>
+        </div>
+      } @else if (!estado.datos()) {
+        <sipra-carga-senal texto="Calculando el reporte…" />
+      } @else if (!conDatos()) {
+        @if (estado.activos()) {
+          <sipra-estado-vacio titulo="Sin prácticas para estos filtros" texto="Ninguna práctica de su alcance cumple la combinación elegida.">
+            <button type="button" class="bt" (click)="estado.limpiar()">Limpiar filtros</button>
+          </sipra-estado-vacio>
+        } @else {
+          <sipra-estado-vacio titulo="Aún no hay prácticas en su alcance" texto="Cuando se registren prácticas en sus escuelas, aquí verá su avance documental y su evolución por periodo." />
+        }
+      } @else {
+        @if (estado.cargando()) { <p class="actualizando" role="status">Actualizando…</p> }
+        @if (estado.error(); as e) { <p class="actualizando" role="alert">No se pudo actualizar ({{ e }}). Se muestran las cifras anteriores. <button type="button" class="bt" (click)="estado.cargar()">Reintentar</button></p> }
+        @switch (estado.pestana()) {
+          @case ('general') { <sipra-reportes-general /> }
+          @case ('estudiantes') { <sipra-reportes-estudiantes /> }
+          @case ('documentos') { <sipra-reportes-documentos /> }
+          @case ('periodos') { <sipra-reportes-periodos /> }
+        }
+        <sipra-reportes-detalle />
+      }
+    </div>
   `,
 })
 export class ReportesComponent implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly api = inject(ApiService);
-  private readonly avisos = inject(AvisosService);
-  readonly sesion = inject(SesionService);
+  protected readonly estado = inject(ReportesEstado);
+  private readonly sesion = inject(SesionService);
 
-  readonly periodos = signal<Periodo[]>([]);
-  readonly periodosSel = signal<string[]>([]);
-  readonly vista = signal<ReporteTabla | null>(null);
-  readonly ocupado = signal(false);
-  readonly rpModalidad = signal(''); readonly rpEstado = signal('');
-  readonly rbTipo = signal('seguimiento'); readonly rbPeriodo = signal(''); readonly rbEstado = signal('');
-  readonly rcPeriodo = signal(''); readonly rcDesde = signal(''); readonly rcHasta = signal('');
-  readonly esRegulatorio = computed(() => ['administrador', 'extension', 'coordinador'].includes(this.sesion.rol() ?? ''));
+  protected readonly panel = signal(false);
+  protected readonly analitica = computed(() => ROLES_ANALITICA.includes(this.sesion.rol() ?? ''));
+  protected readonly pestanas = computed(() => (this.analitica() ? PESTANAS : PESTANAS.filter((p) => p.id === 'exportaciones')));
+  protected readonly conDatos = computed(() => hayDatos(this.estado.datos()));
+  protected readonly otrosActivos = computed(() => { const f = this.estado.filtros(); return [f.escuela, f.programa, f.modalidad, f.estado].filter(Boolean).length; });
 
-  alternarPeriodo(codigo: string): void { this.periodosSel.update((l) => (l.includes(codigo) ? l.filter((x) => x !== codigo) : [...l, codigo])); }
-  celda(v: unknown): string {
-    if (v === null || v === undefined) return '';
-    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return v.slice(0, 16).replace('T', ' ');
-    return String(v);
+  ngOnInit(): void {
+    if (this.analitica()) void this.estado.cargar();
+    else this.estado.pestana.set('exportaciones');
   }
 
-  private filtroSgp(reporte: ReporteSgp): Record<string, string | undefined> {
-    switch (reporte) {
-      case 'practicas': return { periodos: this.periodosSel().join(','), modalidad: this.rpModalidad() || undefined, estado: this.rpEstado() || undefined };
-      case 'bitacoras': return { tipo: this.rbTipo(), periodo: this.rbPeriodo() || undefined, estado: this.rbEstado() || undefined };
-      default: return { periodo: this.rcPeriodo() || undefined, desde: this.rcDesde() || undefined, hasta: this.rcHasta() || undefined };
-    }
-  }
+  protected valor(evento: Event): string { return (evento.target as HTMLSelectElement).value; }
 
-  async sgp(reporte: ReporteSgp, formato: 'xlsx' | 'json'): Promise<void> {
-    this.ocupado.set(true);
-    try {
-      if (formato === 'json') { this.vista.set(await firstValueFrom(this.api.reporteSgpTabla(reporte, this.filtroSgp(reporte)))); }
-      else {
-        const r = await firstValueFrom(this.api.reporteSgpExcel(reporte, this.filtroSgp(reporte)));
-        descargarBlob(r.body as Blob, nombreDeCabecera(r.headers.get('content-disposition'), `${reporte}.xlsx`));
-        this.avisos.exito(`Excel generado con ${r.headers.get('x-filas') ?? '?'} fila(s) y registrado en la auditoría.`);
-      }
-    } catch (error) { this.avisos.error(leerError(error)); }
-    finally { this.ocupado.set(false); }
-  }
-
-  readonly catalogos = signal<EstadoCatalogo[]>([]);
-  readonly cargando = signal(true);
-  readonly descargando = signal<'vacantes' | 'plazas' | null>(null);
-  readonly ultimo = signal<{
-    nombre: string; registros: string; hash: string; radicable: boolean; momento: Date;
-  } | null>(null);
-
-  /** Los catálogos que el reporte necesita para producir un archivo radicable. */
-  private readonly requeridos = ['cno', 'ciiu', 'divipola_municipio', 'nivel_educativo'];
-
-  readonly bloqueado = computed(() =>
-    this.catalogos().some((c) => this.requeridos.includes(c.nombre) && c.estado !== 'completo'),
-  );
-
-  async ngOnInit(): Promise<void> {
-    void firstValueFrom(this.api.listarPeriodos()).then((p) => { this.periodos.set(p); this.periodosSel.set(p.filter((x) => x.vigente && x.activo).map((x) => x.codigo)); }).catch(() => undefined);
-    if (!this.esRegulatorio()) { this.cargando.set(false); return; }
-    try {
-      this.catalogos.set(
-        await firstValueFrom(
-          this.http.get<EstadoCatalogo[]>(`${entorno.apiBase}/reportes/catalogos`),
-        ),
-      );
-    } finally {
-      this.cargando.set(false);
-    }
-  }
-
-  porcentaje(catalogo: EstadoCatalogo): number {
-    if (!catalogo.filasEsperadas) return catalogo.filasCargadas > 0 ? 100 : 0;
-    return Math.min(100, Math.round((catalogo.filasCargadas / catalogo.filasEsperadas) * 100));
-  }
-
-  async descargar(tipo: 'vacantes' | 'plazas'): Promise<void> {
-    this.descargando.set(tipo);
-    try {
-      const respuesta = await firstValueFrom(
-        this.http.get(`${entorno.apiBase}/reportes/spe/${tipo}`, {
-          observe: 'response',
-          responseType: 'text',
-        }),
-      );
-      const nombre =
-        respuesta.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ??
-        `${tipo}.txt`;
-
-      this.ultimo.set({
-        nombre,
-        registros: respuesta.headers.get('x-sipra-registros') ?? '0',
-        hash: respuesta.headers.get('x-sipra-hash') ?? '',
-        radicable: respuesta.headers.get('x-sipra-radicable') === 'true',
-        momento: new Date(),
-      });
-
-      this.guardarArchivo(nombre, respuesta.body ?? '');
-      this.avisos.exito('Archivo generado y registrado en la auditoría.');
-    } catch (error) {
-      const cuerpo = error instanceof HttpErrorResponse
-        ? (error.error as { mensaje?: string; message?: string } | null)
-        : null;
-      this.avisos.error(cuerpo?.mensaje ?? cuerpo?.message ?? 'No fue posible generar el archivo.');
-    } finally {
-      this.descargando.set(null);
-    }
-  }
-
-  private guardarArchivo(nombre: string, contenido: string): void {
-    const url = URL.createObjectURL(new Blob([contenido], { type: 'text/plain;charset=utf-8' }));
-    const enlace = document.createElement('a');
-    enlace.href = url;
-    enlace.download = nombre;
-    enlace.click();
-    URL.revokeObjectURL(url);
+  /** Pestañas ARIA: flechas, Inicio y Fin mueven la selección y el foco. */
+  protected teclado(evento: KeyboardEvent): void {
+    const lista = this.pestanas();
+    const actual = lista.findIndex((p) => p.id === this.estado.pestana());
+    const destino = { ArrowRight: actual + 1, ArrowLeft: actual - 1, Home: 0, End: lista.length - 1 }[evento.key];
+    if (destino === undefined) return;
+    evento.preventDefault();
+    const p = lista[(destino + lista.length) % lista.length];
+    this.estado.pestana.set(p.id);
+    document.getElementById(`tab-${p.id}`)?.focus();
   }
 }

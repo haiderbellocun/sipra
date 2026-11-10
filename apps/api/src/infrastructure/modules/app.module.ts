@@ -168,6 +168,10 @@ import { CostosIaUseCase } from '../../application/use-cases/administracion/cost
 import { PqrsUseCase } from '../../application/use-cases/administracion/pqrs.use-case';
 import { GestionarPeriodosUseCase } from '../../application/use-cases/administracion/gestionar-periodos.use-case';
 import { ReportesSgpUseCase } from '../../application/use-cases/reportes/reportes-sgp.use-case';
+import { ReportesAnaliticaUseCase } from '../../application/use-cases/reportes/reportes-analitica.use-case';
+import { REPORTES_ANALITICA } from '../../domain/ports/out/reportes-analitica.port';
+import { ReportesAnaliticaAdapter } from '../adapters/persistence/postgres/reportes-analitica.adapter';
+import { ReportesAnaliticaController } from '../controllers/reportes-analitica.controller';
 import { ExcelJsAdapter } from '../adapters/hojas/exceljs.adapter';
 import { GestionarUsuariosUseCase } from '../../application/use-cases/administracion/gestionar-usuarios.use-case';
 import { VistasSinuUseCase } from '../../application/use-cases/administracion/vistas-sinu.use-case';
@@ -239,6 +243,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     TrabajosController, ReportesController, AdministracionController, CartasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
     PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController, MesaRutController, MesaCamaraController, ValidacionDocumentalController,
+    ReportesAnaliticaController,
   ],
   providers: [
     // ── Puertos de salida → adaptadores ──────────────────────────────────
@@ -252,6 +257,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: AUDITORIA_REPOSITORY, useClass: AuditoriaRepositoryAdapter },
     { provide: CATALOGO_REPOSITORY, useClass: CatalogoRepositoryAdapter },
     { provide: REPORTE_REPOSITORY, useClass: ReporteRepositoryAdapter },
+    { provide: REPORTES_ANALITICA, useClass: ReportesAnaliticaAdapter },
     { provide: COSTOS_IA_REPOSITORY, useClass: CostosIaRepositoryAdapter },
     { provide: PARAMETRO_REPOSITORY, useClass: ParametroRepositoryAdapter },
     { provide: PERIODO_REPOSITORY, useClass: PeriodoRepositoryAdapter },
@@ -366,6 +372,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     GestionarUsuariosUseCase,
     VistasSinuUseCase,
     ReportesSgpUseCase,
+    ReportesAnaliticaUseCase,
     GestionarPeriodosUseCase,
     PqrsUseCase,
     ConsentimientoUseCase,

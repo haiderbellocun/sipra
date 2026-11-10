@@ -480,10 +480,10 @@
     "semantic_hash": "25a3b2aca007856f831e6bbb9f3919b5"
   },
   "apps/api/src/application/use-cases/reportes/reportes-sgp.use-case.ts": {
-    "mtime": 1792078634.7605214,
-    "seen": 1794319155.108202,
-    "ast_hash": "6508bd9d6e29c32d834ae96baa11f6cd",
-    "semantic_hash": "6508bd9d6e29c32d834ae96baa11f6cd"
+    "mtime": 1794343649.9357016,
+    "seen": 1794346201.4144459,
+    "ast_hash": "f736f1af4eb4820ce191b014bc94681f",
+    "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/vacantes/gestionar-vacante.use-case.ts": {
     "mtime": 1792078634.7761447,
@@ -1608,10 +1608,10 @@
     "semantic_hash": "a27e694ba72fe8a6a6a0dbe6a8dcdcd5"
   },
   "apps/api/src/infrastructure/modules/app.module.ts": {
-    "mtime": 1794235776.402346,
-    "seen": 1794319155.1083744,
-    "ast_hash": "00e9845cc174c3f648f748733a5e8096",
-    "semantic_hash": "00e9845cc174c3f648f748733a5e8096"
+    "mtime": 1794344451.1368427,
+    "seen": 1794346201.41479,
+    "ast_hash": "5d231967bab33008f3dcb0dca6392556",
+    "semantic_hash": ""
   },
   "apps/api/src/infrastructure/modules/auditoria.service.ts": {
     "mtime": 1792078635.2285383,
@@ -2904,10 +2904,10 @@
     "semantic_hash": "65181eb1348fe3c7e12c77c6740ea07d"
   },
   "apps/web/src/app/core/services/api.service.ts": {
-    "mtime": 1794235933.6547172,
-    "seen": 1794319155.1085663,
-    "ast_hash": "752062a9e4b6fa9bca4ce90acdcb0b15",
-    "semantic_hash": "752062a9e4b6fa9bca4ce90acdcb0b15"
+    "mtime": 1794344876.83266,
+    "seen": 1794346201.4151921,
+    "ast_hash": "349eb5e5c2b79b9ae68b4be8ba09083f",
+    "semantic_hash": ""
   },
   "apps/web/src/app/core/services/captura-guiada.service.ts": {
     "mtime": 1792078635.8224075,
@@ -3222,10 +3222,10 @@
     "semantic_hash": "582e7fcf001357e92023f533e80d962c"
   },
   "apps/web/src/app/features/reportes/reportes.component.ts": {
-    "mtime": 1792078636.027354,
-    "seen": 1794319155.1086125,
-    "ast_hash": "93ed18deaad1c3ae745ae8cea78db28c",
-    "semantic_hash": "93ed18deaad1c3ae745ae8cea78db28c"
+    "mtime": 1794345864.5352743,
+    "seen": 1794346201.4153028,
+    "ast_hash": "10f30898fe692cc645414b672685f914",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/rut/rut-decision.component.ts": {
     "mtime": 1793808948.5240774,
@@ -3540,9 +3540,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1794332515.8687866,
-    "seen": 1794343118.421363,
-    "ast_hash": "42dc8f378c0e79a8320050ba6f02873d",
+    "mtime": 1794346143.264442,
+    "seen": 1794346201.415419,
+    "ast_hash": "0f1a25b0617220be16178ea4499adbef",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -3759,6 +3759,108 @@
     "mtime": 1794327509.5992908,
     "seen": 1794343118.4212914,
     "ast_hash": "2ecc2f5fb23582611d27b05088bcb151",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/reportes/alcance-reportes.ts": {
+    "mtime": 1794343642.030896,
+    "seen": 1794346201.414439,
+    "ast_hash": "aac351eecb26e81062506513ddcc7876",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/reportes/reportes-analitica.use-case.ts": {
+    "mtime": 1794344714.8031864,
+    "seen": 1794346201.4144437,
+    "ast_hash": "3823f056cb8b0c11cea113fe592c0d1c",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/ports/out/reportes-analitica.port.ts": {
+    "mtime": 1794344378.1058962,
+    "seen": 1794346201.4145117,
+    "ast_hash": "1394b98259488ba8c8b74183c51261d4",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/reportes-analitica.adapter.ts": {
+    "mtime": 1794344403.1007624,
+    "seen": 1794346201.414707,
+    "ast_hash": "c9cdd6c77b21d348d97d65c988e74694",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/controllers/reportes-analitica.controller.ts": {
+    "mtime": 1794344429.6927557,
+    "seen": 1794346201.4147723,
+    "ast_hash": "034b284a94023f736ca77bacd9d3a728",
+    "semantic_hash": ""
+  },
+  "apps/api/test/reportes-analitica.spec.ts": {
+    "mtime": 1794344714.8031864,
+    "seen": 1794346201.4150276,
+    "ast_hash": "4e0278e88538951bb1459dfd74935460",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/reportes-v3.spec.ts": {
+    "mtime": 1794345762.5752697,
+    "seen": 1794346201.4151552,
+    "ast_hash": "1325107811b6d4ce18c1dbb1342932ef",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/core/models/reportes-analitica.model.ts": {
+    "mtime": 1794344866.6269686,
+    "seen": 1794346201.4151886,
+    "ast_hash": "266c34d346d3fd7662d7713036ea0364",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-analitica.util.ts": {
+    "mtime": 1794345754.1859398,
+    "seen": 1794346201.4152913,
+    "ast_hash": "f99058300d5dc5e0c57ffe4addaa3955",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-detalle.component.ts": {
+    "mtime": 1794345754.189793,
+    "seen": 1794346201.4152935,
+    "ast_hash": "ae40ca52bd3905d64c9f41d955981035",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-documentos.component.ts": {
+    "mtime": 1794345754.189793,
+    "seen": 1794346201.415295,
+    "ast_hash": "623c2297474aa8232ce097b5ceb72eb2",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-estudiantes.component.ts": {
+    "mtime": 1794344997.1081276,
+    "seen": 1794346201.4152966,
+    "ast_hash": "1d7732d96826d9db8b4b37fa11cbee40",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-exportaciones.component.ts": {
+    "mtime": 1794345108.8617494,
+    "seen": 1794346201.415298,
+    "ast_hash": "b64a3c77ce7c014d44f3e6b0b9dd3fb3",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-general.component.ts": {
+    "mtime": 1794345754.184265,
+    "seen": 1794346201.4152994,
+    "ast_hash": "d30892462748a6f1e95897db445f01e0",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-periodos.component.ts": {
+    "mtime": 1794345054.6509743,
+    "seen": 1794346201.4153008,
+    "ast_hash": "9b0b79e300d2006d8c00bdbbb3c68940",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes.estado.ts": {
+    "mtime": 1794344896.6636045,
+    "seen": 1794346201.4153044,
+    "ast_hash": "467238099734f29b56462bce53efcab1",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes.estilos.ts": {
+    "mtime": 1794345864.5352743,
+    "seen": 1794346201.415306,
+    "ast_hash": "ec07cf28e40cafe151954c92cacd722c",
     "semantic_hash": ""
   },
   "package-lock.json": {

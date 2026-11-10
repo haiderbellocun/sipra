@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import {
   DetalleCalificacion, DetalleEvaluaTuProceso, DetalleSeguimiento, ETIQUETA_ENTRADA, EntradaBitacora,
@@ -19,6 +19,7 @@ import {
 } from '../../../domain/ports/out/servicios-externos.port';
 import { Rol } from '../../../domain/value-objects/rol.vo';
 import { Actor } from '../practicas/gestionar-practica.use-case';
+import { escuelasDeReportes, exigirReportes } from './alcance-reportes';
 
 export type TipoReporteBitacora = 'seguimiento' | 'evalua_tu_proceso' | 'mensaje_libre' | 'calificacion_docente';
 
@@ -51,7 +52,6 @@ export interface ReporteTabla {
   filas: readonly Record<string, CeldaHoja>[];
 }
 
-const ROLES_REPORTES: readonly Rol[] = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.AUXILIAR, Rol.TUTOR];
 const APROBADOS: readonly EstadoDocumento[] = [EstadoDocumento.APROBADO, EstadoDocumento.AUTO_APROBADO];
 const TIPO_BITACORA: Readonly<Record<TipoReporteBitacora, TipoEntradaBitacora>> = {
   seguimiento: TipoEntradaBitacora.SEGUIMIENTO,
@@ -306,14 +306,8 @@ export class ReportesSgpUseCase {
   }
 
   private alcance(filtro: FiltroPracticas, actor: Actor): FiltroPracticas {
-    switch (actor.rol) {
-      case Rol.TUTOR:
-        return { ...filtro, escuelaIds: actor.escuelas };
-      case Rol.COORDINADOR:
-        return actor.escuelas.length === 0 ? filtro : { ...filtro, escuelaIds: actor.escuelas };
-      default:
-        return filtro;
-    }
+    const escuelaIds = escuelasDeReportes(actor);
+    return escuelaIds ? { ...filtro, escuelaIds } : filtro;
   }
 
   private visible(practica: Practica, actor: Actor): boolean {
@@ -321,7 +315,7 @@ export class ReportesSgpUseCase {
   }
 
   private exigirReportes(actor: Actor): void {
-    if (!ROLES_REPORTES.includes(actor.rol)) throw new ForbiddenException('Su perfil no genera reportes del SGP');
+    exigirReportes(actor);
   }
 }
 

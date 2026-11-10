@@ -16,6 +16,7 @@ import {
   DecisionCamara, DetalleCamara, EstadoCamaraEstudiante, FiltrosCamara, ListadoBandejaCamara, MotivoDevolucionCamara, ReservaCamara, SupervisionCamara,
 } from '../models/modelos';
 import { Expediente, FiltrosExpedientes, ListadoExpedientes, SupervisionDocumental, VersionDocumento } from '../models/validacion-documental.model';
+import { DetalleAnalitica, ReporteAnalitica } from '../models/reportes-analitica.model';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
   let params = new HttpParams();
@@ -398,6 +399,20 @@ export class ApiService {
   reporteSgpExcel(reporte: 'practicas' | 'bitacoras' | 'cartas', filtro: Record<string, string | undefined>) {
     return this.http.get(`${this.base}/reportes/sgp/${reporte}`, {
       params: aParams(filtro), observe: 'response', responseType: 'blob',
+    });
+  }
+
+  reporteAnalitica(parametros: Record<string, string>): Observable<ReporteAnalitica> {
+    return this.http.get<ReporteAnalitica>(`${this.base}/reportes/analitica`, { params: aParams(parametros) });
+  }
+
+  reporteAnaliticaDetalle(parametros: Record<string, string>): Observable<DetalleAnalitica> {
+    return this.http.get<DetalleAnalitica>(`${this.base}/reportes/analitica/detalle`, { params: aParams(parametros) });
+  }
+
+  reporteAnaliticaCsv(parametros: Record<string, string>) {
+    return this.http.get(`${this.base}/reportes/analitica/detalle`, {
+      params: aParams({ ...parametros, formato: 'csv' }), observe: 'response', responseType: 'blob',
     });
   }
 

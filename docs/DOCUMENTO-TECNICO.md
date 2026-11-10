@@ -1846,6 +1846,76 @@ alcance.
 Detección de uso anómalo: alerta cuando un usuario consulta más de 40
 expedientes en una hora. **No bloquea: notifica.**
 
+### 8.9 Reportes V3: inteligencia operativa y definición de métricas
+
+`/reportes` muestra cifras **reales** de SIPRA, calculadas en el servidor y de solo lectura. No hay migraciones, tablas nuevas, Redis ni campos inventados.
+
+**Endpoints.** Los dos usan los perfiles y el alcance de los reportes SGP; el alcance es común en `alcance-reportes.ts`.
+
+| Endpoint | Devuelve |
+|---|---|
+| `GET /api/v1/reportes/analitica` | Agregados |
+| `GET /api/v1/reportes/analitica/detalle` | Una fila por práctica de un recorte; `formato=csv` descarga ese recorte |
+
+- **Filtros:** `periodos`, `escuela`, `programa`, `modalidad`, `estado`. Viajan a PostgreSQL.
+- **Recortes del detalle:** `situacion`, `tipo`, `estadoDocumental`.
+
+**Perfiles y alcance.**
+
+- Administración, coordinación, auxiliar y docente consultan la analítica. Estudiante, empresa y extensión reciben 403; extensión solo ve la pestaña Exportaciones.
+- El docente alcanza solo sus escuelas.
+- La coordinación de escuela alcanza las suyas; la general alcanza todo.
+- Pedir una escuela fuera del alcance devuelve ceros, no un error que confirme que existe.
+
+**Arquitectura.** Hexagonal:
+
+- **Puerto:** `REPORTES_ANALITICA` (`domain/ports/out/reportes-analitica.port.ts`).
+- **Adaptador:** `ReportesAnaliticaAdapter`. Tres consultas parametrizadas con el mismo `WHERE` y sin N+1: prácticas con nombre del estudiante, escuela y empresa; todas las versiones de documentos más la última decisión auditada de cada una (CTE con `DISTINCT ON`); y periodos.
+- **Caso de uso:** `ReportesAnaliticaUseCase`. El avance de cada expediente se calcula con `AvanceDocumentalDomainService`, el mismo del Expediente, así que no hay reglas paralelas.
+
+| Término | Definición |
+|---|---|
+| Estudiante | `COUNT DISTINCT estudiante_id`. Una persona con dos prácticas cuenta una vez. |
+| Práctica | Una fila de `practicas`. Es la entidad real del proceso. |
+| Obligación | Un documento exigido por la matriz de la modalidad, en una práctica. Su estado es el de la **última versión**: sin cargar, recibido / en análisis (`recibido`, `analizando`), en revisión, en corrección (`devuelto`, `ilegible`), rechazado, aprobado (`aprobado`, `auto_aprobado`). Las seis categorías suman los exigidos. |
+| Documento (fricción) | El par práctica·tipo. Puede tener varias **versiones**. |
+| Versión | Una fila de `documentos`. Las versiones nuevas **no** suman obligaciones. |
+| Cargado / aprobado | «Cargado» = última versión vigente (sin devueltos, ilegibles ni rechazados). «Aprobado» exige decisión. Se muestran por separado y nunca se suman. |
+| Situación del expediente | Excluyente y en este orden: completo (todo aprobado) > requiere corrección (alguna obligación en corrección o rechazada) > sin iniciar > en curso. `sin_matriz` si la modalidad no tiene matriz (no se inventa). |
+| Tiempo carga → decisión | `documentos.cargado_en` → `auditoria.ocurrido_en` del último `decision_documento` de esa versión. Mediana y p90 por rango más cercano. **Nunca `actualizado_en`.** |
+| Semanas | Las 12 últimas, de lunes a domingo, en hora de Colombia (UTC−5 fijo; Colombia no tiene horario de verano). Las cargas se cuentan por fecha de carga y las decisiones por su evento auditado; la última semana está en curso. |
+| Periodo | `practicas.periodo_academico` (texto sin FK, p. ej. `2026-2` o `2026A`). Se ordena por año y luego por sufijo; nunca por texto libre. |
+| Empresas | Las diez con más prácticas, por razón social registrada (`empresas.razon_social`, o la del FUR). |
+
+**Lo que no existe y no se inventa:**
+
+- **SLA:** no hay meta institucional.
+- **Tiempo hasta tomar el caso o hasta la primera revisión:** sus eventos son por motor y no son comparables.
+- **Carga de trabajo por revisor:** no hay ranking de personas, por privacidad.
+- **Purga:** no se aplica.
+
+**Privacidad y exportación:**
+
+- El detalle muestra el nombre del estudiante para gestionar, nunca documento ni correo.
+- El CSV solo existe por recorte filtrado. Sale con BOM y separador `;`, con celdas protegidas contra fórmulas (`= + - @`), y se audita como `reporte_generado` con entidad `reporte_analitica`, filtros y número de filas.
+- No hay «exportar todo» sin alcance.
+
+**Rendimiento** (base sintética de 71 prácticas, 317 versiones y 248 decisiones):
+
+- La consulta de versiones tarda 0,7 ms en PostgreSQL.
+- El endpoint responde en ~225 ms, igual que el listado de prácticas existente.
+
+**Pantalla** (`features/reportes`):
+
+- Pestañas ARIA General, Estudiantes, Documentos, Períodos y Exportaciones. Exportaciones es el Excel del SGP y los archivos del SPE de antes, sin cambios de lógica.
+- El periodo es el eje principal (chips); escuela, programa, modalidad y estado van en un panel de divulgación con contador.
+- Toda cifra de segmento abre el detalle. El detalle conserva el filtro, lleva el foco al recorte y enlaza al Expediente.
+- Las barras son decorativas (`aria-hidden`) y siempre tienen una tabla equivalente.
+- Error y vacío se distinguen: «Reintentar», «Sin prácticas para estos filtros» y «Aún no hay prácticas en su alcance».
+- Cada componente se mantiene bajo el presupuesto de 12 kB de estilos.
+
+**El Shell queda en 78rem** (1184 px de contenido a 1440). Las tablas caben sin desplazamiento horizontal. Si más adelante hiciera falta, se propone un modo ancho opcional solo para Reportes, sin cambiar el Shell.
+
 ---
 
 ## 9. Autenticación y el modo abierto de pruebas
@@ -3312,6 +3382,31 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.35.0 — 10 de noviembre de 2026
+
+**Reportes V3: inteligencia operativa de prácticas.** Detalle y definiciones de métricas en §8.9.
+
+- **API, de solo lectura:**
+  - `GET /reportes/analitica` y `/reportes/analitica/detalle`, con CSV filtrado y auditado;
+  - puerto `REPORTES_ANALITICA` con su adaptador PostgreSQL;
+  - caso de uso que reutiliza `AvanceDocumentalDomainService`;
+  - alcance por escuelas compartido con los reportes SGP (`alcance-reportes.ts`; `ReportesSgpUseCase` lo usa sin cambiar su comportamiento).
+  - Sin migraciones.
+- **Web:**
+  - `/reportes` con pestañas General, Estudiantes, Documentos, Períodos y Exportaciones;
+  - estado `ReportesEstado` (carga, error, vacío y detalle);
+  - lógica pura en `reportes-analitica.util.ts` y modelo en `core/models/reportes-analitica.model.ts`;
+  - el Excel del SGP y los archivos del SPE pasan sin cambios a `reportes-exportaciones.component.ts`.
+- **Pruebas:**
+  - API: `test/reportes-analitica.spec.ts`, 14 casos: autorización, alcance, filtros, agregados, cero datos, detalle igual a resumen, sin doble conteo por versiones ni por varias prácticas, semanas de Bogotá, CSV seguro y auditado.
+  - Web: `pruebas/reportes-v3.spec.ts`, 16 casos.
+- **Verificado:**
+  - API: 110 suites y 2.945 pruebas, lint 0, build, aislamiento 10/10, smoke de arranque.
+  - Web: 371/371, lint 0, build de producción sin advertencias de presupuesto.
+  - Base sintética en el ambiente desechable (3101/4203): las cifras cuadran con SQL directo (71 prácticas, 68 estudiantes, 156 aprobados; docente 52, que es su alcance); estudiante y extensión reciben 403.
+  - Sin desbordes a 1440, 1024 y 390.
+  - Contraste AA en ambos temas: mínimo 4,90:1, tras subir `--text-muted` a `--text-secondary` en claro.
 
 ### 0.34.0 — 10 de noviembre de 2026
 
