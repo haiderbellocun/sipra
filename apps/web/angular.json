@@ -25,7 +25,13 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [{ "glob": "**/*", "input": "src/assets", "output": "assets" }, "src/manifest.webmanifest"],
-            "styles": ["src/estilos.css"]
+            "styles": [
+              "@fontsource-variable/geist/wght.css",
+              "@fontsource-variable/geist-mono/wght.css",
+              "src/estilos/tokens.css",
+              "src/estilos/ambiente.css",
+              "src/estilos.css"
+            ]
           },
           "configurations": {
             "production": {
@@ -49,7 +55,7 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "8kB",
+                  "maximumWarning": "12kB",
                   "maximumError": "16kB"
                 }
               ]

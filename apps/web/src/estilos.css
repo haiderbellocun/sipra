@@ -1,95 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   SIPRA — sistema de diseño (paquete de diseño oscuro v1.0)
-   Fondo carbón, verde esmeralda y objetos ilustrados. Los tokens del paquete
-   (SIPRA-Tokens.json) se exponen con los nombres estables que ya usan los
-   componentes: --bg, --superficie, --marca, --ok, --r-md… El tema oscuro es
-   el diseño aprobado y el predeterminado; el claro deriva la misma paleta
-   para quien lo prefiera.
+   SIPRA — estilos globales (V3: Hybrid Signal Dark · Arctic Signal Light)
+   Los tokens viven en estilos/tokens.css (primitivos → semánticos → componente)
+   y el entorno en estilos/ambiente.css. Aquí quedan la base y las clases
+   compartidas que ya usan los módulos, escritas contra los alias de tokens.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@font-face {
-  font-family: "SipraSans"; font-style: normal; font-weight: 400; font-display: swap;
-  src: url("assets/fuentes/SipraSans-Regular.woff2") format("woff2");
-}
-@font-face {
-  font-family: "SipraSans"; font-style: normal; font-weight: 700; font-display: swap;
-  src: url("assets/fuentes/SipraSans-Bold.woff2") format("woff2");
-}
-
 :root {
-  color-scheme: dark;
-
-  /* ── Color (oscuro = diseño aprobado) ─────────────────────────────────── */
-  --bg:           #0B0F14;
-  --superficie:   #18232B;
-  --superficie-2: #203039;
-  --borde:        #415A63;
-  --texto:        #F5F7F6;
-  --texto-tenue:  #B6C5BE;
-
-  --marca:           #32D69B;   /* verde esmeralda: acciones y validación */
-  --marca-contraste: #0B0F14;
-  --marca-hover:     #69E3B8;
-  --acento:          #0A6E5A;   /* verde bosque: fondos de énfasis */
-
-  --ok:      #32D69B;
-  --aviso:   #F6C76B;
-  --peligro: #FF8E98;
-  --info:    #72C8FF;
-
-  --hero: linear-gradient(120deg, #142A25, #0A3B31);
-  --sombra-tinta: 0 0% 0%;
-
-  /* ── Tipografía (DejaVu Sans incluida en el paquete) ──────────────────── */
-  --fuente: "SipraSans", system-ui, "Segoe UI", Arial, sans-serif;
-  --fuente-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
-
-  --fs-xs:   .8125rem;   /* 13 px: solo apoyos; el texto funcional no baja de 14 */
-  --fs-sm:   .875rem;    /* 14/20 etiquetas */
-  --fs-base: 1rem;       /* 16/24 cuerpo */
-  --fs-lg:   1.125rem;
-  --fs-xl:   1.5rem;     /* 24/32 sección */
-  --fs-2xl:  clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem);
-  --fs-h1:   clamp(1.875rem, 1.3rem + 2.2vw, 2.5rem); /* 40/48 título */
-
-  /* ── Espacio, forma, movimiento ────────────────────────────────────────── */
-  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
-  --sp-7: clamp(32px, 26px + 1.8vw, 48px);
-
-  --r-sm: 12px; --r-md: 18px; --r-lg: 20px;
-
-  --dur-2: 150ms; --dur-3: 200ms; --dur-5: 300ms;
-  --ease-out: cubic-bezier(.16, 1, .3, 1);
-
-  --lateral: 264px;
-}
-:root[data-modo="claro"] {
-  color-scheme: light;
-  --bg:           #F2F6F4;
-  --superficie:   #FFFFFF;
-  --superficie-2: #E7EFEB;
-  --borde:        #C7D5CF;
-  --texto:        #0B0F14;
-  --texto-tenue:  #4B625C;
-  --marca:           #0A6E5A;
-  --marca-contraste: #FFFFFF;
-  --marca-hover:     #0C8A70;
-  --acento:          #32D69B;
-  --ok:      #0A7A58;
-  --aviso:   #8A5B00;
-  --peligro: #B42836;
-  --info:    #0B5E9E;
-  --hero: linear-gradient(120deg, #DDF3EA, #BFE9D8);
-  --sombra-tinta: 160 20% 15%;
-}
-:root {
-  /* Borde de controles de formulario: ≥3:1 sobre fondo y superficie (WCAG 1.4.11), derivado de los tokens existentes. */
-  --borde-campo:   color-mix(in oklab, var(--borde) 35%, var(--texto-tenue));
+  /* Borde de controles de formulario: ≥3:1 sobre fondo y superficie (WCAG 1.4.11). */
+  --borde-campo:   color-mix(in oklab, var(--text-primary) 52%, var(--surface-raised));
   --marca-suave:   color-mix(in oklab, var(--marca) 14%, transparent);
-  --ok-suave:      color-mix(in oklab, var(--ok) 14%, transparent);
-  --aviso-suave:   color-mix(in oklab, var(--aviso) 16%, transparent);
-  --peligro-suave: color-mix(in oklab, var(--peligro) 14%, transparent);
-  --info-suave:    color-mix(in oklab, var(--info) 14%, transparent);
+  --ok-suave:      var(--status-success-subtle);
+  --aviso-suave:   var(--status-review-subtle);
+  --peligro-suave: var(--status-critical-subtle);
+  --info-suave:    var(--status-available-subtle);
   --sh-sm: 0 1px 2px hsl(var(--sombra-tinta) / .18);
   --sh-md: 0 2px 4px hsl(var(--sombra-tinta) / .18), 0 8px 20px hsl(var(--sombra-tinta) / .14);
   --sh-lg: 0 4px 8px hsl(var(--sombra-tinta) / .2), 0 18px 40px hsl(var(--sombra-tinta) / .18);
@@ -105,7 +28,6 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--bg);
   color: var(--texto);
   font-family: var(--fuente);
   font-size: var(--fs-base);
@@ -126,7 +48,7 @@ code { font-family: var(--fuente-mono); font-size: .9em; }
 
 /* Foco visible de 3 px (ficha 10). */
 :where(a, button, [role=button], input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 3px solid var(--texto);
+  outline: 3px solid var(--foco);
   outline-offset: 3px;
   border-radius: inherit;
 }
@@ -180,11 +102,11 @@ code { font-family: var(--fuente-mono); font-size: .9em; }
 .cifra .t, .stat .et { font-size: var(--fs-sm); color: var(--texto-tenue); }
 .stat { display: grid; gap: 2px; }
 
-/* ── Botones (ficha 10: 44 px mínimos, radio 12) ───────────────────────── */
+/* ── Botones V3: 40 px (44 en táctil), radio 6; la acción primaria lleva esquina técnica (chaflán). ── */
 .boton {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
-  min-height: 44px; padding: 0 var(--sp-5);
-  border-radius: var(--r-sm); border: 1px solid var(--borde);
+  min-height: var(--c-boton-alto); padding: 0 var(--sp-5);
+  border-radius: var(--r-sm); border: 1px solid var(--border-strong);
   background: transparent; color: var(--texto);
   font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer;
   transition: background var(--dur-2), border-color var(--dur-2), transform 60ms;
@@ -192,12 +114,16 @@ code { font-family: var(--fuente-mono); font-size: .9em; }
 .boton:hover:not(:disabled) { background: var(--superficie-2); text-decoration: none; }
 .boton:active:not(:disabled) { transform: translateY(1px); }
 .boton:disabled { background: var(--borde); color: var(--texto); border-color: var(--borde); opacity: .75; cursor: not-allowed; }
+@media (pointer: coarse) { .boton { min-height: 44px; } }
 .boton.compacto { min-height: 36px; padding: 0 var(--sp-3); font-size: var(--fs-sm); }
 .boton--primario {
   background: var(--marca); color: var(--marca-contraste); border-color: transparent;
+  clip-path: polygon(0 var(--r-sm), var(--r-sm) 0, calc(100% - var(--chaflan)) 0, 100% var(--chaflan), 100% 100%, var(--r-sm) 100%, 0 calc(100% - var(--r-sm)));
 }
+/* El chaflán recorta el contorno de foco: con teclado se muestra la forma rectangular completa. */
+.boton--primario:focus-visible { clip-path: none; }
 .boton--primario:hover:not(:disabled) { background: var(--marca-hover); }
-.boton--secundario { border-color: var(--marca); }
+.boton--secundario { border-color: var(--border-strong); }
 /* Acción terciaria (ayuda, volver, ver más): sin borde ni relleno, para que no compita con la acción principal. */
 .boton--texto { background: transparent; border-color: transparent; color: var(--marca); font-weight: 600; }
 .boton--texto:hover:not(:disabled) { background: var(--marca-suave); }
@@ -243,7 +169,7 @@ code { font-family: var(--fuente-mono); font-size: .9em; }
 .campo > label, .campo > .et-campo { font-size: var(--fs-sm); font-weight: 700; color: var(--texto); }
 .campo input, .campo select, .campo textarea {
   font: inherit; font-size: var(--fs-base);
-  color: var(--texto); background: var(--bg);
+  color: var(--texto); background: var(--surface-raised);
   border: 1px solid var(--borde-campo); border-radius: var(--r-sm);
   min-height: 44px; padding: var(--sp-2) var(--sp-4); width: 100%;
 }
@@ -311,7 +237,6 @@ pre.salida {
 @keyframes aparecer { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
 @keyframes crecer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes girar { to { rotate: 360deg; } }
-@keyframes revelar-tema { from { clip-path: circle(0 at var(--tema-x, 50%) var(--tema-y, 50%)); } to { clip-path: circle(var(--tema-r, 150vmax) at var(--tema-x, 50%) var(--tema-y, 50%)); } }
 
 @media (prefers-reduced-motion: no-preference) {
   /* Tarjetas y bloques entran al montarse; dentro de .escalonado lo hacen en cascada. */
@@ -345,14 +270,15 @@ pre.salida {
   ::view-transition-group(lateral), ::view-transition-group(appbar), ::view-transition-group(barra-inf), ::view-transition-group(cinta) { animation-duration: 0s; }
   ::view-transition-old(lateral), ::view-transition-old(appbar), ::view-transition-old(barra-inf), ::view-transition-old(cinta) { animation: none; opacity: 0; }
   ::view-transition-new(lateral), ::view-transition-new(appbar), ::view-transition-new(barra-inf), ::view-transition-new(cinta) { animation: none; }
-  /* Cambio de tema: revelado circular desde el botón. */
-  html[data-transicion="tema"]::view-transition-old(root) { animation: none; }
-  html[data-transicion="tema"]::view-transition-new(root) { animation: 480ms ease-in-out both revelar-tema; }
-  html[data-transicion="tema"]::view-transition-old(lateral), html[data-transicion="tema"]::view-transition-old(appbar),
-  html[data-transicion="tema"]::view-transition-old(barra-inf), html[data-transicion="tema"]::view-transition-old(cinta) { opacity: 1; }
-  html[data-transicion="tema"]::view-transition-new(lateral), html[data-transicion="tema"]::view-transition-new(appbar),
-  html[data-transicion="tema"]::view-transition-new(barra-inf), html[data-transicion="tema"]::view-transition-new(cinta) { animation: 480ms ease-in-out both revelar-tema; }
+  /* Cambio de tema: fundido de 240 ms sobre el documento completo (sin flash blanco: nunca pasa por blanco puro). */
+  html[data-transicion="tema"]::view-transition-old(root) { animation: 240ms ease-out both desvanecer; }
+  html[data-transicion="tema"]::view-transition-new(root) { animation: 240ms ease-out both aparecer-opacidad; }
+  html[data-transicion="tema"]::view-transition-old(lateral), html[data-transicion="tema"]::view-transition-old(appbar), html[data-transicion="tema"]::view-transition-old(barra-inf), html[data-transicion="tema"]::view-transition-old(cinta) { animation: 240ms ease-out both desvanecer; opacity: 1; }
+  html[data-transicion="tema"]::view-transition-new(lateral), html[data-transicion="tema"]::view-transition-new(appbar), html[data-transicion="tema"]::view-transition-new(barra-inf), html[data-transicion="tema"]::view-transition-new(cinta) { animation: 240ms ease-out both aparecer-opacidad; }
+  html[data-transicion="tema"]::view-transition-group(lateral), html[data-transicion="tema"]::view-transition-group(appbar),
+  html[data-transicion="tema"]::view-transition-group(barra-inf), html[data-transicion="tema"]::view-transition-group(cinta) { animation-duration: 240ms; }
 }
+@keyframes aparecer-opacidad { from { opacity: 0; } to { opacity: 1; } }
 @keyframes desvanecer { to { opacity: 0; } }
 
 /* Botón ocupado: indicador giratorio y texto atenuado; funciona también sin movimiento. */

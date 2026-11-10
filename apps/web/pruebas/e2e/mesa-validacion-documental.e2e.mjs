@@ -259,7 +259,8 @@ async function main() {
       afirmar(await nav.evaluar(`window.__vd === 'misma-pagina'`), 'no debe recargarse la aplicación');
       afirmar(await nav.evaluar(`location.pathname.includes(${JSON.stringify(PRACTICA)})`), 'debe seguir dentro del expediente');
       afirmar(/Necesitan corrección: 1/.test((await nav.evaluar(textoDe('[data-vd-contadores]'))).replace(/\s+/g, ' ')), 'el contador de correcciones debe subir a 1');
-      await nav.clic('button', 'Mostrar la cola');
+      // V3: desde 1280 px la cola queda visible junto al expediente; por debajo se pliega y se pide con «Mostrar la cola».
+      if (await nav.evaluar(`[...document.querySelectorAll('button')].some((b) => (b.offsetWidth || b.offsetHeight) && b.textContent.includes('Mostrar la cola'))`)) await nav.clic('button', 'Mostrar la cola');
       await nav.esperar(`document.querySelectorAll('[data-vd-expediente]').length >= 1`, 10000, 'la cola');
       afirmar(/Necesita corrección/.test(await nav.evaluar(textoDe('[data-vd-expediente]'))), 'la cola también debe reflejar el cambio');
       await captura(nav, 'camara-devuelta');

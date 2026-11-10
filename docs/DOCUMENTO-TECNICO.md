@@ -1677,6 +1677,21 @@ Pantalla propia, independiente de las Mesas de EPS y de Actas (`features/rut`, r
 - **Verificación.** Pruebas de dominio, adaptadores y caso de uso (39), verificación PostgreSQL de la lectura (`test:pg:expediente`) y un E2E en Chromium real con «Estudiante Prueba CUNbre» (paquete completo, navegación entre documentos sin volver a la cola, multiusuario, devolución y reenvío, permisos, supervisión, responsive).
 - **Límites conocidos.** Para EPS la señal de la cola usa la discrepancia crítica que el propio motor persiste (la Mesa de EPS recalcula la comparación triple al abrir el detalle). `aprobados hoy` usa la fecha de decisión de cada motor (día de Colombia). El tope de la cola es de 300 expedientes por consulta (se avisa cuando se trunca).
 
+### 7.34 Dirección visual V3 (Hybrid Signal Dark · Arctic Signal Light)
+
+**Alcance:** solo presentación. No cambian reglas de negocio, permisos, reservas, decisiones, endpoints, base de datos, migraciones ni la autenticación real. Fuente visual: Figma «SIPRA — 99 · Archive» (V3, nodos F1–F13), «01 · Design System» y «03 · Motion & Prototypes».
+
+- **Tokens** (`apps/web/src/estilos/tokens.css`): tres capas —primitivos `--p-*`, semánticos (`--surface-*`, `--text-*`, `--border-*`, `--signal-*`, `--status-*`) y de componente `--c-*`—, con temas por `[data-theme="dark"|"light"]` y alias (`--bg`, `--superficie`, `--marca`…) para que los módulos existentes adopten el tema sin reescribirse.
+- **Tipografía:** Geist y Geist Mono autoalojadas (`@fontsource-variable/geist` y `geist-mono`, cargadas desde `angular.json`). Mono solo para ids, versiones, tiempos y cifras técnicas; mínimo operativo 12 px. Reemplaza a «SipraSans» (DejaVu); los archivos antiguos siguen en `assets/fuentes` sin referencia.
+- **Entorno** (`estilos/ambiente.css`, versión Standard CSS + SVG, sin WebGL): T1 grano, T2 retícula, T3 campo de nodos, T4 bloom con deriva de 24 s (se apaga con `prefers-reduced-motion`). Nunca sobre el PDF, tablas, controles ni texto.
+- **Tema:** `assets/tema-inicial.js` aplica el tema guardado antes del primer pintado (sin parpadeo); `TemaService` lo mantiene y lo persiste con la misma clave de siempre (`sipra.tema`: oscuro|claro). Sin preferencia guardada manda `prefers-color-scheme` y, si no, el oscuro. Cambio con fundido de 240 ms (View Transitions); sin soporte o con movimiento reducido cambia en seco.
+- **Shell:** command rail de 64 px (se abre a 248 px con puntero o foco) con pista de señal activa, selector de tema y cuenta al pie; barra inferior en móvil. No cambian rutas ni menús por rol.
+- **Login** (`features/ingreso`): Signal Field en SVG + CSS (60 nodos, 24 curvas, deriva 10–24 s, amplitud 4–16 px, reacción mínima del puntero solo en zonas ambientales, apagado con reduced-motion) y transición de ~420 ms al entrar. «Usuarios de prueba» es un disclosure que muestra los perfiles que el servidor ya expone y existe SOLO si el servidor permite el selector y el ambiente del cliente no es producción/pre (`debeMostrarUsuariosDePrueba`, con pruebas). El flujo de ingreso no cambia.
+- **/validacion-documental:** feed operativo, Document Signal rail (nodos reales por documento, pulso suave de 1.8–2.4 s en el activo, indicador que viaja por `transform`), progreso «X de Y aprobados», bahía del documento, inspector continuo y barra de decisión con posiciones fijas y énfasis según la recomendación del motor. Los componentes de los motores solo se reestilizaron.
+- **Verificación:** pruebas web 302/302, lint 0 advertencias, typecheck limpio, E2E de la Mesa documental 35/35, sin desborde horizontal en 1920/1440/1366/1024/768/390 en dark y light. Contraste medido por prueba a partir de `tokens.css`.
+- **/validacion-documental, pase de fidelidad a 1440 × 1024 (F1 Dark, F2 Light, F3 crítica):** valores leídos del Figma por MCP (cajas, colores, tipografía, sombras). Cola de 340 px como feed con pestañas compactas (Todos · Pendientes · Problemas · Míos · Reservas, con sus cifras) y filtros avanzados en un disclosure dentro de la búsqueda; fila activa con profundidad tonal, luz de borde y línea de señal; encabezado compacto (id · periodo, modalidad · empresa, metadatos en una línea); Document Signal a 128 px por nodo con halo del activo; progreso «N /T» con leyenda; bahía grafito/hielo con el visor en una píldora técnica (página, zoom, ajuste, ampliar) y el papel flotante; inspector continuo numerado con la comparación como hoja clara; barra de decisión al pie del inspector. La piel de los motores vive en dos componentes sin encapsulación (`VdPielBahiaComponent`, `VdPielInspectorComponent`) anclados en `#vd-motor` (antes se repetía en los cuatro envoltorios). Estados vacío/procesando/aprobado con Topology Orb y loader Document Signal (`vd-estados.component.ts`). Contraste MEDIDO sobre píxeles reales: 42/42 textos ≥ 4,5:1 en cada tema; para lograrlo se ajustaron, solo donde el Figma no llegaba, el tenue oscuro dentro de la Mesa (#94AEAC), `--status-success` claro (#0A7366), `--status-pending` claro (#45606E) y la leyenda del progreso en claro. Sin aumento de presupuestos.
+- **Límites conocidos:** los acordeones 04–06 del inspector siguen siendo las pestañas propias de cada motor; no existen «Anterior»/«Siguiente estudiante» en la API actual (no se inventaron); los puntos de la cola no distinguen crítico (el resumen no trae criticidad); la comparación visual completa contra Figma (F3, F7, F9–F13) y la medición de fps están pendientes; presupuesto de CSS por componente subido a 12 kB (aviso).
+
 ---
 
 ## 8. Cumplimiento normativo
@@ -2216,6 +2231,13 @@ npm run dev                   # API en :3000 · web en :4200
 | Métricas (con `METRICAS_TOKEN`) | http://localhost:3000/api/v1/metrics |
 | Grafana (perfil `observabilidad`) | http://localhost:3001 |
 
+**Reiniciar `ng serve` cuando cambie `angular.json`.** El servidor de desarrollo lee la lista `styles` solo al
+arrancar; ni el modo watch ni HMR la recargan. Desde la 0.27.0 los tokens y Geist viven en hojas propias
+(`estilos/tokens.css`, `estilos/ambiente.css`, `@fontsource-variable/*`); un servidor arrancado antes sirve solo
+`estilos.css`, que usa esas variables sin definirlas, y la aplicación entera sale sin estilos (Times, sin shell ni
+layout). Remedio: detener `npm run dev:web`, volver a iniciarlo y recargar sin caché. La prueba
+`pruebas/estilos-globales.spec.ts` vigila la configuración y las variables, no el proceso en ejecución.
+
 ### 12.1 Perfiles sembrados
 
 | Perfil | Correo | Qué demuestra |
@@ -2570,6 +2592,35 @@ aplicación y no poder encenderla.
 - Los ítems con «Sí» en dependencia externa pueden empezar por la parte técnica (puerto, adaptador con simulador) y cerrarse cuando llegue el insumo.
 - Los ítems P-59 a P-78 y las estimaciones recalculadas usan la cifra del verificador; cuando dio una sola cifra se toma como mínimo y máximo. Los totales por grupo suman los mínimos y los máximos de cada ítem, redondeados al entero; el total general se redondea desde la suma exacta (168,25 – 277,75 días), por lo que puede diferir en uno o dos días de la suma de las filas.
 - P-42 está marcado «por confirmar»: si la Dirección decide arrancar en vacío al inicio de un periodo, se descarta (y P-46 cambia de fuente).
+
+### 15.8 Pendientes visuales globales (V3)
+
+Registrados el 10 de noviembre de 2026 tras la auditoría de dependencias del frontend con Graphify; se implementan en la siguiente fase visual. Ninguno cambia sesión real, OIDC, roles, permisos ni usuarios sintéticos.
+
+> **Estado (10 de noviembre de 2026): V3-01 y V3-02 resueltos en la subfase Shell V3-02 (bitácora 0.29.0).** Se conserva abajo el análisis original.
+
+**V3-01 · Control de tema en `/ingreso`.** Hoy el login respeta el tema (`tema-inicial.js` fija `data-theme` antes del primer pintado y `ingreso`/`signal-field` usan `:host-context([data-theme])`), pero no ofrece cómo cambiarlo: el único control vive en la plantilla de `layout/shell.component.ts` (píldora del rail y botón móvil), que no se monta antes de iniciar sesión.
+- Reutilizar `TemaService` (`core/ui/tema.service.ts`, `providedIn: 'root'`), la clave `sipra.tema` y los valores `oscuro`/`claro`; nada de un segundo servicio ni otra clave.
+- Extraer un control presentacional (por ejemplo, `shared/components/control-tema.component.ts`) que llame a `alternar()` y lea `esClaro()`. Adoptarlo primero solo en `ingreso`, en la zona superior derecha («Acceso institucional · ES-CO»). El shell lo adopta en su propia fase.
+- Sin parpadeo: el primer pintado ya lo resuelve `tema-inicial.js`; el control solo alterna.
+- Detalle a corregir al tocarlo: `TemaService.aplicar()` no actualiza `<meta name="theme-color">`, que `tema-inicial.js` sí fija.
+- Archivos: `features/ingreso/ingreso.component.ts` y el control nuevo. Riesgo bajo: el servicio ya está en la raíz y el login es una ruta fuera del shell.
+- Pruebas: `tema.spec.ts`, `login-contraste.spec.ts`, `estilos-globales.spec.ts` y verificación manual de que el tema persiste entre `/ingreso` y el shell.
+
+**V3-02 · «Cerrar sesión» visible con usuarios de prueba.** El cierre ya existe y es único: `SesionService.salir()` (`core/auth/sesion.service.ts`) borra la señal y `sipra.sesion`, descarta el `state` OIDC y navega a `/ingreso`. Lo llaman:
+- el menú de cuenta del shell (avatar del rail en escritorio, botón de cuenta en móvil), con «Cerrar sesión» siempre y «Cambiar usuario» en `modo === 'abierto'`;
+- el interceptor ante un 401;
+- `cambiarUsuario()`, que es un alias de `salir()`.
+
+El problema es de descubrimiento: el avatar solo muestra iniciales y la cinta «Ambiente de pruebas» no ofrece la salida.
+- Sin un segundo mecanismo: toda salida llama a `sesion.salir()`.
+- En el menú de cuenta, con `modo === 'abierto'`, rotular «Usuario de prueba · <rol>» y unificar «Cambiar usuario»/«Cerrar sesión» en una sola acción.
+- Dar al avatar del rail un rótulo visible al pasar el puntero o al recibir el foco.
+- Opcional: en la cinta (que ya solo existe con `modo === 'abierto'`), un enlace discreto «Salir» que llame a la misma función.
+- En móvil, el mismo menú desde el botón de cuenta.
+- Tras salir, `/ingreso` sigue mostrando «Usuarios de prueba» porque lo decide `debeMostrarUsuariosDePrueba()` (servidor + `entorno`), no la sesión.
+- Archivos: `layout/shell.component.ts`. Riesgo medio: el shell envuelve todas las rutas autenticadas.
+- Pruebas: `sesion.spec.ts`, `usuarios-prueba.spec.ts`, los E2E de las mesas y verificación manual del ciclo ingresar → salir → `/ingreso` con «Usuarios de prueba» visible.
 
 ---
 
@@ -3261,6 +3312,37 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.29.0 — 10 de noviembre de 2026
+
+Shell V3-02: primeros componentes del Kit V3 (opt-in, encapsulados, sin tocar hojas globales).
+
+- **`shared/components/control-tema.component.ts`** (`sipra-control-tema`, variantes `rail`, `icono` y `etiqueta`). Es un `button role="switch"` («Tema claro» + `aria-checked`) que solo delega en `TemaService.alternar()`. Tiene pulgar e icono de 220 ms, micro‑señal y tooltip, y se queda quieto con movimiento reducido. Lo usan el rail y la barra móvil del shell y, ahora también, `/ingreso`, arriba a la derecha (la cabecera «Acceso institucional · ES-CO» se corre 48 px; el resto del login queda intacto).
+- **`shared/components/control-cuenta.component.ts`** (`sipra-control-cuenta`, variantes `rail` y `barra`). Usa el patrón de divulgación: `aria-expanded`/`aria-controls`; Escape y clic fuera cierran; el foco va a «Cerrar sesión» al abrir y vuelve al disparador. El panel muestra «Usuario de prueba» (con `modo === 'abierto'`) o «Cuenta», junto con nombre, rol y «Cerrar sesión» con icono, que siempre llama a `SesionService.salir()`. «Cambiar usuario» sale del menú; la función sigue en el servicio. El avatar del rail lleva tooltip y una marca ámbar si la sesión es de prueba.
+- **Corrección:** el menú anterior usaba `position: fixed` dentro del `.dock` (con `backdrop-filter` y `overflow: hidden`) y quedaba recortado. Ahora el panel se abre dentro del rail y el rail no se repliega mientras está abierto.
+- **`TemaService`:** actualiza `<meta name="theme-color">` (`COLOR_BARRA`, los mismos valores que `tema-inicial.js`).
+- **Pruebas:**
+  - `tema.spec.ts`: alternancia, recarga y theme-color.
+  - `kit-v3-controles.spec.ts`: rol, iniciales, un solo mecanismo de sesión y tema, y accesibilidad declarada.
+  - web: 321/321.
+  - E2E de Validación Documental: 35/35.
+  - 28 comprobaciones de interacción en navegador: login y shell en ambos temas, primer pintado, persistencia, cuenta normal y de prueba, cierre, móvil 390 y movimiento reducido.
+
+### 0.28.2 — 10 de noviembre de 2026
+
+Auditoría de dependencias del frontend con el grafo de Graphify (solo lectura) para ordenar la migración a V3. Se registran dos pendientes visuales globales en §15.8: V3-01, control de tema en `/ingreso`, y V3-02, «Cerrar sesión» visible con usuarios de prueba. Sin cambios de código.
+
+### 0.28.1 — 9 de noviembre de 2026
+
+Incidente «aplicación sin estilos» en `localhost:4200`: el `ng serve` llevaba corriendo desde el 30 de octubre, antes del cambio de `styles` en `angular.json` (0.27.0), y servía un `styles.css` de 106 reglas sin tokens ni Geist. No era una regresión del código: tras reiniciarlo con `npm run dev:web` sirve las mismas 138 reglas, fuentes y tokens que el build de producción (ver §12). Se agrega `pruebas/estilos-globales.spec.ts`, que comprueba: las hojas globales y su orden en `angular.json`; que existan en disco; que ninguna configuración las reemplace; que no haya variables globales sin definir; los alias heredados; que el tema oscuro resuelva sin `data-theme`; y que todo selector sin encapsular quede anclado en `#vd-motor`. Sin cambios de CSS, backend ni lógica.
+
+### 0.28.0 — 9 de noviembre de 2026
+
+Validación documental V3 a 1440 × 1024 contra Figma F1/F2/F3 (ver §7.34): cola como Operations Feed, encabezado compacto, Document Signal y progreso, bahía del documento con barra técnica, inspector continuo, hoja de comparación, barra de decisión, estados vacío/carga y entorno con los blooms, la retícula y el campo de nodos del Figma. Login congelado. Sin cambios de backend, endpoints, permisos, reservas, migraciones ni reglas; el E2E de la Mesa sigue 35/35.
+
+### 0.27.0 — 9 de noviembre de 2026
+
+Dirección visual V3 (ver §7.34): tokens en tres capas con temas Dark/Light, Geist y Geist Mono autoalojadas, entorno CSS+SVG, command rail con selector de tema, login Signal Field con «Usuarios de prueba» solo en desarrollo, y Validación documental con Document Signal. Sin cambios de backend, migraciones ni reglas.
 
 ### 0.26.0 — 9 de noviembre de 2026
 

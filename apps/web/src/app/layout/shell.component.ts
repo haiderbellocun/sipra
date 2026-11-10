@@ -1,11 +1,13 @@
-import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
+import { TemaService } from '@core/ui/tema.service';
 import { Rol } from '@core/models/modelos';
 import { AvisosComponent } from '@shared/components/avisos.component';
+import { ControlCuentaComponent, etiquetaRol } from '@shared/components/control-cuenta.component';
+import { ControlTemaComponent } from '@shared/components/control-tema.component';
 
 interface EntradaMenu {
   ruta: string;
@@ -14,26 +16,21 @@ interface EntradaMenu {
   roles: Rol[] | null;
 }
 
-type ModoTema = 'oscuro' | 'claro';
-const CLAVE_TEMA = 'sipra.tema';
-
 /**
- * Armazón de la aplicación.
+ * Armazón de la aplicación (V3).
  *
- * Panel lateral fijo en escritorio, barra inferior en móvil: la misma
- * navegación, filtrada por el rol de la sesión, en la forma que cada tamaño
- * de pantalla pide. La barra superior lleva el título de la vista actual y el
- * conmutador de tema; el tema elegido se guarda en el navegador del usuario.
+ * Escritorio: command rail de 64 px (iconos; al pasar el puntero o enfocar con teclado se abre a 248 px y
+ * muestra las etiquetas), con el control de tema y la cuenta al pie. Móvil/tablet: barra inferior.
+ * La navegación sigue filtrada por el rol de la sesión; no cambian rutas ni menús. El tema lo gestiona
+ * TemaService (se persiste en el navegador y se aplica antes del primer pintado).
  */
 @Component({
   selector: 'sipra-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, AvisosComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, AvisosComponent, ControlTemaComponent, ControlCuentaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.con-cinta]': "sesion.sesion()?.modo === 'abierto'",
-    '(document:click)': 'menuCuenta.set(false)',
-    '(document:keydown.escape)': 'menuCuenta.set(false)',
   },
   styles: [`
     :host { display: block; min-height: 100dvh; }
@@ -43,121 +40,116 @@ const CLAVE_TEMA = 'sipra.tema';
     .appbar { view-transition-name: appbar; }
     .barra-inf { view-transition-name: barra-inf; }
     .cinta { view-transition-name: cinta; }
-    .tema { display: inline-flex; align-items: center; gap: var(--sp-2); }
-    .tema svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--dur-5) var(--ease-out); }
-    .tema:hover svg { transform: rotate(40deg); }
 
     :host { --alto-cinta: 0px; }
     :host(.con-cinta) { --alto-cinta: 36px; }
     .cinta {
-      background: var(--marca); color: var(--marca-contraste);
-      padding: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); line-height: 20px;
-      display: flex; gap: var(--sp-3); align-items: center; justify-content: center;
+      background: var(--surface-overlay); color: var(--text-primary); border-bottom: 1px solid var(--border-default);
+      padding: 7px var(--space-16); font-size: var(--fs-meta); line-height: 20px;
+      display: flex; gap: var(--space-12); align-items: center; justify-content: center;
       flex-wrap: wrap; text-align: center;
     }
-    .cinta strong { font-weight: 650; }
+    .cinta strong { font-weight: 650; display: inline-flex; align-items: center; gap: var(--space-8); }
+    .cinta strong::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--status-review); }
+    .cinta .detalle { color: var(--text-secondary); }
     /* Móvil: una línea («Ambiente de pruebas») y el detalle a un toque; en escritorio se ve completo. */
     .cinta-mas { display: none; }
     @media (width < 768px) {
-      .cinta { padding: var(--sp-1) var(--sp-3); }
-      .cinta-mas { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--sp-2); font: inherit; font-size: var(--fs-xs); font-weight: 600; color: inherit; background: transparent; border: 1px solid color-mix(in oklab, currentColor 40%, transparent); border-radius: var(--r-sm); cursor: pointer; }
+      .cinta { padding: var(--space-4) var(--space-12); }
+      .cinta-mas { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-8); font: inherit; font-size: var(--fs-meta); font-weight: 600; color: inherit; background: transparent; border: 1px solid var(--border-strong); border-radius: var(--radius-6); cursor: pointer; }
       .cinta .detalle { display: none; flex-basis: 100%; }
       .cinta.abierta .detalle { display: block; }
     }
-    /* En escritorio la cinta cabe en una línea y se queda fija; el panel
-       lateral y la barra superior descuentan su altura. En móvil puede
-       ocupar dos líneas y simplemente se desplaza con la página. */
     @media (width >= 1024px) {
-      .cinta { position: sticky; top: 0; z-index: 30; min-height: var(--alto-cinta); }
-      .lateral { top: var(--alto-cinta); height: calc(100dvh - var(--alto-cinta)); }
-      .appbar { top: var(--alto-cinta); }
+      .cinta { position: sticky; top: 0; z-index: 60; min-height: var(--alto-cinta); }
     }
 
-    .app { display: grid; min-height: 100dvh; grid-template-columns: 1fr; }
-    @media (width >= 1024px) { .app { grid-template-columns: var(--lateral) 1fr; } }
+    .app { display: grid; min-height: calc(100dvh - var(--alto-cinta)); grid-template-columns: 1fr; }
+    @media (width >= 1024px) { .app { grid-template-columns: var(--c-rail-ancho) 1fr; } }
 
-    /* ── Panel lateral ── */
-    .lateral {
-      display: none; flex-direction: column; gap: var(--sp-4);
-      background: var(--superficie); border-right: 1px solid var(--borde);
-      padding: var(--sp-4) var(--sp-4) 0; position: sticky; top: var(--alto-cinta, 0px); height: calc(100dvh - var(--alto-cinta, 0px));
-      overflow-y: auto; overscroll-behavior: contain;
+    /* ── Command rail ── */
+    .lateral { display: none; position: relative; z-index: 50; }
+    @media (width >= 1024px) { .lateral { display: block; } }
+    .dock {
+      position: fixed; top: var(--alto-cinta); bottom: 0; left: 0; width: var(--c-rail-ancho);
+      display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-16) 0 var(--space-12);
+      background: var(--surface-rail); border-right: 1px solid transparent;
+      border-image: linear-gradient(180deg, transparent, color-mix(in srgb, var(--signal-active) 28%, transparent) 50%, transparent) 1;
+      overflow: hidden; backdrop-filter: blur(10px);
+      transition: width var(--motion-default) var(--ease-out), box-shadow var(--motion-default) var(--ease-out);
     }
-    @media (width >= 1024px) { .lateral { display: flex; } }
+    .dock:hover, .dock:focus-within { width: var(--c-rail-ancho-abierto); box-shadow: var(--shadow-floating); }
     .logo {
-      display: flex; gap: var(--sp-3); align-items: center;
-      font-weight: 680; letter-spacing: -.02em; color: var(--texto); text-decoration: none;
-      line-height: 1.15;
+      display: flex; align-items: center; gap: var(--space-12); height: 32px; padding: 0 16px; flex: none;
+      color: var(--text-primary); text-decoration: none; white-space: nowrap;
     }
     .logo:hover { text-decoration: none; }
-    .logo .simbolo { width: 36px; height: 36px; color: var(--marca); flex: none; }
-    .logo .marca-texto { color: var(--marca); font-size: 1.35rem; font-weight: 700; letter-spacing: .02em; }
-    .logo small { display: block; font-weight: 400; font-size: var(--fs-xs); color: var(--texto-tenue); letter-spacing: 0; }
-    .nav { display: flex; flex-direction: column; gap: 2px; }
+    .logo .simbolo {
+      width: 32px; height: 32px; flex: none; padding: 5px; color: var(--text-inverse); background: var(--signal-active);
+      clip-path: polygon(0 var(--chaflan), var(--chaflan) 0, 100% 0, 100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%, 0 100%);
+    }
+    .logo .marca-texto { font-weight: 650; font-size: 1.05rem; letter-spacing: .04em; opacity: 0; transition: opacity var(--motion-fast); color: var(--rail-ink-active); }
+    .logo small { display: block; font-weight: 400; font-size: var(--fs-meta); color: var(--rail-ink); letter-spacing: 0; }
+    .nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: var(--space-8) 0; scrollbar-width: none; overscroll-behavior: contain; }
+    .nav::-webkit-scrollbar { display: none; }
     .nav a {
-      display: flex; gap: var(--sp-3); align-items: center;
-      padding: var(--sp-1) var(--sp-3); min-height: 40px; border-radius: var(--r-sm);
-      color: var(--texto-tenue); font-size: var(--fs-sm); text-decoration: none;
+      position: relative; display: flex; align-items: center; gap: var(--space-12); height: 40px; flex: none;
+      padding: 0 20px; color: var(--rail-ink); font-size: var(--fs-sm); text-decoration: none; white-space: nowrap;
+      transition: color var(--motion-fast), background var(--motion-fast);
     }
-    .nav a:hover { background: var(--superficie-2); color: var(--texto); }
-    .nav a.activo { background: var(--marca-suave); color: var(--marca); font-weight: 700; }
-    .nav svg { width: 20px; height: 20px; flex: none; }
-    /* El pie queda siempre a la vista: la lista de navegación cede (y se desplaza) antes que el cierre de sesión. */
-    .actor {
-      margin-top: auto; border-top: 1px solid var(--borde); padding: var(--sp-3) 0 var(--sp-4);
-      font-size: var(--fs-sm); display: flex; gap: var(--sp-2); align-items: center; justify-content: space-between;
-      position: sticky; bottom: 0; background: var(--superficie);
-    }
-    .actor .quien { font-weight: 600; }
-    .actor .rol { color: var(--texto-tenue); font-size: var(--fs-xs); line-height: 1.3; }
-    .actor .boton { flex: none; }
+    .nav a:hover { color: var(--rail-ink-active); background: color-mix(in srgb, var(--rail-ink-active) 8%, transparent); text-decoration: none; }
+    .nav svg { width: 24px; height: 24px; flex: none; }
+    .nav .et, .dock .oculto-rail { opacity: 0; transition: opacity var(--motion-fast); }
+    .dock:hover .et, .dock:focus-within .et, .dock:hover .marca-texto, .dock:focus-within .marca-texto { opacity: 1; }
+    /* Activo: pista de señal + punto + luz de borde suave (no un botón relleno). */
+    .nav a.activo { color: var(--rail-ink-active); background: radial-gradient(30px 30px at 32px 50%, color-mix(in srgb, var(--signal-default) 45%, transparent), color-mix(in srgb, var(--signal-default) 16%, transparent) 55%, transparent); font-weight: 600; }
+    .nav a.activo::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--signal-default); box-shadow: 0 0 8px var(--signal-default); }
+    .nav a.activo::after { content: ""; position: absolute; left: 44px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--signal-active); box-shadow: 0 0 6px var(--signal-active); }
+
+    /* Pie del rail: control de tema y cuenta (Kit V3: sipra-control-tema / sipra-control-cuenta). */
+    .pie { display: flex; flex-direction: column; gap: var(--space-12); align-items: stretch; padding-top: var(--space-8); border-top: 1px solid var(--border-subtle); flex: none; }
+    .fila-pie { display: flex; align-items: center; gap: var(--space-12); padding: 0 17px; white-space: nowrap; }
+    .fila-pie .et { color: var(--rail-ink); font-size: var(--fs-sm); opacity: 0; transition: opacity var(--motion-fast); overflow: hidden; text-overflow: ellipsis; }
+    .dock:hover .fila-pie .et, .dock:focus-within .fila-pie .et, .dock.fijo .fila-pie .et { opacity: 1; }
+    /* Con el panel de cuenta abierto el rail no se repliega aunque el puntero salga. */
+    .dock.fijo { width: var(--c-rail-ancho-abierto); box-shadow: var(--shadow-floating); overflow: visible; }
+    .dock.fijo .et, .dock.fijo .marca-texto { opacity: 1; }
 
     /* ── Contenido ── */
     .contenido { display: flex; flex-direction: column; min-width: 0; }
     .appbar {
       position: sticky; top: 0; z-index: 15;
-      background: color-mix(in oklab, var(--superficie) 92%, transparent);
-      backdrop-filter: blur(8px); border-bottom: 1px solid var(--borde);
-      padding: var(--sp-3) var(--sp-4); display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap;
+      background: color-mix(in srgb, var(--surface-canvas) 78%, transparent);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--border-subtle);
+      padding: var(--space-12) var(--space-16); display: flex; gap: var(--space-12); align-items: center; flex-wrap: wrap;
     }
     .appbar h2 { margin: 0; font-size: var(--fs-xl); }
-    .appbar .der { margin-left: auto; display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
-    .appbar .quien-movil { font-size: var(--fs-xs); color: var(--texto-tenue); }
-    @media (width >= 1024px) { .appbar .solo-movil { display: none; } }
-    .cuenta { position: relative; }
-    .cuenta-boton { display: inline-flex; align-items: center; max-width: 16rem; }
-    .cuenta-boton .cuenta-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .cuenta-menu {
-      position: absolute; right: 0; top: calc(100% + var(--sp-2)); z-index: 40; min-width: 15rem;
-      display: grid; gap: var(--sp-1); padding: var(--sp-3);
-      background: var(--superficie); border: 1px solid var(--borde); border-radius: 8px;
-      box-shadow: 0 8px 24px rgb(0 0 0 / .18);
-    }
-    .cuenta-menu .quien { font-weight: 600; }
-    .cuenta-menu .rol { color: var(--texto-tenue); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em; margin-bottom: var(--sp-2); }
-    .cuenta-menu .boton { justify-content: flex-start; width: 100%; }
-    @media (width < 600px) { .solo-escritorio { display: none; } }
-    main { padding: var(--sp-5) var(--sp-4) var(--sp-7); max-width: 78rem; width: 100%; }
-    @media (width >= 1024px) { main { padding-inline: var(--sp-6); } }
-    /* Estación de trabajo (la Mesa de EPS): usa casi todo el ancho; las demás vistas conservan su medida de lectura. */
+    .appbar .der { margin-left: auto; display: flex; gap: var(--space-8); align-items: center; flex-wrap: wrap; position: relative; }
+    @media (width >= 1024px) { .appbar .der { display: none; } .appbar { top: var(--alto-cinta); } .appbar.sin-barra { display: none; } }
+    main { padding: var(--space-24) var(--space-16) var(--space-48); max-width: 78rem; width: 100%; }
+    @media (width >= 1024px) { main { padding-inline: var(--space-32); } }
+    /* Estación de trabajo (Mesas): usa casi todo el ancho; las demás vistas conservan su medida de lectura. */
     main.ancho { max-width: 150rem; margin-inline: auto; }
-    @media (width >= 1024px) { main.ancho { padding-inline: var(--sp-4); } }
+    @media (width >= 1024px) { main.ancho { padding-inline: var(--space-16); } }
+    /* Lienzo: Validación documental ocupa todo el alto/ancho útil (sin padding): el contenido gestiona sus paneles. */
+    main.lienzo { max-width: none; padding: 0; }
 
     /* ── Barra inferior (móvil) ── */
     .barra-inf {
       position: sticky; bottom: 0; z-index: 20; display: flex; margin-top: auto;
-      background: var(--superficie); border-top: 1px solid var(--borde);
+      background: var(--surface-rail); border-top: 1px solid var(--border-subtle); backdrop-filter: blur(10px);
       padding-bottom: env(safe-area-inset-bottom, 0);
     }
     @media (width >= 1024px) { .barra-inf { display: none; } }
     .barra-inf a {
-      flex: 1; display: grid; place-items: center; gap: 2px; min-height: 56px;
-      color: var(--texto-tenue); font-size: 11px; line-height: 14px; font-weight: 500;
-      padding: var(--sp-1) 2px; min-width: 0; text-decoration: none; text-align: center;
+      position: relative; flex: 1; display: grid; place-items: center; gap: 2px; min-height: 56px;
+      color: var(--rail-ink); font-size: var(--fs-meta); line-height: 14px; font-weight: 500;
+      padding: var(--space-4) 2px; min-width: 0; text-decoration: none; text-align: center;
       overflow-wrap: normal; hyphens: auto;
     }
     .barra-inf svg { width: 24px; height: 24px; }
-    .barra-inf a.activo { color: var(--marca); }
+    .barra-inf a.activo { color: var(--rail-ink-active); }
+    .barra-inf a.activo::before { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: var(--signal-default); box-shadow: 0 0 8px var(--signal-default); }
   `],
   template: `
     <!-- Sprite de iconos del paquete de diseño SIPRA (24 px, trazo 1.8, currentColor). -->
@@ -196,61 +188,47 @@ const CLAVE_TEMA = 'sipra.tema';
       </div>
     }
 
+    <div class="ambiente-grano" aria-hidden="true"></div>
     <div class="app">
       <aside class="lateral">
-        <a class="logo" routerLink="/inicio" aria-label="SIPRA · Prácticas y empleo CUN, ir al inicio">
-          <svg class="simbolo" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"><path d="M22 94V38L42 18L74 50"/><path d="M96 24V80L65 109L44 90V57L74 86"/></g></svg>
-          <span class="marca-texto">SIPRA<small>Prácticas y empleo CUN</small></span>
-        </a>
-        <nav class="nav" aria-label="Principal">
-          @for (entrada of menuVisible(); track entrada.ruta) {
-            <a [routerLink]="entrada.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page">
-              <svg aria-hidden="true"><use [attr.href]="'#' + entrada.icono" /></svg>
-              {{ entrada.etiqueta }}
-            </a>
-          }
-        </nav>
-        <div class="actor">
-          <div class="rol" [attr.title]="sesion.sesion()?.nombre">{{ etiquetaRol() }}</div>
-          <button type="button" class="boton compacto" (click)="sesion.salir()">Cerrar sesión</button>
+        <div class="dock" [class.fijo]="cuentaAbierta()">
+          <a class="logo" routerLink="/inicio" aria-label="SIPRA · Prácticas y empleo CUN, ir al inicio">
+            <svg class="simbolo" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"><path d="M22 94V38L42 18L74 50"/><path d="M96 24V80L65 109L44 90V57L74 86"/></g></svg>
+            <span class="marca-texto">SIPRA<small>Prácticas y empleo CUN</small></span>
+          </a>
+          <nav class="nav" aria-label="Principal">
+            @for (entrada of menuVisible(); track entrada.ruta + entrada.etiqueta) {
+              <a [routerLink]="entrada.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page" [attr.title]="entrada.etiqueta">
+                <svg aria-hidden="true"><use [attr.href]="'#' + entrada.icono" /></svg>
+                <span class="et">{{ entrada.etiqueta }}</span>
+              </a>
+            }
+          </nav>
+          <div class="pie">
+            <div class="fila-pie">
+              <sipra-control-tema variante="rail" />
+              <span class="et" aria-hidden="true">{{ temaServicio.etiqueta() }}</span>
+            </div>
+            <div class="fila-pie">
+              <sipra-control-cuenta variante="rail" (abiertoCambio)="cuentaAbierta.set($event)" />
+              <span class="et" aria-hidden="true" [attr.title]="sesion.sesion()?.nombre">{{ rotuloCuenta() }}</span>
+            </div>
+          </div>
         </div>
       </aside>
 
       <div class="contenido">
-        <header class="appbar">
+        <header class="appbar" [class.sin-barra]="lienzo()">
           <h2>{{ titulo() }}</h2>
           <div class="der">
-            <button type="button" class="boton compacto tema" (click)="alternarTema($event)"
-                    [attr.aria-label]="'Tema: ' + etiquetaTema() + '. Cambiar'">
-              @if (tema() === 'oscuro') {
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
-              } @else {
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
-              }
-              <span class="solo-escritorio">{{ etiquetaTema() }}</span>
-            </button>
-            <div class="cuenta">
-              <button type="button" class="boton compacto cuenta-boton" aria-haspopup="menu"
-                      [attr.aria-expanded]="menuCuenta()" (click)="alternarMenuCuenta($event)">
-                <span class="cuenta-nombre">{{ sesion.sesion()?.nombre }}</span>
-              </button>
-              @if (menuCuenta()) {
-                <div class="cuenta-menu" role="menu" aria-label="Cuenta">
-                  <div class="quien">{{ sesion.sesion()?.nombre }}</div>
-                  <div class="rol">{{ etiquetaRol() }}</div>
-                  @if (sesion.sesion()?.modo === 'abierto') {
-                    <button type="button" class="boton compacto" role="menuitem" (click)="sesion.cambiarUsuario()">Cambiar usuario</button>
-                  }
-                  <button type="button" class="boton compacto" role="menuitem" (click)="sesion.salir()">Cerrar sesión</button>
-                </div>
-              }
-            </div>
+            <sipra-control-tema variante="etiqueta" />
+            <sipra-control-cuenta variante="barra" />
           </div>
         </header>
-        <main [class.ancho]="anchoCompleto()"><router-outlet /></main>
+        <main [class.ancho]="anchoCompleto()" [class.lienzo]="lienzo()"><router-outlet /></main>
         <sipra-avisos />
         <nav class="barra-inf" aria-label="Principal">
-          @for (entrada of menuMovil(); track entrada.ruta) {
+          @for (entrada of menuMovil(); track entrada.ruta + entrada.etiqueta) {
             <a [routerLink]="entrada.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page">
               <svg aria-hidden="true"><use [attr.href]="'#' + entrada.icono" /></svg>
               {{ entrada.etiqueta }}
@@ -263,8 +241,8 @@ const CLAVE_TEMA = 'sipra.tema';
 })
 export class ShellComponent {
   readonly sesion = inject(SesionService);
+  readonly temaServicio = inject(TemaService);
   private readonly router = inject(Router);
-  private readonly documento = inject(DOCUMENT);
 
   private readonly menu: EntradaMenu[] = [
     { ruta: '/inicio', etiqueta: 'Inicio', icono: 'sipra-inicio', roles: null },
@@ -324,6 +302,7 @@ export class ShellComponent {
     reportes: 'Reportes',
     'costos-ia': 'Costos de IA',
     auditoria: 'Auditoría',
+    'validacion-documental': 'Validación documental',
   };
 
   readonly menuVisible = computed(() => {
@@ -344,7 +323,7 @@ export class ShellComponent {
     { initialValue: '' },
   );
 
-  /** Vistas de trabajo denso que piden todo el ancho útil (hoy, la Mesa de EPS). */
+  /** Vistas de trabajo denso que piden todo el ancho útil (Mesas de EPS, Actas, RUT y Cámara). */
   readonly anchoCompleto = toSignal(
     this.router.events.pipe(
       filter((e) => e instanceof NavigationEnd),
@@ -354,67 +333,24 @@ export class ShellComponent {
     { initialValue: false },
   );
 
-  readonly etiquetaRol = computed(() => {
-    const etiquetas: Record<string, string> = {
-      estudiante: 'Practicante',
-      tutor: 'Docente facilitador',
-      coordinador: 'Coordinación de prácticas',
-      administrador: 'Administrador institucional',
-      empresa: 'Empresa habilitada',
-      extension: 'Dirección de Extensión',
-      auxiliar: 'Auxiliar de prácticas',
-    };
-    const rol = this.sesion.rol();
-    const base = rol ? (etiquetas[rol] ?? rol) : '';
-    return this.sesion.sesion()?.permiso === 'consulta' ? `${base} · consulta` : base;
+  /** Validación documental usa el lienzo completo (sin padding ni barra superior en escritorio). */
+  readonly lienzo = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      startWith(null),
+      map(() => /^\/validacion-documental(?:[/?#]|$)/.test(this.router.url)),
+    ),
+    { initialValue: false },
+  );
+
+  /** Rótulo junto al avatar cuando el rail se abre (el mismo rol que muestra el control de cuenta). */
+  readonly rotuloCuenta = computed(() => {
+    const rol = etiquetaRol(this.sesion.rol(), this.sesion.sesion()?.permiso);
+    return this.sesion.sesion()?.modo === 'abierto' ? `Prueba · ${rol}` : rol;
   });
 
-  // ── Cuenta ────────────────────────────────────────────────────────────────
-  readonly menuCuenta = signal(false);
+  readonly cuentaAbierta = signal(false);
   readonly cintaAbierta = signal(false);
-
-  alternarMenuCuenta(evento: Event): void {
-    evento.stopPropagation();
-    this.menuCuenta.update((abierto) => !abierto);
-  }
-
-  // ── Tema ──────────────────────────────────────────────────────────────────
-  readonly tema = signal<ModoTema>(this.temaGuardado());
-  readonly etiquetaTema = computed(() => ({ oscuro: 'Tema oscuro', claro: 'Tema claro' })[this.tema()]);
-
-  constructor() {
-    effect(() => {
-      const modo = this.tema();
-      this.documento.documentElement.dataset['modo'] = modo;
-      try { localStorage.setItem(CLAVE_TEMA, modo); } catch { /* sin almacenamiento: el tema no persiste */ }
-    });
-  }
-
-  /** Cambio de tema con revelado circular desde el botón (View Transitions); sin él, cambia en seco. */
-  alternarTema(evento?: MouseEvent): void {
-    const siguiente: ModoTema = this.tema() === 'oscuro' ? 'claro' : 'oscuro';
-    const doc = this.documento as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } };
-    const reducido = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!doc.startViewTransition || reducido) { this.tema.set(siguiente); return; }
-    const x = evento?.clientX ?? innerWidth - 40;
-    const y = evento?.clientY ?? 40;
-    const radio = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    const raiz = doc.documentElement;
-    raiz.style.setProperty('--tema-x', `${x}px`);
-    raiz.style.setProperty('--tema-y', `${y}px`);
-    raiz.style.setProperty('--tema-r', `${radio}px`);
-    raiz.dataset['transicion'] = 'tema';
-    const transicion = doc.startViewTransition(() => { this.tema.set(siguiente); });
-    void transicion.finished.finally(() => { delete raiz.dataset['transicion']; });
-  }
-
-  private temaGuardado(): ModoTema {
-    try {
-      return localStorage.getItem(CLAVE_TEMA) === 'claro' ? 'claro' : 'oscuro';
-    } catch {
-      return 'oscuro';
-    }
-  }
 
   private tituloDe(url: string): string {
     const limpia = url.split('?')[0].split('#')[0];

@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIPRA — entorno (L1) en versión Standard: CSS + SVG, sin WebGL.
+   T1 Fine Grain · T2 Signal Grid · T3 Node Field · T4 Radial Bloom.
+   Reglas de uso (Figma «Texture system»): solo en el fondo, nunca sobre el PDF,
+   las tablas, los controles ni el texto. Todo es estático salvo la deriva de los
+   blooms (transform, 18–24 s, amplitud ≤ 16 px), que se apaga con
+   prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* T1: ruido fino (feTurbulence). Blanco en oscuro, tinta en claro. */
+  --env-grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 -.28'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* T3: campo de nodos de Figma V3 (28 nodos de 4 px sobre 1440 × 1024, teal .32), sin conexiones. */
+  --env-nodes-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1440' height='1024'%3E%3Cg fill='%233fd6c0' fill-opacity='.32'%3E%3Ccircle cx='0' cy='943' r='2'/%3E%3Ccircle cx='417' cy='216' r='2'/%3E%3Ccircle cx='1050' cy='545' r='2'/%3E%3Ccircle cx='474' cy='770' r='2'/%3E%3Ccircle cx='1087' cy='556' r='2'/%3E%3Ccircle cx='986' cy='651' r='2'/%3E%3Ccircle cx='1176' cy='248' r='2'/%3E%3Ccircle cx='539' cy='725' r='2'/%3E%3Ccircle cx='1005' cy='55' r='2'/%3E%3Ccircle cx='985' cy='479' r='2'/%3E%3Ccircle cx='1328' cy='827' r='2'/%3E%3Ccircle cx='177' cy='525' r='2'/%3E%3Ccircle cx='1329' cy='705' r='2'/%3E%3Ccircle cx='927' cy='591' r='2'/%3E%3Ccircle cx='1313' cy='930' r='2'/%3E%3Ccircle cx='536' cy='343' r='2'/%3E%3Ccircle cx='1206' cy='340' r='2'/%3E%3Ccircle cx='220' cy='305' r='2'/%3E%3Ccircle cx='617' cy='302' r='2'/%3E%3Ccircle cx='1350' cy='571' r='2'/%3E%3Ccircle cx='1050' cy='899' r='2'/%3E%3Ccircle cx='84' cy='280' r='2'/%3E%3Ccircle cx='807' cy='521' r='2'/%3E%3Ccircle cx='607' cy='198' r='2'/%3E%3Ccircle cx='1309' cy='56' r='2'/%3E%3Ccircle cx='526' cy='352' r='2'/%3E%3Ccircle cx='957' cy='947' r='2'/%3E%3Ccircle cx='741' cy='170' r='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+:root[data-theme="light"] {
+  --env-grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0.1 0 0 0 0 0.16 0 0 0 .9 -.28'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --env-nodes-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1440' height='1024'%3E%3Cg fill='%230e7c86' fill-opacity='.44'%3E%3Ccircle cx='0' cy='943' r='2'/%3E%3Ccircle cx='417' cy='216' r='2'/%3E%3Ccircle cx='1050' cy='545' r='2'/%3E%3Ccircle cx='474' cy='770' r='2'/%3E%3Ccircle cx='1087' cy='556' r='2'/%3E%3Ccircle cx='986' cy='651' r='2'/%3E%3Ccircle cx='1176' cy='248' r='2'/%3E%3Ccircle cx='539' cy='725' r='2'/%3E%3Ccircle cx='1005' cy='55' r='2'/%3E%3Ccircle cx='985' cy='479' r='2'/%3E%3Ccircle cx='1328' cy='827' r='2'/%3E%3Ccircle cx='177' cy='525' r='2'/%3E%3Ccircle cx='1329' cy='705' r='2'/%3E%3Ccircle cx='927' cy='591' r='2'/%3E%3Ccircle cx='1313' cy='930' r='2'/%3E%3Ccircle cx='536' cy='343' r='2'/%3E%3Ccircle cx='1206' cy='340' r='2'/%3E%3Ccircle cx='220' cy='305' r='2'/%3E%3Ccircle cx='617' cy='302' r='2'/%3E%3Ccircle cx='1350' cy='571' r='2'/%3E%3Ccircle cx='1050' cy='899' r='2'/%3E%3Ccircle cx='84' cy='280' r='2'/%3E%3Ccircle cx='807' cy='521' r='2'/%3E%3Ccircle cx='607' cy='198' r='2'/%3E%3Ccircle cx='1309' cy='56' r='2'/%3E%3Ccircle cx='526' cy='352' r='2'/%3E%3Ccircle cx='957' cy='947' r='2'/%3E%3Ccircle cx='741' cy='170' r='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* El lienzo: degradado base + T2 grid + T3 nodos. Capa fija estática. */
+html { background: var(--surface-canvas-2); }
+body { background: transparent; }
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background:
+    linear-gradient(var(--env-grid) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, var(--env-grid) 1px, transparent 1px) 0 0 / 48px 48px,
+    var(--env-nodes-url) 0 0 / 1440px 1024px,
+    linear-gradient(151.9deg, var(--env-fondo-a), var(--env-fondo-b));
+}
+/* T4 bloom (con deriva lenta). Centros y radios de Figma V3 a 1440 × 1024 (F1/F2): tres paradas 100 % → 35 % → 0 a 0/55/100 %. */
+:root, :root[data-theme="dark"] {
+  --env-fondo-a: #0a1c20; --env-fondo-b: #050d0e;
+  --env-bloom-1: radial-gradient(860px 860px at calc(13.9vw + 40px) calc(-5.9vh + 40px), rgb(23 100 95 / .6), rgb(23 100 95 / .21) 55%, transparent);
+  --env-bloom-2: radial-gradient(760px 760px at calc(88.9vw + 40px) calc(85.9vh + 40px), rgb(5 147 198 / .22), rgb(5 147 198 / .08) 55%, transparent);
+  --env-bloom-3: radial-gradient(460px 460px at calc(50vw + 40px) calc(50.8vh + 40px), rgb(143 227 242 / .05), rgb(143 227 242 / .02) 55%, transparent);
+}
+:root[data-theme="light"] {
+  --env-fondo-a: #e6f0f6; --env-fondo-b: #d3e4ee;
+  --env-bloom-1: radial-gradient(780px 780px at calc(83.3vw + 40px) calc(-7.8vh + 40px), rgb(5 147 198 / .22), rgb(5 147 198 / .08) 55%, transparent);
+  --env-bloom-2: radial-gradient(720px 720px at calc(10.4vw + 40px) calc(87.9vh + 40px), rgb(63 214 192 / .24), rgb(63 214 192 / .08) 55%, transparent);
+  --env-bloom-3: radial-gradient(520px 520px at calc(43.1vw + 40px) calc(41vh + 40px), rgb(255 255 255 / .65), rgb(255 255 255 / .23) 55%, transparent);
+}
+body::after {
+  content: ""; position: fixed; inset: -40px; z-index: -1; pointer-events: none;
+  background: var(--env-bloom-1), var(--env-bloom-2), var(--env-bloom-3);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+  body::after { animation: sipra-deriva 24s ease-in-out infinite alternate; }
+}
+@keyframes sipra-deriva {
+  from { transform: translate3d(-12px, -8px, 0); }
+  to   { transform: translate3d(14px, 10px, 0); }
+}
+/* El grano va en un elemento propio (clase aplicada por el armazón y el login). */
+.ambiente-grano {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--env-grain-url) 0 0 / 160px 160px; opacity: var(--env-grain-opacity);
+}
+@media print { body::before, body::after, .ambiente-grano { display: none; } }
