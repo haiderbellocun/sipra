@@ -52,6 +52,33 @@ describe('validarEntorno · entorno mínimo', () => {
     expect(() => entorno({ JWT_SECRETO: 'corto' })).toThrow(/JWT_SECRETO/);
   });
 
+  it('el semestre sintético de Reportes viene apagado y solo se permite en dev', () => {
+    expect(entorno().REPORTES_SEMESTRE_SINTETICO).toBe(false);
+    expect(entorno({ REPORTES_SEMESTRE_SINTETICO: 'true' }).REPORTES_SEMESTRE_SINTETICO).toBe(true);
+    const oidc = { AUTH_MODO: 'oidc', OIDC_CLIENT_ID: 'x', OIDC_CLIENT_SECRET: 'y', OIDC_REDIRECT_URI: 'https://sipra.cun.edu.co/cb', REPORTES_SEMESTRE_SINTETICO: 'true' };
+    for (const ambiente of ['qa', 'pre', 'prod']) {
+      expect(() => entorno({ ...oidc, SIPRA_AMBIENTE: ambiente })).toThrow(/REPORTES_SEMESTRE_SINTETICO=true está prohibido/);
+    }
+  });
+
+  it('la ubicación internacional sintética viene apagada y solo se permite en dev', () => {
+    expect(entorno().REPORTES_UBICACION_SINTETICA).toBe(false);
+    expect(entorno({ REPORTES_UBICACION_SINTETICA: 'true' }).REPORTES_UBICACION_SINTETICA).toBe(true);
+    const oidc = { AUTH_MODO: 'oidc', OIDC_CLIENT_ID: 'x', OIDC_CLIENT_SECRET: 'y', OIDC_REDIRECT_URI: 'https://sipra.cun.edu.co/cb', REPORTES_UBICACION_SINTETICA: 'true' };
+    for (const ambiente of ['qa', 'pre', 'prod']) {
+      expect(() => entorno({ ...oidc, SIPRA_AMBIENTE: ambiente })).toThrow(/REPORTES_UBICACION_SINTETICA=true está prohibido/);
+    }
+  });
+
+  it('los nombres de programa sintéticos vienen apagados y solo se permiten en dev', () => {
+    expect(entorno().REPORTES_PROGRAMAS_SINTETICOS).toBe(false);
+    expect(entorno({ REPORTES_PROGRAMAS_SINTETICOS: 'true' }).REPORTES_PROGRAMAS_SINTETICOS).toBe(true);
+    const oidc = { AUTH_MODO: 'oidc', OIDC_CLIENT_ID: 'x', OIDC_CLIENT_SECRET: 'y', OIDC_REDIRECT_URI: 'https://sipra.cun.edu.co/cb', REPORTES_PROGRAMAS_SINTETICOS: 'true' };
+    for (const ambiente of ['qa', 'pre', 'prod']) {
+      expect(() => entorno({ ...oidc, SIPRA_AMBIENTE: ambiente })).toThrow(/REPORTES_PROGRAMAS_SINTETICOS=true está prohibido/);
+    }
+  });
+
   it('el ingreso abierto está prohibido en preproducción y producción', () => {
     expect(() => entorno({ SIPRA_AMBIENTE: 'prod' })).toThrow(/AUTH_MODO=abierto está prohibido/);
     expect(() => entorno({ SIPRA_AMBIENTE: 'pre' })).toThrow(/AUTH_MODO=abierto está prohibido/);

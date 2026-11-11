@@ -10,7 +10,8 @@ import { ReportesEstudiantesComponent } from './reportes-estudiantes.component';
 import { ReportesExportacionesComponent } from './reportes-exportaciones.component';
 import { ReportesGeneralComponent } from './reportes-general.component';
 import { ReportesPeriodosComponent } from './reportes-periodos.component';
-import { hayDatos } from './reportes-analitica.util';
+import { ReportesOrganizacionesComponent } from './reportes-organizaciones.component';
+import { SIN_EMPRESA, hayDatos, migas, nivel, semestre } from './reportes-analitica.util';
 import { PestanaReportes, ReportesEstado } from './reportes.estado';
 
 /** Perfiles que consultan la analítica (los mismos del servidor). Extensión solo ve las exportaciones regulatorias. */
@@ -19,6 +20,7 @@ export const ROLES_ANALITICA = ['administrador', 'coordinador', 'auxiliar', 'tut
 export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
   { id: 'general', texto: 'General' },
   { id: 'estudiantes', texto: 'Estudiantes' },
+  { id: 'organizaciones', texto: 'Organizaciones' },
   { id: 'documentos', texto: 'Documentos' },
   { id: 'periodos', texto: 'Períodos' },
   { id: 'exportaciones', texto: 'Exportaciones' },
@@ -34,7 +36,7 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
   standalone: true,
   imports: [
     DatePipe, EtiquetaPipe, CargaSenalComponent, EstadoVacioComponent, ReportesGeneralComponent, ReportesEstudiantesComponent,
-    ReportesDocumentosComponent, ReportesPeriodosComponent, ReportesDetalleComponent, ReportesExportacionesComponent,
+    ReportesDocumentosComponent, ReportesPeriodosComponent, ReportesDetalleComponent, ReportesOrganizacionesComponent, ReportesExportacionesComponent,
   ],
   providers: [ReportesEstado],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,6 +73,19 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
     [role='tab']:hover { color: var(--text-primary); }
     [role='tab'][aria-selected='true'] { color: var(--text-primary); font-weight: 600; }
     [role='tab'][aria-selected='true']::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--signal-active); }
+    .contexto { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rp-regla); }
+    .contexto ol { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; padding: 0; list-style: none; flex: 1 1 auto; }
+    .contexto li { display: inline-flex; align-items: center; gap: 6px; }
+    .contexto li + li::before { content: '/'; color: var(--text-muted); }
+    .miga { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 4px 0 10px; font: 500 13px/1 var(--fuente); color: var(--text-primary); background: color-mix(in srgb, var(--signal-active) 12%, transparent); border: 1px solid color-mix(in srgb, var(--signal-active) 45%, transparent); border-radius: 14px; }
+    .miga.raiz { padding: 0 10px; background: none; border-color: var(--border-default); cursor: pointer; }
+    .miga.raiz:disabled { cursor: default; color: var(--text-secondary); }
+    .mr { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-secondary); }
+    .quitar { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; color: var(--text-secondary); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+    .quitar:hover { color: var(--text-primary); background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
+    .quitar svg { width: 10px; height: 10px; stroke: currentColor; stroke-width: 1.8; }
+    .quitar:focus-visible, .miga.raiz:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 1px; }
+    .universo { font: 500 12px/16px var(--fuente-mono); color: var(--text-secondary); }
     .actualizando { margin: -12px 0 12px; font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
     .error { display: grid; justify-items: start; gap: 10px; padding: 24px 0; }
     .error strong { font-size: 15px; color: var(--text-primary); }
@@ -113,8 +128,20 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
         <label for="rp-programa">Programa
           <select id="rp-programa" class="ctl" [value]="estado.filtros().programa" (change)="estado.filtrar({ programa: valor($event) })">
             <option value="">Todos</option>
-            @for (p of estado.programas(); track p) { <option [value]="p" [selected]="p === estado.filtros().programa">{{ p }}</option> }
+            @for (p of estado.programas(); track p) { <option [value]="p" [selected]="p === estado.filtros().programa">{{ estado.nombrePrograma(p) }}</option> }
           </select></label>
+        <label for="rp-ciclo">Nivel de formación
+          <select id="rp-ciclo" class="ctl" [value]="estado.filtros().ciclo" (change)="estado.filtrar({ ciclo: valor($event) })">
+            <option value="">Todos</option>
+            @for (c of estado.opciones().ciclos; track c) { <option [value]="c" [selected]="c === estado.filtros().ciclo">{{ nivel(c) }}</option> }
+          </select></label>
+        @if (estado.datos()?.dimensiones?.semestre === 'sintetica') {
+          <label for="rp-semestre">Semestre (sintético)
+            <select id="rp-semestre" class="ctl" [value]="estado.filtros().semestre" (change)="estado.filtrar({ semestre: valor($event) })">
+              <option value="">Todos</option>
+              @for (s of estado.opciones().semestres; track s) { <option [value]="s" [selected]="'' + s === estado.filtros().semestre">{{ semestre(s) }}</option> }
+            </select></label>
+        }
         <label for="rp-modalidad">Modalidad
           <select id="rp-modalidad" class="ctl" [value]="estado.filtros().modalidad" (change)="estado.filtrar({ modalidad: valor($event) })">
             <option value="">Todas</option>
@@ -125,13 +152,44 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
             <option value="">Todos</option>
             @for (s of estado.opciones().estados; track s) { <option [value]="s" [selected]="s === estado.filtros().estado">{{ s | etiqueta }}</option> }
           </select></label>
+        <label for="rp-receptor">Organización receptora
+          <select id="rp-receptor" class="ctl" [value]="estado.filtros().tipoReceptor" (change)="estado.filtrar({ tipoReceptor: valorReceptor($event) })">
+            <option value="">Todas</option><option value="interna_cun" [selected]="estado.filtros().tipoReceptor === 'interna_cun'">Interna CUN</option>
+            <option value="externa" [selected]="estado.filtros().tipoReceptor === 'externa'">Externa</option>
+          </select></label>
+        <label for="rp-sector">Sector económico
+          <select id="rp-sector" class="ctl" [value]="estado.filtros().sector" (change)="estado.filtrar({ sector: valor($event) })">
+            <option value="">Todos</option>
+            @for (s of estado.datos()?.sectores ?? []; track s.sector) { @if (s.sector) { <option [value]="s.sector" [selected]="s.sector === estado.filtros().sector">{{ s.nombre }}</option> } }
+          </select></label>
+        <label for="rp-ciudad">Ciudad
+          <select id="rp-ciudad" class="ctl" [value]="estado.filtros().ciudad" (change)="estado.filtrar({ ciudad: valor($event) })">
+            <option value="">Todas</option>
+            @for (c of estado.datos()?.ciudades ?? []; track c.ciudad) { @if (c.ciudad) { <option [value]="c.ciudad" [selected]="c.ciudad === estado.filtros().ciudad">{{ c.nombre }}</option> } }
+          </select></label>
+        <label for="rp-empresa">Empresa
+          <select id="rp-empresa" class="ctl" [value]="estado.filtros().empresa" (change)="estado.filtrar({ empresa: valor($event) })">
+            <option value="">Todas</option>
+            @for (e of estado.opciones().empresas; track e) { <option [value]="e ?? sinEmpresa" [selected]="(e ?? sinEmpresa) === estado.filtros().empresa">{{ e ?? 'Sin empresa registrada' }}</option> }
+          </select></label>
       </div>
+      <nav class="contexto" aria-label="Contexto del reporte">
+        <span class="rotulo">Contexto</span>
+        <ol>
+          <li><button type="button" class="miga raiz" [disabled]="!estado.activos()" (click)="estado.limpiar()">Todo el alcance</button></li>
+          @for (m of migas(); track m.clave) {
+            <li><span class="miga activa" [attr.aria-label]="m.rotulo + ': ' + m.valor"><span class="mr">{{ m.rotulo }}</span> {{ m.valor }}
+              <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + m.rotulo + ' ' + m.valor" (click)="estado.quitar(m.clave)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></span></li>
+          }
+        </ol>
+        @if (estado.datos(); as r) { <span class="universo">{{ r.resumen.estudiantes }} de {{ r.universo.estudiantes }} estudiantes en alcance</span> }
+      </nav>
     }
 
     <div class="pestanas" role="tablist" aria-label="Vistas del reporte">
       @for (p of pestanas(); track p.id) {
         <button type="button" role="tab" [id]="'tab-' + p.id" [attr.aria-selected]="estado.pestana() === p.id" [attr.aria-controls]="'vista-' + p.id"
-                [attr.tabindex]="estado.pestana() === p.id ? 0 : -1" (click)="estado.pestana.set(p.id)" (keydown)="teclado($event)">{{ p.texto }}</button>
+                [attr.tabindex]="estado.pestana() === p.id ? 0 : -1" (click)="irA(p.id)" (keydown)="teclado($event)">{{ p.texto }}</button>
       }
     </div>
 
@@ -160,6 +218,7 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
         @switch (estado.pestana()) {
           @case ('general') { <sipra-reportes-general /> }
           @case ('estudiantes') { <sipra-reportes-estudiantes /> }
+          @case ('organizaciones') { <sipra-reportes-organizaciones /> }
           @case ('documentos') { <sipra-reportes-documentos /> }
           @case ('periodos') { <sipra-reportes-periodos /> }
         }
@@ -176,7 +235,12 @@ export class ReportesComponent implements OnInit {
   protected readonly analitica = computed(() => ROLES_ANALITICA.includes(this.sesion.rol() ?? ''));
   protected readonly pestanas = computed(() => (this.analitica() ? PESTANAS : PESTANAS.filter((p) => p.id === 'exportaciones')));
   protected readonly conDatos = computed(() => hayDatos(this.estado.datos()));
-  protected readonly otrosActivos = computed(() => { const f = this.estado.filtros(); return [f.escuela, f.programa, f.modalidad, f.estado].filter(Boolean).length; });
+  protected readonly otrosActivos = computed(() => { const f = this.estado.filtros(); return [f.escuela, f.programa, f.ciclo, f.semestre, f.modalidad, f.estado, f.empresa, f.tipoReceptor, f.sector, f.ciudad].filter(Boolean).length; });
+  protected readonly nivel = nivel;
+  protected readonly semestre = semestre;
+  protected readonly sinEmpresa = SIN_EMPRESA;
+  private readonly etiqueta = new EtiquetaPipe();
+  protected readonly migas = computed(() => migas(this.estado.filtros(), { escuela: this.estado.nombreEscuela, etiqueta: (v) => this.etiqueta.transform(v), programa: this.estado.nombrePrograma, sector: this.estado.nombreSector, ciudad: this.estado.nombreCiudad }));
 
   ngOnInit(): void {
     if (this.analitica()) void this.estado.cargar();
@@ -184,6 +248,14 @@ export class ReportesComponent implements OnInit {
   }
 
   protected valor(evento: Event): string { return (evento.target as HTMLSelectElement).value; }
+  protected valorReceptor(evento: Event): '' | 'interna_cun' | 'externa' { return this.valor(evento) as '' | 'interna_cun' | 'externa'; }
+
+  /** Al salir de Estudiantes, su tabla granular (sin recorte documental) no persiste en las demás vistas. */
+  protected irA(id: PestanaReportes): void {
+    const s = this.estado.segmento();
+    if (this.estado.pestana() === 'estudiantes' && id !== 'estudiantes' && s && !s.tipo && !s.estadoDocumental) this.estado.cerrarDetalle();
+    this.estado.pestana.set(id);
+  }
 
   /** Pestañas ARIA: flechas, Inicio y Fin mueven la selección y el foco. */
   protected teclado(evento: KeyboardEvent): void {
@@ -193,7 +265,7 @@ export class ReportesComponent implements OnInit {
     if (destino === undefined) return;
     evento.preventDefault();
     const p = lista[(destino + lista.length) % lista.length];
-    this.estado.pestana.set(p.id);
+    this.irA(p.id);
     document.getElementById(`tab-${p.id}`)?.focus();
   }
 }

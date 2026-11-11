@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
-  ReportesAnaliticaUseCase, celdaCsv, compararPeriodos,
+  MODALIDADES_ARTICULADAS, ReportesAnaliticaUseCase, SIN_DATO, SIN_EMPRESA, tipoReceptor, celdaCsv, compararCiclos, compararPeriodos,
 } from '../src/application/use-cases/reportes/reportes-analitica.use-case';
 import { EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
 import { ModalidadPractica, documentosExigidos } from '../src/domain/entities/modalidad.entity';
@@ -15,7 +15,7 @@ const h = (iso: string) => new Date(iso);
 
 const practica = (s: Partial<PracticaAnalitica>): PracticaAnalitica => ({
   id: 'p', estudianteId: 'e', estudiante: 'Estudiante Sintético', programaId: 'ADM-PRO', escuelaId: 'ESC-NEG', escuela: 'Negocios',
-  periodoAcademico: '2026C', modalidad: ModalidadPractica.PASANTIA, estado: 'activa', empresa: 'Andina S.A.S.', ...s,
+  periodoAcademico: '2026C', ciclo: 'profesional', semestre: null, programaNombre: null, sector: null, sectorNombre: null, ciudad: null, ciudadNombre: null, internacional: false, modalidad: ModalidadPractica.PASANTIA, estado: 'activa', empresa: 'Andina S.A.S.', ...s,
 });
 const version = (s: Partial<VersionAnalitica>): VersionAnalitica => ({
   id: 'v', practicaId: 'p1', tipo: TipoDocumento.CERTIFICADO_ARL, version: 1, estado: EstadoDocumento.EN_REVISION,
@@ -47,15 +47,30 @@ const docenteNegocios = { id: 'doc-1', correo: 'docente@cun.edu.co', rol: Rol.TU
 const estudiante = { id: 'e1', correo: 'ana@estudiante.cun.edu.co', rol: Rol.ESTUDIANTE, permiso: 'escritura' as const, escuelas: [], empresaId: null };
 
 /** Puerto falso que aplica los filtros como lo hace el SQL del adaptador. */
-function armar(practicas = PRACTICAS, versiones = VERSIONES) {
+/** Fechas de inicio como las de `periodos_academicos` (los demás códigos no están en la entidad). */
+const INICIOS: Record<string, string> = { '2026A': '2026-01-26', '2026C': '2026-07-20', '2026-1': '2026-02-01', '2026-2': '2026-08-01' };
+
+function armar(practicas = PRACTICAS, versiones = VERSIONES, conSemestre = false) {
   const consultas: FiltroAnalitica[] = [];
   const auditoria: Record<string, unknown>[] = [];
   const cumple = (p: PracticaAnalitica, f: FiltroAnalitica) =>
     (!f.periodos || f.periodos.includes(p.periodoAcademico)) && (!f.escuelaIds || f.escuelaIds.includes(p.escuelaId))
-    && (!f.programaId || p.programaId === f.programaId) && (!f.modalidad || p.modalidad === f.modalidad) && (!f.estado || p.estado === f.estado);
+    && (!f.programaId || p.programaId === f.programaId) && (!f.modalidad || p.modalidad === f.modalidad) && (!f.estado || p.estado === f.estado)
+    && (!f.ciclo || p.ciclo === f.ciclo) && (f.semestre === undefined || p.semestre === f.semestre)
+    && (!f.modalidades || f.modalidades.includes(p.modalidad))
+    && (!f.sector || (f.sector === '__sin_dato__' ? p.sector === null : p.sector === f.sector))
+    && (!f.ciudad || (f.ciudad === '__internacional__' ? conSemestre && p.internacional : f.ciudad === '__sin_dato__' ? p.ciudad === null && !(conSemestre && p.internacional) : p.ciudad === f.ciudad)) && (!f.empresa || (f.empresa === SIN_EMPRESA ? p.empresa === null : p.empresa === f.empresa));
   const puerto: ReportesAnaliticaPort = {
-    periodos: async (escuelas) => practicas.filter((p) => !escuelas || escuelas.includes(p.escuelaId)).map((p) => p.periodoAcademico),
-    practicas: async (f) => { consultas.push(f); return practicas.filter((p) => cumple(p, f)); },
+    periodos: async (escuelas) => practicas.filter((p) => !escuelas || escuelas.includes(p.escuelaId)).map((p) => ({ codigo: p.periodoAcademico, inicio: INICIOS[p.periodoAcademico] ?? null })),
+    semestreSintetico: () => conSemestre,
+    programasSinteticos: () => conSemestre,
+    ubicacionSintetica: () => conSemestre,
+    universo: async (escuelas) => {
+      const visibles = practicas.filter((p) => !escuelas || escuelas.includes(p.escuelaId));
+      return { estudiantes: new Set(visibles.map((p) => p.estudianteId)).size, practicas: visibles.length };
+    },
+    // Como el adaptador real: sin la ubicación sintética, la marca internacional nunca llega.
+    practicas: async (f) => { consultas.push(f); return practicas.filter((p) => cumple(p, f)).map((p) => (conSemestre ? p : { ...p, internacional: false })); },
     versiones: async (f) => {
       const ids = new Set(practicas.filter((p) => cumple(p, f)).map((p) => p.id));
       return versiones.filter((v) => ids.has(v.practicaId));
@@ -139,7 +154,7 @@ describe('Reportes · analítica (solo lectura)', () => {
     const negocios = r.escuelas.find((e) => e.escuela === 'ESC-NEG');
     expect(negocios).toMatchObject({ nombre: 'Negocios', practicas: 3, estudiantes: 2 });
     expect(negocios?.programas.reduce((n, p) => n + p.practicas, 0)).toBe(3);
-    expect(r.empresas).toEqual([{ empresa: 'Andina S.A.S.', practicas: 3, estudiantes: 2 }]);
+    expect(r.empresas.map(({ empresa, practicas, estudiantes }) => ({ empresa, practicas, estudiantes }))).toEqual([{ empresa: 'Andina S.A.S.', practicas: 3, estudiantes: 2 }, { empresa: null, practicas: 1, estudiantes: 1 }]);
   });
 
   it('el docente solo alcanza sus escuelas aunque pida otra', async () => {
@@ -162,7 +177,11 @@ describe('Reportes · analítica (solo lectura)', () => {
   it('sin datos devuelve ceros y listas vacías, no errores', async () => {
     const { caso } = armar([], []);
     const r = await caso.analitica({}, coordinacionGeneral, AHORA);
-    expect(r.resumen).toEqual({ estudiantes: 0, practicas: 0, exigidos: 0, cargados: 0, aprobados: 0, correccion: 0, completos: 0 });
+    expect(r.resumen).toMatchObject({ estudiantes: 0, practicas: 0, exigidos: 0, cargados: 0, aprobados: 0, correccion: 0, completos: 0, versiones: 0, devoluciones: 0 });
+    expect(r.universo).toEqual({ estudiantes: 0, practicas: 0 });
+    expect(r.niveles).toEqual([]);
+    expect(r.programas).toEqual([]);
+    expect(r.cruces.programaModalidad).toEqual([]);
     expect(r.tiempos).toEqual({ decisiones: 0, medianaHoras: null, p90Horas: null, porTipo: [] });
     expect(r.semanas.every((s) => s.cargas === 0)).toBe(true);
     expect(r.periodos).toEqual([]);
@@ -205,5 +224,283 @@ describe('Reportes · analítica (solo lectura)', () => {
     expect(celdaCsv('+57 300')).toBe(`'+57 300`);
     expect(celdaCsv('a;b')).toBe('"a;b"');
     expect(celdaCsv(null)).toBe('');
+  });
+});
+
+/** Universo sintético más grande para cerrar cifras por dimensión y cruces (sin datos reales). */
+const PROGRAMAS = ['SIS-PRO', 'SIS-TGO', 'ADM-PRO'];
+const CICLOS = ['profesional', 'tecnologo', 'profesional'];
+const MODALIDADES = [ModalidadPractica.PASANTIA, ModalidadPractica.SOCIAL, ModalidadPractica.MONITORIA];
+const GRANDE: PracticaAnalitica[] = Array.from({ length: 30 }, (_, i) => practica({
+  id: `g${i}`, estudianteId: `s${i % 24}`, estudiante: `Persona Sintética ${i % 24}`,
+  programaId: PROGRAMAS[i % 3], ciclo: CICLOS[i % 3], escuelaId: i % 3 === 2 ? 'ESC-NEG' : 'ESC-ING',
+  escuela: i % 3 === 2 ? 'Negocios' : 'Ingeniería', modalidad: MODALIDADES[Math.floor(i / 3) % 3],
+  periodoAcademico: i < 24 ? '2026-2' : '2026-1', empresa: i % 4 === 0 ? null : `Empresa Demo ${i % 5}`,
+}));
+// Varias versiones por práctica: nunca deben multiplicar estudiantes ni prácticas.
+const GRANDE_V: VersionAnalitica[] = GRANDE.flatMap((p, i) => [
+  version({ id: `${p.id}-a1`, practicaId: p.id, tipo: TipoDocumento.CERTIFICADO_EPS, version: 1, estado: EstadoDocumento.DEVUELTO, decision: 'devolver', decididoEn: h('2026-09-14T20:00:00.000Z') }),
+  version({ id: `${p.id}-a2`, practicaId: p.id, tipo: TipoDocumento.CERTIFICADO_EPS, version: 2, estado: i % 2 ? EstadoDocumento.APROBADO : EstadoDocumento.DEVUELTO }),
+  version({ id: `${p.id}-b1`, practicaId: p.id, tipo: TipoDocumento.CERTIFICADO_ARL, version: 1, estado: EstadoDocumento.EN_REVISION }),
+]);
+const unicos = (l: PracticaAnalitica[]) => new Set(l.map((p) => p.estudianteId)).size;
+
+describe('Reportes · jerarquía analítica y consistencia', () => {
+  it('general → programa → detalle: los números cierran por estudiantes únicos', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const general = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(general.resumen).toMatchObject({ practicas: 30, estudiantes: 24 });
+    expect(general.universo).toEqual({ estudiantes: 24, practicas: 30 });
+    for (const programa of PROGRAMAS) {
+      const esperado = GRANDE.filter((p) => p.programaId === programa);
+      const fila = general.programas.find((x) => x.programa === programa);
+      const filtrado = await caso.analitica({ programa }, coordinacionGeneral, AHORA);
+      const detalle = await caso.detalle({ programa }, {}, coordinacionGeneral);
+      expect(fila).toMatchObject({ estudiantes: unicos(esperado), practicas: esperado.length });
+      expect(filtrado.resumen).toMatchObject({ estudiantes: unicos(esperado), practicas: esperado.length });
+      expect(detalle).toMatchObject({ total: esperado.length, estudiantesUnicos: unicos(esperado) });
+      // El universo «en alcance» no cambia con el filtro.
+      expect(filtrado.universo.estudiantes).toBe(24);
+    }
+  });
+
+  it('los cruces cierran contra el filtro combinado (periodo+programa, programa+nivel, programa+modalidad, nivel+modalidad)', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    const casos: [keyof typeof r.cruces, (c: { fila: string; columna: string }) => Record<string, unknown>][] = [
+      ['periodoPrograma', (c) => ({ periodos: [c.fila], programa: c.columna })],
+      ['programaNivel', (c) => ({ programa: c.fila, ciclo: c.columna })],
+      ['programaModalidad', (c) => ({ programa: c.fila, modalidad: c.columna })],
+      ['nivelModalidad', (c) => ({ ciclo: c.fila, modalidad: c.columna })],
+      ['periodoModalidad', (c) => ({ periodos: [c.fila], modalidad: c.columna })],
+      ['periodoNivel', (c) => ({ periodos: [c.fila], ciclo: c.columna })],
+    ];
+    for (const [cruce, filtro] of casos) {
+      expect(r.cruces[cruce].reduce((n, c) => n + c.practicas, 0)).toBe(30);
+      for (const celda of r.cruces[cruce]) {
+        const d = await caso.detalle(filtro(celda), {}, coordinacionGeneral);
+        expect([cruce, d.total, d.estudiantesUnicos]).toEqual([cruce, celda.practicas, celda.estudiantes]);
+      }
+    }
+  });
+
+  it('nivel de formación: orden técnico, tecnólogo, profesional y avance por nivel que suma el total', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.niveles.map((n) => n.ciclo)).toEqual(['tecnologo', 'profesional']);
+    expect(r.niveles.reduce((n, x) => n + x.exigidos, 0)).toBe(r.resumen.exigidos);
+    expect(r.niveles.reduce((n, x) => n + x.aprobados, 0)).toBe(r.resumen.aprobados);
+    expect(['profesional', 'otro', 'tecnico', 'tecnologo'].sort(compararCiclos)).toEqual(['tecnico', 'tecnologo', 'profesional', 'otro']);
+    expect(r.programas.find((p) => p.programa === 'SIS-TGO')?.ciclos).toEqual(['tecnologo']);
+  });
+
+  it('volumen y tasa de corrección por programa: historial sin multiplicar prácticas', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    const sis = r.programas.find((p) => p.programa === 'SIS-PRO');
+    expect(sis).toMatchObject({ practicas: 10, versiones: 30, documentos: 20, conReenvio: 10, devoluciones: 10 });
+    // Las obligaciones por estado suman los exigidos del programa.
+    expect(Object.values(sis!.obligaciones).reduce((n, x) => n + x, 0)).toBe(sis!.exigidos);
+  });
+
+  it('situación del expediente como filtro: agregados y detalle iguales', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    const s = await caso.analitica({ situacion: 'requiere_correccion' }, coordinacionGeneral, AHORA);
+    const d = await caso.detalle({ situacion: 'requiere_correccion' }, {}, coordinacionGeneral);
+    expect(s.resumen.practicas).toBe(r.expedientes.requiere_correccion);
+    expect(d.total).toBe(s.resumen.practicas);
+    expect(d.estudiantesUnicos).toBe(s.resumen.estudiantes);
+    await expect(caso.analitica({ situacion: 'x' as never }, coordinacionGeneral)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('empresa: todas listadas, NULL como sin empresa y filtrable sin inventar un nombre', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.empresas.reduce((n, e) => n + e.practicas, 0)).toBe(30);
+    const sin = r.empresas.find((e) => e.empresa === null);
+    const d = await caso.detalle({ empresa: SIN_EMPRESA }, {}, coordinacionGeneral);
+    expect(d.total).toBe(sin?.practicas);
+    expect(d.filas.every((f) => f.empresa === null)).toBe(true);
+  });
+
+  it('la búsqueda del detalle encuentra por nombre, programa o empresa sin tildes y no cambia los agregados', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    expect((await caso.detalle({}, {}, coordinacionGeneral, 'sintetica 5')).filas.every((f) => f.estudiante.startsWith('Persona Sintética 5'))).toBe(true);
+    expect((await caso.detalle({}, {}, coordinacionGeneral, 'adm-pro')).total).toBe(10);
+    expect((await caso.detalle({}, {}, coordinacionGeneral, 'empresa demo 1')).total).toBeGreaterThan(0);
+  });
+
+  it('el docente no alcanza otras escuelas con las dimensiones nuevas', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const r = await caso.analitica({ programa: 'SIS-PRO' }, docenteNegocios, AHORA);
+    expect(r.resumen.practicas).toBe(0);
+    const propio = await caso.analitica({}, docenteNegocios, AHORA);
+    expect(propio.programas.map((p) => p.programa)).toEqual(['ADM-PRO']);
+    expect(propio.universo.practicas).toBe(10);
+  });
+
+  it('el detalle puede limitar las filas sin cambiar sus totales', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const d = await caso.detalle({}, {}, coordinacionGeneral, '', 5);
+    expect(d).toMatchObject({ total: 30, estudiantesUnicos: 24 });
+    expect(d.filas).toHaveLength(5);
+  });
+
+  it('el CSV incluye nivel, pendientes y devoluciones del filtro y de la búsqueda', async () => {
+    const { caso, auditoria } = armar(GRANDE, GRANDE_V);
+    const archivo = await caso.csv({ programa: 'SIS-TGO', ciclo: 'tecnologo' }, {}, coordinacionGeneral, 'Persona');
+    const [cabecera, ...filas] = archivo.contenido.toString('utf8').trim().split('\r\n');
+    expect(cabecera).toContain('Nivel de formación;Modalidad');
+    expect(cabecera).toContain('Pendientes;En corrección;Devoluciones (historial)');
+    expect(filas).toHaveLength(10);
+    expect(auditoria[0]).toMatchObject({ metadatos: { programa: 'SIS-TGO', ciclo: 'tecnologo', buscar: 'Persona', filas: 10 } });
+  });
+});
+
+describe('Reportes · semestre sintético aislado y orden de periodos', () => {
+  const CON_SEMESTRE = GRANDE.map((p, i) => ({ ...p, semestre: i % 7 === 6 ? null : 4 + (i % 6) }));
+
+  it('sin fuente de semestre: dimensión no disponible, sin grupos y el filtro responde 400', async () => {
+    const { caso } = armar(GRANDE, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.dimensiones.semestre).toBe('no_disponible');
+    expect(r.semestres).toEqual([]);
+    expect(r.cruces.semestreModalidad).toEqual([]);
+    await expect(caso.analitica({ semestre: 8 }, coordinacionGeneral)).rejects.toBeInstanceOf(BadRequestException);
+    const csv = (await caso.csv({}, {}, coordinacionGeneral)).contenido.toString('utf8');
+    expect(csv).not.toContain('Semestre');
+  });
+
+  it('con el overlay sintético: semestres en orden numérico, sin información al final, y cifras que cierran con el detalle', async () => {
+    const { caso } = armar(CON_SEMESTRE, GRANDE_V, true);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.dimensiones.semestre).toBe('sintetica');
+    expect(r.semestres.map((s) => s.semestre)).toEqual([4, 5, 6, 7, 8, 9, null]);
+    expect(r.semestres.reduce((n, s) => n + s.practicas, 0)).toBe(30);
+    for (const s of r.semestres.filter((x) => x.semestre !== null)) {
+      const d = await caso.detalle({ semestre: s.semestre as number }, {}, coordinacionGeneral);
+      expect([s.semestre, d.total, d.estudiantesUnicos]).toEqual([s.semestre, s.practicas, s.estudiantes]);
+      expect(Object.values(s.obligaciones).reduce((n, x) => n + x, 0)).toBe(s.exigidos);
+    }
+    for (const c of r.cruces.semestreModalidad.filter((x) => x.fila !== '')) {
+      const d = await caso.detalle({ semestre: Number(c.fila), modalidad: c.columna }, {}, coordinacionGeneral);
+      expect(d.total).toBe(c.practicas);
+    }
+    const prog = r.cruces.programaSemestre.find((c) => c.columna === '8');
+    const d = await caso.detalle({ programa: prog!.fila, semestre: 8 }, {}, coordinacionGeneral);
+    expect(d.estudiantesUnicos).toBe(prog!.estudiantes);
+    expect((await caso.csv({}, {}, coordinacionGeneral)).contenido.toString('utf8')).toContain('Semestre (dato sintético de prueba)');
+  });
+
+  it('ordena los periodos por la fecha de inicio de la entidad; los códigos sin fecha van al final y se declaran', async () => {
+    const mezcla = GRANDE.slice(0, 5).map((p, i) => ({ ...p, periodoAcademico: ['26V01', '2026C', '335', '2026A', '2026-2'][i] }));
+    const { caso } = armar(mezcla, []);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.ordenPeriodos).toEqual(['2026A', '2026C', '2026-2', '26V01', '335']);
+    expect(r.periodos.map((p) => p.periodo)).toEqual(r.ordenPeriodos);
+    expect(r.periodosDisponibles).toEqual(['2026-2', '2026C', '2026A', '26V01', '335']);
+    expect(r.periodosSinFecha.sort()).toEqual(['26V01', '335']);
+  });
+});
+
+describe('Reportes · nombres de programa sintéticos', () => {
+  it('sin mapping: nombre null y el código como dato; con mapping: nombre en agregados, detalle, búsqueda y CSV', async () => {
+    const sin = armar(GRANDE, GRANDE_V);
+    const r0 = await sin.caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r0.dimensiones.nombrePrograma).toBe('no_disponible');
+    expect(r0.programas.every((p) => p.nombre === null)).toBe(true);
+    const nombres: Record<string, string> = { 'SIS-PRO': 'Ingeniería de Sistemas', 'SIS-TGO': 'Tecnología en Sistemas', 'ADM-PRO': 'Administración de Empresas' };
+    const con = armar(GRANDE.map((p) => ({ ...p, programaNombre: nombres[p.programaId] })), GRANDE_V, true);
+    const r = await con.caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.dimensiones.nombrePrograma).toBe('sintetico');
+    expect(r.programas.find((p) => p.programa === 'SIS-PRO')?.nombre).toBe('Ingeniería de Sistemas');
+    const d = await con.caso.detalle({}, {}, coordinacionGeneral, 'ingenieria de sistemas');
+    expect(d.total).toBe(10);
+    expect(d.filas[0].programaNombre).toBe('Ingeniería de Sistemas');
+    expect((await con.caso.csv({ programa: 'SIS-PRO' }, {}, coordinacionGeneral)).contenido.toString('utf8')).toContain('Nombre del programa (dato sintético de prueba)');
+  });
+});
+
+describe('Reportes · organización receptora (sector CIIU, ciudad DIVIPOLA, interna CUN por modalidad articulada)', () => {
+  const SECTORES: [string, string][] = [['J', 'Información y comunicaciones'], ['C', 'Industrias manufactureras'], ['P', 'Educación']];
+  const CIUDADES: [string, string][] = [['11001', 'Bogotá, D.C.'], ['05001', 'Medellín']];
+  const ORG = GRANDE.map((p, i) => {
+    const interna = i % 5 === 0;
+    const [sector, sectorNombre] = interna ? SECTORES[2] : SECTORES[i % 2];
+    const [ciudad, ciudadNombre] = interna ? CIUDADES[0] : i % 7 === 3 ? [null, null] : CIUDADES[i % 2];
+    return { ...p, modalidad: interna ? ModalidadPractica.MONITORIA : ModalidadPractica.PASANTIA, empresa: interna ? 'CUN · Práctica interna' : `Empresa ${i % 4}`,
+      sector, sectorNombre, ciudad, ciudadNombre };
+  });
+
+  it('interna CUN = modalidad articulada del dominio (las 7 articuladas), externa = las demás', () => {
+    expect([...MODALIDADES_ARTICULADAS].sort()).toEqual(['cunbre_consolidado', 'cunbre_naciente', 'investigacion', 'monitoria', 'pasantia_investigativa', 'practica_tecnica_investigacion', 'social']);
+    expect(tipoReceptor('monitoria')).toBe('interna_cun');
+    expect(tipoReceptor('pasantia')).toBe('externa');
+    expect(tipoReceptor('inexistente')).toBeNull();
+  });
+
+  it('receptores, sectores y ciudades suman el universo y cierran contra el detalle filtrado', async () => {
+    const { caso } = armar(ORG, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.receptores.map((x) => [x.tipo, x.practicas])).toEqual([['interna_cun', 6], ['externa', 24]]);
+    expect(r.sectores.reduce((n, x) => n + x.practicas, 0)).toBe(30);
+    expect(r.ciudades.reduce((n, x) => n + x.practicas, 0)).toBe(30);
+    expect(r.etiquetas.sectores['P']).toBe('Educación');
+    for (const t of ['interna_cun', 'externa'] as const) {
+      const d = await caso.detalle({ tipoReceptor: t }, {}, coordinacionGeneral);
+      expect(d.total).toBe(r.receptores.find((x) => x.tipo === t)?.practicas);
+      expect(d.filas.every((f) => f.tipoReceptor === t)).toBe(true);
+    }
+    for (const s of r.sectores) {
+      const d = await caso.detalle({ sector: s.sector ?? SIN_DATO }, {}, coordinacionGeneral);
+      expect([s.sector, d.total, d.estudiantesUnicos]).toEqual([s.sector, s.practicas, s.estudiantes]);
+    }
+    const sinCiudad = r.ciudades.find((c) => c.ciudad === null);
+    expect((await caso.detalle({ ciudad: SIN_DATO }, {}, coordinacionGeneral)).total).toBe(sinCiudad?.practicas);
+    for (const c of r.cruces.programaSector) {
+      const d = await caso.detalle({ programa: c.fila, sector: c.columna || SIN_DATO }, {}, coordinacionGeneral);
+      expect(d.total).toBe(c.practicas);
+    }
+    const interna = await caso.analitica({ tipoReceptor: 'interna_cun' }, coordinacionGeneral, AHORA);
+    expect(interna.sectores.map((x) => x.nombre)).toEqual(['Educación']);
+    await expect(caso.analitica({ tipoReceptor: 'otra' as never }, coordinacionGeneral)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('los filtros nuevos no amplían el alcance del docente', async () => {
+    const { caso, consultas } = armar(ORG, GRANDE_V);
+    const r = await caso.analitica({ sector: 'J', ciudad: '05001', tipoReceptor: 'externa' }, docenteNegocios, AHORA);
+    expect(consultas.at(-1)?.escuelaIds).toEqual(['ESC-NEG']);
+    expect(r.resumen.practicas).toBe(ORG.filter((p) => p.escuelaId === 'ESC-NEG' && p.sector === 'J' && p.ciudad === '05001' && p.modalidad === ModalidadPractica.PASANTIA).length);
+  });
+
+  it('el CSV lleva organización, tipo, sector y ciudad, sin NIT ni contacto', async () => {
+    const { caso } = armar(ORG, GRANDE_V);
+    const csv = (await caso.csv({}, {}, coordinacionGeneral)).contenido.toString('utf8');
+    expect(csv).toContain('Organización receptora;Tipo de receptor;Sector económico (sección CIIU);Ciudad');
+    expect(csv).toContain('interna_cun');
+    expect(csv).not.toMatch(/\bnit\b|tel[eé]fono|correo|direcci[oó]n/i);
+  });
+});
+
+describe('Reportes · internacional frente a sin información', () => {
+  const MIX = GRANDE.map((p, i) => ({ ...p, ciudad: i < 10 ? '11001' : null, ciudadNombre: i < 10 ? 'Bogotá, D.C.' : null, internacional: i >= 10 && i < 16 }));
+
+  it('sin ubicación sintética (producción): las receptoras sin municipio quedan todas en «sin dato»', async () => {
+    const { caso } = armar(MIX, GRANDE_V);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.dimensiones.ubicacionInternacional).toBe('no_disponible');
+    expect(r.ciudades.map((c) => [c.ciudad, c.practicas])).toEqual([[null, 20], ['11001', 10]]);
+  });
+
+  it('con ubicación sintética (dev): «Internacional · sin DIVIPOLA» separado de «Sin información», y el filtro cierra', async () => {
+    const { caso } = armar(MIX, GRANDE_V, true);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.dimensiones.ubicacionInternacional).toBe('sintetica');
+    expect(r.ciudades.map((c) => [c.ciudad, c.nombre, c.practicas])).toEqual([[null, null, 14], ['11001', 'Bogotá, D.C.', 10], ['__internacional__', 'Internacional · sin DIVIPOLA', 6]]);
+    expect((await caso.detalle({ ciudad: '__internacional__' }, {}, coordinacionGeneral)).total).toBe(6);
+    expect((await caso.detalle({ ciudad: SIN_DATO }, {}, coordinacionGeneral)).total).toBe(14);
+    const d = await caso.detalle({ ciudad: '__internacional__' }, {}, coordinacionGeneral);
+    expect(d.filas.every((f) => f.ciudad === 'Internacional · sin DIVIPOLA')).toBe(true);
   });
 });

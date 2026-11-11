@@ -22,6 +22,10 @@ export const ESTILOS_REPORTES = `
   .t-ok { background: var(--ra-ok); } .t-info { background: var(--ra-info); } .t-aviso { background: var(--ra-aviso); }
   .t-peligro { background: var(--ra-peligro); } .t-neutra { background: var(--ra-neutra); }
   .t-info-suave { background: color-mix(in srgb, var(--ra-info) 50%, transparent); }
+  /* Series de categorías (modalidades, niveles…): cinco tonos de la familia de señal + «otras». Sin arcoíris. */
+  .s0 { background: var(--ra-info); } .s1 { background: var(--ra-ok); } .s2 { background: color-mix(in srgb, var(--ra-info) 50%, transparent); }
+  .s3 { background: color-mix(in srgb, var(--ra-ok) 50%, transparent); } .s4 { background: color-mix(in srgb, var(--text-secondary) 75%, transparent); }
+  .s-otras { background: var(--ra-neutra); }
   .ra-punto { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 8px; vertical-align: 1px; }
 
   .ra-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -33,12 +37,13 @@ export const ESTILOS_REPORTES = `
   .ra-tabla tbody tr:hover td { background: color-mix(in srgb, var(--text-primary) 3%, transparent); }
   .ra-tabla tr.sub td { color: var(--text-secondary); }
   .ra-tabla tr.sub td:first-child { padding-left: 30px; }
-  .ra-desliza { overflow-x: auto; }
+  /* Posicionado: el texto solo para lectores (.ra-sr, absoluto) queda recortado aquí y no ensancha la página. */
+  .ra-desliza { overflow-x: auto; position: relative; }
   .ra-tenue { color: var(--text-muted); }
   :host-context([data-theme='light']) .ra-tenue { color: var(--text-secondary); }
 
   /* Cifra que abre el detalle: botón real, subrayado al pasar. */
-  .ra-ir { padding: 2px 4px; margin: -2px -4px; font: inherit; color: inherit; background: none; border: 0; border-radius: 4px; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; }
+  .ra-ir { padding: 2px 4px; margin: -2px -4px; font: inherit; color: inherit; text-align: left; background: none; border: 0; border-radius: 4px; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; }
   .ra-ir:hover { text-decoration-color: currentColor; color: var(--signal-default); }
   :host-context([data-theme='light']) .ra-ir:hover { color: #03587a; }
   .ra-ir:focus-visible, .ra-abrir:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 1px; }

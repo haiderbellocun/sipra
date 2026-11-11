@@ -71,6 +71,25 @@ export class VariablesEntorno {
    */
   @IsBoolean() CONSENTIMIENTO_BLOQUEA_CARGUE = false;
 
+  /**
+   * Solo para bases sintéticas de prueba (p. ej. `reportes_seed_1000`): Reportes lee el semestre de la tabla auxiliar
+   * `sintetico_semestre_practica`, que NO es parte del modelo productivo (SIPRA no persiste el semestre; vive en SINU).
+   * Fuera de `dev` el arranque falla.
+   */
+  @IsBoolean() REPORTES_SEMESTRE_SINTETICO = false;
+
+  /**
+   * Mismo mecanismo que el semestre: con `true`, Reportes muestra el nombre de los programas de la tabla auxiliar
+   * `sintetico_programa` (solo bases sintéticas). SIPRA persiste el código; el nombre real vive en SINU. Fuera de `dev`, falla.
+   */
+  @IsBoolean() REPORTES_PROGRAMAS_SINTETICOS = false;
+
+  /**
+   * Mismo mecanismo: con `true`, Reportes distingue «Internacional · sin DIVIPOLA» de «Sin información» usando la tabla
+   * auxiliar `sintetico_empresa_ubicacion` (solo bases sintéticas). SIPRA no persiste país. Fuera de `dev`, falla.
+   */
+  @IsBoolean() REPORTES_UBICACION_SINTETICA = false;
+
   @IsString() @MinLength(32, {
     message: 'JWT_SECRETO debe tener al menos 32 caracteres y ser distinto en cada ambiente',
   })
@@ -180,7 +199,7 @@ export class VariablesEntorno {
 const BOOLEANOS = new Set([
   'EPS_VALIDACION_HABILITADA', 'ADRES_ASISTIDO_HABILITADO', 'EPS_OCR_HABILITADO', 'VERIFICACION_EPS_HABILITADA', 'EPS_AUTOAPROBACION_HABILITADA',
   'DB_SSL', 'METRICAS_HABILITADAS', 'SPE_ANEXO_CONFIRMADO', 'AUTH_ABIERTO_CONFIRMADO',
-  'CONSENTIMIENTO_BLOQUEA_CARGUE',
+  'CONSENTIMIENTO_BLOQUEA_CARGUE', 'REPORTES_SEMESTRE_SINTETICO', 'REPORTES_PROGRAMAS_SINTETICOS', 'REPORTES_UBICACION_SINTETICA',
 ]);
 const ENTEROS = new Set([
   'ADRES_FRESCURA_DIAS', 'EPS_RETENCION_DIAS',
@@ -263,6 +282,27 @@ function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
     errores.push(
       'EPS_AUTOAPROBACION_HABILITADA=true no está permitido: la autoaprobación de certificados de EPS no está ' +
         'implementada ni autorizada institucionalmente; solo existe la etiqueta «candidato» y decide una persona.',
+    );
+  }
+
+  if (config.REPORTES_SEMESTRE_SINTETICO && config.SIPRA_AMBIENTE !== Ambiente.DEV) {
+    errores.push(
+      `REPORTES_SEMESTRE_SINTETICO=true está prohibido en el ambiente "${config.SIPRA_AMBIENTE}": ` +
+        'el semestre sintético existe solo en bases de prueba de desarrollo.',
+    );
+  }
+
+  if (config.REPORTES_UBICACION_SINTETICA && config.SIPRA_AMBIENTE !== Ambiente.DEV) {
+    errores.push(
+      `REPORTES_UBICACION_SINTETICA=true está prohibido en el ambiente "${config.SIPRA_AMBIENTE}": ` +
+        'la ubicación internacional sintética existe solo en bases de prueba de desarrollo.',
+    );
+  }
+
+  if (config.REPORTES_PROGRAMAS_SINTETICOS && config.SIPRA_AMBIENTE !== Ambiente.DEV) {
+    errores.push(
+      `REPORTES_PROGRAMAS_SINTETICOS=true está prohibido en el ambiente "${config.SIPRA_AMBIENTE}": ` +
+        'los nombres de programa sintéticos existen solo en bases de prueba de desarrollo.',
     );
   }
 

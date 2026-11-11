@@ -1857,8 +1857,32 @@ expedientes en una hora. **No bloquea: notifica.**
 | `GET /api/v1/reportes/analitica` | Agregados |
 | `GET /api/v1/reportes/analitica/detalle` | Una fila por práctica de un recorte; `formato=csv` descarga ese recorte |
 
-- **Filtros:** `periodos`, `escuela`, `programa`, `modalidad`, `estado`. Viajan a PostgreSQL.
-- **Recortes del detalle:** `situacion`, `tipo`, `estadoDocumental`.
+- **Contexto único de filtros** (el mismo para agregados, detalle y CSV): `periodos`, `escuela`, `programa`, `ciclo` (nivel), `modalidad`, `estado`, `empresa` (o `__sin_empresa__`) y `situacion` (situación del expediente). Los siete primeros viajan a PostgreSQL; la situación se aplica sobre el avance calculado.
+- **Recorte documental del detalle:** `tipo` y `estadoDocumental`. **Búsqueda:** `buscar`, por nombre del estudiante, programa o empresa, sin tildes y nunca por documento de identidad.
+- El detalle en JSON trae como máximo 200 filas (`LIMITE_FILAS_JSON`), con `total` y `estudiantesUnicos` del recorte completo; el CSV lleva todas.
+
+**Dimensiones verificadas en la fuente** (no se infiere ninguna):
+
+| Dimensión | Campo real | Entidad / fuente | Nulo | Filtro |
+|---|---|---|---|---|
+| Periodo | `periodo_academico` varchar(12) | `practicas` (texto sin FK) | No | `periodos` |
+| Escuela | `escuela_id` → `cat_escuela.nombre` | `practicas` + catálogo | No | `escuela` |
+| Programa | `programa_id` varchar(60) | `practicas` (solo código; el nombre vive en SINU, por estudiante) | No | `programa` |
+| Nivel de formación | `ciclo`: `tecnico`, `tecnologo`, `profesional` (CHECK) | `practicas` | No | `ciclo` |
+| Modalidad | `modalidad` (14 valores, `ModalidadPractica`) | `practicas`; «tipo de práctica» no existe como entidad aparte | No | `modalidad` |
+| Estado de la práctica | `estado` (CHECK) | `practicas` | No | `estado` |
+| Empresa | `empresas.razon_social` o `empresa_razon_social` (FUR) | `practicas` + `empresas` | **Sí** → «Sin empresa registrada» | `empresa` |
+| Estudiante | `estudiante_id` + `usuarios.nombre` | `practicas` + `usuarios` | No | `buscar` |
+| **Semestre** | **no existe en SIPRA** | solo SINU (`semestre` de la matrícula, consulta por estudiante) | — | **No disponible** |
+
+Agregarlo exigiría N consultas a SINU por reporte o un dato que hoy no se persiste; no se infiere del periodo.
+
+**Semestre sintético, solo en bases de prueba.** La tabla auxiliar `sintetico_semestre_practica (practica_id, semestre, seed)` la crea `herramientas/seed-reportes-1000.ts`, no una migración, así que no existe en qa, pre ni prod.
+
+- La API solo la nombra en SQL con `REPORTES_SEMESTRE_SINTETICO=true`, y `validarEntorno` rechaza ese valor fuera de `dev`.
+- Apagada (el caso de producción), la respuesta trae `dimensiones.semestre = 'no_disponible'`, `semestres = []` y los cruces de semestre vacíos; el filtro `semestre` responde 400.
+- Encendida: `semestres`, `cruces.semestreModalidad` y `cruces.programaSemestre`, el filtro `semestre`, la columna en el detalle y el CSV («Semestre (dato sintético de prueba)»). La pantalla rotula el dato como sintético.
+- No hay lógica de semestre en el modelo productivo.
 
 **Perfiles y alcance.**
 
@@ -1870,8 +1894,8 @@ expedientes en una hora. **No bloquea: notifica.**
 **Arquitectura.** Hexagonal:
 
 - **Puerto:** `REPORTES_ANALITICA` (`domain/ports/out/reportes-analitica.port.ts`).
-- **Adaptador:** `ReportesAnaliticaAdapter`. Tres consultas parametrizadas con el mismo `WHERE` y sin N+1: prácticas con nombre del estudiante, escuela y empresa; todas las versiones de documentos más la última decisión auditada de cada una (CTE con `DISTINCT ON`); y periodos.
-- **Caso de uso:** `ReportesAnaliticaUseCase`. El avance de cada expediente se calcula con `AvanceDocumentalDomainService`, el mismo del Expediente, así que no hay reglas paralelas.
+- **Adaptador:** `ReportesAnaliticaAdapter`. Cuatro consultas parametrizadas por petición, con el mismo `WHERE` y sin N+1: prácticas con nombre del estudiante, escuela, ciclo y empresa; todas las versiones de documentos más la última decisión auditada de cada una (CTE con `DISTINCT ON`); periodos; y el universo del alcance (`COUNT DISTINCT`), que es el denominador «de N en alcance».
+- **Caso de uso:** `ReportesAnaliticaUseCase`. El avance de cada expediente se calcula con `AvanceDocumentalDomainService`, el mismo del Expediente, así que no hay reglas paralelas. Las agregaciones por dimensión y los cruces (programa×modalidad, programa×nivel, nivel×modalidad, periodo×programa, periodo×modalidad y periodo×nivel) se hacen en el servidor, en una pasada sobre el universo filtrado. Las celdas cuentan estudiantes únicos, así que no hay explosión cartesiana por versiones ni por varias prácticas. Angular nunca recibe ni agrupa las prácticas.
 
 | Término | Definición |
 |---|---|
@@ -1884,8 +1908,15 @@ expedientes en una hora. **No bloquea: notifica.**
 | Situación del expediente | Excluyente y en este orden: completo (todo aprobado) > requiere corrección (alguna obligación en corrección o rechazada) > sin iniciar > en curso. `sin_matriz` si la modalidad no tiene matriz (no se inventa). |
 | Tiempo carga → decisión | `documentos.cargado_en` → `auditoria.ocurrido_en` del último `decision_documento` de esa versión. Mediana y p90 por rango más cercano. **Nunca `actualizado_en`.** |
 | Semanas | Las 12 últimas, de lunes a domingo, en hora de Colombia (UTC−5 fijo; Colombia no tiene horario de verano). Las cargas se cuentan por fecha de carga y las decisiones por su evento auditado; la última semana está en curso. |
-| Periodo | `practicas.periodo_academico` (texto sin FK, p. ej. `2026-2` o `2026A`). Se ordena por año y luego por sufijo; nunca por texto libre. |
-| Empresas | Las diez con más prácticas, por razón social registrada (`empresas.razon_social`, o la del FUR). |
+| Periodo | `practicas.periodo_academico` (texto sin FK, p. ej. `26V04`, `2026A`). Se ordena por `periodos_academicos.fecha_inicio` (`ordenPeriodos`). Los códigos que no están en esa entidad no tienen cronología conocida: van al final, se declaran en `periodosSinFecha` y la pantalla lo advierte. Los chips muestran primero los periodos con fecha, del más reciente al más antiguo. |
+| Empresas | Todas las del filtro (la vista pinta las 8 primeras y ofrece «Ver todos»), por razón social registrada. NULL se presenta como «Sin empresa registrada». |
+| Nivel de formación | `practicas.ciclo`, ordenado técnico → tecnólogo → profesional. |
+| Cobertura por grupo | Cada grupo (escuela, programa, nivel, modalidad, periodo) trae estudiantes, prácticas, exigidos, cargados, aprobados, completos, obligaciones por estado y su historial: versiones, documentos con versión, con reenvío, devoluciones y rechazos auditados. |
+| Aprobación documental | Obligaciones aprobadas / obligaciones exigidas. |
+| Devoluciones por documento | Devoluciones auditadas / documentos cargados (práctica·tipo). Es una razón, no un porcentaje; separa el volumen de la tasa. |
+| Versiones por documento | Versiones cargadas / documentos cargados. |
+| Porcentaje de una barra | Sobre el total del universo filtrado (estudiantes o prácticas, según la gráfica), no sobre lo visible. |
+| Cruce | Estudiantes únicos por celda. Una persona en dos columnas cuenta en ambas, así que el total de una fila apilada puede superar a los estudiantes únicos de la fila. |
 
 **Lo que no existe y no se inventa:**
 
@@ -1900,21 +1931,42 @@ expedientes en una hora. **No bloquea: notifica.**
 - El CSV solo existe por recorte filtrado. Sale con BOM y separador `;`, con celdas protegidas contra fórmulas (`= + - @`), y se audita como `reporte_generado` con entidad `reporte_analitica`, filtros y número de filas.
 - No hay «exportar todo» sin alcance.
 
-**Rendimiento** (base sintética de 71 prácticas, 317 versiones y 248 decisiones):
+**Rendimiento**, medido en bases sintéticas locales:
 
-- La consulta de versiones tarda 0,7 ms en PostgreSQL.
-- El endpoint responde en ~225 ms, igual que el listado de prácticas existente.
+- Con 169 prácticas, la analítica responde en ~226 ms, igual que el listado de prácticas existente.
+- Con 3.549 prácticas, 3.154 estudiantes y 15.716 versiones:
+  - analítica sin filtros, 0,38 s; filtrada, 0,23 s;
+  - detalle, 0,38 s y 84 KB (antes del límite de 200 filas eran 1,5 MB);
+  - CSV de un programa, 0,24 s.
 
 **Pantalla** (`features/reportes`):
 
-- Pestañas ARIA General, Estudiantes, Documentos, Períodos y Exportaciones. Exportaciones es el Excel del SGP y los archivos del SPE de antes, sin cambios de lógica.
-- El periodo es el eje principal (chips); escuela, programa, modalidad y estado van en un panel de divulgación con contador.
-- Toda cifra de segmento abre el detalle. El detalle conserva el filtro, lleva el foco al recorte y enlaza al Expediente.
-- Las barras son decorativas (`aria-hidden`) y siempre tienen una tabla equivalente.
+- **Pestañas ARIA:**
+  - **General:** cifras, estudiantes por programa (top 10 con «Ver todos»), situación de los expedientes, modalidad, nivel, estado de la práctica, salud documental y movimiento semanal.
+  - **Estudiantes:** composición académica (escuela → programa, programa × nivel; semestre declarado no disponible), composición de prácticas (programa × modalidad, nivel × modalidad, empresas) y la tabla granular.
+  - **Documentos:** salud documental por programa, nivel, modalidad o periodo, con tasas; obligaciones por tipo; correcciones y versiones; tiempos.
+  - **Períodos:** comparativo, A frente a B, evolución de hasta 5 programas, periodo × modalidad y periodo × nivel.
+  - **Exportaciones:** el Excel del SGP y los archivos del SPE de antes.
+- **Cross-filter (`ReportesEstado` es el único contexto):**
+  - Cada barra, fila apilada, entrada de leyenda o fila de tabla agregada es un botón con `aria-pressed`; Enter o Espacio aplican el filtro y elegirlo otra vez lo quita.
+  - Elegir un programa fija su escuela como contexto; quitar la escuela suelta el programa.
+  - Breadcrumb «Contexto» (Todo el alcance / Periodo / Escuela / Programa / Nivel / Modalidad / Estado / Empresa / Expediente), con quitar por nivel, «Limpiar» y «N de M estudiantes en alcance».
+- **Tabla granular:** una fila por práctica, con estudiante, programa, nivel, modalidad, empresa, periodo, estado, avance, pendientes, devoluciones, expediente y último movimiento. Tiene búsqueda, CSV del mismo recorte y «Abrir expediente», que lleva a la ruta existente `/practicas/:id`. Sigue abierta y se recarga cuando cambia el contexto.
+- Las gráficas son decorativas (`aria-hidden`); el texto visible y «Ver como tabla» son la alternativa tabular. La paleta de categorías tiene cinco tonos de la familia de señal más «otras», sin arcoíris.
 - Error y vacío se distinguen: «Reintentar», «Sin prácticas para estos filtros» y «Aún no hay prácticas en su alcance».
 - Cada componente se mantiene bajo el presupuesto de 12 kB de estilos.
 
-**El Shell queda en 78rem** (1184 px de contenido a 1440). Las tablas caben sin desplazamiento horizontal. Si más adelante hiciera falta, se propone un modo ancho opcional solo para Reportes, sin cambiar el Shell.
+**Modo ancho solo para Reportes.** A 78rem (1184 px), la tabla granular de 13 columnas partía palabras («Técnic/o», «expedient/e»). `/reportes` se sumó a la expresión `anchoCompleto` del Shell, el mismo mecanismo de las Mesas (`main.ancho`, 150rem): 1344 px a 1440. Es un cambio de una línea, y su alcance se revisó con Graphify y grep: solo afecta la plantilla del Shell. El resto de la aplicación conserva 78rem.
+
+**Exportaciones según el servidor:**
+
+| Sección | Perfiles (espejo de los `@Roles` de la API) |
+|---|---|
+| Bases del SGP | administración, coordinación, auxiliar y docente |
+| Estado de catálogos | administración, extensión y coordinación |
+| Generar archivos del SPE | administración y extensión |
+
+Extensión ya no ve la sección del SGP, que la API le niega. La coordinación ve los catálogos, pero no el botón de generar archivos del SPE, que también le es negado.
 
 ---
 
@@ -3382,6 +3434,118 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.37.3 — 11 de noviembre de 2026
+
+**Cierre de `reportes_seed_1000` v4: invariantes interna/externa y ubicación internacional.**
+
+- **Fuente única de interna/externa:** la regla del dominio `definicionModalidad(m).articulada`. No existe `es_interna` ni `tipo_receptor` persistido; `tipoReceptor` es una propiedad calculada del DTO de Reportes (`tipoReceptor(modalidad)`).
+- **Pruebas:**
+  - **`test/seed-reportes-1000.spec.ts`**, 7 casos sobre el generador puro (`herramientas/seed-reportes-1000.generador.ts`, sin base): articulada ⇒ CUN, no articulada ⇒ externa, 120/880, 0 mal asignadas, 1.000 con receptora, pasantía internacional ⇒ receptora internacional sin DIVIPOLA, documentos de la matriz real y reproducibilidad.
+  - **Comando `verificar` (10 invariantes contra la base):** `crear` lo ejecuta siempre y falla si alguna no se cumple.
+- **Ubicación:** SIPRA no guarda país.
+  - **Producción:** una empresa sin `divipola_municipio` es «Sin municipio registrado», también si está en el exterior.
+  - **Dev sintético:** tabla auxiliar `sintetico_empresa_ubicacion` con `REPORTES_UBICACION_SINTETICA=true`, que se rechaza fuera de `dev`.
+  - **Buckets:** «Internacional · sin DIVIPOLA» (clave `__internacional__`) separado de «Sin información», con filtro propio.
+- **Huella de datos idéntica a la v4 aprobada:** los datos no cambiaron.
+
+### 0.37.2 — 11 de noviembre de 2026
+
+**Reportes V3: organización receptora (sector, ciudad, interna CUN) y `reportes_seed_1000` v4.**
+
+- **Modelo real, sin dimensiones auxiliares:**
+  - Sector económico = sección CIIU de `empresas.ciiu` (`cat_ciiu`).
+  - Ciudad = `empresas.divipola_municipio` (`cat_divipola`).
+  - **Práctica interna CUN = modalidad articulada del dominio** (`definicionModalidad(m).articulada`, «escenario dentro de la institución»: monitoria, social, investigación, práctica técnica de investigación, pasantía investigativa y CUNbre naciente y consolidado); externa, las demás. No hay un campo aparte.
+  - Todo es productivo: no requiere variables de dev.
+- **API:**
+  - filtros `tipoReceptor` (como lista de modalidades en SQL), `sector` y `ciudad` (incluido `__sin_dato__`), aplicados después del alcance;
+  - `sectores`, `ciudades`, `receptores` (con cobertura documental), `empresas` con sector, ciudad y tipo, y `etiquetas` con los nombres de catálogo;
+  - cruces programa × sector, programa × ciudad, nivel × sector, modalidad × sector, receptor × programa y receptor × nivel;
+  - detalle y CSV con organización, tipo de receptor, sector y ciudad, sin NIT, dirección ni contacto.
+- **Web:**
+  - General con tipo de receptor, empresas (top 10 y «Ver todos»), sector y ciudad;
+  - pestaña nueva **Organizaciones**: interna frente a externa (descriptivo, sin causalidad) y los cruces;
+  - salud documental por receptor, sector y ciudad;
+  - filtros, breadcrumb y columnas de la tabla granular.
+- **Seed v4 (versión 4 del generador):** todas las prácticas tienen receptora.
+  - **Internas:** 120, todas en un registro sintético «CUN · Práctica interna» (CIIU 8544, Bogotá).
+  - **Externas:** 880, en 89 empresas sintéticas de 3 a 30 estudiantes (media 9,9), con clases CIIU y municipios del catálogo verificados antes de insertar.
+  - **Exterior:** las receptoras de pasantía internacional (60) no tienen municipio DIVIPOLA.
+  - **Modalidades:** para que interna equivalga a articulada, las 7 modalidades articuladas suman 120 y las 7 externas, 880.
+  - **Afinidades:** las de programa → sector son pesos del generador, no reglas de negocio.
+
+### 0.37.1 — 11 de noviembre de 2026
+
+**`reportes_seed_1000` v3: fidelidad al catálogo y situación balanceada** (versión del generador 3).
+
+- **Periodos:** solo los que existen en `periodos_academicos`: 2026A, 2026B, 26V04, 26V05, 26V06, 26P05 y 26P06 (127–153 por periodo). `crear` aborta si alguno falta.
+  - 335 es un **calendario**, no un periodo: sus periodos en el catálogo son 26P05 y 26P06.
+  - 26V01–26V03 siguen la nomenclatura documentada del calendario virtual, pero no están en el catálogo sembrado: quedan fuera hasta que se confirmen.
+  - 2056C no aparece en el catálogo, el código, la documentación ni los fixtures: código solicitado, no reconocido y no corregido.
+- **Nombres de programa en dev:** tabla auxiliar `sintetico_programa` (código sintético → nombre), con `REPORTES_PROGRAMAS_SINTETICOS=true` solo en `dev`, igual que el semestre.
+  - La respuesta trae `programas[].nombre`, `dimensiones.nombrePrograma`, el nombre en el detalle y la búsqueda, y una columna en el CSV rotulada como dato sintético.
+  - En producción, `nombre` es null y la pantalla muestra el código.
+- **Situación del expediente:** se fija una situación objetivo por práctica y se generan los documentos que la producen. El servicio de dominio deriva completo 225, en curso 425, requiere corrección 275 y sin iniciar 75.
+  - Los estados de práctica se eligen coherentes con cada situación (por ejemplo, certificada solo con expediente completo).
+
+### 0.37.0 — 11 de noviembre de 2026
+
+**Reportes V3: dataset sintético de volumen `reportes_seed_1000`.**
+
+- **Herramienta `herramientas/seed-reportes-1000.ts`** (`crear | borrar | estado | huella`), con consultas de QA en `herramientas/seed-reportes-1000.qa.sql`.
+  - **Guardas:** host local, puerto distinto de 5433, base `sipra_reportes_*` o `sipra_e2e_*` y `--base` igual a `current_database()`. Imprime base, puerto y `data_directory`.
+  - **Reproducible:** semilla 20261111 y fecha de referencia fija. Dos bases limpias dan la misma huella de prácticas, documentos, semestres y decisiones.
+  - **Idempotente:** IDs deterministas `5eed1000-<tipo><versión>-…`. Recrear no duplica, y `borrar` elimina solo ese prefijo y las escuelas `SYN-ESC-*`.
+  - **Auditoría:** las decisiones sintéticas (`metadatos.seed`) son inmutables y se conservan. La versión del generador va en los IDs para que una auditoría vieja nunca recaiga sobre documentos nuevos, y una comprobación aborta si alguna la contradice.
+- **Contenido:** 1.000 estudiantes y 1.000 prácticas (1 a 1).
+  - **Escuelas y programas:** 4 escuelas `SYN-ESC-*` y 17 programas `SYN-*` (45–73 estudiantes por programa).
+  - **Semestres y nivel:** semestres 4–9 (151–182 por semestre). La regla 4 → técnico, 5–6 → tecnólogo, 7–9 → profesional es **solo de este dataset**.
+  - **Modalidades:** las 14 reales (30–200 estudiantes cada una; de 12 a 14 por programa).
+  - **Periodos:** 26V01–26V06, 2026A, 2026B, 2056C y 335 (71–117 por periodo). 26V01–26V03, 2056C y 335 no existen en `periodos_academicos` y no se crearon.
+  - **Estados y documentos:** 8 estados reales de práctica; documentos según la matriz real de cada modalidad, con 1 a 4 versiones y decisiones auditadas coherentes (ninguna anterior a su carga).
+  - **Personas y empresas:** 15 docentes sintéticos y 12 empresas sintéticas (más 3 reutilizadas).
+- **API:**
+  - semestre sintético aislado (`REPORTES_SEMESTRE_SINTETICO`, solo `dev`);
+  - orden cronológico de periodos por la entidad real (`ordenPeriodos`, `periodosSinFecha`).
+- **Web:**
+  - semestre en General, Estudiantes (programa × semestre, semestre × modalidad), Documentos (semestre × estado documental), filtros, breadcrumb y detalle, rotulado como dato sintético;
+  - periodos en orden cronológico;
+  - corrección: el texto solo para lectores de la tabla granular ensanchaba la página 55 px con 1.000 filas (`.ra-desliza` ahora es `position: relative`).
+
+### 0.36.0 — 10 de noviembre de 2026
+
+**Reportes V3: jerarquía analítica, cross-filter y tabla granular.** Ver §8.9.
+
+- **Dimensiones verificadas:**
+  - Nivel de formación = `practicas.ciclo` (real).
+  - Programa = código (`programa_id`); su nombre solo existe en SINU.
+  - **El semestre no existe en SIPRA:** se declara no disponible y no se infiere.
+- **API:**
+  - filtros `ciclo`, `empresa` (con «sin empresa») y `situacion`;
+  - `universo` del alcance;
+  - `niveles`, `programas`, empresas completas y seis cruces con estudiantes únicos por celda;
+  - cobertura con obligaciones por estado e historial (versiones, reenvíos, devoluciones, rechazos);
+  - detalle con nivel, pendientes y devoluciones, búsqueda `buscar` y límite de 200 filas en JSON;
+  - CSV con nivel, pendientes y devoluciones.
+  - Sin migraciones.
+- **Web:**
+  - contexto único con breadcrumb y quitar por nivel;
+  - cross-filter con teclado en barras, pilas, leyendas y tablas;
+  - componentes `reportes-barras` (top N con «Ver todos») y `reportes-apiladas` (con «Ver como tabla»);
+  - salud documental por dimensión con tasas;
+  - periodos A frente a B y evolución de programas;
+  - tabla granular con búsqueda y «Abrir expediente»;
+  - modo ancho solo en `/reportes`;
+  - Exportaciones alineada con los `@Roles` del servidor (corrige lo que veía extensión).
+- **Pruebas:**
+  - API: `reportes-analitica.spec.ts`, 24 casos. Cierran general → programa → detalle, seis cruces contra el detalle del filtro combinado, nivel, volumen frente a tasa, situación, empresa nula, búsqueda, alcance del docente con las dimensiones nuevas, límite y CSV.
+  - Web: `reportes-v3.spec.ts`, 22 casos.
+- **Verificado:**
+  - API: 110 suites y 2.955 pruebas, aislamiento 10/10, smoke de arranque, lint 0, build.
+  - Web: 377/377, lint 0, build de producción sin advertencias.
+  - Recorrido real en el navegador: 154 → COM-TEC 22 → Técnico 22 → Pasantía 7 → «Requiere corrección» con Enter 3 → tabla de 3 prácticas y 3 estudiantes → `/practicas/:id`.
+  - Contraste AA en ambos temas, mínimo 4,90:1; sin desbordes a 1440 ni a 390.
 
 ### 0.35.0 — 10 de noviembre de 2026
 

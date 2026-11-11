@@ -1,0 +1,3896 @@
+{
+  ".github/workflows/ci.yml": {
+    "mtime": 1793115542.236482,
+    "seen": 1794319155.1081202,
+    "ast_hash": "ed075b42ffa14ca3274b528e5c684a2a",
+    "semantic_hash": "ed075b42ffa14ca3274b528e5c684a2a"
+  },
+  ".github/workflows/desplegar.yml": {
+    "mtime": 1793027911.261229,
+    "seen": 1794319155.1081264,
+    "ast_hash": "b6896b3ec58c9de6a6a75697f660de0b",
+    "semantic_hash": "b6896b3ec58c9de6a6a75697f660de0b"
+  },
+  ".impeccable/config.json": {
+    "mtime": 1793393511.1420324,
+    "seen": 1794319155.108129,
+    "ast_hash": "5271fc3c1cca341dea36b5ff8eed82c3",
+    "semantic_hash": "5271fc3c1cca341dea36b5ff8eed82c3"
+  },
+  "apps/api/eslint.config.mjs": {
+    "mtime": 1792078634.5740552,
+    "seen": 1794319155.1081305,
+    "ast_hash": "ef815bc234cf880fda8879c4eaaef0c2",
+    "semantic_hash": "ef815bc234cf880fda8879c4eaaef0c2"
+  },
+  "apps/api/herramientas/benchmark-lectura-concurrente.ts": {
+    "mtime": 1793115023.5100915,
+    "seen": 1794319155.108132,
+    "ast_hash": "aa4969c189af7d78fbd141562b2cb5b7",
+    "semantic_hash": "aa4969c189af7d78fbd141562b2cb5b7"
+  },
+  "apps/api/herramientas/benchmark-lectura-local.ts": {
+    "mtime": 1793044198.9290664,
+    "seen": 1794319155.1081328,
+    "ast_hash": "426f4187d47d2283967d9601c551f9df",
+    "semantic_hash": "426f4187d47d2283967d9601c551f9df"
+  },
+  "apps/api/herramientas/carga-mesa-pg.ts": {
+    "mtime": 1793115541.889812,
+    "seen": 1794319155.1081338,
+    "ast_hash": "8acb9e521c87d52cc9f6241143f045f9",
+    "semantic_hash": "8acb9e521c87d52cc9f6241143f045f9"
+  },
+  "apps/api/herramientas/evaluar-lectura.ts": {
+    "mtime": 1792078634.5932412,
+    "seen": 1794319155.108135,
+    "ast_hash": "486f2627b282215be0dff8d18825b9c4",
+    "semantic_hash": "486f2627b282215be0dff8d18825b9c4"
+  },
+  "apps/api/herramientas/evaluar-piloto-eps.ts": {
+    "mtime": 1793116132.6251695,
+    "seen": 1794319155.108136,
+    "ast_hash": "1db5640602f6b90bff08c807e9bcf8f0",
+    "semantic_hash": "1db5640602f6b90bff08c807e9bcf8f0"
+  },
+  "apps/api/herramientas/generar-rut-prueba-cunbre.ts": {
+    "mtime": 1793812306.5421658,
+    "seen": 1794319155.1081371,
+    "ast_hash": "97c8786c85b15fedf9300df1ef7760db",
+    "semantic_hash": "97c8786c85b15fedf9300df1ef7760db"
+  },
+  "apps/api/herramientas/preparar-e2e-actas.ts": {
+    "mtime": 1793394243.04486,
+    "seen": 1794319155.108138,
+    "ast_hash": "ef5a152f2998b7577ae5d0ccec44f8b7",
+    "semantic_hash": "ef5a152f2998b7577ae5d0ccec44f8b7"
+  },
+  "apps/api/herramientas/preparar-e2e-camara.ts": {
+    "mtime": 1793980520.6190796,
+    "seen": 1794319155.108139,
+    "ast_hash": "294ea8f74b291cdd76f7e39e216cba04",
+    "semantic_hash": "294ea8f74b291cdd76f7e39e216cba04"
+  },
+  "apps/api/herramientas/preparar-e2e-rut.ts": {
+    "mtime": 1793809635.5257952,
+    "seen": 1794319155.10814,
+    "ast_hash": "baa1eea5ff3dbfdb331dc424df5dc9bb",
+    "semantic_hash": "baa1eea5ff3dbfdb331dc424df5dc9bb"
+  },
+  "apps/api/herramientas/preparar-e2e-validacion-documental.ts": {
+    "mtime": 1794236342.432423,
+    "seen": 1794319155.108141,
+    "ast_hash": "f6cae67df396aaa66f84030c5b65a5db",
+    "semantic_hash": "f6cae67df396aaa66f84030c5b65a5db"
+  },
+  "apps/api/herramientas/regresion-camara-comparacion.ts": {
+    "mtime": 1793977602.7172961,
+    "seen": 1794319155.1081421,
+    "ast_hash": "18e3e83e0ef28bbc7652457bebc8f9f5",
+    "semantic_hash": "18e3e83e0ef28bbc7652457bebc8f9f5"
+  },
+  "apps/api/herramientas/regresion-camara-real.ts": {
+    "mtime": 1793890309.8109815,
+    "seen": 1794319155.108143,
+    "ast_hash": "19934c0f9691a3b033fe775d03b995df",
+    "semantic_hash": "19934c0f9691a3b033fe775d03b995df"
+  },
+  "apps/api/herramientas/regresion-rut-real.ts": {
+    "mtime": 1793740235.9565175,
+    "seen": 1794319155.108144,
+    "ast_hash": "4522f96d34c6edfa74b54d90c9e92008",
+    "semantic_hash": "4522f96d34c6edfa74b54d90c9e92008"
+  },
+  "apps/api/herramientas/smoke-arranque.js": {
+    "mtime": 1793804498.9159157,
+    "seen": 1794319155.1081452,
+    "ast_hash": "19d9dd1cbfbbc5c22d5a774e48aa58e2",
+    "semantic_hash": "19d9dd1cbfbbc5c22d5a774e48aa58e2"
+  },
+  "apps/api/herramientas/validar-actas-reales.ts": {
+    "mtime": 1793371512.1656256,
+    "seen": 1794319155.1081462,
+    "ast_hash": "5099c0a02f9a7d28e5e0b91dacebddc3",
+    "semantic_hash": "5099c0a02f9a7d28e5e0b91dacebddc3"
+  },
+  "apps/api/herramientas/verificar-concurrencia-pg.ts": {
+    "mtime": 1793380525.1885939,
+    "seen": 1794319155.1081471,
+    "ast_hash": "43c354ac2c4917a19ab7dc9fd9d97405",
+    "semantic_hash": "43c354ac2c4917a19ab7dc9fd9d97405"
+  },
+  "apps/api/herramientas/verificar-decision-camara-pg.ts": {
+    "mtime": 1793979937.3355522,
+    "seen": 1794319155.1081479,
+    "ast_hash": "ebb99567c9e9617ec76b1f9fe6755eae",
+    "semantic_hash": "ebb99567c9e9617ec76b1f9fe6755eae"
+  },
+  "apps/api/herramientas/verificar-decision-rut-pg.ts": {
+    "mtime": 1793803958.8612578,
+    "seen": 1794319155.108149,
+    "ast_hash": "47b387c39d10dcd27091bf068c7cb262",
+    "semantic_hash": "47b387c39d10dcd27091bf068c7cb262"
+  },
+  "apps/api/herramientas/verificar-documento-empresarial-pg.ts": {
+    "mtime": 1793979183.971882,
+    "seen": 1794319155.1081502,
+    "ast_hash": "54146a6ff5103a2a104386ba7c8e0022",
+    "semantic_hash": "54146a6ff5103a2a104386ba7c8e0022"
+  },
+  "apps/api/herramientas/verificar-expediente-documental-pg.ts": {
+    "mtime": 1794236292.8478453,
+    "seen": 1794319155.1081512,
+    "ast_hash": "120d33e2939a2b7f09108d1fcd57d25c",
+    "semantic_hash": "120d33e2939a2b7f09108d1fcd57d25c"
+  },
+  "apps/api/herramientas/verificar-migraciones.ts": {
+    "mtime": 1793804101.153356,
+    "seen": 1794319155.1081522,
+    "ast_hash": "41f48c94d76063da05d0539a0827bd41",
+    "semantic_hash": "41f48c94d76063da05d0539a0827bd41"
+  },
+  "apps/api/herramientas/verificar-rut-pg.ts": {
+    "mtime": 1793740356.7809358,
+    "seen": 1794319155.108153,
+    "ast_hash": "44263565533e33c79bb04d4ff5eaf7ee",
+    "semantic_hash": "44263565533e33c79bb04d4ff5eaf7ee"
+  },
+  "apps/api/nest-cli.json": {
+    "mtime": 1793040293.13394,
+    "seen": 1794319155.108154,
+    "ast_hash": "aaaebea29835b99353741d3735620f7e",
+    "semantic_hash": "aaaebea29835b99353741d3735620f7e"
+  },
+  "apps/api/package.json": {
+    "mtime": 1794236261.2202828,
+    "seen": 1794319155.1081548,
+    "ast_hash": "cb8f156566f8210dbd5e5addb0c9644c",
+    "semantic_hash": "cb8f156566f8210dbd5e5addb0c9644c"
+  },
+  "apps/api/src/application/dtos/acta-iniciacion.dto.ts": {
+    "mtime": 1793394216.1960204,
+    "seen": 1794319155.108156,
+    "ast_hash": "7f14f8ef192b8d1475066493438e4328",
+    "semantic_hash": "7f14f8ef192b8d1475066493438e4328"
+  },
+  "apps/api/src/application/dtos/auth.dto.ts": {
+    "mtime": 1793027157.7129307,
+    "seen": 1794319155.1081567,
+    "ast_hash": "e3507cd26236d80e2fee41fbc262ed6d",
+    "semantic_hash": "e3507cd26236d80e2fee41fbc262ed6d"
+  },
+  "apps/api/src/application/dtos/bitacora.dto.ts": {
+    "mtime": 1792078634.6272602,
+    "seen": 1794319155.1081576,
+    "ast_hash": "437287c590c5520e75599e0e5df1e46e",
+    "semantic_hash": "437287c590c5520e75599e0e5df1e46e"
+  },
+  "apps/api/src/application/dtos/camara-mesa.dto.ts": {
+    "mtime": 1793979399.4942997,
+    "seen": 1794319155.1081588,
+    "ast_hash": "5d1233c84eeae476b48c1536e1504130",
+    "semantic_hash": "5d1233c84eeae476b48c1536e1504130"
+  },
+  "apps/api/src/application/dtos/consentimiento.dto.ts": {
+    "mtime": 1793030980.7818987,
+    "seen": 1794319155.1081595,
+    "ast_hash": "84b61f7d4112d8b0a5fbc7d153230c20",
+    "semantic_hash": "84b61f7d4112d8b0a5fbc7d153230c20"
+  },
+  "apps/api/src/application/dtos/documento.dto.ts": {
+    "mtime": 1792078634.6272602,
+    "seen": 1794319155.1081605,
+    "ast_hash": "bf584354f22fef9efa0eafab84afcfbb",
+    "semantic_hash": "bf584354f22fef9efa0eafab84afcfbb"
+  },
+  "apps/api/src/application/dtos/empresa.dto.ts": {
+    "mtime": 1793031112.7553165,
+    "seen": 1794319155.1081612,
+    "ast_hash": "e7a101a69804989818bca3fd76f84c42",
+    "semantic_hash": "e7a101a69804989818bca3fd76f84c42"
+  },
+  "apps/api/src/application/dtos/expediente-documental.dto.ts": {
+    "mtime": 1794235582.123359,
+    "seen": 1794319155.1081624,
+    "ast_hash": "13cf962beaa209658cda63ca0b26823d",
+    "semantic_hash": "13cf962beaa209658cda63ca0b26823d"
+  },
+  "apps/api/src/application/dtos/mesa-eps.dto.ts": {
+    "mtime": 1793206211.7668784,
+    "seen": 1794319155.1081636,
+    "ast_hash": "2b0f296d27231fb2d4db7c06f41e60c4",
+    "semantic_hash": "2b0f296d27231fb2d4db7c06f41e60c4"
+  },
+  "apps/api/src/application/dtos/practica.dto.ts": {
+    "mtime": 1793374627.0419266,
+    "seen": 1794319155.1081645,
+    "ast_hash": "99a3fc99cf4548f695870ab2d9e9c4d1",
+    "semantic_hash": "99a3fc99cf4548f695870ab2d9e9c4d1"
+  },
+  "apps/api/src/application/dtos/rut-mesa.dto.ts": {
+    "mtime": 1793808790.4427588,
+    "seen": 1794319155.1081653,
+    "ast_hash": "9a7058d36902415fdf134e46eadec594",
+    "semantic_hash": "9a7058d36902415fdf134e46eadec594"
+  },
+  "apps/api/src/application/dtos/solicitud-arl.dto.ts": {
+    "mtime": 1792078634.6418786,
+    "seen": 1794319155.1081662,
+    "ast_hash": "5d16327e1e158bc17db11de7b7c6bd5c",
+    "semantic_hash": "5d16327e1e158bc17db11de7b7c6bd5c"
+  },
+  "apps/api/src/application/dtos/usuario.dto.ts": {
+    "mtime": 1792078634.6418786,
+    "seen": 1794319155.1081672,
+    "ast_hash": "f4a5682ca125f12cb32057f2737afcda",
+    "semantic_hash": "f4a5682ca125f12cb32057f2737afcda"
+  },
+  "apps/api/src/application/dtos/vacante.dto.ts": {
+    "mtime": 1792078634.6418786,
+    "seen": 1794319155.108168,
+    "ast_hash": "93f0baba7119942bba5aa4c22583ee90",
+    "semantic_hash": "93f0baba7119942bba5aa4c22583ee90"
+  },
+  "apps/api/src/application/dtos/validacion-eps.dto.ts": {
+    "mtime": 1793047547.8194954,
+    "seen": 1794319155.108169,
+    "ast_hash": "cd94a5a6380f939e87966591172e5fe7",
+    "semantic_hash": "cd94a5a6380f939e87966591172e5fe7"
+  },
+  "apps/api/src/application/services/interruptores-eps.ts": {
+    "mtime": 1793112823.1547327,
+    "seen": 1794319155.1081703,
+    "ast_hash": "4ec6b49887559819ea4d71b953b2c442",
+    "semantic_hash": "4ec6b49887559819ea4d71b953b2c442"
+  },
+  "apps/api/src/application/use-cases/administracion/costos-ia.use-case.ts": {
+    "mtime": 1792078634.6628075,
+    "seen": 1794319155.1081712,
+    "ast_hash": "7961b2cc3f5b302931c3c4f923aee1e3",
+    "semantic_hash": "7961b2cc3f5b302931c3c4f923aee1e3"
+  },
+  "apps/api/src/application/use-cases/administracion/gestionar-periodos.use-case.ts": {
+    "mtime": 1792078634.666914,
+    "seen": 1794319155.108172,
+    "ast_hash": "acfba88ebfe2817abbbd200b2ee9eda9",
+    "semantic_hash": "acfba88ebfe2817abbbd200b2ee9eda9"
+  },
+  "apps/api/src/application/use-cases/administracion/gestionar-usuarios.use-case.ts": {
+    "mtime": 1792078634.669917,
+    "seen": 1794319155.108173,
+    "ast_hash": "8f12d47fb0cca37be00d898b28cc534b",
+    "semantic_hash": "8f12d47fb0cca37be00d898b28cc534b"
+  },
+  "apps/api/src/application/use-cases/administracion/parametros.use-case.ts": {
+    "mtime": 1792078634.6733153,
+    "seen": 1794319155.1081738,
+    "ast_hash": "977a7b9b3a251d0fc7b0fb7485346968",
+    "semantic_hash": "977a7b9b3a251d0fc7b0fb7485346968"
+  },
+  "apps/api/src/application/use-cases/administracion/pqrs.use-case.ts": {
+    "mtime": 1792078634.6768577,
+    "seen": 1794319155.1081743,
+    "ast_hash": "e4de36c6900532776e724af89421b2e7",
+    "semantic_hash": "e4de36c6900532776e724af89421b2e7"
+  },
+  "apps/api/src/application/use-cases/administracion/vistas-sinu.use-case.ts": {
+    "mtime": 1792078634.6808808,
+    "seen": 1794319155.1081753,
+    "ast_hash": "0d77cc23bafee13311263c53a2c625c3",
+    "semantic_hash": "0d77cc23bafee13311263c53a2c625c3"
+  },
+  "apps/api/src/application/use-cases/auth/ingresar-abierto.use-case.ts": {
+    "mtime": 1792078634.689476,
+    "seen": 1794319155.1081762,
+    "ast_hash": "53b9ea00393a766526c7f9ac0890f649",
+    "semantic_hash": "53b9ea00393a766526c7f9ac0890f649"
+  },
+  "apps/api/src/application/use-cases/auth/listar-perfiles.use-case.ts": {
+    "mtime": 1792078634.6934235,
+    "seen": 1794319155.108177,
+    "ast_hash": "81f7d524caf6bbfa90d20a83d436016d",
+    "semantic_hash": "81f7d524caf6bbfa90d20a83d436016d"
+  },
+  "apps/api/src/application/use-cases/auth/perfil-predeterminado.ts": {
+    "mtime": 1792078634.6964235,
+    "seen": 1794319155.108178,
+    "ast_hash": "b78bb125f1da4e2ff6dcdc191fb704c9",
+    "semantic_hash": "b78bb125f1da4e2ff6dcdc191fb704c9"
+  },
+  "apps/api/src/application/use-cases/consentimientos/consentimiento.use-case.ts": {
+    "mtime": 1793031708.2867117,
+    "seen": 1794319155.1081786,
+    "ast_hash": "bd368d4980dbfeefb37bb28f80829127",
+    "semantic_hash": "bd368d4980dbfeefb37bb28f80829127"
+  },
+  "apps/api/src/application/use-cases/documentos/acta-estudiante.use-case.ts": {
+    "mtime": 1793376039.373652,
+    "seen": 1794319155.1081796,
+    "ast_hash": "270f9e4913d1e62ccd7c2a24eea867bb",
+    "semantic_hash": "270f9e4913d1e62ccd7c2a24eea867bb"
+  },
+  "apps/api/src/application/use-cases/documentos/camara-estudiante.use-case.ts": {
+    "mtime": 1793979414.5069232,
+    "seen": 1794319155.1081805,
+    "ast_hash": "4e5604a7d9bca70dc4659b9391080713",
+    "semantic_hash": "4e5604a7d9bca70dc4659b9391080713"
+  },
+  "apps/api/src/application/use-cases/documentos/consulta-adres.use-case.ts": {
+    "mtime": 1793195316.0362227,
+    "seen": 1794319155.1081812,
+    "ast_hash": "26c1ba183fbd8bf2cae3a1b285f06642",
+    "semantic_hash": "26c1ba183fbd8bf2cae3a1b285f06642"
+  },
+  "apps/api/src/application/use-cases/documentos/expediente-documental.use-case.ts": {
+    "mtime": 1794236168.1269543,
+    "seen": 1794319155.108182,
+    "ast_hash": "aec046fa8c2cf4127e606ee667e4ead3",
+    "semantic_hash": "aec046fa8c2cf4127e606ee667e4ead3"
+  },
+  "apps/api/src/application/use-cases/documentos/gestionar-documento.use-case.ts": {
+    "mtime": 1793979315.5281093,
+    "seen": 1794319155.1081827,
+    "ast_hash": "022cbd2f390c40f2a764c813707a842e",
+    "semantic_hash": "022cbd2f390c40f2a764c813707a842e"
+  },
+  "apps/api/src/application/use-cases/documentos/mesa-actas.use-case.ts": {
+    "mtime": 1793394216.1960204,
+    "seen": 1794319155.1081839,
+    "ast_hash": "a3160a05f390750fbc3c52d4e44ff86e",
+    "semantic_hash": "a3160a05f390750fbc3c52d4e44ff86e"
+  },
+  "apps/api/src/application/use-cases/documentos/mesa-camara.use-case.ts": {
+    "mtime": 1793980160.8098326,
+    "seen": 1794319155.1081846,
+    "ast_hash": "250e14fb83165de61b909b7832dafaef",
+    "semantic_hash": "250e14fb83165de61b909b7832dafaef"
+  },
+  "apps/api/src/application/use-cases/documentos/mesa-eps.use-case.ts": {
+    "mtime": 1793208470.4227786,
+    "seen": 1794319155.1081855,
+    "ast_hash": "1c6dc4e51887f329686f65ffcede897c",
+    "semantic_hash": "1c6dc4e51887f329686f65ffcede897c"
+  },
+  "apps/api/src/application/use-cases/documentos/mesa-rut.use-case.ts": {
+    "mtime": 1793809337.3172157,
+    "seen": 1794319155.1081865,
+    "ast_hash": "8ad5815c95122be947f9fcde5f01d554",
+    "semantic_hash": "8ad5815c95122be947f9fcde5f01d554"
+  },
+  "apps/api/src/application/use-cases/documentos/pipeline-validacion.use-case.ts": {
+    "mtime": 1793891294.065161,
+    "seen": 1794319155.1081872,
+    "ast_hash": "2f56ed96ca3a8039138b576e874aa54d",
+    "semantic_hash": "2f56ed96ca3a8039138b576e874aa54d"
+  },
+  "apps/api/src/application/use-cases/documentos/procesar-trabajo.use-case.ts": {
+    "mtime": 1793890602.1332533,
+    "seen": 1794319155.1081882,
+    "ast_hash": "0acab722e3374ef7035024d0baf8c298",
+    "semantic_hash": "0acab722e3374ef7035024d0baf8c298"
+  },
+  "apps/api/src/application/use-cases/documentos/rut-estudiante.use-case.ts": {
+    "mtime": 1793803078.437392,
+    "seen": 1794319155.1081889,
+    "ast_hash": "c4125184b9e3a34b9299282da4502210",
+    "semantic_hash": "c4125184b9e3a34b9299282da4502210"
+  },
+  "apps/api/src/application/use-cases/documentos/validacion-acta.use-case.ts": {
+    "mtime": 1793378036.189946,
+    "seen": 1794319155.1081896,
+    "ast_hash": "f40dc7be57096c6393b2c5ca6c868a62",
+    "semantic_hash": "f40dc7be57096c6393b2c5ca6c868a62"
+  },
+  "apps/api/src/application/use-cases/documentos/validacion-camara.use-case.ts": {
+    "mtime": 1793977049.3859437,
+    "seen": 1794319155.1081908,
+    "ast_hash": "dba58ff5792eae19452f518ff60657b3",
+    "semantic_hash": "dba58ff5792eae19452f518ff60657b3"
+  },
+  "apps/api/src/application/use-cases/documentos/validacion-eps.use-case.ts": {
+    "mtime": 1793206176.4378157,
+    "seen": 1794319155.1081915,
+    "ast_hash": "975e47a955f1ff477fa39d72c6430ea1",
+    "semantic_hash": "975e47a955f1ff477fa39d72c6430ea1"
+  },
+  "apps/api/src/application/use-cases/documentos/validacion-rut.use-case.ts": {
+    "mtime": 1793803035.5932353,
+    "seen": 1794319155.1081924,
+    "ast_hash": "69232cc60a25625c2af06a1b662912fb",
+    "semantic_hash": "69232cc60a25625c2af06a1b662912fb"
+  },
+  "apps/api/src/application/use-cases/documentos/verificacion-eps.use-case.ts": {
+    "mtime": 1793112823.26125,
+    "seen": 1794319155.1081934,
+    "ast_hash": "5566e14c8e948c908eec7259f0049cf8",
+    "semantic_hash": "5566e14c8e948c908eec7259f0049cf8"
+  },
+  "apps/api/src/application/use-cases/empresas/gestionar-empresa.use-case.ts": {
+    "mtime": 1793732970.043199,
+    "seen": 1794319155.108194,
+    "ast_hash": "74f796edd6660e8ab65cd0dc291fd766",
+    "semantic_hash": "74f796edd6660e8ab65cd0dc291fd766"
+  },
+  "apps/api/src/application/use-cases/obligaciones/tablero-cumplimiento.use-case.ts": {
+    "mtime": 1792078634.7292383,
+    "seen": 1794319155.1081948,
+    "ast_hash": "5260856c0c7a3a412fbcd09178978771",
+    "semantic_hash": "5260856c0c7a3a412fbcd09178978771"
+  },
+  "apps/api/src/application/use-cases/practicas/bitacora.use-case.ts": {
+    "mtime": 1793027844.9303842,
+    "seen": 1794319155.1081955,
+    "ast_hash": "0099d4cca1f196955ea98b5ba50920bf",
+    "semantic_hash": "0099d4cca1f196955ea98b5ba50920bf"
+  },
+  "apps/api/src/application/use-cases/practicas/carta-presentacion.use-case.ts": {
+    "mtime": 1792078634.7448947,
+    "seen": 1794319155.1081965,
+    "ast_hash": "99cc9bf91eb71c7af755df39e118dd64",
+    "semantic_hash": "99cc9bf91eb71c7af755df39e118dd64"
+  },
+  "apps/api/src/application/use-cases/practicas/gestionar-practica.use-case.ts": {
+    "mtime": 1793376061.2956963,
+    "seen": 1794319155.1081975,
+    "ast_hash": "147e368234f17c0adc33567773e59998",
+    "semantic_hash": "147e368234f17c0adc33567773e59998"
+  },
+  "apps/api/src/application/use-cases/practicas/proyeccion-practica.ts": {
+    "mtime": 1793031110.7878642,
+    "seen": 1794319155.1081982,
+    "ast_hash": "87dda5273786b996ea99aec4f58b7403",
+    "semantic_hash": "87dda5273786b996ea99aec4f58b7403"
+  },
+  "apps/api/src/application/use-cases/practicas/registrar-practica.use-case.ts": {
+    "mtime": 1793372762.770625,
+    "seen": 1794319155.1081991,
+    "ast_hash": "59dd3c53f775f035fd554c83c3e4fe41",
+    "semantic_hash": "59dd3c53f775f035fd554c83c3e4fe41"
+  },
+  "apps/api/src/application/use-cases/practicas/solicitud-arl.use-case.ts": {
+    "mtime": 1792078634.7605214,
+    "seen": 1794319155.1082,
+    "ast_hash": "bf3672d3c0f7dc7143ac392313e7c2ec",
+    "semantic_hash": "bf3672d3c0f7dc7143ac392313e7c2ec"
+  },
+  "apps/api/src/application/use-cases/reportes/generar-reporte-spe.use-case.ts": {
+    "mtime": 1792078634.7605214,
+    "seen": 1794319155.108201,
+    "ast_hash": "25a3b2aca007856f831e6bbb9f3919b5",
+    "semantic_hash": "25a3b2aca007856f831e6bbb9f3919b5"
+  },
+  "apps/api/src/application/use-cases/reportes/reportes-sgp.use-case.ts": {
+    "mtime": 1794343649.9357016,
+    "seen": 1794346201.4144459,
+    "ast_hash": "f736f1af4eb4820ce191b014bc94681f",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/vacantes/gestionar-vacante.use-case.ts": {
+    "mtime": 1792078634.7761447,
+    "seen": 1794319155.108203,
+    "ast_hash": "a88fe7493b41b7d722cde833cad1d133",
+    "semantic_hash": "a88fe7493b41b7d722cde833cad1d133"
+  },
+  "apps/api/src/crear-aplicacion.ts": {
+    "mtime": 1793027894.432253,
+    "seen": 1794319155.108204,
+    "ast_hash": "bf0c15f722c4efd70c18edb094ea5874",
+    "semantic_hash": "bf0c15f722c4efd70c18edb094ea5874"
+  },
+  "apps/api/src/domain/entities/acta-iniciacion.ts": {
+    "mtime": 1793394175.2173853,
+    "seen": 1794319155.1082046,
+    "ast_hash": "6a4a133d072baff7c8e90f2b26d38dfd",
+    "semantic_hash": "6a4a133d072baff7c8e90f2b26d38dfd"
+  },
+  "apps/api/src/domain/entities/adres.ts": {
+    "mtime": 1793200904.1960256,
+    "seen": 1794319155.1082056,
+    "ast_hash": "fc2b57d1fb41ae0584911ece6b17d1a2",
+    "semantic_hash": "fc2b57d1fb41ae0584911ece6b17d1a2"
+  },
+  "apps/api/src/domain/entities/auditoria.entity.ts": {
+    "mtime": 1794235610.1502633,
+    "seen": 1794319155.1082063,
+    "ast_hash": "bb5aee78c14b7ee72980b1864fd1dcbe",
+    "semantic_hash": "bb5aee78c14b7ee72980b1864fd1dcbe"
+  },
+  "apps/api/src/domain/entities/bitacora.entity.ts": {
+    "mtime": 1792078634.800881,
+    "seen": 1794319155.108211,
+    "ast_hash": "b20ca10c71a65885050f13b24806ce2b",
+    "semantic_hash": "b20ca10c71a65885050f13b24806ce2b"
+  },
+  "apps/api/src/domain/entities/campos-extraccion.ts": {
+    "mtime": 1792078634.8049936,
+    "seen": 1794319155.108212,
+    "ast_hash": "e96d0283404a3e5f4fd12cfbde715ebf",
+    "semantic_hash": "e96d0283404a3e5f4fd12cfbde715ebf"
+  },
+  "apps/api/src/domain/entities/carta-presentacion.entity.ts": {
+    "mtime": 1792078634.808288,
+    "seen": 1794319155.1082127,
+    "ast_hash": "bcfc2dd3455e7ef7f16dd7bd22309654",
+    "semantic_hash": "bcfc2dd3455e7ef7f16dd7bd22309654"
+  },
+  "apps/api/src/domain/entities/consentimiento.entity.ts": {
+    "mtime": 1793030866.8249538,
+    "seen": 1794319155.1082137,
+    "ast_hash": "c4728493b3827384dfca5a3c25bd4798",
+    "semantic_hash": "c4728493b3827384dfca5a3c25bd4798"
+  },
+  "apps/api/src/domain/entities/criterios-documentales.ts": {
+    "mtime": 1792078634.8122847,
+    "seen": 1794319155.1082146,
+    "ast_hash": "d5ff6c54f52e7fef9428cc64e1f8e140",
+    "semantic_hash": "d5ff6c54f52e7fef9428cc64e1f8e140"
+  },
+  "apps/api/src/domain/entities/documento-empresarial.ts": {
+    "mtime": 1793889593.2982,
+    "seen": 1794319155.1082153,
+    "ast_hash": "9b38f500ece9d3ac6172ae000060bd71",
+    "semantic_hash": "9b38f500ece9d3ac6172ae000060bd71"
+  },
+  "apps/api/src/domain/entities/documento.entity.ts": {
+    "mtime": 1793036920.85305,
+    "seen": 1794319155.1082163,
+    "ast_hash": "33d2bddb4bf302fc3813edcc0dd83f58",
+    "semantic_hash": "33d2bddb4bf302fc3813edcc0dd83f58"
+  },
+  "apps/api/src/domain/entities/empresa.entity.ts": {
+    "mtime": 1792078634.81931,
+    "seen": 1794319155.108217,
+    "ast_hash": "ec3ffedc12682f87f529c298054f067d",
+    "semantic_hash": "ec3ffedc12682f87f529c298054f067d"
+  },
+  "apps/api/src/domain/entities/evidencia-validacion-eps.entity.ts": {
+    "mtime": 1793040465.334608,
+    "seen": 1794319155.1082182,
+    "ast_hash": "5334568075556b0865c38056ccc447a1",
+    "semantic_hash": "5334568075556b0865c38056ccc447a1"
+  },
+  "apps/api/src/domain/entities/modalidad.entity.ts": {
+    "mtime": 1792078634.8222852,
+    "seen": 1794319155.108219,
+    "ast_hash": "79361b03f4b4c2e7e0bcced28f7c5059",
+    "semantic_hash": "79361b03f4b4c2e7e0bcced28f7c5059"
+  },
+  "apps/api/src/domain/entities/obligacion.entity.ts": {
+    "mtime": 1792078634.826303,
+    "seen": 1794319155.1082199,
+    "ast_hash": "2ce7830ee581c40a0aef9b3fae240d80",
+    "semantic_hash": "2ce7830ee581c40a0aef9b3fae240d80"
+  },
+  "apps/api/src/domain/entities/parametro.entity.ts": {
+    "mtime": 1792078634.829304,
+    "seen": 1794319155.1082206,
+    "ast_hash": "fc67ae3baef83356c8097b498f8388ca",
+    "semantic_hash": "fc67ae3baef83356c8097b498f8388ca"
+  },
+  "apps/api/src/domain/entities/periodo.entity.ts": {
+    "mtime": 1792078634.8332906,
+    "seen": 1794319155.1082218,
+    "ast_hash": "4906dff55cbf65545c8ffa16a8444c90",
+    "semantic_hash": "4906dff55cbf65545c8ffa16a8444c90"
+  },
+  "apps/api/src/domain/entities/pqrs.entity.ts": {
+    "mtime": 1792078634.8363636,
+    "seen": 1794319155.1082225,
+    "ast_hash": "0157f06ab6cbc0433dfbb5ed1e0de872",
+    "semantic_hash": "0157f06ab6cbc0433dfbb5ed1e0de872"
+  },
+  "apps/api/src/domain/entities/practica.entity.ts": {
+    "mtime": 1793375709.2936437,
+    "seen": 1794319155.1082234,
+    "ast_hash": "ad7ae4b589b446f2233efa0547609f6b",
+    "semantic_hash": "ad7ae4b589b446f2233efa0547609f6b"
+  },
+  "apps/api/src/domain/entities/preguntas-frecuentes.ts": {
+    "mtime": 1792078634.8437185,
+    "seen": 1794319155.1082246,
+    "ast_hash": "f959d0bc7acc56b133aace0f0465e4e6",
+    "semantic_hash": "f959d0bc7acc56b133aace0f0465e4e6"
+  },
+  "apps/api/src/domain/entities/solicitud-arl.entity.ts": {
+    "mtime": 1792078634.8437185,
+    "seen": 1794319155.1082253,
+    "ast_hash": "b872e939864532180cb069a9f5abf5df",
+    "semantic_hash": "b872e939864532180cb069a9f5abf5df"
+  },
+  "apps/api/src/domain/entities/tarifas-ia.ts": {
+    "mtime": 1792078634.8437185,
+    "seen": 1794319155.1082265,
+    "ast_hash": "2775c576fd514eea6f338acf131bd413",
+    "semantic_hash": "2775c576fd514eea6f338acf131bd413"
+  },
+  "apps/api/src/domain/entities/usuario.entity.ts": {
+    "mtime": 1792078634.8437185,
+    "seen": 1794319155.1082273,
+    "ast_hash": "0828d7594dcc18b5c5c4ea02c35c6454",
+    "semantic_hash": "0828d7594dcc18b5c5c4ea02c35c6454"
+  },
+  "apps/api/src/domain/entities/vacante.entity.ts": {
+    "mtime": 1792078634.8437185,
+    "seen": 1794319155.1082284,
+    "ast_hash": "a5559c31af5c99c060bdda75b77a77a7",
+    "semantic_hash": "a5559c31af5c99c060bdda75b77a77a7"
+  },
+  "apps/api/src/domain/entities/validacion-acta.entity.ts": {
+    "mtime": 1793394175.2173853,
+    "seen": 1794319155.1082292,
+    "ast_hash": "a8a1e6a74999711da468812353bae383",
+    "semantic_hash": "a8a1e6a74999711da468812353bae383"
+  },
+  "apps/api/src/domain/entities/validacion-documento-empresarial.entity.ts": {
+    "mtime": 1793976980.627588,
+    "seen": 1794319155.10823,
+    "ast_hash": "f61bd168191b306a38b184dec0d613f3",
+    "semantic_hash": "f61bd168191b306a38b184dec0d613f3"
+  },
+  "apps/api/src/domain/entities/validacion-eps.entity.ts": {
+    "mtime": 1793206176.4318025,
+    "seen": 1794319155.108231,
+    "ast_hash": "de926dbd6e6ff00cb725df8cf8b8cf1e",
+    "semantic_hash": "de926dbd6e6ff00cb725df8cf8b8cf1e"
+  },
+  "apps/api/src/domain/ports/out/consentimiento.port.ts": {
+    "mtime": 1793030868.8953166,
+    "seen": 1794319155.108232,
+    "ast_hash": "92e0e3dac9225a14ed9460c3f47f3510",
+    "semantic_hash": "92e0e3dac9225a14ed9460c3f47f3510"
+  },
+  "apps/api/src/domain/ports/out/decision-acta.port.ts": {
+    "mtime": 1793377358.965346,
+    "seen": 1794319155.1082327,
+    "ast_hash": "5c4004be48c3c0acd64274996c771740",
+    "semantic_hash": "5c4004be48c3c0acd64274996c771740"
+  },
+  "apps/api/src/domain/ports/out/decision-rut.port.ts": {
+    "mtime": 1793802736.9023204,
+    "seen": 1794319155.1082337,
+    "ast_hash": "048df1330f5599b01c02951d94fecbd7",
+    "semantic_hash": "048df1330f5599b01c02951d94fecbd7"
+  },
+  "apps/api/src/domain/ports/out/expediente-documental.port.ts": {
+    "mtime": 1794235522.25419,
+    "seen": 1794319155.1082344,
+    "ast_hash": "673a9390154ab00a730fd1f081e56355",
+    "semantic_hash": "673a9390154ab00a730fd1f081e56355"
+  },
+  "apps/api/src/domain/ports/out/geometria-documento.port.ts": {
+    "mtime": 1793370981.039739,
+    "seen": 1794319155.1082356,
+    "ast_hash": "3df71454a45c03624a2283058bbecad4",
+    "semantic_hash": "3df71454a45c03624a2283058bbecad4"
+  },
+  "apps/api/src/domain/ports/out/lector-documento-local.port.ts": {
+    "mtime": 1793206039.2189777,
+    "seen": 1794319155.1082363,
+    "ast_hash": "28840213b10249afd6614c65a33cb591",
+    "semantic_hash": "28840213b10249afd6614c65a33cb591"
+  },
+  "apps/api/src/domain/ports/out/lectura-camara.port.ts": {
+    "mtime": 1793890096.2788508,
+    "seen": 1794319155.1082373,
+    "ast_hash": "03c650c21d70c25f9384a63ddf84c516",
+    "semantic_hash": "03c650c21d70c25f9384a63ddf84c516"
+  },
+  "apps/api/src/domain/ports/out/lectura-rut.port.ts": {
+    "mtime": 1793736541.5473733,
+    "seen": 1794319155.1082382,
+    "ast_hash": "dac851f58b0ebeabe14c90fa2104eb4e",
+    "semantic_hash": "dac851f58b0ebeabe14c90fa2104eb4e"
+  },
+  "apps/api/src/domain/ports/out/repositorios.port.ts": {
+    "mtime": 1793036952.439304,
+    "seen": 1794319155.1082392,
+    "ast_hash": "cde57cfc8b011537d870707116de436b",
+    "semantic_hash": "cde57cfc8b011537d870707116de436b"
+  },
+  "apps/api/src/domain/ports/out/servicios-externos.port.ts": {
+    "mtime": 1793890509.084483,
+    "seen": 1794319155.1082401,
+    "ast_hash": "df90c6e7d3d6c041ca92e679e3d5f9ec",
+    "semantic_hash": "df90c6e7d3d6c041ca92e679e3d5f9ec"
+  },
+  "apps/api/src/domain/ports/out/validacion-acta.port.ts": {
+    "mtime": 1793377593.8924758,
+    "seen": 1794319155.108241,
+    "ast_hash": "6d244066e707826e7d497dc8f0b2d44a",
+    "semantic_hash": "6d244066e707826e7d497dc8f0b2d44a"
+  },
+  "apps/api/src/domain/ports/out/validacion-documento-empresarial.port.ts": {
+    "mtime": 1793979347.160432,
+    "seen": 1794319155.108242,
+    "ast_hash": "473446d7a01c6830d33960e79346a1b7",
+    "semantic_hash": "473446d7a01c6830d33960e79346a1b7"
+  },
+  "apps/api/src/domain/ports/out/validacion-eps.port.ts": {
+    "mtime": 1793115697.1749122,
+    "seen": 1794319155.108243,
+    "ast_hash": "375986ccce919f22482ea9e5e10e1eac",
+    "semantic_hash": "375986ccce919f22482ea9e5e10e1eac"
+  },
+  "apps/api/src/domain/ports/out/verificador-certificado-eps.port.ts": {
+    "mtime": 1793045570.8908024,
+    "seen": 1794319155.108244,
+    "ast_hash": "266fd953b7d1137d60166ae0bb84cd5b",
+    "semantic_hash": "266fd953b7d1137d60166ae0bb84cd5b"
+  },
+  "apps/api/src/domain/services/acompanamiento.domain-service.ts": {
+    "mtime": 1792078634.8778586,
+    "seen": 1794319155.1082447,
+    "ast_hash": "99d77defd888fb2d8415debd9aa9d94e",
+    "semantic_hash": "99d77defd888fb2d8415debd9aa9d94e"
+  },
+  "apps/api/src/domain/services/adres-resultado.domain-service.ts": {
+    "mtime": 1793201754.8376553,
+    "seen": 1794319155.1082456,
+    "ast_hash": "4a1074339ed5521ebfb6258f855531df",
+    "semantic_hash": "4a1074339ed5521ebfb6258f855531df"
+  },
+  "apps/api/src/domain/services/analisis-acta.domain-service.ts": {
+    "mtime": 1793394150.2401214,
+    "seen": 1794319155.1082466,
+    "ast_hash": "76905b28275b3c8f2275ec0aaf5dcf63",
+    "semantic_hash": "76905b28275b3c8f2275ec0aaf5dcf63"
+  },
+  "apps/api/src/domain/services/antidiscriminacion.domain-service.ts": {
+    "mtime": 1792078634.8778586,
+    "seen": 1794319155.1082473,
+    "ast_hash": "112273c882d2ef3593c190f2642394df",
+    "semantic_hash": "112273c882d2ef3593c190f2642394df"
+  },
+  "apps/api/src/domain/services/autenticidad-documento-empresarial.domain-service.ts": {
+    "mtime": 1793889603.1803782,
+    "seen": 1794319155.1082482,
+    "ast_hash": "fb90e582b7e562b4cd67b8f142ac9316",
+    "semantic_hash": "fb90e582b7e562b4cd67b8f142ac9316"
+  },
+  "apps/api/src/domain/services/avance-documental.domain-service.ts": {
+    "mtime": 1792078634.891435,
+    "seen": 1794319155.1082492,
+    "ast_hash": "b70d973d6f64f5b3c2dc9a9724c790d4",
+    "semantic_hash": "b70d973d6f64f5b3c2dc9a9724c790d4"
+  },
+  "apps/api/src/domain/services/cierre.domain-service.ts": {
+    "mtime": 1792078634.891435,
+    "seen": 1794319155.1082501,
+    "ast_hash": "49a8503876298f1d5405ee3ad5400344",
+    "semantic_hash": "49a8503876298f1d5405ee3ad5400344"
+  },
+  "apps/api/src/domain/services/clasificacion-acta.domain-service.ts": {
+    "mtime": 1793371958.2977273,
+    "seen": 1794319155.1082509,
+    "ast_hash": "d68b8fb6dbe7ca8e94eaf6654f6ab277",
+    "semantic_hash": "d68b8fb6dbe7ca8e94eaf6654f6ab277"
+  },
+  "apps/api/src/domain/services/clasificacion-documental-eps.domain-service.ts": {
+    "mtime": 1793206321.563105,
+    "seen": 1794319155.1082516,
+    "ast_hash": "a9b9779014e3a70170c37a35472ce68c",
+    "semantic_hash": "a9b9779014e3a70170c37a35472ce68c"
+  },
+  "apps/api/src/domain/services/clasificacion-documento-empresarial.domain-service.ts": {
+    "mtime": 1793890058.6239457,
+    "seen": 1794319155.1082528,
+    "ast_hash": "32cd9440a09b96c9fd0bab0accb9bb69",
+    "semantic_hash": "32cd9440a09b96c9fd0bab0accb9bb69"
+  },
+  "apps/api/src/domain/services/comparacion-acta.domain-service.ts": {
+    "mtime": 1793394150.2336147,
+    "seen": 1794319155.1082535,
+    "ast_hash": "42101c080204fd7f01c739c301cccaeb",
+    "semantic_hash": "42101c080204fd7f01c739c301cccaeb"
+  },
+  "apps/api/src/domain/services/comparacion-camara.domain-service.ts": {
+    "mtime": 1793979160.6689699,
+    "seen": 1794319155.1082542,
+    "ast_hash": "c3c81dc239c67370b22c4695a6d4066b",
+    "semantic_hash": "c3c81dc239c67370b22c4695a6d4066b"
+  },
+  "apps/api/src/domain/services/comparacion-documento-empresarial.domain-service.ts": {
+    "mtime": 1793977416.734577,
+    "seen": 1794319155.1082551,
+    "ast_hash": "8d85484bb4aad0e7ec852e5a392eda08",
+    "semantic_hash": "8d85484bb4aad0e7ec852e5a392eda08"
+  },
+  "apps/api/src/domain/services/comparacion-eps.domain-service.ts": {
+    "mtime": 1793133750.1525035,
+    "seen": 1794319155.108256,
+    "ast_hash": "3a80cafce36067217252aac47439c852",
+    "semantic_hash": "3a80cafce36067217252aac47439c852"
+  },
+  "apps/api/src/domain/services/comparacion-rut.domain-service.ts": {
+    "mtime": 1793739659.649363,
+    "seen": 1794319155.108257,
+    "ast_hash": "8df20e1b6f9f5303e1fbda7e4bb48ac1",
+    "semantic_hash": "8df20e1b6f9f5303e1fbda7e4bb48ac1"
+  },
+  "apps/api/src/domain/services/conocimiento-documental.domain-service.ts": {
+    "mtime": 1792078634.891435,
+    "seen": 1794319155.1082578,
+    "ast_hash": "204f61e8ba2647bce1ebb65e1af5734b",
+    "semantic_hash": "204f61e8ba2647bce1ebb65e1af5734b"
+  },
+  "apps/api/src/domain/services/control-nit.domain-service.ts": {
+    "mtime": 1793732685.015465,
+    "seen": 1794319155.1082585,
+    "ast_hash": "bec5ab09c5cd2956e68f10194d8ae31f",
+    "semantic_hash": "bec5ab09c5cd2956e68f10194d8ae31f"
+  },
+  "apps/api/src/domain/services/costos-ia.domain-service.ts": {
+    "mtime": 1792078634.891435,
+    "seen": 1794319155.1082597,
+    "ast_hash": "9771e108a58935ac852196062a17742a",
+    "semantic_hash": "9771e108a58935ac852196062a17742a"
+  },
+  "apps/api/src/domain/services/decision-acta.domain-service.ts": {
+    "mtime": 1793377357.5946012,
+    "seen": 1794319155.1082604,
+    "ast_hash": "6a5c0220ec72578a80f3dfc5b43555ca",
+    "semantic_hash": "6a5c0220ec72578a80f3dfc5b43555ca"
+  },
+  "apps/api/src/domain/services/decision-rut.domain-service.ts": {
+    "mtime": 1793979294.8116975,
+    "seen": 1794319155.108261,
+    "ast_hash": "fc69c740f2d2ea9b50eedadebf9391b9",
+    "semantic_hash": "fc69c740f2d2ea9b50eedadebf9391b9"
+  },
+  "apps/api/src/domain/services/duplicados-documento-empresarial.domain-service.ts": {
+    "mtime": 1793732750.4761858,
+    "seen": 1794319155.108262,
+    "ast_hash": "a5a7cd20a46aebd4a226a6614cde7824",
+    "semantic_hash": "a5a7cd20a46aebd4a226a6614cde7824"
+  },
+  "apps/api/src/domain/services/esquema-lectura.ts": {
+    "mtime": 1792078634.891435,
+    "seen": 1794319155.108263,
+    "ast_hash": "38f56dff031f2a56b0389cc8dd51b8db",
+    "semantic_hash": "38f56dff031f2a56b0389cc8dd51b8db"
+  },
+  "apps/api/src/domain/services/expediente-documental.domain-service.ts": {
+    "mtime": 1794235480.1024513,
+    "seen": 1794319155.1082637,
+    "ast_hash": "920c3e9ee66a76eced0014565add9aec",
+    "semantic_hash": "920c3e9ee66a76eced0014565add9aec"
+  },
+  "apps/api/src/domain/services/extraccion-acta.domain-service.ts": {
+    "mtime": 1793394129.1986122,
+    "seen": 1794319155.1082647,
+    "ast_hash": "ab82769fc1547fcc7d510c5ae3bbdc57",
+    "semantic_hash": "ab82769fc1547fcc7d510c5ae3bbdc57"
+  },
+  "apps/api/src/domain/services/extraccion-eps-lineas.domain-service.ts": {
+    "mtime": 1793197665.112923,
+    "seen": 1794319155.1082654,
+    "ast_hash": "4f09bec9a5c8ff96bc78683b0b41355f",
+    "semantic_hash": "4f09bec9a5c8ff96bc78683b0b41355f"
+  },
+  "apps/api/src/domain/services/extraccion-eps-local.domain-service.ts": {
+    "mtime": 1793197668.8977284,
+    "seen": 1794319155.1082666,
+    "ast_hash": "49b188ece6bbb159c5fdde8a1e615f74",
+    "semantic_hash": "49b188ece6bbb159c5fdde8a1e615f74"
+  },
+  "apps/api/src/domain/services/fechas-colombia.ts": {
+    "mtime": 1792078634.911928,
+    "seen": 1794319155.1082673,
+    "ast_hash": "d51e7c238395daa8feb48fe4dc59ecf9",
+    "semantic_hash": "d51e7c238395daa8feb48fe4dc59ecf9"
+  },
+  "apps/api/src/domain/services/firmas-acta.domain-service.ts": {
+    "mtime": 1793394102.7392201,
+    "seen": 1794319155.108268,
+    "ast_hash": "edf59e623780ca9f94693acec930de52",
+    "semantic_hash": "edf59e623780ca9f94693acec930de52"
+  },
+  "apps/api/src/domain/services/forense.domain-service.ts": {
+    "mtime": 1792078634.9149356,
+    "seen": 1794319155.1082687,
+    "ast_hash": "460dac04c732e19c582734ccdcdf377e",
+    "semantic_hash": "460dac04c732e19c582734ccdcdf377e"
+  },
+  "apps/api/src/domain/services/geometria-rut.domain-service.ts": {
+    "mtime": 1793736482.5711398,
+    "seen": 1794319155.10827,
+    "ast_hash": "6837979d7168f96a7717dcc9e2b30fac",
+    "semantic_hash": "6837979d7168f96a7717dcc9e2b30fac"
+  },
+  "apps/api/src/domain/services/hash-perceptual.domain-service.ts": {
+    "mtime": 1792078634.9189303,
+    "seen": 1794319155.1082706,
+    "ast_hash": "69c35ad32b5e63e8232e8e9b9aafa049",
+    "semantic_hash": "69c35ad32b5e63e8232e8e9b9aafa049"
+  },
+  "apps/api/src/domain/services/index.ts": {
+    "mtime": 1792078634.9219463,
+    "seen": 1794319155.1082716,
+    "ast_hash": "d634de60dfb6ae9f322796faea3b8bc1",
+    "semantic_hash": "d634de60dfb6ae9f322796faea3b8bc1"
+  },
+  "apps/api/src/domain/services/interpretacion-camara.domain-service.ts": {
+    "mtime": 1793891017.3432493,
+    "seen": 1794319155.1082723,
+    "ast_hash": "e08d5c354d67b31ebcda7942a9c338a2",
+    "semantic_hash": "e08d5c354d67b31ebcda7942a9c338a2"
+  },
+  "apps/api/src/domain/services/interpretacion-rut.domain-service.ts": {
+    "mtime": 1793737353.92281,
+    "seen": 1794319155.1082735,
+    "ast_hash": "e42a8265ad6c152f0e63e011d96c1267",
+    "semantic_hash": "e42a8265ad6c152f0e63e011d96c1267"
+  },
+  "apps/api/src/domain/services/interruptores-eps.ts": {
+    "mtime": 1793116255.2019463,
+    "seen": 1794319155.1082742,
+    "ast_hash": "c30dff7a1289d3a5e8eb50373cde9a3b",
+    "semantic_hash": "c30dff7a1289d3a5e8eb50373cde9a3b"
+  },
+  "apps/api/src/domain/services/justificacion-decision.ts": {
+    "mtime": 1793375512.4378788,
+    "seen": 1794319155.108275,
+    "ast_hash": "4baf00fbe189bdc695b33b9273727946",
+    "semantic_hash": "4baf00fbe189bdc695b33b9273727946"
+  },
+  "apps/api/src/domain/services/lectura-local-acta.domain-service.ts": {
+    "mtime": 1793394094.2956882,
+    "seen": 1794319155.1082757,
+    "ast_hash": "72712df6c0b30d8a5300bf0d1969809a",
+    "semantic_hash": "72712df6c0b30d8a5300bf0d1969809a"
+  },
+  "apps/api/src/domain/services/lectura-local-adres.domain-service.ts": {
+    "mtime": 1793047521.3173602,
+    "seen": 1794319155.1082768,
+    "ast_hash": "ae8ba2412191f7030799a4abb1ce6853",
+    "semantic_hash": "ae8ba2412191f7030799a4abb1ce6853"
+  },
+  "apps/api/src/domain/services/lectura-local-camara.domain-service.ts": {
+    "mtime": 1793891018.4755416,
+    "seen": 1794319155.1082776,
+    "ast_hash": "78e9340aa9eb4488966a43f449bac4ba",
+    "semantic_hash": "78e9340aa9eb4488966a43f449bac4ba"
+  },
+  "apps/api/src/domain/services/lectura-local-eps.domain-service.ts": {
+    "mtime": 1793206119.3294277,
+    "seen": 1794319155.1082783,
+    "ast_hash": "70867ac6ede849f17d9f16d88ac9af28",
+    "semantic_hash": "70867ac6ede849f17d9f16d88ac9af28"
+  },
+  "apps/api/src/domain/services/lectura-local-rut.domain-service.ts": {
+    "mtime": 1793739685.9093478,
+    "seen": 1794319155.1082792,
+    "ast_hash": "eca91eaef6694b1fc2451d97f2864ff2",
+    "semantic_hash": "eca91eaef6694b1fc2451d97f2864ff2"
+  },
+  "apps/api/src/domain/services/lectura-local.domain-service.ts": {
+    "mtime": 1793136164.9104729,
+    "seen": 1794319155.1082802,
+    "ast_hash": "9fb213a2510f20adeb86e484261dcfd4",
+    "semantic_hash": "9fb213a2510f20adeb86e484261dcfd4"
+  },
+  "apps/api/src/domain/services/localizacion-firmas.domain-service.ts": {
+    "mtime": 1793371535.2639408,
+    "seen": 1794319155.1082811,
+    "ast_hash": "160b4888bd6f75382c48e4d466ac47f1",
+    "semantic_hash": "160b4888bd6f75382c48e4d466ac47f1"
+  },
+  "apps/api/src/domain/services/mesa-acta.domain-service.ts": {
+    "mtime": 1793381453.968866,
+    "seen": 1794319155.1082819,
+    "ast_hash": "e5d2f81434e3631924ed3966b84005dd",
+    "semantic_hash": "e5d2f81434e3631924ed3966b84005dd"
+  },
+  "apps/api/src/domain/services/mesa-camara.domain-service.ts": {
+    "mtime": 1793979276.799624,
+    "seen": 1794319155.1082826,
+    "ast_hash": "0976bd4e56fce8af06a78e96ec4ff46a",
+    "semantic_hash": "0976bd4e56fce8af06a78e96ec4ff46a"
+  },
+  "apps/api/src/domain/services/mesa-eps.domain-service.ts": {
+    "mtime": 1793375512.6751227,
+    "seen": 1794319155.1082838,
+    "ast_hash": "7e37274d662ba60fc200784914933131",
+    "semantic_hash": "7e37274d662ba60fc200784914933131"
+  },
+  "apps/api/src/domain/services/mesa-rut.domain-service.ts": {
+    "mtime": 1793802716.5758667,
+    "seen": 1794319155.1082845,
+    "ast_hash": "6aaf3e12a7ae81a8eefb3ed9380e528c",
+    "semantic_hash": "6aaf3e12a7ae81a8eefb3ed9380e528c"
+  },
+  "apps/api/src/domain/services/minimizacion-documento-empresarial.domain-service.ts": {
+    "mtime": 1793889597.1107554,
+    "seen": 1794319155.1082852,
+    "ast_hash": "5216dd9471445b5a1f993cf7feca9eef",
+    "semantic_hash": "5216dd9471445b5a1f993cf7feca9eef"
+  },
+  "apps/api/src/domain/services/normalizacion-acta.ts": {
+    "mtime": 1793370251.2686038,
+    "seen": 1794319155.1082892,
+    "ast_hash": "746188a91cc0038ba23c506381a59068",
+    "semantic_hash": "746188a91cc0038ba23c506381a59068"
+  },
+  "apps/api/src/domain/services/normalizacion-identidad.ts": {
+    "mtime": 1793389242.5015557,
+    "seen": 1794319155.10829,
+    "ast_hash": "9533b745a8629bae9ee37059f1b9521c",
+    "semantic_hash": "9533b745a8629bae9ee37059f1b9521c"
+  },
+  "apps/api/src/domain/services/obligaciones.domain-service.ts": {
+    "mtime": 1792078634.9249797,
+    "seen": 1794319155.108291,
+    "ast_hash": "6060d6001ddf2ae952afe8fc562e6b6c",
+    "semantic_hash": "6060d6001ddf2ae952afe8fc562e6b6c"
+  },
+  "apps/api/src/domain/services/pdf417.domain-service.ts": {
+    "mtime": 1792078634.9290347,
+    "seen": 1794319155.1082919,
+    "ast_hash": "c1c6e751952566366eaf373c915e3b5a",
+    "semantic_hash": "c1c6e751952566366eaf373c915e3b5a"
+  },
+  "apps/api/src/domain/services/plantillas-notificacion.domain-service.ts": {
+    "mtime": 1792078634.9341671,
+    "seen": 1794319155.1082926,
+    "ast_hash": "73b1fc121110b7dc9ad5a2e0817d779c",
+    "semantic_hash": "73b1fc121110b7dc9ad5a2e0817d779c"
+  },
+  "apps/api/src/domain/services/politica-procesamiento.ts": {
+    "mtime": 1793890512.77892,
+    "seen": 1794319155.1082935,
+    "ast_hash": "47d58df2635878c0b83350eafd2232b2",
+    "semantic_hash": "47d58df2635878c0b83350eafd2232b2"
+  },
+  "apps/api/src/domain/services/politica-rues.ts": {
+    "mtime": 1793732785.7822142,
+    "seen": 1794319155.1082945,
+    "ast_hash": "a541b2ae56e7b29abcaa7d1b2911f6be",
+    "semantic_hash": "a541b2ae56e7b29abcaa7d1b2911f6be"
+  },
+  "apps/api/src/domain/services/preprocesamiento.domain-service.ts": {
+    "mtime": 1792078634.9370613,
+    "seen": 1794319155.1082954,
+    "ast_hash": "c400fef2d2f3c9ba5c7bb9f1452332c6",
+    "semantic_hash": "c400fef2d2f3c9ba5c7bb9f1452332c6"
+  },
+  "apps/api/src/domain/services/registro-verificadores-eps.ts": {
+    "mtime": 1793045808.7117987,
+    "seen": 1794319155.1082962,
+    "ast_hash": "b8ad50646dbe2ce755463a64413bb903",
+    "semantic_hash": "b8ad50646dbe2ce755463a64413bb903"
+  },
+  "apps/api/src/domain/services/reportes-spe.domain-service.ts": {
+    "mtime": 1792078634.941061,
+    "seen": 1794319155.108297,
+    "ast_hash": "61ebd61c5deff1864cc85093bcddd2c9",
+    "semantic_hash": "61ebd61c5deff1864cc85093bcddd2c9"
+  },
+  "apps/api/src/domain/services/requisitos.domain-service.ts": {
+    "mtime": 1792078634.943205,
+    "seen": 1794319155.108298,
+    "ast_hash": "d2c21c12ac79043a0577c4acf85152e2",
+    "semantic_hash": "d2c21c12ac79043a0577c4acf85152e2"
+  },
+  "apps/api/src/domain/services/saneamiento-pdf.domain-service.ts": {
+    "mtime": 1792078634.943205,
+    "seen": 1794319155.108299,
+    "ast_hash": "a02a24ba715dc0ee72c250e4b9287bef",
+    "semantic_hash": "a02a24ba715dc0ee72c250e4b9287bef"
+  },
+  "apps/api/src/domain/services/senales-motores-documentales.domain-service.ts": {
+    "mtime": 1794235508.3702047,
+    "seen": 1794319155.1082997,
+    "ast_hash": "a6fc6a5c509e6d17f61147e878bec4df",
+    "semantic_hash": "a6fc6a5c509e6d17f61147e878bec4df"
+  },
+  "apps/api/src/domain/services/suficiencia-acta.domain-service.ts": {
+    "mtime": 1793371016.9657462,
+    "seen": 1794319155.1083004,
+    "ast_hash": "3d7ddd023d38e211910fbac89c5ef0ea",
+    "semantic_hash": "3d7ddd023d38e211910fbac89c5ef0ea"
+  },
+  "apps/api/src/domain/services/validacion-acta.domain-service.ts": {
+    "mtime": 1793394175.2173853,
+    "seen": 1794319155.1083016,
+    "ast_hash": "3c2b6907a70d79b7e4338522c9b093ef",
+    "semantic_hash": "3c2b6907a70d79b7e4338522c9b093ef"
+  },
+  "apps/api/src/domain/services/validacion-arl.domain-service.ts": {
+    "mtime": 1792078634.943205,
+    "seen": 1794319155.1083024,
+    "ast_hash": "3a700b31c96159e6e82b6ba48ba62df6",
+    "semantic_hash": "3a700b31c96159e6e82b6ba48ba62df6"
+  },
+  "apps/api/src/domain/services/verificacion-eps.domain-service.ts": {
+    "mtime": 1793045602.0916579,
+    "seen": 1794319155.108303,
+    "ast_hash": "3f01f17b928e2733bde99baddb4c7e52",
+    "semantic_hash": "3f01f17b928e2733bde99baddb4c7e52"
+  },
+  "apps/api/src/domain/services/vigencia-documento-empresarial.domain-service.ts": {
+    "mtime": 1793888092.0690806,
+    "seen": 1794319155.1083038,
+    "ast_hash": "204a0acbb8b1e55a80406ff414a8be4b",
+    "semantic_hash": "204a0acbb8b1e55a80406ff414a8be4b"
+  },
+  "apps/api/src/domain/value-objects/acceso-acta.vo.ts": {
+    "mtime": 1793375683.404771,
+    "seen": 1794319155.108305,
+    "ast_hash": "cc43bf2d3ad55b21d868c722b1e4ffa1",
+    "semantic_hash": "cc43bf2d3ad55b21d868c722b1e4ffa1"
+  },
+  "apps/api/src/domain/value-objects/acceso-camara.vo.ts": {
+    "mtime": 1793979414.4175565,
+    "seen": 1794319155.1083057,
+    "ast_hash": "a03b01debdcf3fcd5c9af73854e606b2",
+    "semantic_hash": "a03b01debdcf3fcd5c9af73854e606b2"
+  },
+  "apps/api/src/domain/value-objects/acceso-documental.vo.ts": {
+    "mtime": 1793027727.4654622,
+    "seen": 1794319155.1083064,
+    "ast_hash": "e04d2a2e8cf6729c95ba1408b42ca83e",
+    "semantic_hash": "e04d2a2e8cf6729c95ba1408b42ca83e"
+  },
+  "apps/api/src/domain/value-objects/acceso-eps.vo.ts": {
+    "mtime": 1793375897.0133374,
+    "seen": 1794319155.1083074,
+    "ast_hash": "0b25d3f60a6e5b3deb1dd1f9b076f4b1",
+    "semantic_hash": "0b25d3f60a6e5b3deb1dd1f9b076f4b1"
+  },
+  "apps/api/src/domain/value-objects/acceso-rut.vo.ts": {
+    "mtime": 1793803069.6159756,
+    "seen": 1794319155.1083083,
+    "ast_hash": "e7417dc1fdc3b4bf2eb306e27dbb23d0",
+    "semantic_hash": "e7417dc1fdc3b4bf2eb306e27dbb23d0"
+  },
+  "apps/api/src/domain/value-objects/acceso-validacion-documental.vo.ts": {
+    "mtime": 1794235681.2932017,
+    "seen": 1794319155.108309,
+    "ast_hash": "c51c7cabd0ba63655f4916df308a84d9",
+    "semantic_hash": "c51c7cabd0ba63655f4916df308a84d9"
+  },
+  "apps/api/src/domain/value-objects/nit.vo.ts": {
+    "mtime": 1792078634.9588592,
+    "seen": 1794319155.10831,
+    "ast_hash": "ed6526e958beda0609451393da33cf2f",
+    "semantic_hash": "ed6526e958beda0609451393da33cf2f"
+  },
+  "apps/api/src/domain/value-objects/rol.vo.ts": {
+    "mtime": 1792078634.9588592,
+    "seen": 1794319155.1083107,
+    "ast_hash": "9a17fcdb5b8dfdbc6f2766ea5d32379e",
+    "semantic_hash": "9a17fcdb5b8dfdbc6f2766ea5d32379e"
+  },
+  "apps/api/src/infrastructure/adapters/codigo-barras/pdf417.adapter.ts": {
+    "mtime": 1793039933.9174492,
+    "seen": 1794319155.1083117,
+    "ast_hash": "ba14f1cf5ca005848e40023901688c94",
+    "semantic_hash": "ba14f1cf5ca005848e40023901688c94"
+  },
+  "apps/api/src/infrastructure/adapters/cola/cola.adapter.ts": {
+    "mtime": 1792078634.993381,
+    "seen": 1794319155.1083126,
+    "ast_hash": "946f842e64bdd475c9096c7e28e5097a",
+    "semantic_hash": "946f842e64bdd475c9096c7e28e5097a"
+  },
+  "apps/api/src/infrastructure/adapters/externos/externos.adapter.ts": {
+    "mtime": 1793732977.3340814,
+    "seen": 1794319155.1083133,
+    "ast_hash": "8ffe6e941a04f24e2b540af339a5472b",
+    "semantic_hash": "8ffe6e941a04f24e2b540af339a5472b"
+  },
+  "apps/api/src/infrastructure/adapters/externos/workspace.adapter.ts": {
+    "mtime": 1793031493.674054,
+    "seen": 1794319155.108314,
+    "ast_hash": "c9524901762b3fe7ba9224819df42766",
+    "semantic_hash": "c9524901762b3fe7ba9224819df42766"
+  },
+  "apps/api/src/infrastructure/adapters/hojas/exceljs.adapter.ts": {
+    "mtime": 1792078635.009862,
+    "seen": 1794319155.108315,
+    "ast_hash": "b5dfe605a9b6af7eb02d0c49379e9409",
+    "semantic_hash": "b5dfe605a9b6af7eb02d0c49379e9409"
+  },
+  "apps/api/src/infrastructure/adapters/ia/extraccion-local.adapter.ts": {
+    "mtime": 1793890538.955304,
+    "seen": 1794319155.108316,
+    "ast_hash": "91a5c0c67a4a76c746d66f55246fb16d",
+    "semantic_hash": "91a5c0c67a4a76c746d66f55246fb16d"
+  },
+  "apps/api/src/infrastructure/adapters/ia/extraccion.adapter.ts": {
+    "mtime": 1793037709.9940717,
+    "seen": 1794319155.1083167,
+    "ast_hash": "a66c2701eb4fa481a5553d2a771c2d5e",
+    "semantic_hash": "a66c2701eb4fa481a5553d2a771c2d5e"
+  },
+  "apps/api/src/infrastructure/adapters/ia/openai.adapter.ts": {
+    "mtime": 1792078635.0254917,
+    "seen": 1794319155.1083176,
+    "ast_hash": "a796ef788ab5c3638d145f11366aa7ed",
+    "semantic_hash": "a796ef788ab5c3638d145f11366aa7ed"
+  },
+  "apps/api/src/infrastructure/adapters/imagen/decodificador.adapter.ts": {
+    "mtime": 1792078635.0411463,
+    "seen": 1794319155.1083186,
+    "ast_hash": "bf6c2c272b9e1680d1e6f0f6283aadda",
+    "semantic_hash": "bf6c2c272b9e1680d1e6f0f6283aadda"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/imagen-local.ts": {
+    "mtime": 1793197146.897478,
+    "seen": 1794319155.1083193,
+    "ast_hash": "1a0157f6dfc7d450bc7aad2d7eebceb6",
+    "semantic_hash": "1a0157f6dfc7d450bc7aad2d7eebceb6"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/lector-documento-local.adapter.ts": {
+    "mtime": 1793371156.6985693,
+    "seen": 1794319155.1083202,
+    "ast_hash": "93cce2b39a5fe6d869d83d98472829b4",
+    "semantic_hash": "93cce2b39a5fe6d869d83d98472829b4"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/lectura-acta-local.adapter.ts": {
+    "mtime": 1793371178.2896285,
+    "seen": 1794319155.108321,
+    "ast_hash": "f428b405abeabc932b98df5814181fd0",
+    "semantic_hash": "f428b405abeabc932b98df5814181fd0"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/lectura-camara-local.adapter.ts": {
+    "mtime": 1793890097.4468858,
+    "seen": 1794319155.1083221,
+    "ast_hash": "9530da191d451a71129cd00b3eda8a8c",
+    "semantic_hash": "9530da191d451a71129cd00b3eda8a8c"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/lectura-rut-local.adapter.ts": {
+    "mtime": 1793736542.0767725,
+    "seen": 1794319155.1083229,
+    "ast_hash": "cf9cc82c1259ffcda7428bb56d962e40",
+    "semantic_hash": "cf9cc82c1259ffcda7428bb56d962e40"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/medicion-firma.ts": {
+    "mtime": 1793371127.9989522,
+    "seen": 1794319155.1083236,
+    "ast_hash": "ee9db4e374e208f57d2eed2990ce68f8",
+    "semantic_hash": "ee9db4e374e208f57d2eed2990ce68f8"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/ocr-tesseract.motor.ts": {
+    "mtime": 1793371094.4875104,
+    "seen": 1794319155.1083245,
+    "ast_hash": "7ab403e01d483b7166a5bf33f704a124",
+    "semantic_hash": "7ab403e01d483b7166a5bf33f704a124"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/pdfjs.lector.ts": {
+    "mtime": 1793371094.4771245,
+    "seen": 1794319155.1083255,
+    "ast_hash": "d03a43a2a9e7e1ae4d9f0bc5d6076b65",
+    "semantic_hash": "d03a43a2a9e7e1ae4d9f0bc5d6076b65"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/pdfjs.worker.js": {
+    "mtime": 1793371081.931086,
+    "seen": 1794319155.1083262,
+    "ast_hash": "47b3b181f2a53c33e4d4a396931eb1f9",
+    "semantic_hash": "47b3b181f2a53c33e4d4a396931eb1f9"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/semaforo.ts": {
+    "mtime": 1793039957.2691865,
+    "seen": 1794319155.1083272,
+    "ast_hash": "eeb1b147959ac2992acac2f9a60a87c1",
+    "semantic_hash": "eeb1b147959ac2992acac2f9a60a87c1"
+  },
+  "apps/api/src/infrastructure/adapters/lectura-local/zxing.cargador.ts": {
+    "mtime": 1793039911.7388487,
+    "seen": 1794319155.1083279,
+    "ast_hash": "38091e18a7bd41c1091d832be9455e8a",
+    "semantic_hash": "38091e18a7bd41c1091d832be9455e8a"
+  },
+  "apps/api/src/infrastructure/adapters/pdf/pdfkit.adapter.ts": {
+    "mtime": 1792078635.0411463,
+    "seen": 1794319155.108329,
+    "ast_hash": "61002dde840b7b9582be50042b140450",
+    "semantic_hash": "61002dde840b7b9582be50042b140450"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/consentimiento.adapter.ts": {
+    "mtime": 1793030952.9604862,
+    "seen": 1794319155.1083298,
+    "ast_hash": "650730109921a169a8e0e7ca188c45d7",
+    "semantic_hash": "650730109921a169a8e0e7ca188c45d7"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/decision-acta.adapter.ts": {
+    "mtime": 1793378041.6194377,
+    "seen": 1794319155.1083305,
+    "ast_hash": "10222c64d6ba4dd6796095e1c1b69d73",
+    "semantic_hash": "10222c64d6ba4dd6796095e1c1b69d73"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/decision-rut.adapter.ts": {
+    "mtime": 1793979315.5261114,
+    "seen": 1794319155.1083314,
+    "ast_hash": "e336e1c527d7c5b67772412205c86176",
+    "semantic_hash": "e336e1c527d7c5b67772412205c86176"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/expediente-documental.adapter.ts": {
+    "mtime": 1794235540.8238268,
+    "seen": 1794319155.1083324,
+    "ast_hash": "e7f2ea735de289307f9e0eda80e3cf81",
+    "semantic_hash": "e7f2ea735de289307f9e0eda80e3cf81"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/mappers.ts": {
+    "mtime": 1793372753.8007042,
+    "seen": 1794319155.1083333,
+    "ast_hash": "9f1f6f6302b2efedaf84a9f42bf6f4dc",
+    "semantic_hash": "9f1f6f6302b2efedaf84a9f42bf6f4dc"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/parametros.adapter.ts": {
+    "mtime": 1792078635.0733795,
+    "seen": 1794319155.108334,
+    "ast_hash": "e1167497f2093117b834a3458be5ca41",
+    "semantic_hash": "e1167497f2093117b834a3458be5ca41"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/reportes.adapter.ts": {
+    "mtime": 1792078635.0774028,
+    "seen": 1794319155.1083348,
+    "ast_hash": "aa1bbafc1a30011cd113ca9a0c3d65d1",
+    "semantic_hash": "aa1bbafc1a30011cd113ca9a0c3d65d1"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/repositorios.adapter.ts": {
+    "mtime": 1793036964.8706524,
+    "seen": 1794319155.108336,
+    "ast_hash": "85eabe02a604a3441baf830c3731969c",
+    "semantic_hash": "85eabe02a604a3441baf830c3731969c"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/validacion-acta.adapter.ts": {
+    "mtime": 1793379638.3872108,
+    "seen": 1794319155.108337,
+    "ast_hash": "efd0b2755538dc3cc7f09e8ad665f8b1",
+    "semantic_hash": "efd0b2755538dc3cc7f09e8ad665f8b1"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/validacion-documento-empresarial.adapter.ts": {
+    "mtime": 1793979347.163656,
+    "seen": 1794319155.1083379,
+    "ast_hash": "3be83f6b91d0ed3d64c66325a33825bc",
+    "semantic_hash": "3be83f6b91d0ed3d64c66325a33825bc"
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/validacion-eps.adapter.ts": {
+    "mtime": 1794235522.5363946,
+    "seen": 1794319155.1083386,
+    "ast_hash": "077e5979c2ab0baddb894e1684e77c0a",
+    "semantic_hash": "077e5979c2ab0baddb894e1684e77c0a"
+  },
+  "apps/api/src/infrastructure/adapters/storage/almacenamiento.adapter.ts": {
+    "mtime": 1793193287.688771,
+    "seen": 1794319155.1083398,
+    "ast_hash": "16f37a8b63977b22f3f5f2d8af9c9c11",
+    "semantic_hash": "16f37a8b63977b22f3f5f2d8af9c9c11"
+  },
+  "apps/api/src/infrastructure/adapters/storage/enlace-documento.ts": {
+    "mtime": 1793027769.8563025,
+    "seen": 1794319155.1083407,
+    "ast_hash": "344ff7c3314fe71c8719fa91ca491c0b",
+    "semantic_hash": "344ff7c3314fe71c8719fa91ca491c0b"
+  },
+  "apps/api/src/infrastructure/adapters/verificacion-eps/cliente-http-seguro.ts": {
+    "mtime": 1793046015.5247242,
+    "seen": 1794319155.1083415,
+    "ast_hash": "54657a5b59a22b12bb75844dbee5df07",
+    "semantic_hash": "54657a5b59a22b12bb75844dbee5df07"
+  },
+  "apps/api/src/infrastructure/adapters/verificacion-eps/direcciones-ip.ts": {
+    "mtime": 1793114841.4976156,
+    "seen": 1794319155.1083422,
+    "ast_hash": "78e34d511fb02a1572d717b89aacc34f",
+    "semantic_hash": "78e34d511fb02a1572d717b89aacc34f"
+  },
+  "apps/api/src/infrastructure/adapters/verificacion-eps/verificador-eps-http.adapter.ts": {
+    "mtime": 1793112619.8442833,
+    "seen": 1794319155.1083434,
+    "ast_hash": "31ea59630b6048cb008e58cf4e45e1d3",
+    "semantic_hash": "31ea59630b6048cb008e58cf4e45e1d3"
+  },
+  "apps/api/src/infrastructure/auth/actor.decorator.ts": {
+    "mtime": 1792078635.0930364,
+    "seen": 1794319155.108344,
+    "ast_hash": "3c589bf5dbfe6144f4b81bd7aa530c8b",
+    "semantic_hash": "3c589bf5dbfe6144f4b81bd7aa530c8b"
+  },
+  "apps/api/src/infrastructure/auth/jwt-auth.guard.ts": {
+    "mtime": 1792078635.0930364,
+    "seen": 1794319155.108345,
+    "ast_hash": "71b9a9244567e4b18ad5627b881157f3",
+    "semantic_hash": "71b9a9244567e4b18ad5627b881157f3"
+  },
+  "apps/api/src/infrastructure/auth/oidc.service.ts": {
+    "mtime": 1793031493.6750674,
+    "seen": 1794319155.1083457,
+    "ast_hash": "9086087bfb29a20eecdbc2a669615796",
+    "semantic_hash": "9086087bfb29a20eecdbc2a669615796"
+  },
+  "apps/api/src/infrastructure/auth/permiso-escritura.guard.ts": {
+    "mtime": 1792078635.118096,
+    "seen": 1794319155.108347,
+    "ast_hash": "abd9109f858182d0127db0e8af06fc61",
+    "semantic_hash": "abd9109f858182d0127db0e8af06fc61"
+  },
+  "apps/api/src/infrastructure/auth/roles.decorator.ts": {
+    "mtime": 1793027617.229748,
+    "seen": 1794319155.1083477,
+    "ast_hash": "924cec6a35c61bdc8ec7acceec0a32a6",
+    "semantic_hash": "924cec6a35c61bdc8ec7acceec0a32a6"
+  },
+  "apps/api/src/infrastructure/auth/roles.guard.ts": {
+    "mtime": 1793028656.7196388,
+    "seen": 1794319155.1083484,
+    "ast_hash": "57c35be7af933a41a7ec3349849a47a5",
+    "semantic_hash": "57c35be7af933a41a7ec3349849a47a5"
+  },
+  "apps/api/src/infrastructure/config/configuracion.ts": {
+    "mtime": 1794412960.7575083,
+    "seen": 1794413693.5156546,
+    "ast_hash": "b1fa6ba285c57b8bb3ab3144e49dd1e1",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/controllers/actas-iniciacion.controller.ts": {
+    "mtime": 1793381453.968866,
+    "seen": 1794319155.1083503,
+    "ast_hash": "fb42dc69985ed9457b28c253baeb1436",
+    "semantic_hash": "fb42dc69985ed9457b28c253baeb1436"
+  },
+  "apps/api/src/infrastructure/controllers/administracion.controller.ts": {
+    "mtime": 1792078635.1348155,
+    "seen": 1794319155.1083512,
+    "ast_hash": "7c62ffe9c907ee25e74d46c6415b3f69",
+    "semantic_hash": "7c62ffe9c907ee25e74d46c6415b3f69"
+  },
+  "apps/api/src/infrastructure/controllers/auth.controller.ts": {
+    "mtime": 1793027646.1497595,
+    "seen": 1794319155.1083527,
+    "ast_hash": "415ddd91dcd6638fd5008702861b30f3",
+    "semantic_hash": "415ddd91dcd6638fd5008702861b30f3"
+  },
+  "apps/api/src/infrastructure/controllers/bitacora.controller.ts": {
+    "mtime": 1793027648.2585456,
+    "seen": 1794319155.1083536,
+    "ast_hash": "96c01c75b4997e27886052e3867fa489",
+    "semantic_hash": "96c01c75b4997e27886052e3867fa489"
+  },
+  "apps/api/src/infrastructure/controllers/bolsa.controller.ts": {
+    "mtime": 1793027652.2191837,
+    "seen": 1794319155.1083543,
+    "ast_hash": "c550216632447345a93601b27077ebbd",
+    "semantic_hash": "c550216632447345a93601b27077ebbd"
+  },
+  "apps/api/src/infrastructure/controllers/cartas.controller.ts": {
+    "mtime": 1793027688.8493083,
+    "seen": 1794319155.1083553,
+    "ast_hash": "d90bceeb9254e841424c9a07177bd88c",
+    "semantic_hash": "d90bceeb9254e841424c9a07177bd88c"
+  },
+  "apps/api/src/infrastructure/controllers/catalogo.controller.ts": {
+    "mtime": 1793027655.7434556,
+    "seen": 1794319155.108356,
+    "ast_hash": "10f8de05ea1078bd5db145b9a53cb515",
+    "semantic_hash": "10f8de05ea1078bd5db145b9a53cb515"
+  },
+  "apps/api/src/infrastructure/controllers/consentimientos.controller.ts": {
+    "mtime": 1793031045.7616658,
+    "seen": 1794319155.1083572,
+    "ast_hash": "9ea5690d7688f81984bb98175240eb02",
+    "semantic_hash": "9ea5690d7688f81984bb98175240eb02"
+  },
+  "apps/api/src/infrastructure/controllers/costos-ia.controller.ts": {
+    "mtime": 1792078635.1535726,
+    "seen": 1794319155.108358,
+    "ast_hash": "611cdee202c53cf28fc60bc9a5e66d85",
+    "semantic_hash": "611cdee202c53cf28fc60bc9a5e66d85"
+  },
+  "apps/api/src/infrastructure/controllers/cumplimiento.controller.ts": {
+    "mtime": 1793027658.2292068,
+    "seen": 1794319155.1083589,
+    "ast_hash": "01e1ac00f63a6e698267b09bdc7b6eca",
+    "semantic_hash": "01e1ac00f63a6e698267b09bdc7b6eca"
+  },
+  "apps/api/src/infrastructure/controllers/documentos.controller.ts": {
+    "mtime": 1793037648.25458,
+    "seen": 1794319155.1083596,
+    "ast_hash": "ff150d9b91e6268ca92974ab532bc369",
+    "semantic_hash": "ff150d9b91e6268ca92974ab532bc369"
+  },
+  "apps/api/src/infrastructure/controllers/empresas.controller.ts": {
+    "mtime": 1793028638.0058167,
+    "seen": 1794319155.1083608,
+    "ast_hash": "577e043bfac4ee67357b7744380a02a5",
+    "semantic_hash": "577e043bfac4ee67357b7744380a02a5"
+  },
+  "apps/api/src/infrastructure/controllers/mesa-camara.controller.ts": {
+    "mtime": 1793979544.6834004,
+    "seen": 1794319155.1083615,
+    "ast_hash": "27574b38b388a2449b04d601833dd818",
+    "semantic_hash": "27574b38b388a2449b04d601833dd818"
+  },
+  "apps/api/src/infrastructure/controllers/mesa-eps.controller.ts": {
+    "mtime": 1793049742.5353985,
+    "seen": 1794319155.1083624,
+    "ast_hash": "0a5e44b328d980e1cd552062a44c035e",
+    "semantic_hash": "0a5e44b328d980e1cd552062a44c035e"
+  },
+  "apps/api/src/infrastructure/controllers/mesa-rut.controller.ts": {
+    "mtime": 1793808790.4560928,
+    "seen": 1794319155.1083632,
+    "ast_hash": "da858382c3b0347685d66b049c2381c9",
+    "semantic_hash": "da858382c3b0347685d66b049c2381c9"
+  },
+  "apps/api/src/infrastructure/controllers/periodos.controller.ts": {
+    "mtime": 1793027661.8102658,
+    "seen": 1794319155.108364,
+    "ast_hash": "090ff6d9ca8371acf26adc217c58149d",
+    "semantic_hash": "090ff6d9ca8371acf26adc217c58149d"
+  },
+  "apps/api/src/infrastructure/controllers/pqrs.controller.ts": {
+    "mtime": 1793027694.5494874,
+    "seen": 1794319155.1083648,
+    "ast_hash": "b680547e169f43d8a595b825f632c371",
+    "semantic_hash": "b680547e169f43d8a595b825f632c371"
+  },
+  "apps/api/src/infrastructure/controllers/practicas.controller.ts": {
+    "mtime": 1793376102.2458854,
+    "seen": 1794319155.1083658,
+    "ast_hash": "ea1be4d985a0da04171286e3b7f66863",
+    "semantic_hash": "ea1be4d985a0da04171286e3b7f66863"
+  },
+  "apps/api/src/infrastructure/controllers/reportes-sgp.controller.ts": {
+    "mtime": 1792078635.202416,
+    "seen": 1794319155.1083665,
+    "ast_hash": "b069af9ef949ee7ab247f5c00dbd4e25",
+    "semantic_hash": "b069af9ef949ee7ab247f5c00dbd4e25"
+  },
+  "apps/api/src/infrastructure/controllers/reportes.controller.ts": {
+    "mtime": 1792078635.209422,
+    "seen": 1794319155.1083677,
+    "ast_hash": "6a867503db81bd7c3bb415606389cb2a",
+    "semantic_hash": "6a867503db81bd7c3bb415606389cb2a"
+  },
+  "apps/api/src/infrastructure/controllers/salud.controller.ts": {
+    "mtime": 1793028696.9475777,
+    "seen": 1794319155.1083684,
+    "ast_hash": "eb391bcd573b0ad9ddffdf5d15bcc809",
+    "semantic_hash": "eb391bcd573b0ad9ddffdf5d15bcc809"
+  },
+  "apps/api/src/infrastructure/controllers/solicitudes-arl.controller.ts": {
+    "mtime": 1793027697.0759416,
+    "seen": 1794319155.108369,
+    "ast_hash": "099ca14b850abb85dceaa0b7bab1d2b6",
+    "semantic_hash": "099ca14b850abb85dceaa0b7bab1d2b6"
+  },
+  "apps/api/src/infrastructure/controllers/trabajos.controller.ts": {
+    "mtime": 1793028683.9270813,
+    "seen": 1794319155.1083698,
+    "ast_hash": "b3af8f145d5a67a592e410f9edc56910",
+    "semantic_hash": "b3af8f145d5a67a592e410f9edc56910"
+  },
+  "apps/api/src/infrastructure/controllers/usuarios.controller.ts": {
+    "mtime": 1792078635.2244177,
+    "seen": 1794319155.1083708,
+    "ast_hash": "99e8076d4c052d1a31d5ae5faba8a524",
+    "semantic_hash": "99e8076d4c052d1a31d5ae5faba8a524"
+  },
+  "apps/api/src/infrastructure/controllers/validacion-documental.controller.ts": {
+    "mtime": 1794235763.4072132,
+    "seen": 1794319155.1083717,
+    "ast_hash": "78d108a9dd8e5eec3efc8e20a7f25f66",
+    "semantic_hash": "78d108a9dd8e5eec3efc8e20a7f25f66"
+  },
+  "apps/api/src/infrastructure/controllers/validaciones-eps.controller.ts": {
+    "mtime": 1793047660.6893065,
+    "seen": 1794319155.1083724,
+    "ast_hash": "40501da70d36754511e55afacb00f7b3",
+    "semantic_hash": "40501da70d36754511e55afacb00f7b3"
+  },
+  "apps/api/src/infrastructure/controllers/vistas.controller.ts": {
+    "mtime": 1792078635.2274437,
+    "seen": 1794319155.1083734,
+    "ast_hash": "a27e694ba72fe8a6a6a0dbe6a8dcdcd5",
+    "semantic_hash": "a27e694ba72fe8a6a6a0dbe6a8dcdcd5"
+  },
+  "apps/api/src/infrastructure/modules/app.module.ts": {
+    "mtime": 1794344451.1368427,
+    "seen": 1794346201.41479,
+    "ast_hash": "5d231967bab33008f3dcb0dca6392556",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/modules/auditoria.service.ts": {
+    "mtime": 1792078635.2285383,
+    "seen": 1794319155.108375,
+    "ast_hash": "7276e6efdd52dbd6a3e673ee902fb89c",
+    "semantic_hash": "7276e6efdd52dbd6a3e673ee902fb89c"
+  },
+  "apps/api/src/infrastructure/modules/notificaciones.service.ts": {
+    "mtime": 1793031493.6750674,
+    "seen": 1794319155.108376,
+    "ast_hash": "c38e0c8d2568e146284441466f3b5a5f",
+    "semantic_hash": "c38e0c8d2568e146284441466f3b5a5f"
+  },
+  "apps/api/src/infrastructure/modules/tareas-programadas.service.ts": {
+    "mtime": 1793037709.9950728,
+    "seen": 1794319155.1083767,
+    "ast_hash": "34a040c7addc5c1c8339b5b62dd0d1bd",
+    "semantic_hash": "34a040c7addc5c1c8339b5b62dd0d1bd"
+  },
+  "apps/api/src/infrastructure/observability/acceso-metricas.ts": {
+    "mtime": 1793027894.1514232,
+    "seen": 1794319155.1083777,
+    "ast_hash": "865d83e063f2da17bec327a3809ec167",
+    "semantic_hash": "865d83e063f2da17bec327a3809ec167"
+  },
+  "apps/api/src/infrastructure/observability/metricas.interceptor.ts": {
+    "mtime": 1792078635.2441683,
+    "seen": 1794319155.1083786,
+    "ast_hash": "0e45f94083857bf1488574ff258c4296",
+    "semantic_hash": "0e45f94083857bf1488574ff258c4296"
+  },
+  "apps/api/src/infrastructure/observability/metricas.service.ts": {
+    "mtime": 1793115697.1643553,
+    "seen": 1794319155.1083794,
+    "ast_hash": "3b9c4c1ec8f1b3a234e3afe77c5cf8c8",
+    "semantic_hash": "3b9c4c1ec8f1b3a234e3afe77c5cf8c8"
+  },
+  "apps/api/src/infrastructure/observability/redaccion-logs.ts": {
+    "mtime": 1793027918.1468413,
+    "seen": 1794319155.1083803,
+    "ast_hash": "0fbe225a0e603f5a712fb58374617ee9",
+    "semantic_hash": "0fbe225a0e603f5a712fb58374617ee9"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/catalogos/cargar-catalogos.ts": {
+    "mtime": 1792078635.2915854,
+    "seen": 1794319155.1083813,
+    "ast_hash": "6583dcb992c64923f8306eaafa3c0934",
+    "semantic_hash": "6583dcb992c64923f8306eaafa3c0934"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/catalogos/estado-catalogos.ts": {
+    "mtime": 1792078635.3208075,
+    "seen": 1794319155.108382,
+    "ast_hash": "80170032afd9bf5364748c7550e89658",
+    "semantic_hash": "80170032afd9bf5364748c7550e89658"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/catalogos/manifiesto.json": {
+    "mtime": 1792078635.325809,
+    "seen": 1794319155.108383,
+    "ast_hash": "bd2c277accd75f3c56ba7d302a5f5737",
+    "semantic_hash": "bd2c277accd75f3c56ba7d302a5f5737"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/data-source.ts": {
+    "mtime": 1792078635.2795782,
+    "seen": 1794319155.1083837,
+    "ast_hash": "999efb79e9910ae0793f3df66c2ca40a",
+    "semantic_hash": "999efb79e9910ae0793f3df66c2ca40a"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/entities/consentimiento.orm-entity.ts": {
+    "mtime": 1793030949.771634,
+    "seen": 1794319155.1083846,
+    "ast_hash": "1823bdc41f42ddf8a5eac0d8fde3a6d0",
+    "semantic_hash": "1823bdc41f42ddf8a5eac0d8fde3a6d0"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/entities/todas.orm-entity.ts": {
+    "mtime": 1793732946.0376995,
+    "seen": 1794319155.1083853,
+    "ast_hash": "08ca55afcff5db9306b3a964d3c97cae",
+    "semantic_hash": "08ca55afcff5db9306b3a964d3c97cae"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/entities/validacion-acta.orm-entity.ts": {
+    "mtime": 1793375584.710729,
+    "seen": 1794319155.1083863,
+    "ast_hash": "b096f9aa230b866f07acd4a6dbb3c39a",
+    "semantic_hash": "b096f9aa230b866f07acd4a6dbb3c39a"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/entities/validacion-documento-empresarial.orm-entity.ts": {
+    "mtime": 1793802771.248518,
+    "seen": 1794319155.108387,
+    "ast_hash": "eff06e30d3c14bfa5a307f0d47a052d3",
+    "semantic_hash": "eff06e30d3c14bfa5a307f0d47a052d3"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/entities/validacion-eps.orm-entity.ts": {
+    "mtime": 1793049345.0453026,
+    "seen": 1794319155.108388,
+    "ast_hash": "d440f09899d7f03da1be78a477d56428",
+    "semantic_hash": "d440f09899d7f03da1be78a477d56428"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000000000-EsquemaInicial.ts": {
+    "mtime": 1792078635.342917,
+    "seen": 1794319155.108389,
+    "ast_hash": "f1986a787d9cf8d2a9ae19ff1e5d82e6",
+    "semantic_hash": "f1986a787d9cf8d2a9ae19ff1e5d82e6"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000001000-RolAplicacionMinimoPrivilegio.ts": {
+    "mtime": 1792078635.3585458,
+    "seen": 1794319155.1083896,
+    "ast_hash": "fd51d3ff6a5ee36879f6297bd8e7c4bb",
+    "semantic_hash": "fd51d3ff6a5ee36879f6297bd8e7c4bb"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000002000-CatalogosYEstado.ts": {
+    "mtime": 1792078635.3585458,
+    "seen": 1794319155.1083903,
+    "ast_hash": "0622867c6e8049abb241acf315edab5a",
+    "semantic_hash": "0622867c6e8049abb241acf315edab5a"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000003000-ParametrosOperativos.ts": {
+    "mtime": 1792078635.3585458,
+    "seen": 1794319155.1083915,
+    "ast_hash": "9d2717b2a1e2be41ebac7a149dd4a8fd",
+    "semantic_hash": "9d2717b2a1e2be41ebac7a149dd4a8fd"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000004000-ModalidadesRealesYEtapas.ts": {
+    "mtime": 1792078635.3585458,
+    "seen": 1794319155.1083922,
+    "ast_hash": "c1597c9bbb5908650c3d264d949876dd",
+    "semantic_hash": "c1597c9bbb5908650c3d264d949876dd"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000005000-ProcesoBaseSgp.ts": {
+    "mtime": 1792078635.3741753,
+    "seen": 1794319155.1083932,
+    "ast_hash": "860ecf0211db502181a1fa4e934064a0",
+    "semantic_hash": "860ecf0211db502181a1fa4e934064a0"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000006000-FormularioUnicoRegistro.ts": {
+    "mtime": 1792078635.3741753,
+    "seen": 1794319155.108394,
+    "ast_hash": "b052356103ffdd496088ee8d919e812f",
+    "semantic_hash": "b052356103ffdd496088ee8d919e812f"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000007000-BitacoraYCierre.ts": {
+    "mtime": 1792078635.3741753,
+    "seen": 1794319155.108395,
+    "ast_hash": "b91ce321b1ff296513f6d1e2861aef03",
+    "semantic_hash": "b91ce321b1ff296513f6d1e2861aef03"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000008000-SolicitudesArl.ts": {
+    "mtime": 1792078635.3925593,
+    "seen": 1794319155.1083958,
+    "ast_hash": "cc808cfcc43717c3747a41997d1f0058",
+    "semantic_hash": "cc808cfcc43717c3747a41997d1f0058"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000009000-CronogramaYPqrs.ts": {
+    "mtime": 1792078635.3925593,
+    "seen": 1794319155.1083965,
+    "ast_hash": "c8a879457c6d04371083f697819318ed",
+    "semantic_hash": "c8a879457c6d04371083f697819318ed"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000010000-ConsentimientoVersionado.ts": {
+    "mtime": 1793030953.793887,
+    "seen": 1794319155.1083975,
+    "ast_hash": "3734e18235606dd84dcb4fc490ac7505",
+    "semantic_hash": "3734e18235606dd84dcb4fc490ac7505"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000011000-ValidacionEps.ts": {
+    "mtime": 1793037357.430186,
+    "seen": 1794319155.1083984,
+    "ast_hash": "b35badab5ac50735298e084efe49412f",
+    "semantic_hash": "b35badab5ac50735298e084efe49412f"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000012000-EvidenciaEpsOcr.ts": {
+    "mtime": 1793040465.4317753,
+    "seen": 1794319155.1083994,
+    "ast_hash": "b721aebc6b95db7c5a619d328a9815eb",
+    "semantic_hash": "b721aebc6b95db7c5a619d328a9815eb"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000013000-VerificacionEps.ts": {
+    "mtime": 1793045808.7198532,
+    "seen": 1794319155.1084,
+    "ast_hash": "dd1ffe9b2dfa5e5fad3b4bee6d65c3fa",
+    "semantic_hash": "dd1ffe9b2dfa5e5fad3b4bee6d65c3fa"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000014000-ConsultaAdres.ts": {
+    "mtime": 1793047459.4289913,
+    "seen": 1794319155.108401,
+    "ast_hash": "878c471cc49c36a9e3c7f98df61aff15",
+    "semantic_hash": "878c471cc49c36a9e3c7f98df61aff15"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000015000-MesaEps.ts": {
+    "mtime": 1793049345.0593758,
+    "seen": 1794319155.108402,
+    "ast_hash": "36184f31ead3a3204f25949de3eeedee",
+    "semantic_hash": "36184f31ead3a3204f25949de3eeedee"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000016000-ResponsableArlPractica.ts": {
+    "mtime": 1793372903.11941,
+    "seen": 1794319155.108403,
+    "ast_hash": "178dcaf2638b62584e5f4359801a834d",
+    "semantic_hash": "178dcaf2638b62584e5f4359801a834d"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000017000-ValidacionActaIniciacion.ts": {
+    "mtime": 1793374627.8028295,
+    "seen": 1794319155.1084037,
+    "ast_hash": "05b6de1f5479c0a61725de005b153531",
+    "semantic_hash": "05b6de1f5479c0a61725de005b153531"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000018000-MesaActas.ts": {
+    "mtime": 1793375582.46902,
+    "seen": 1794319155.1084046,
+    "ast_hash": "8491b7482a816790ed0bd3a4d1630446",
+    "semantic_hash": "8491b7482a816790ed0bd3a4d1630446"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000019000-ValidacionDocumentoEmpresarial.ts": {
+    "mtime": 1793732902.7928672,
+    "seen": 1794319155.1084056,
+    "ast_hash": "9fcdcb2433d372449fcbe54b31087fda",
+    "semantic_hash": "9fcdcb2433d372449fcbe54b31087fda"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000020000-DecisionHumanaDocumentoEmpresarial.ts": {
+    "mtime": 1793802770.0189433,
+    "seen": 1794319155.1084063,
+    "ast_hash": "486e469847a1bafe2c564877a2a2bfd5",
+    "semantic_hash": "486e469847a1bafe2c564877a2a2bfd5"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000021000-MotivosDecisionCamara.ts": {
+    "mtime": 1793979213.8753788,
+    "seen": 1794319155.1084073,
+    "ast_hash": "0a7379467232b88d2a04be11cbc3ef2a",
+    "semantic_hash": "0a7379467232b88d2a04be11cbc3ef2a"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/todas.migracion.ts": {
+    "mtime": 1793979218.516059,
+    "seen": 1794319155.108408,
+    "ast_hash": "c2b17ee7d6ba716d1596479a3eec0fe2",
+    "semantic_hash": "c2b17ee7d6ba716d1596479a3eec0fe2"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/opciones-datasource.ts": {
+    "mtime": 1792078635.2795782,
+    "seen": 1794319155.1084092,
+    "ast_hash": "4cbf147342aba62e73911b072794fb35",
+    "semantic_hash": "4cbf147342aba62e73911b072794fb35"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/seeds/catalogos.ts": {
+    "mtime": 1792078635.4534721,
+    "seen": 1794319155.10841,
+    "ast_hash": "b2806bddc5cd4fb746f71e64fa5b49d3",
+    "semantic_hash": "b2806bddc5cd4fb746f71e64fa5b49d3"
+  },
+  "apps/api/src/infrastructure/persistence/postgres/seeds/ejecutar-semillas.ts": {
+    "mtime": 1792078635.465475,
+    "seen": 1794319155.1084106,
+    "ast_hash": "ee32b683eac6f4bc0e08c9e8f1b54553",
+    "semantic_hash": "ee32b683eac6f4bc0e08c9e8f1b54553"
+  },
+  "apps/api/src/main.ts": {
+    "mtime": 1793027894.4342687,
+    "seen": 1794319155.1084113,
+    "ast_hash": "07efbf107a87027943066d16c048f637",
+    "semantic_hash": "07efbf107a87027943066d16c048f637"
+  },
+  "apps/api/src/migrar.ts": {
+    "mtime": 1792078634.614622,
+    "seen": 1794319155.1084125,
+    "ast_hash": "c9bbe442aed5c8f21598fd5a6f8b0c6b",
+    "semantic_hash": "c9bbe442aed5c8f21598fd5a6f8b0c6b"
+  },
+  "apps/api/test/acceso-documentos.spec.ts": {
+    "mtime": 1793037729.8015144,
+    "seen": 1794319155.1084132,
+    "ast_hash": "ecc96d54a2a662954beb580630bef34d",
+    "semantic_hash": "ecc96d54a2a662954beb580630bef34d"
+  },
+  "apps/api/test/acceso-empresas.spec.ts": {
+    "mtime": 1793031423.1209497,
+    "seen": 1794319155.1084142,
+    "ast_hash": "68ab6f54d254af3cb9b083a592d2d767",
+    "semantic_hash": "68ab6f54d254af3cb9b083a592d2d767"
+  },
+  "apps/api/test/acta-cableado.spec.ts": {
+    "mtime": 1793371664.2652895,
+    "seen": 1794319155.108415,
+    "ast_hash": "db22724de8a779db25f7bb2c6294b22d",
+    "semantic_hash": "db22724de8a779db25f7bb2c6294b22d"
+  },
+  "apps/api/test/acta-clasificacion.spec.ts": {
+    "mtime": 1793372041.6575704,
+    "seen": 1794319155.1084158,
+    "ast_hash": "cb879ada5be68f2a6ad78637da57d6e9",
+    "semantic_hash": "cb879ada5be68f2a6ad78637da57d6e9"
+  },
+  "apps/api/test/acta-extraccion-comparacion.spec.ts": {
+    "mtime": 1793369969.640929,
+    "seen": 1794319155.1084168,
+    "ast_hash": "4ec7338fc18309e7e0561365555ca653",
+    "semantic_hash": "4ec7338fc18309e7e0561365555ca653"
+  },
+  "apps/api/test/acta-extraccion-local.spec.ts": {
+    "mtime": 1793374786.9502442,
+    "seen": 1794319155.1084175,
+    "ast_hash": "b6e7f40e3bd9c05cc790a9f6aeb4c727",
+    "semantic_hash": "b6e7f40e3bd9c05cc790a9f6aeb4c727"
+  },
+  "apps/api/test/acta-firmas-medicion.spec.ts": {
+    "mtime": 1793394337.683761,
+    "seen": 1794319155.1084185,
+    "ast_hash": "75b2a11f52a1d9ae0ffe494da0132c6e",
+    "semantic_hash": "75b2a11f52a1d9ae0ffe494da0132c6e"
+  },
+  "apps/api/test/acta-firmas.spec.ts": {
+    "mtime": 1793394337.7652218,
+    "seen": 1794319155.1084194,
+    "ast_hash": "be3a611d809f126a0997fa9aef646a32",
+    "semantic_hash": "be3a611d809f126a0997fa9aef646a32"
+  },
+  "apps/api/test/acta-lectura-local.spec.ts": {
+    "mtime": 1793371960.042598,
+    "seen": 1794319155.1084201,
+    "ast_hash": "ce4878e6843e1cac82094ff9ea93435b",
+    "semantic_hash": "ce4878e6843e1cac82094ff9ea93435b"
+  },
+  "apps/api/test/acta-regresion-actas-reales.spec.ts": {
+    "mtime": 1793394404.8565803,
+    "seen": 1794319155.108421,
+    "ast_hash": "57d62333134ab212d13cda1c56a933fb",
+    "semantic_hash": "57d62333134ab212d13cda1c56a933fb"
+  },
+  "apps/api/test/acta-validacion-persistencia.spec.ts": {
+    "mtime": 1793378036.2872572,
+    "seen": 1794319155.1084218,
+    "ast_hash": "5e145e397feac64d6eaf68381239b5b9",
+    "semantic_hash": "5e145e397feac64d6eaf68381239b5b9"
+  },
+  "apps/api/test/adres-caso-uso.spec.ts": {
+    "mtime": 1793206454.8227065,
+    "seen": 1794319155.1084228,
+    "ast_hash": "e0880c45351722df61de55cb0e27f0a3",
+    "semantic_hash": "e0880c45351722df61de55cb0e27f0a3"
+  },
+  "apps/api/test/adres-dominio.spec.ts": {
+    "mtime": 1793201666.5093746,
+    "seen": 1794319155.1084237,
+    "ast_hash": "d2142a4a224787cb1fa2a7b897918451",
+    "semantic_hash": "d2142a4a224787cb1fa2a7b897918451"
+  },
+  "apps/api/test/adres-resultado-tabla.spec.ts": {
+    "mtime": 1793201098.4537,
+    "seen": 1794319155.1084244,
+    "ast_hash": "d3ff0be2e6404b94a1e9deabd2566305",
+    "semantic_hash": "d3ff0be2e6404b94a1e9deabd2566305"
+  },
+  "apps/api/test/aislamiento-empresas.spec.ts": {
+    "mtime": 1793372730.3481638,
+    "seen": 1794319155.1084254,
+    "ast_hash": "849cdaecf506c4925f2a98fea1f5d0f9",
+    "semantic_hash": "849cdaecf506c4925f2a98fea1f5d0f9"
+  },
+  "apps/api/test/antidiscriminacion.spec.ts": {
+    "mtime": 1792078635.4864836,
+    "seen": 1794319155.1084263,
+    "ast_hash": "10b8b0e300d40dabd81364b2932669f7",
+    "semantic_hash": "10b8b0e300d40dabd81364b2932669f7"
+  },
+  "apps/api/test/auth-controller.spec.ts": {
+    "mtime": 1793027157.7224617,
+    "seen": 1794319155.108427,
+    "ast_hash": "43dcda75b98773611c87c323bb64d8b8",
+    "semantic_hash": "43dcda75b98773611c87c323bb64d8b8"
+  },
+  "apps/api/test/autorizacion-rutas.spec.ts": {
+    "mtime": 1793050166.5763872,
+    "seen": 1794319155.1084278,
+    "ast_hash": "7962c2ad5068b9a75aad5e6376300d43",
+    "semantic_hash": "7962c2ad5068b9a75aad5e6376300d43"
+  },
+  "apps/api/test/avance-y-carta.spec.ts": {
+    "mtime": 1793372730.5193987,
+    "seen": 1794319155.1084287,
+    "ast_hash": "171afa4f0f2bc981c2e62ac76ca2fc1b",
+    "semantic_hash": "171afa4f0f2bc981c2e62ac76ca2fc1b"
+  },
+  "apps/api/test/ayuda-y-pqrs.spec.ts": {
+    "mtime": 1792078635.4975195,
+    "seen": 1794319155.1084297,
+    "ast_hash": "83990886ff2945379437b36f20cd0b16",
+    "semantic_hash": "83990886ff2945379437b36f20cd0b16"
+  },
+  "apps/api/test/bitacora-y-cierre.spec.ts": {
+    "mtime": 1793372730.7228677,
+    "seen": 1794319155.1084306,
+    "ast_hash": "5b1069938fccd7e43854e21c71739dfa",
+    "semantic_hash": "5b1069938fccd7e43854e21c71739dfa"
+  },
+  "apps/api/test/camara-comercio-dominio.spec.ts": {
+    "mtime": 1793889468.2005072,
+    "seen": 1794319155.1084313,
+    "ast_hash": "2e96631355d990a0810b844fbc7d8ade",
+    "semantic_hash": "2e96631355d990a0810b844fbc7d8ade"
+  },
+  "apps/api/test/camara-comparacion.spec.ts": {
+    "mtime": 1793979188.6267755,
+    "seen": 1794319155.108432,
+    "ast_hash": "b5a90e9aa22a6ffca79007f8f861a48b",
+    "semantic_hash": "b5a90e9aa22a6ffca79007f8f861a48b"
+  },
+  "apps/api/test/camara-lector.spec.ts": {
+    "mtime": 1793978194.6285305,
+    "seen": 1794319155.1084332,
+    "ast_hash": "a44b82913a3ee33dde34098bf4d4afec",
+    "semantic_hash": "a44b82913a3ee33dde34098bf4d4afec"
+  },
+  "apps/api/test/clasificacion-documental-eps.spec.ts": {
+    "mtime": 1793206283.476388,
+    "seen": 1794319155.108434,
+    "ast_hash": "61f333287191087b7d26bbd1ed7c4fb7",
+    "semantic_hash": "61f333287191087b7d26bbd1ed7c4fb7"
+  },
+  "apps/api/test/compuerta-arl.spec.ts": {
+    "mtime": 1793375765.7266817,
+    "seen": 1794319155.108435,
+    "ast_hash": "ea9c710b4d4af13e5cd70106c429504e",
+    "semantic_hash": "ea9c710b4d4af13e5cd70106c429504e"
+  },
+  "apps/api/test/configuracion-entorno.spec.ts": {
+    "mtime": 1794412960.760084,
+    "seen": 1794413693.594876,
+    "ast_hash": "c048a3d48a0d10520894e4ab8d4d5439",
+    "semantic_hash": ""
+  },
+  "apps/api/test/conocimiento-documental.spec.ts": {
+    "mtime": 1792078635.5040324,
+    "seen": 1794319155.1084366,
+    "ast_hash": "5243d5cd08c9836eeb290b4697017809",
+    "semantic_hash": "5243d5cd08c9836eeb290b4697017809"
+  },
+  "apps/api/test/consentimiento.spec.ts": {
+    "mtime": 1793031890.2693615,
+    "seen": 1794319155.1084375,
+    "ast_hash": "a16816fc09bbf62413decafa667e7048",
+    "semantic_hash": "a16816fc09bbf62413decafa667e7048"
+  },
+  "apps/api/test/costos-ia-controlador.spec.ts": {
+    "mtime": 1792078635.5040324,
+    "seen": 1794319155.1084406,
+    "ast_hash": "3e18020944d41656e99c61203da17a75",
+    "semantic_hash": "3e18020944d41656e99c61203da17a75"
+  },
+  "apps/api/test/costos-ia.spec.ts": {
+    "mtime": 1792078635.5195432,
+    "seen": 1794319155.1084414,
+    "ast_hash": "5640453dbfae256a37fa84cecd64a3be",
+    "semantic_hash": "5640453dbfae256a37fa84cecd64a3be"
+  },
+  "apps/api/test/cronograma-periodo.spec.ts": {
+    "mtime": 1792078635.5195432,
+    "seen": 1794319155.1084423,
+    "ast_hash": "d8eaf728b99cf12fd4eb40136f9a27db",
+    "semantic_hash": "d8eaf728b99cf12fd4eb40136f9a27db"
+  },
+  "apps/api/test/decision-acta-atomica.spec.ts": {
+    "mtime": 1793377652.448874,
+    "seen": 1794319155.108443,
+    "ast_hash": "9e5a5562cd21a2dee5dd90f043e1273a",
+    "semantic_hash": "9e5a5562cd21a2dee5dd90f043e1273a"
+  },
+  "apps/api/test/documento-empresarial-clasificacion.spec.ts": {
+    "mtime": 1793733059.9371107,
+    "seen": 1794319155.108444,
+    "ast_hash": "e2b152ef7b861cc5bea0b54712111736",
+    "semantic_hash": "e2b152ef7b861cc5bea0b54712111736"
+  },
+  "apps/api/test/documento-empresarial-comparacion.spec.ts": {
+    "mtime": 1793733128.5678618,
+    "seen": 1794319155.108445,
+    "ast_hash": "3811c957408c30a1cd91a3417e19ab8f",
+    "semantic_hash": "3811c957408c30a1cd91a3417e19ab8f"
+  },
+  "apps/api/test/documento-empresarial-entidad.spec.ts": {
+    "mtime": 1793733170.5978854,
+    "seen": 1794319155.1084456,
+    "ast_hash": "fe6f1a11e227f5739b848586c083c605",
+    "semantic_hash": "fe6f1a11e227f5739b848586c083c605"
+  },
+  "apps/api/test/documento-empresarial-minimizacion.spec.ts": {
+    "mtime": 1793733103.015502,
+    "seen": 1794319155.1084468,
+    "ast_hash": "c1df3734ca8bbf5c7ea19ec8d6910edd",
+    "semantic_hash": "c1df3734ca8bbf5c7ea19ec8d6910edd"
+  },
+  "apps/api/test/documento-empresarial-nit-dv.spec.ts": {
+    "mtime": 1793733061.036889,
+    "seen": 1794319155.1084476,
+    "ast_hash": "fcc8aeda6c783587739b01bf32c381ed",
+    "semantic_hash": "fcc8aeda6c783587739b01bf32c381ed"
+  },
+  "apps/api/test/documento-empresarial-vigencia.spec.ts": {
+    "mtime": 1793733126.9791565,
+    "seen": 1794319155.1084485,
+    "ast_hash": "85240bc5095de19bd4f36dd88d360577",
+    "semantic_hash": "85240bc5095de19bd4f36dd88d360577"
+  },
+  "apps/api/test/enlaces-descarga.spec.ts": {
+    "mtime": 1793028575.1733658,
+    "seen": 1794319155.1084492,
+    "ast_hash": "6d072f56bf31c028bd67039f77e3c3c7",
+    "semantic_hash": "6d072f56bf31c028bd67039f77e3c3c7"
+  },
+  "apps/api/test/expediente-documental.spec.ts": {
+    "mtime": 1794236168.1302803,
+    "seen": 1794319155.10845,
+    "ast_hash": "c45f50ee2996c70b5632cf0d1cc4a0e0",
+    "semantic_hash": "c45f50ee2996c70b5632cf0d1cc4a0e0"
+  },
+  "apps/api/test/extraccion-eps-formatos.spec.ts": {
+    "mtime": 1793135318.9886284,
+    "seen": 1794319155.108451,
+    "ast_hash": "23ab8c99cfe3f6a78c97e8dcd3dad919",
+    "semantic_hash": "23ab8c99cfe3f6a78c97e8dcd3dad919"
+  },
+  "apps/api/test/extraccion-eps-ocr.spec.ts": {
+    "mtime": 1793197504.3899713,
+    "seen": 1794319155.1084518,
+    "ast_hash": "c39fc555a36860d55c4ebd9678ea7112",
+    "semantic_hash": "c39fc555a36860d55c4ebd9678ea7112"
+  },
+  "apps/api/test/forense.spec.ts": {
+    "mtime": 1792078635.5351894,
+    "seen": 1794319155.1084526,
+    "ast_hash": "b7d89f3608a30a35890e6b85a115660a",
+    "semantic_hash": "b7d89f3608a30a35890e6b85a115660a"
+  },
+  "apps/api/test/hash-perceptual.spec.ts": {
+    "mtime": 1792078635.5351894,
+    "seen": 1794319155.1084533,
+    "ast_hash": "7241379d7c74e102055fe5e86f01e729",
+    "semantic_hash": "7241379d7c74e102055fe5e86f01e729"
+  },
+  "apps/api/test/idempotencia-pipeline.spec.ts": {
+    "mtime": 1793114399.9780667,
+    "seen": 1794319155.1084545,
+    "ast_hash": "a932b1ba6a071d90c1b84314aa2015fb",
+    "semantic_hash": "a932b1ba6a071d90c1b84314aa2015fb"
+  },
+  "apps/api/test/interruptores-eps.spec.ts": {
+    "mtime": 1793114241.7135577,
+    "seen": 1794319155.1084552,
+    "ast_hash": "cfd7a188ac35f8c22f4662af750abd29",
+    "semantic_hash": "cfd7a188ac35f8c22f4662af750abd29"
+  },
+  "apps/api/test/lectura-local-dominio.spec.ts": {
+    "mtime": 1793040722.4919503,
+    "seen": 1794319155.1084561,
+    "ast_hash": "3ec5e36eb823dbddf8b0ddf9b8103941",
+    "semantic_hash": "3ec5e36eb823dbddf8b0ddf9b8103941"
+  },
+  "apps/api/test/lectura-local-integracion.spec.ts": {
+    "mtime": 1793206530.8791733,
+    "seen": 1794319155.1084569,
+    "ast_hash": "ef6b4cbd765da960cb7655d73fad4370",
+    "semantic_hash": "ef6b4cbd765da960cb7655d73fad4370"
+  },
+  "apps/api/test/lectura-local-lector.spec.ts": {
+    "mtime": 1793197427.1376643,
+    "seen": 1794319155.1084578,
+    "ast_hash": "204621c46c7e48cb9ddc301b9f97d2a3",
+    "semantic_hash": "204621c46c7e48cb9ddc301b9f97d2a3"
+  },
+  "apps/api/test/lectura-local-sin-red.spec.ts": {
+    "mtime": 1793041134.71824,
+    "seen": 1794319155.1084585,
+    "ast_hash": "1af278dd51d143756d89faa5bd424d56",
+    "semantic_hash": "1af278dd51d143756d89faa5bd424d56"
+  },
+  "apps/api/test/lectura-ocr-respaldo.spec.ts": {
+    "mtime": 1793136202.6345086,
+    "seen": 1794319155.1084595,
+    "ast_hash": "c3cd309baafcc28cbd484e68dec1c1af",
+    "semantic_hash": "c3cd309baafcc28cbd484e68dec1c1af"
+  },
+  "apps/api/test/mesa-acta-dominio.spec.ts": {
+    "mtime": 1793376449.0400655,
+    "seen": 1794319155.1084602,
+    "ast_hash": "7a9da7c8032ea1d7a8c40fa00e40e625",
+    "semantic_hash": "7a9da7c8032ea1d7a8c40fa00e40e625"
+  },
+  "apps/api/test/mesa-actas.spec.ts": {
+    "mtime": 1793381484.0802956,
+    "seen": 1794319155.1084611,
+    "ast_hash": "3fbb4303eccd36417747f279b4bc546b",
+    "semantic_hash": "3fbb4303eccd36417747f279b4bc546b"
+  },
+  "apps/api/test/mesa-camara-dominio.spec.ts": {
+    "mtime": 1793980160.960696,
+    "seen": 1794319155.108462,
+    "ast_hash": "0a0b63fdad51a159d3bec4946e0e50ee",
+    "semantic_hash": "0a0b63fdad51a159d3bec4946e0e50ee"
+  },
+  "apps/api/test/mesa-camara.spec.ts": {
+    "mtime": 1793980161.0861297,
+    "seen": 1794319155.1084628,
+    "ast_hash": "0e076fbd7128fdfbb6231842ff20cab9",
+    "semantic_hash": "0e076fbd7128fdfbb6231842ff20cab9"
+  },
+  "apps/api/test/mesa-discrepancias-duplicadas.spec.ts": {
+    "mtime": 1793203522.945907,
+    "seen": 1794319155.1084635,
+    "ast_hash": "c756094abfe353b97537abf095172f01",
+    "semantic_hash": "c756094abfe353b97537abf095172f01"
+  },
+  "apps/api/test/mesa-eps-caso-uso.spec.ts": {
+    "mtime": 1793208495.4874673,
+    "seen": 1794319155.1084647,
+    "ast_hash": "caa8216f1ad52e893b1d7426aec4319b",
+    "semantic_hash": "caa8216f1ad52e893b1d7426aec4319b"
+  },
+  "apps/api/test/mesa-eps-dominio.spec.ts": {
+    "mtime": 1793135219.9877443,
+    "seen": 1794319155.1084657,
+    "ast_hash": "9787b994bc65147669bf63e4908b019e",
+    "semantic_hash": "9787b994bc65147669bf63e4908b019e"
+  },
+  "apps/api/test/mesa-rut-dominio.spec.ts": {
+    "mtime": 1793804401.8248167,
+    "seen": 1794319155.1084664,
+    "ast_hash": "fc02dc9ed371fe5628fb59a99b5f28ae",
+    "semantic_hash": "fc02dc9ed371fe5628fb59a99b5f28ae"
+  },
+  "apps/api/test/mesa-rut.spec.ts": {
+    "mtime": 1793809251.654032,
+    "seen": 1794319155.108467,
+    "ast_hash": "f76e3f8b506caa683e9a542485451ed4",
+    "semantic_hash": "f76e3f8b506caa683e9a542485451ed4"
+  },
+  "apps/api/test/migracion-consentimiento.spec.ts": {
+    "mtime": 1793037938.8119404,
+    "seen": 1794319155.1084683,
+    "ast_hash": "305738a725d6ea2a2d75b4fa75fe6749",
+    "semantic_hash": "305738a725d6ea2a2d75b4fa75fe6749"
+  },
+  "apps/api/test/migracion-decision-rut.spec.ts": {
+    "mtime": 1793979806.7261453,
+    "seen": 1794319155.1084692,
+    "ast_hash": "8d1febe47ec21cbd569008b71dad31d3",
+    "semantic_hash": "8d1febe47ec21cbd569008b71dad31d3"
+  },
+  "apps/api/test/migracion-documento-empresarial.spec.ts": {
+    "mtime": 1793803282.7076807,
+    "seen": 1794319155.1084702,
+    "ast_hash": "343bfee4bfff19a06a4219f9159e298a",
+    "semantic_hash": "343bfee4bfff19a06a4219f9159e298a"
+  },
+  "apps/api/test/migracion-validacion-eps.spec.ts": {
+    "mtime": 1793050130.792683,
+    "seen": 1794319155.1084712,
+    "ast_hash": "81fad83ee2f05bac7f39eb7d635a3b1b",
+    "semantic_hash": "81fad83ee2f05bac7f39eb7d635a3b1b"
+  },
+  "apps/api/test/minimizacion-datos.spec.ts": {
+    "mtime": 1793031388.9556882,
+    "seen": 1794319155.108472,
+    "ast_hash": "7a015cbd00201efd679f3473188449b0",
+    "semantic_hash": "7a015cbd00201efd679f3473188449b0"
+  },
+  "apps/api/test/nginx-cabeceras.spec.ts": {
+    "mtime": 1793028389.5766919,
+    "seen": 1794319155.1084728,
+    "ast_hash": "f834d57b44308ebb22b0fb346d457408",
+    "semantic_hash": "f834d57b44308ebb22b0fb346d457408"
+  },
+  "apps/api/test/nit.spec.ts": {
+    "mtime": 1792078635.550807,
+    "seen": 1794319155.1084735,
+    "ast_hash": "e2465861501ddde281ca5d74f5fd2fda",
+    "semantic_hash": "e2465861501ddde281ca5d74f5fd2fda"
+  },
+  "apps/api/test/oidc-service.spec.ts": {
+    "mtime": 1793027157.7264621,
+    "seen": 1794319155.1084747,
+    "ast_hash": "2b1377c221ca6de0b0c2bf40aa704d25",
+    "semantic_hash": "2b1377c221ca6de0b0c2bf40aa704d25"
+  },
+  "apps/api/test/openai-adaptador.spec.ts": {
+    "mtime": 1792078635.5664337,
+    "seen": 1794319155.1084754,
+    "ast_hash": "0f0c85e369e8a7c13bb8a49a8ba5414f",
+    "semantic_hash": "0f0c85e369e8a7c13bb8a49a8ba5414f"
+  },
+  "apps/api/test/parametros-caso-uso.spec.ts": {
+    "mtime": 1792078635.5664337,
+    "seen": 1794319155.1084764,
+    "ast_hash": "1f18873b43fad1ea7fd30b242a3d04f8",
+    "semantic_hash": "1f18873b43fad1ea7fd30b242a3d04f8"
+  },
+  "apps/api/test/parametros.spec.ts": {
+    "mtime": 1792078635.5664337,
+    "seen": 1794319155.108477,
+    "ast_hash": "91e0f8b79e271cfcf06ee417ea29cc2f",
+    "semantic_hash": "91e0f8b79e271cfcf06ee417ea29cc2f"
+  },
+  "apps/api/test/pdf417-adaptador.spec.ts": {
+    "mtime": 1792078635.5664337,
+    "seen": 1794319155.108478,
+    "ast_hash": "1d6e96b1ed58239378fda7f4a1d5b43c",
+    "semantic_hash": "1d6e96b1ed58239378fda7f4a1d5b43c"
+  },
+  "apps/api/test/pdf417.spec.ts": {
+    "mtime": 1792078635.5820885,
+    "seen": 1794319155.108479,
+    "ast_hash": "c7d9d7e9954f33ba35ffa0d36f796e5b",
+    "semantic_hash": "c7d9d7e9954f33ba35ffa0d36f796e5b"
+  },
+  "apps/api/test/periodo-academico.spec.ts": {
+    "mtime": 1792078635.5820885,
+    "seen": 1794319155.1084797,
+    "ast_hash": "65b09966434790f30dd1b04b675f9655",
+    "semantic_hash": "65b09966434790f30dd1b04b675f9655"
+  },
+  "apps/api/test/periodos-gestion.spec.ts": {
+    "mtime": 1792078635.5820885,
+    "seen": 1794319155.1084805,
+    "ast_hash": "81bef410492589e63fbe3942fd9bb0a2",
+    "semantic_hash": "81bef410492589e63fbe3942fd9bb0a2"
+  },
+  "apps/api/test/pipeline-eps-local.spec.ts": {
+    "mtime": 1793891522.3867579,
+    "seen": 1794319155.1084812,
+    "ast_hash": "f46f26c53eb5556f494e89c45b643dd9",
+    "semantic_hash": "f46f26c53eb5556f494e89c45b643dd9"
+  },
+  "apps/api/test/pipeline-ia.spec.ts": {
+    "mtime": 1793037101.2630892,
+    "seen": 1794319155.1084824,
+    "ast_hash": "b1107b60b7cdbf18b9a287176b1120fe",
+    "semantic_hash": "b1107b60b7cdbf18b9a287176b1120fe"
+  },
+  "apps/api/test/pipeline-preproceso.spec.ts": {
+    "mtime": 1793037101.2630892,
+    "seen": 1794319155.108483,
+    "ast_hash": "4fb5fa25a7de3af204c72994f06dc461",
+    "semantic_hash": "4fb5fa25a7de3af204c72994f06dc461"
+  },
+  "apps/api/test/plantillas-notificacion.spec.ts": {
+    "mtime": 1792078635.597689,
+    "seen": 1794319155.1084838,
+    "ast_hash": "eab6495b3d207280e772da564951ce52",
+    "semantic_hash": "eab6495b3d207280e772da564951ce52"
+  },
+  "apps/api/test/plazo-cargue.spec.ts": {
+    "mtime": 1793372731.0805144,
+    "seen": 1794319155.1084845,
+    "ast_hash": "62481f00d05c19a129a550f49e6cc5b9",
+    "semantic_hash": "62481f00d05c19a129a550f49e6cc5b9"
+  },
+  "apps/api/test/politica-rues.spec.ts": {
+    "mtime": 1793733254.833002,
+    "seen": 1794319155.1084855,
+    "ast_hash": "881f26b88826e6592a832e9b84ba2786",
+    "semantic_hash": "881f26b88826e6592a832e9b84ba2786"
+  },
+  "apps/api/test/preprocesamiento.spec.ts": {
+    "mtime": 1792078635.616324,
+    "seen": 1794319155.1084864,
+    "ast_hash": "320566acb2e60da7741b61a366f3797b",
+    "semantic_hash": "320566acb2e60da7741b61a366f3797b"
+  },
+  "apps/api/test/proceso-sgp-catalogo.spec.ts": {
+    "mtime": 1793372731.3023295,
+    "seen": 1794319155.1084874,
+    "ast_hash": "72616b6b9b68dbd48a56e0b8354d6d05",
+    "semantic_hash": "72616b6b9b68dbd48a56e0b8354d6d05"
+  },
+  "apps/api/test/purga-lectura.spec.ts": {
+    "mtime": 1792078635.62938,
+    "seen": 1794319155.108488,
+    "ast_hash": "0220cff691517ffdba62b04710c67e69",
+    "semantic_hash": "0220cff691517ffdba62b04710c67e69"
+  },
+  "apps/api/test/registro-fur.spec.ts": {
+    "mtime": 1793374627.0419266,
+    "seen": 1794319155.1084893,
+    "ast_hash": "7be3fc840ba742dbe24dc4786a62397d",
+    "semantic_hash": "7be3fc840ba742dbe24dc4786a62397d"
+  },
+  "apps/api/test/registros-sin-datos-personales.spec.ts": {
+    "mtime": 1793031890.348527,
+    "seen": 1794319155.10849,
+    "ast_hash": "11a74c4310970de5f4c0ce60430c2b0b",
+    "semantic_hash": "11a74c4310970de5f4c0ce60430c2b0b"
+  },
+  "apps/api/test/regresion-adres-estatica.spec.ts": {
+    "mtime": 1793116712.4397447,
+    "seen": 1794319155.108491,
+    "ast_hash": "1833d0c0e99166b2145f66f0145f46c9",
+    "semantic_hash": "1833d0c0e99166b2145f66f0145f46c9"
+  },
+  "apps/api/test/reporte-bloqueado.spec.ts": {
+    "mtime": 1792078635.62938,
+    "seen": 1794319155.1084917,
+    "ast_hash": "14fa3e84c5a0a4f226f7b7d43cb68ff2",
+    "semantic_hash": "14fa3e84c5a0a4f226f7b7d43cb68ff2"
+  },
+  "apps/api/test/reportes-sgp.spec.ts": {
+    "mtime": 1793372731.4936929,
+    "seen": 1794319155.1084926,
+    "ast_hash": "8e7b72a3abfe61220b07ea01e11b950f",
+    "semantic_hash": "8e7b72a3abfe61220b07ea01e11b950f"
+  },
+  "apps/api/test/reportes-spe.spec.ts": {
+    "mtime": 1792078635.650513,
+    "seen": 1794319155.1084933,
+    "ast_hash": "c53511c729638993f32ef85f85cb16f5",
+    "semantic_hash": "c53511c729638993f32ef85f85cb16f5"
+  },
+  "apps/api/test/requisitos-por-etapa.spec.ts": {
+    "mtime": 1792078635.6538477,
+    "seen": 1794319155.1084943,
+    "ast_hash": "961a62668a5f0ebb9bc07b6dcb34204e",
+    "semantic_hash": "961a62668a5f0ebb9bc07b6dcb34204e"
+  },
+  "apps/api/test/responsable-arl-permisos.spec.ts": {
+    "mtime": 1793373833.0485215,
+    "seen": 1794319155.108495,
+    "ast_hash": "e2090a5dcc13bbb35e52fc0524d5b7fd",
+    "semantic_hash": "e2090a5dcc13bbb35e52fc0524d5b7fd"
+  },
+  "apps/api/test/rut-comparacion.spec.ts": {
+    "mtime": 1793739934.2001257,
+    "seen": 1794319155.1084962,
+    "ast_hash": "618caa5d66d0933e0ff6140ff83ddbe4",
+    "semantic_hash": "618caa5d66d0933e0ff6140ff83ddbe4"
+  },
+  "apps/api/test/rut-flujo-carga.spec.ts": {
+    "mtime": 1793890827.197848,
+    "seen": 1794319155.108497,
+    "ast_hash": "e8271fc5a404dfe7d1d7fc49c0be6acf",
+    "semantic_hash": "e8271fc5a404dfe7d1d7fc49c0be6acf"
+  },
+  "apps/api/test/rut-interpretacion.spec.ts": {
+    "mtime": 1793736801.407987,
+    "seen": 1794319155.1084979,
+    "ast_hash": "45265bdd1ef0621a5abc1e7f4e460958",
+    "semantic_hash": "45265bdd1ef0621a5abc1e7f4e460958"
+  },
+  "apps/api/test/rut-lectura-servicio.spec.ts": {
+    "mtime": 1793741113.7911034,
+    "seen": 1794319155.1084986,
+    "ast_hash": "b8b06e394473106a5ad3119a5fcb655f",
+    "semantic_hash": "b8b06e394473106a5ad3119a5fcb655f"
+  },
+  "apps/api/test/rut-pdf-sintetico.spec.ts": {
+    "mtime": 1793736956.456008,
+    "seen": 1794319155.1084998,
+    "ast_hash": "600c224459d5ef2632abd99a5e839804",
+    "semantic_hash": "600c224459d5ef2632abd99a5e839804"
+  },
+  "apps/api/test/saneamiento-pdf.spec.ts": {
+    "mtime": 1792078635.6658566,
+    "seen": 1794319155.1085007,
+    "ast_hash": "f1c83723a7c09caa84ef5d5e762f2f92",
+    "semantic_hash": "f1c83723a7c09caa84ef5d5e762f2f92"
+  },
+  "apps/api/test/seguridad-archivos-eps.spec.ts": {
+    "mtime": 1793193300.0542867,
+    "seen": 1794319155.1085017,
+    "ast_hash": "0a7bc4e63d0cad5cf33198fd16fd6fbe",
+    "semantic_hash": "0a7bc4e63d0cad5cf33198fd16fd6fbe"
+  },
+  "apps/api/test/solicitud-arl.spec.ts": {
+    "mtime": 1793372731.6790655,
+    "seen": 1794319155.1085026,
+    "ast_hash": "e167ba167bfae2b78b119555ffbeb144",
+    "semantic_hash": "e167ba167bfae2b78b119555ffbeb144"
+  },
+  "apps/api/test/soporte-acta-pdf.ts": {
+    "mtime": 1793371475.503537,
+    "seen": 1794319155.1085033,
+    "ast_hash": "a54af1d27a29a52d0786a396a76b909b",
+    "semantic_hash": "a54af1d27a29a52d0786a396a76b909b"
+  },
+  "apps/api/test/soporte-acta.ts": {
+    "mtime": 1793373197.2646344,
+    "seen": 1794319155.1085043,
+    "ast_hash": "73687a1eb47d28691c4c32c2832225bf",
+    "semantic_hash": "73687a1eb47d28691c4c32c2832225bf"
+  },
+  "apps/api/test/soporte-autorizacion.ts": {
+    "mtime": 1793372731.862474,
+    "seen": 1794319155.108505,
+    "ast_hash": "d32c08845cdab966dc251474a8c77924",
+    "semantic_hash": "d32c08845cdab966dc251474a8c77924"
+  },
+  "apps/api/test/soporte-bloqueo-red.cjs": {
+    "mtime": 1793041066.4707463,
+    "seen": 1794319155.1085062,
+    "ast_hash": "ea1e01bac8d3923c3f286ffed4315425",
+    "semantic_hash": "ea1e01bac8d3923c3f286ffed4315425"
+  },
+  "apps/api/test/soporte-camara-sintetico.ts": {
+    "mtime": 1793890653.950334,
+    "seen": 1794319155.108507,
+    "ast_hash": "551a8afd3a1a90577bc5589d14bc6450",
+    "semantic_hash": "551a8afd3a1a90577bc5589d14bc6450"
+  },
+  "apps/api/test/soporte-certificado.ts": {
+    "mtime": 1793045872.875697,
+    "seen": 1794319155.1085079,
+    "ast_hash": "a55f4825770898c2b5add4890d3b1ffa",
+    "semantic_hash": "a55f4825770898c2b5add4890d3b1ffa"
+  },
+  "apps/api/test/soporte-concurrencia.ts": {
+    "mtime": 1793037099.9860573,
+    "seen": 1794319155.1085086,
+    "ast_hash": "58fd4db089ce368dfd6952c2fdfca95d",
+    "semantic_hash": "58fd4db089ce368dfd6952c2fdfca95d"
+  },
+  "apps/api/test/soporte-documento-empresarial.ts": {
+    "mtime": 1793888105.5223014,
+    "seen": 1794319155.1085098,
+    "ast_hash": "820776112d9fdb03fd2273625ca9477f",
+    "semantic_hash": "820776112d9fdb03fd2273625ca9477f"
+  },
+  "apps/api/test/soporte-lectura-local.ts": {
+    "mtime": 1793044492.7979538,
+    "seen": 1794319155.1085105,
+    "ast_hash": "df75b275611e1cbfb4c7c8375fb39194",
+    "semantic_hash": "df75b275611e1cbfb4c7c8375fb39194"
+  },
+  "apps/api/test/soporte-lectura-sin-red.script.ts": {
+    "mtime": 1793041134.643358,
+    "seen": 1794319155.1085112,
+    "ast_hash": "c818c3e3da5238da1c02da9674eda969",
+    "semantic_hash": "c818c3e3da5238da1c02da9674eda969"
+  },
+  "apps/api/test/soporte-mesa-actas.ts": {
+    "mtime": 1793377612.6311803,
+    "seen": 1794319155.1085122,
+    "ast_hash": "246a8daf3b1a9bec7579bfd4bd485443",
+    "semantic_hash": "246a8daf3b1a9bec7579bfd4bd485443"
+  },
+  "apps/api/test/soporte-mesa-camara.ts": {
+    "mtime": 1793980161.2758093,
+    "seen": 1794319155.1085134,
+    "ast_hash": "06ff46ed1eadcc950ceaf30b3fe202e4",
+    "semantic_hash": "06ff46ed1eadcc950ceaf30b3fe202e4"
+  },
+  "apps/api/test/soporte-mesa-rut.ts": {
+    "mtime": 1793808790.4427588,
+    "seen": 1794319155.1085143,
+    "ast_hash": "70aa12c56206e84e106e4ca2219c9073",
+    "semantic_hash": "70aa12c56206e84e106e4ca2219c9073"
+  },
+  "apps/api/test/soporte-repo-documento-empresarial.ts": {
+    "mtime": 1793808790.451833,
+    "seen": 1794319155.1085153,
+    "ast_hash": "a78ff230685a1dcebdc05e844d6e4e26",
+    "semantic_hash": "a78ff230685a1dcebdc05e844d6e4e26"
+  },
+  "apps/api/test/soporte-rut-pdf.ts": {
+    "mtime": 1793736954.1737876,
+    "seen": 1794319155.108516,
+    "ast_hash": "384ba0d157d437f245224ff7b030b2ee",
+    "semantic_hash": "384ba0d157d437f245224ff7b030b2ee"
+  },
+  "apps/api/test/soporte-rut-sintetico.ts": {
+    "mtime": 1793740049.1630425,
+    "seen": 1794319155.1085172,
+    "ast_hash": "17ecd52ffa3d13267b54a482a128bbb8",
+    "semantic_hash": "17ecd52ffa3d13267b54a482a128bbb8"
+  },
+  "apps/api/test/soporte-validacion-eps.ts": {
+    "mtime": 1793115697.1817493,
+    "seen": 1794319155.108518,
+    "ast_hash": "530142423ce2cc5392216f406434fa3a",
+    "semantic_hash": "530142423ce2cc5392216f406434fa3a"
+  },
+  "apps/api/test/soporte-verificacion-eps.ts": {
+    "mtime": 1793046374.5453856,
+    "seen": 1794319155.1085186,
+    "ast_hash": "d99c5e231f984b2a8ed4639c92d7c623",
+    "semantic_hash": "d99c5e231f984b2a8ed4639c92d7c623"
+  },
+  "apps/api/test/tarifas-ia.spec.ts": {
+    "mtime": 1792078635.669377,
+    "seen": 1794319155.1085198,
+    "ast_hash": "ddaf00c3f25907130af3ff217a1bab65",
+    "semantic_hash": "ddaf00c3f25907130af3ff217a1bab65"
+  },
+  "apps/api/test/usuarios-y-sincronizacion.spec.ts": {
+    "mtime": 1793372732.046701,
+    "seen": 1794319155.1085205,
+    "ast_hash": "a048308da6aeb8f84535a29b7ee3756c",
+    "semantic_hash": "a048308da6aeb8f84535a29b7ee3756c"
+  },
+  "apps/api/test/validacion-eps-caso-uso.spec.ts": {
+    "mtime": 1793040670.1355512,
+    "seen": 1794319155.1085212,
+    "ast_hash": "1897f42d86a1790557ff5d58c1fb359c",
+    "semantic_hash": "1897f42d86a1790557ff5d58c1fb359c"
+  },
+  "apps/api/test/validacion-eps-dominio.spec.ts": {
+    "mtime": 1793038415.28668,
+    "seen": 1794319155.1085222,
+    "ast_hash": "d8df7553e158f9d0e234a1c8f1280568",
+    "semantic_hash": "d8df7553e158f9d0e234a1c8f1280568"
+  },
+  "apps/api/test/verificacion-eps-caso-uso.spec.ts": {
+    "mtime": 1793046379.3867247,
+    "seen": 1794319155.108523,
+    "ast_hash": "6bf187f9224ef84cf10657546698fc5b",
+    "semantic_hash": "6bf187f9224ef84cf10657546698fc5b"
+  },
+  "apps/api/test/verificacion-eps-dominio.spec.ts": {
+    "mtime": 1793046103.696477,
+    "seen": 1794319155.1085238,
+    "ast_hash": "d1380c2121fd5ed5725ac4950382f703",
+    "semantic_hash": "d1380c2121fd5ed5725ac4950382f703"
+  },
+  "apps/api/test/verificacion-eps-http.spec.ts": {
+    "mtime": 1793114807.920258,
+    "seen": 1794319155.1085248,
+    "ast_hash": "48dd0eb703fd3f427ee8439fb2dce3ab",
+    "semantic_hash": "48dd0eb703fd3f427ee8439fb2dce3ab"
+  },
+  "apps/api/test/worker-y-metricas.spec.ts": {
+    "mtime": 1793028317.8996928,
+    "seen": 1794319155.1085258,
+    "ast_hash": "c8ff64814103828ef83f39b8a415501a",
+    "semantic_hash": "c8ff64814103828ef83f39b8a415501a"
+  },
+  "apps/api/tsconfig.build.json": {
+    "mtime": 1792078634.5861447,
+    "seen": 1794319155.1085267,
+    "ast_hash": "d1b33bf8f01ce7402372cc7cd7144bfa",
+    "semantic_hash": "d1b33bf8f01ce7402372cc7cd7144bfa"
+  },
+  "apps/api/tsconfig.json": {
+    "mtime": 1792078634.58911,
+    "seen": 1794319155.1085277,
+    "ast_hash": "d0277f62610bfa42ed9fc7f115ec280e",
+    "semantic_hash": "d0277f62610bfa42ed9fc7f115ec280e"
+  },
+  "apps/web/.impeccable/config.json": {
+    "mtime": 1793378909.9993165,
+    "seen": 1794319155.1085286,
+    "ast_hash": "355733492b57682f2fe5714a01570f17",
+    "semantic_hash": "355733492b57682f2fe5714a01570f17"
+  },
+  "apps/web/angular.json": {
+    "mtime": 1794258021.6962402,
+    "seen": 1794319155.1085293,
+    "ast_hash": "a459309bda9c53fe657a39d767da9db6",
+    "semantic_hash": "a459309bda9c53fe657a39d767da9db6"
+  },
+  "apps/web/eslint.config.mjs": {
+    "mtime": 1792078635.6854093,
+    "seen": 1794319155.1085305,
+    "ast_hash": "af24fd9deb5c1a08cb6a75faca8e4766",
+    "semantic_hash": "af24fd9deb5c1a08cb6a75faca8e4766"
+  },
+  "apps/web/package.json": {
+    "mtime": 1794255890.4011037,
+    "seen": 1794319155.1085312,
+    "ast_hash": "b0b6b1b7cfd63873b9d8a5a01dbc3751",
+    "semantic_hash": "b0b6b1b7cfd63873b9d8a5a01dbc3751"
+  },
+  "apps/web/proxy.conf.json": {
+    "mtime": 1792078635.7010486,
+    "seen": 1794319155.1085322,
+    "ast_hash": "a64041e537ceacd8294cb5030912142c",
+    "semantic_hash": "a64041e537ceacd8294cb5030912142c"
+  },
+  "apps/web/pruebas/actas-mesa-estado.spec.ts": {
+    "mtime": 1793394243.04486,
+    "seen": 1794319155.1085331,
+    "ast_hash": "50d0b50ead615775203a1e5df319db26",
+    "semantic_hash": "50d0b50ead615775203a1e5df319db26"
+  },
+  "apps/web/pruebas/actas-util.spec.ts": {
+    "mtime": 1793381541.5434883,
+    "seen": 1794319155.1085343,
+    "ast_hash": "eb5244fc871ec8afb662d552ed53179f",
+    "semantic_hash": "eb5244fc871ec8afb662d552ed53179f"
+  },
+  "apps/web/pruebas/banderas.spec.ts": {
+    "mtime": 1793219146.5772886,
+    "seen": 1794319155.108535,
+    "ast_hash": "671763610da7bdf0d28d9366dfb1cfde",
+    "semantic_hash": "671763610da7bdf0d28d9366dfb1cfde"
+  },
+  "apps/web/pruebas/camara-mesa-estado.spec.ts": {
+    "mtime": 1793979926.72087,
+    "seen": 1794319155.108536,
+    "ast_hash": "d7d146811e8cfff1479804ffacdc5356",
+    "semantic_hash": "d7d146811e8cfff1479804ffacdc5356"
+  },
+  "apps/web/pruebas/camara-util.spec.ts": {
+    "mtime": 1793979912.370368,
+    "seen": 1794319155.1085372,
+    "ast_hash": "d6260e9617997715a8c22a8c201375bf",
+    "semantic_hash": "d6260e9617997715a8c22a8c201375bf"
+  },
+  "apps/web/pruebas/campo-senal.spec.ts": {
+    "mtime": 1794259624.6551442,
+    "seen": 1794319155.108538,
+    "ast_hash": "72230393d5397d7f7c771a2b6f47da90",
+    "semantic_hash": "72230393d5397d7f7c771a2b6f47da90"
+  },
+  "apps/web/pruebas/e2e/cdp.mjs": {
+    "mtime": 1793110227.9275048,
+    "seen": 1794319155.1085386,
+    "ast_hash": "37f1d32ec557b418f2a943059c053687",
+    "semantic_hash": "37f1d32ec557b418f2a943059c053687"
+  },
+  "apps/web/pruebas/e2e/mesa-actas.e2e.mjs": {
+    "mtime": 1793394254.7046497,
+    "seen": 1794319155.1085393,
+    "ast_hash": "e529c20f4260b6c284ba9f9a148cfdfc",
+    "semantic_hash": "e529c20f4260b6c284ba9f9a148cfdfc"
+  },
+  "apps/web/pruebas/e2e/mesa-camara.e2e.mjs": {
+    "mtime": 1793980649.3531098,
+    "seen": 1794319155.1085405,
+    "ast_hash": "fc062e80634403b2e83fb0409b254eac",
+    "semantic_hash": "fc062e80634403b2e83fb0409b254eac"
+  },
+  "apps/web/pruebas/e2e/mesa-eps.e2e.mjs": {
+    "mtime": 1793140452.5522559,
+    "seen": 1794319155.1085413,
+    "ast_hash": "a073dd424f422b9cdb7ab9fcca1e42d7",
+    "semantic_hash": "a073dd424f422b9cdb7ab9fcca1e42d7"
+  },
+  "apps/web/pruebas/e2e/mesa-rut.e2e.mjs": {
+    "mtime": 1793810018.995403,
+    "seen": 1794319155.1085422,
+    "ast_hash": "882c834b84ce4dfff67f4e1862575b2a",
+    "semantic_hash": "882c834b84ce4dfff67f4e1862575b2a"
+  },
+  "apps/web/pruebas/e2e/mesa-validacion-documental.e2e.mjs": {
+    "mtime": 1794257050.3564558,
+    "seen": 1794319155.1085432,
+    "ast_hash": "dfc3f5b3265018bf0bc45de98e5107cd",
+    "semantic_hash": "dfc3f5b3265018bf0bc45de98e5107cd"
+  },
+  "apps/web/pruebas/e2e/registro-arl.e2e.mjs": {
+    "mtime": 1793381734.0615494,
+    "seen": 1794319155.1085443,
+    "ast_hash": "678652631d982852e3721c7bc3469297",
+    "semantic_hash": "678652631d982852e3721c7bc3469297"
+  },
+  "apps/web/pruebas/ejecutar.mjs": {
+    "mtime": 1793050795.1553428,
+    "seen": 1794319155.108545,
+    "ast_hash": "4e87d65115dfeccd685a54f5b7dea713",
+    "semantic_hash": "4e87d65115dfeccd685a54f5b7dea713"
+  },
+  "apps/web/pruebas/eps-mesa-estado.spec.ts": {
+    "mtime": 1793206246.3805282,
+    "seen": 1794319155.1085458,
+    "ast_hash": "6615bc26e2fe3c77bdbc27d40a58cc4e",
+    "semantic_hash": "6615bc26e2fe3c77bdbc27d40a58cc4e"
+  },
+  "apps/web/pruebas/eps-revision-real.spec.ts": {
+    "mtime": 1793136473.9481578,
+    "seen": 1794319155.1085467,
+    "ast_hash": "3ce72e217641f7ecd68b33a3f1509e72",
+    "semantic_hash": "3ce72e217641f7ecd68b33a3f1509e72"
+  },
+  "apps/web/pruebas/eps-util.spec.ts": {
+    "mtime": 1793050796.495705,
+    "seen": 1794319155.108548,
+    "ast_hash": "82b9fb74eb560189f237570e99f53e62",
+    "semantic_hash": "82b9fb74eb560189f237570e99f53e62"
+  },
+  "apps/web/pruebas/estilos-globales.spec.ts": {
+    "mtime": 1794272591.2122529,
+    "seen": 1794319155.1085486,
+    "ast_hash": "f9b08a59b5fe1be2b1805cbe71ea1262",
+    "semantic_hash": "f9b08a59b5fe1be2b1805cbe71ea1262"
+  },
+  "apps/web/pruebas/guia-documento.spec.ts": {
+    "mtime": 1793218225.7864525,
+    "seen": 1794319155.1085496,
+    "ast_hash": "92d2c13ffd891cb5d628e7afa6568a67",
+    "semantic_hash": "92d2c13ffd891cb5d628e7afa6568a67"
+  },
+  "apps/web/pruebas/login-contraste.spec.ts": {
+    "mtime": 1794256488.5309114,
+    "seen": 1794319155.1085503,
+    "ast_hash": "5a5f1521b5eba997d367f8a2bacce68c",
+    "semantic_hash": "5a5f1521b5eba997d367f8a2bacce68c"
+  },
+  "apps/web/pruebas/registro-arl.spec.ts": {
+    "mtime": 1793381434.9613106,
+    "seen": 1794319155.1085513,
+    "ast_hash": "09fede0a4afca67f5862f308e755469e",
+    "semantic_hash": "09fede0a4afca67f5862f308e755469e"
+  },
+  "apps/web/pruebas/rut-mesa-estado.spec.ts": {
+    "mtime": 1793809234.3319733,
+    "seen": 1794319155.1085522,
+    "ast_hash": "5bc36d2a8c87a4167b1852cbb6c5ceb2",
+    "semantic_hash": "5bc36d2a8c87a4167b1852cbb6c5ceb2"
+  },
+  "apps/web/pruebas/rut-util.spec.ts": {
+    "mtime": 1793809344.082847,
+    "seen": 1794319155.108553,
+    "ast_hash": "96074e0c0dbb2aee5a1832d72d39b726",
+    "semantic_hash": "96074e0c0dbb2aee5a1832d72d39b726"
+  },
+  "apps/web/pruebas/sesion.spec.ts": {
+    "mtime": 1793130790.9451673,
+    "seen": 1794319155.108554,
+    "ast_hash": "8b9e5382c4e79821ee3d2a16d9e0bd54",
+    "semantic_hash": "8b9e5382c4e79821ee3d2a16d9e0bd54"
+  },
+  "apps/web/pruebas/tema.spec.ts": {
+    "mtime": 1794320842.4676437,
+    "seen": 1794343118.421047,
+    "ast_hash": "2d14d29d81cfd3eaccd6479ae588bd8b",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/usuarios-prueba.spec.ts": {
+    "mtime": 1794256462.9046025,
+    "seen": 1794319155.1085558,
+    "ast_hash": "f874daaa223859c5e0331d0546bfe3d7",
+    "semantic_hash": "f874daaa223859c5e0331d0546bfe3d7"
+  },
+  "apps/web/pruebas/validacion-documental.spec.ts": {
+    "mtime": 1794236242.7279274,
+    "seen": 1794319155.1085565,
+    "ast_hash": "6a0cf0bcf48324ed82ada351e9e9e5e3",
+    "semantic_hash": "6a0cf0bcf48324ed82ada351e9e9e5e3"
+  },
+  "apps/web/pruebas/vd-contraste.spec.ts": {
+    "mtime": 1794257966.6750977,
+    "seen": 1794319155.1085572,
+    "ast_hash": "b0295b6ed94218e4131ceddfac763cd2",
+    "semantic_hash": "b0295b6ed94218e4131ceddfac763cd2"
+  },
+  "apps/web/pruebas/vd-senal.spec.ts": {
+    "mtime": 1794257678.4142847,
+    "seen": 1794319155.1085584,
+    "ast_hash": "28c48e67c4818e68ecaf2122aea77e1f",
+    "semantic_hash": "28c48e67c4818e68ecaf2122aea77e1f"
+  },
+  "apps/web/src/app/app.component.ts": {
+    "mtime": 1792078635.7589042,
+    "seen": 1794319155.1085591,
+    "ast_hash": "ac84dea27cb9ffa9bc81b7b7d6002cce",
+    "semantic_hash": "ac84dea27cb9ffa9bc81b7b7d6002cce"
+  },
+  "apps/web/src/app/app.config.ts": {
+    "mtime": 1792078635.76,
+    "seen": 1794319155.10856,
+    "ast_hash": "87c293e1d3b6fd7870f55889d0a0fd7d",
+    "semantic_hash": "87c293e1d3b6fd7870f55889d0a0fd7d"
+  },
+  "apps/web/src/app/app.routes.ts": {
+    "mtime": 1794236202.268881,
+    "seen": 1794319155.1085608,
+    "ast_hash": "38196eed55a430144c0cc19a03d9466a",
+    "semantic_hash": "38196eed55a430144c0cc19a03d9466a"
+  },
+  "apps/web/src/app/core/auth/sesion.service.ts": {
+    "mtime": 1793130766.0090952,
+    "seen": 1794319155.108562,
+    "ast_hash": "a26161eca864dc9683109cbd1fe98f4d",
+    "semantic_hash": "a26161eca864dc9683109cbd1fe98f4d"
+  },
+  "apps/web/src/app/core/guards/sesion.guard.ts": {
+    "mtime": 1792078635.7756567,
+    "seen": 1794319155.1085627,
+    "ast_hash": "3a8ac7ec4b79fbbb387d3bd53d4243d5",
+    "semantic_hash": "3a8ac7ec4b79fbbb387d3bd53d4243d5"
+  },
+  "apps/web/src/app/core/interceptors/sesion.interceptor.ts": {
+    "mtime": 1792078635.791289,
+    "seen": 1794319155.1085637,
+    "ast_hash": "85ebb88462db6de8aca5d59fd1700cd0",
+    "semantic_hash": "85ebb88462db6de8aca5d59fd1700cd0"
+  },
+  "apps/web/src/app/core/models/modelos.ts": {
+    "mtime": 1793979641.9993925,
+    "seen": 1794319155.1085644,
+    "ast_hash": "855c28be22e2ffc904d5b5504293dd62",
+    "semantic_hash": "855c28be22e2ffc904d5b5504293dd62"
+  },
+  "apps/web/src/app/core/models/validacion-documental.model.ts": {
+    "mtime": 1794235901.689351,
+    "seen": 1794319155.1085656,
+    "ast_hash": "65181eb1348fe3c7e12c77c6740ea07d",
+    "semantic_hash": "65181eb1348fe3c7e12c77c6740ea07d"
+  },
+  "apps/web/src/app/core/services/api.service.ts": {
+    "mtime": 1794344876.83266,
+    "seen": 1794346201.4151921,
+    "ast_hash": "349eb5e5c2b79b9ae68b4be8ba09083f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/core/services/captura-guiada.service.ts": {
+    "mtime": 1792078635.8224075,
+    "seen": 1794319155.108567,
+    "ast_hash": "0f306fc186a372bf3e608d3bd7dcc528",
+    "semantic_hash": "0f306fc186a372bf3e608d3bd7dcc528"
+  },
+  "apps/web/src/app/core/ui/avisos.service.ts": {
+    "mtime": 1792078635.832392,
+    "seen": 1794319155.1085677,
+    "ast_hash": "81713ae8903e178c77c18058c7ab9959",
+    "semantic_hash": "81713ae8903e178c77c18058c7ab9959"
+  },
+  "apps/web/src/app/core/ui/tema.service.ts": {
+    "mtime": 1794320840.103056,
+    "seen": 1794343118.4210923,
+    "ast_hash": "20c481081d1289ae8d83bfc71f1f4b08",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/actas/acta-estudiante.component.ts": {
+    "mtime": 1794329338.6600134,
+    "seen": 1794343118.4210947,
+    "ast_hash": "eeb9ced8a986bf0483873c55c26dafcd",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/actas/actas-correccion.component.ts": {
+    "mtime": 1793378962.738975,
+    "seen": 1794319155.1085706,
+    "ast_hash": "99fc5a9c99aafeaa9f5625d115b48616",
+    "semantic_hash": "99fc5a9c99aafeaa9f5625d115b48616"
+  },
+  "apps/web/src/app/features/actas/actas-decision.component.ts": {
+    "mtime": 1793381541.5434883,
+    "seen": 1794319155.1085713,
+    "ast_hash": "7e7bedaa9bbc061986d7bd84d98259b9",
+    "semantic_hash": "7e7bedaa9bbc061986d7bd84d98259b9"
+  },
+  "apps/web/src/app/features/actas/actas-detalle.component.ts": {
+    "mtime": 1793394243.04486,
+    "seen": 1794319155.1085725,
+    "ast_hash": "c695354fc91a62d96934071104431194",
+    "semantic_hash": "c695354fc91a62d96934071104431194"
+  },
+  "apps/web/src/app/features/actas/actas-mesa.estado.ts": {
+    "mtime": 1794331756.982229,
+    "seen": 1794343118.4211047,
+    "ast_hash": "3a28c5929f714813fc977e493754417f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/actas/actas-supervision.component.ts": {
+    "mtime": 1793380207.8125646,
+    "seen": 1794319155.1085742,
+    "ast_hash": "06200c20fc48815d4d9ad54e005d1984",
+    "semantic_hash": "06200c20fc48815d4d9ad54e005d1984"
+  },
+  "apps/web/src/app/features/actas/actas-visor.component.ts": {
+    "mtime": 1793380186.4422839,
+    "seen": 1794319155.1085749,
+    "ast_hash": "cdb6f7571dfd2b768ce085f02402d167",
+    "semantic_hash": "cdb6f7571dfd2b768ce085f02402d167"
+  },
+  "apps/web/src/app/features/actas/actas.component.ts": {
+    "mtime": 1793381519.4043734,
+    "seen": 1794319155.108576,
+    "ast_hash": "1a5e29429715fce8809d89fc989b35dc",
+    "semantic_hash": "1a5e29429715fce8809d89fc989b35dc"
+  },
+  "apps/web/src/app/features/actas/actas.util.ts": {
+    "mtime": 1793381519.4043734,
+    "seen": 1794319155.1085768,
+    "ast_hash": "62857c784629dbec8dd08e4b057ec161",
+    "semantic_hash": "62857c784629dbec8dd08e4b057ec161"
+  },
+  "apps/web/src/app/features/arl/arl.component.ts": {
+    "mtime": 1793219169.4123352,
+    "seen": 1794319155.1085775,
+    "ast_hash": "771e0034581c736221f3bbcaa88179f3",
+    "semantic_hash": "771e0034581c736221f3bbcaa88179f3"
+  },
+  "apps/web/src/app/features/auditoria/auditoria.component.ts": {
+    "mtime": 1792078635.8594327,
+    "seen": 1794319155.1085782,
+    "ast_hash": "8f3236d45b59ff339a7ee74a97fac711",
+    "semantic_hash": "8f3236d45b59ff339a7ee74a97fac711"
+  },
+  "apps/web/src/app/features/ayuda/ayuda.component.ts": {
+    "mtime": 1793221691.602603,
+    "seen": 1794319155.1085794,
+    "ast_hash": "3a720389fd0d193a7b6537e9d7ebf519",
+    "semantic_hash": "3a720389fd0d193a7b6537e9d7ebf519"
+  },
+  "apps/web/src/app/features/bolsa/bolsa.component.ts": {
+    "mtime": 1792078635.8816607,
+    "seen": 1794319155.10858,
+    "ast_hash": "48721df1dd601c9883aefb07ef597fb7",
+    "semantic_hash": "48721df1dd601c9883aefb07ef597fb7"
+  },
+  "apps/web/src/app/features/camara/camara-decision.component.ts": {
+    "mtime": 1793979742.1651847,
+    "seen": 1794319155.108581,
+    "ast_hash": "a5b669b47ad2eebb580b95d3ddf595c0",
+    "semantic_hash": "a5b669b47ad2eebb580b95d3ddf595c0"
+  },
+  "apps/web/src/app/features/camara/camara-detalle.component.ts": {
+    "mtime": 1793979819.2965317,
+    "seen": 1794319155.1085823,
+    "ast_hash": "bc75c7b08e11af4f92bdfc17a6223ebf",
+    "semantic_hash": "bc75c7b08e11af4f92bdfc17a6223ebf"
+  },
+  "apps/web/src/app/features/camara/camara-estudiante.component.ts": {
+    "mtime": 1794329338.658104,
+    "seen": 1794343118.4211316,
+    "ast_hash": "12f7b655b7f4cd3ed93fb26b5ed60976",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/camara/camara-mesa.estado.ts": {
+    "mtime": 1794331756.9802222,
+    "seen": 1794343118.4211338,
+    "ast_hash": "d3bd445fba4868960470e2f7868c997b",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/camara/camara-supervision.component.ts": {
+    "mtime": 1793979854.2287948,
+    "seen": 1794319155.108585,
+    "ast_hash": "eb44cb48790a0df444ac05a9c93b280b",
+    "semantic_hash": "eb44cb48790a0df444ac05a9c93b280b"
+  },
+  "apps/web/src/app/features/camara/camara-visor.component.ts": {
+    "mtime": 1793979753.2598078,
+    "seen": 1794319155.1085858,
+    "ast_hash": "a83c836bf5c77b8533a245ef9c9643f1",
+    "semantic_hash": "a83c836bf5c77b8533a245ef9c9643f1"
+  },
+  "apps/web/src/app/features/camara/camara.component.ts": {
+    "mtime": 1793979845.0434508,
+    "seen": 1794319155.1085865,
+    "ast_hash": "9ceafd670680b5d7fc90bbef2ad8657b",
+    "semantic_hash": "9ceafd670680b5d7fc90bbef2ad8657b"
+  },
+  "apps/web/src/app/features/camara/camara.util.ts": {
+    "mtime": 1793979730.451794,
+    "seen": 1794319155.1085875,
+    "ast_hash": "a19399264888cd11723580c5d9732a6f",
+    "semantic_hash": "a19399264888cd11723580c5d9732a6f"
+  },
+  "apps/web/src/app/features/costos/costos-ia.component.ts": {
+    "mtime": 1792078635.8856697,
+    "seen": 1794319155.1085882,
+    "ast_hash": "833c93b77adad18671317ba2866c871d",
+    "semantic_hash": "833c93b77adad18671317ba2866c871d"
+  },
+  "apps/web/src/app/features/cumplimiento/cumplimiento.component.ts": {
+    "mtime": 1792078635.9013119,
+    "seen": 1794319155.1085892,
+    "ast_hash": "345e10d8254ba10dc64c1888fab6e173",
+    "semantic_hash": "345e10d8254ba10dc64c1888fab6e173"
+  },
+  "apps/web/src/app/features/empresas/empresas.component.ts": {
+    "mtime": 1793031147.071506,
+    "seen": 1794319155.1085901,
+    "ast_hash": "ea830404a594625635475cc09586148c",
+    "semantic_hash": "ea830404a594625635475cc09586148c"
+  },
+  "apps/web/src/app/features/eps/eps-adres.component.ts": {
+    "mtime": 1793194191.709626,
+    "seen": 1794319155.1085908,
+    "ast_hash": "9fd4c49f1eb622c32ec3f5dfccf050a2",
+    "semantic_hash": "9fd4c49f1eb622c32ec3f5dfccf050a2"
+  },
+  "apps/web/src/app/features/eps/eps-comparacion.component.ts": {
+    "mtime": 1793194433.8686864,
+    "seen": 1794319155.1085916,
+    "ast_hash": "0e6dee303214b25637e40d61cab8224f",
+    "semantic_hash": "0e6dee303214b25637e40d61cab8224f"
+  },
+  "apps/web/src/app/features/eps/eps-decision.component.ts": {
+    "mtime": 1793110525.306268,
+    "seen": 1794319155.1085927,
+    "ast_hash": "26188b8aff1c2bece12543ccc0c79cce",
+    "semantic_hash": "26188b8aff1c2bece12543ccc0c79cce"
+  },
+  "apps/web/src/app/features/eps/eps-detalle.component.ts": {
+    "mtime": 1793219240.9429667,
+    "seen": 1794319155.1085937,
+    "ast_hash": "7b00d2063b5f751608f7250906efa3a6",
+    "semantic_hash": "7b00d2063b5f751608f7250906efa3a6"
+  },
+  "apps/web/src/app/features/eps/eps-historial.component.ts": {
+    "mtime": 1793139728.9290302,
+    "seen": 1794319155.1085944,
+    "ast_hash": "9723f93a839f7e2c640dc15d4a2fa047",
+    "semantic_hash": "9723f93a839f7e2c640dc15d4a2fa047"
+  },
+  "apps/web/src/app/features/eps/eps-mesa.estado.ts": {
+    "mtime": 1794331756.9832199,
+    "seen": 1794343118.4211664,
+    "ast_hash": "d65ae5f438e938756f67d5a5c85a49d3",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/eps/eps-visor.component.ts": {
+    "mtime": 1793194401.6599536,
+    "seen": 1794319155.1085963,
+    "ast_hash": "92a8cb1022a9a448baea63f08dec7911",
+    "semantic_hash": "92a8cb1022a9a448baea63f08dec7911"
+  },
+  "apps/web/src/app/features/eps/eps.component.ts": {
+    "mtime": 1793217332.1080008,
+    "seen": 1794319155.108597,
+    "ast_hash": "0013c9651952702b6232e7290c20ffd4",
+    "semantic_hash": "0013c9651952702b6232e7290c20ffd4"
+  },
+  "apps/web/src/app/features/eps/eps.util.ts": {
+    "mtime": 1793219240.9465885,
+    "seen": 1794319155.108598,
+    "ast_hash": "9cf7bafbe4cfe124d3dc932f8ab31f9a",
+    "semantic_hash": "9cf7bafbe4cfe124d3dc932f8ab31f9a"
+  },
+  "apps/web/src/app/features/gestion/periodos.component.ts": {
+    "mtime": 1793221662.9727323,
+    "seen": 1794319155.1085987,
+    "ast_hash": "376f7b997914b681fce7fc492327062e",
+    "semantic_hash": "376f7b997914b681fce7fc492327062e"
+  },
+  "apps/web/src/app/features/gestion/usuarios.component.ts": {
+    "mtime": 1792078635.9416113,
+    "seen": 1794319155.1085997,
+    "ast_hash": "9f84c7e198acdae836d140b07018a530",
+    "semantic_hash": "9f84c7e198acdae836d140b07018a530"
+  },
+  "apps/web/src/app/features/ingreso/callback.component.ts": {
+    "mtime": 1793027157.7338855,
+    "seen": 1794319155.1086004,
+    "ast_hash": "c2a2befe49e48fa479ff84f12b693e0f",
+    "semantic_hash": "c2a2befe49e48fa479ff84f12b693e0f"
+  },
+  "apps/web/src/app/features/ingreso/campo-senal.ts": {
+    "mtime": 1794259411.2346992,
+    "seen": 1794319155.1086013,
+    "ast_hash": "8053a7e9cba8c3753e0affaa62fbaf2e",
+    "semantic_hash": "8053a7e9cba8c3753e0affaa62fbaf2e"
+  },
+  "apps/web/src/app/features/ingreso/ingreso.component.ts": {
+    "mtime": 1794320852.0601995,
+    "seen": 1794343118.4211853,
+    "ast_hash": "b21b8e1781b76846f15663bfba0c9897",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/ingreso/signal-field.component.ts": {
+    "mtime": 1794262151.4891098,
+    "seen": 1794319155.1086028,
+    "ast_hash": "8e8741097c4a38f24fc0715795d50368",
+    "semantic_hash": "8e8741097c4a38f24fc0715795d50368"
+  },
+  "apps/web/src/app/features/ingreso/transicion-entrada.ts": {
+    "mtime": 1794256358.0064907,
+    "seen": 1794319155.108604,
+    "ast_hash": "01a2baceaf6137be18a95fba984dd956",
+    "semantic_hash": "01a2baceaf6137be18a95fba984dd956"
+  },
+  "apps/web/src/app/features/ingreso/usuarios-prueba.ts": {
+    "mtime": 1794256527.9526153,
+    "seen": 1794319155.108605,
+    "ast_hash": "a5d23230abeb3f25b47e3a41cbcbabb4",
+    "semantic_hash": "a5d23230abeb3f25b47e3a41cbcbabb4"
+  },
+  "apps/web/src/app/features/inicio/inicio.component.ts": {
+    "mtime": 1794325911.3024104,
+    "seen": 1794343118.421195,
+    "ast_hash": "bb17b46993b567ae4862b1d170ea0f70",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/pqrs/pqrs.component.ts": {
+    "mtime": 1792078635.9790986,
+    "seen": 1794319155.1086066,
+    "ast_hash": "07877d65929f98e67de609d8316e84cb",
+    "semantic_hash": "07877d65929f98e67de609d8316e84cb"
+  },
+  "apps/web/src/app/features/practicas/banderas.ts": {
+    "mtime": 1793219142.425874,
+    "seen": 1794319155.1086073,
+    "ast_hash": "c4bdb131f69fd51ff9117613982e7c84",
+    "semantic_hash": "c4bdb131f69fd51ff9117613982e7c84"
+  },
+  "apps/web/src/app/features/practicas/expediente.component.ts": {
+    "mtime": 1794327831.9000125,
+    "seen": 1794343118.4212046,
+    "ast_hash": "ce5befba3ee7472b8ec2bd3e8355f290",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/practicas/guia-documento.ts": {
+    "mtime": 1793218225.7864525,
+    "seen": 1794319155.108609,
+    "ast_hash": "da6c2c1cf58ed95b9725622cda87b998",
+    "semantic_hash": "da6c2c1cf58ed95b9725622cda87b998"
+  },
+  "apps/web/src/app/features/practicas/practicas.component.ts": {
+    "mtime": 1794326485.9360814,
+    "seen": 1794343118.4212096,
+    "ast_hash": "e66e59124b01b0c3af592c0c7ca8353e",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/registro/arl-registro.ts": {
+    "mtime": 1793381434.9613106,
+    "seen": 1794319155.1086109,
+    "ast_hash": "779b34bb1d7a900605a1d983fa32d638",
+    "semantic_hash": "779b34bb1d7a900605a1d983fa32d638"
+  },
+  "apps/web/src/app/features/registro/registro.component.ts": {
+    "mtime": 1793381419.8660836,
+    "seen": 1794319155.1086116,
+    "ast_hash": "582e7fcf001357e92023f533e80d962c",
+    "semantic_hash": "582e7fcf001357e92023f533e80d962c"
+  },
+  "apps/web/src/app/features/reportes/reportes.component.ts": {
+    "mtime": 1794414782.588733,
+    "seen": 1794415531.425636,
+    "ast_hash": "208e1040653909b997d810a1b1952e7a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/rut/rut-decision.component.ts": {
+    "mtime": 1793808948.5240774,
+    "seen": 1794319155.1086135,
+    "ast_hash": "6a4e1cca7bdd8e6fefd5996b7da5d84e",
+    "semantic_hash": "6a4e1cca7bdd8e6fefd5996b7da5d84e"
+  },
+  "apps/web/src/app/features/rut/rut-detalle.component.ts": {
+    "mtime": 1793809057.0602584,
+    "seen": 1794319155.1086144,
+    "ast_hash": "721496311f9c0f3d3c32c2a86fa7e237",
+    "semantic_hash": "721496311f9c0f3d3c32c2a86fa7e237"
+  },
+  "apps/web/src/app/features/rut/rut-estudiante.component.ts": {
+    "mtime": 1794329338.6550179,
+    "seen": 1794343118.4212239,
+    "ast_hash": "895dd727e6e5379e64c89d14b01f1281",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/rut/rut-mesa.estado.ts": {
+    "mtime": 1794331756.9703677,
+    "seen": 1794343118.421226,
+    "ast_hash": "8f970156af0eff8f12fc8ddbb0b1bad5",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/rut/rut-supervision.component.ts": {
+    "mtime": 1793808949.580161,
+    "seen": 1794319155.108617,
+    "ast_hash": "00eb8f76467b143c46eda79eb0215117",
+    "semantic_hash": "00eb8f76467b143c46eda79eb0215117"
+  },
+  "apps/web/src/app/features/rut/rut-visor.component.ts": {
+    "mtime": 1793809888.9463637,
+    "seen": 1794319155.1086178,
+    "ast_hash": "4100d67e30b9cf14519dc68d28a84622",
+    "semantic_hash": "4100d67e30b9cf14519dc68d28a84622"
+  },
+  "apps/web/src/app/features/rut/rut.component.ts": {
+    "mtime": 1793809057.5127373,
+    "seen": 1794319155.1086187,
+    "ast_hash": "7046877f21d737247d5b56486fbbb815",
+    "semantic_hash": "7046877f21d737247d5b56486fbbb815"
+  },
+  "apps/web/src/app/features/rut/rut.util.ts": {
+    "mtime": 1793809344.0817459,
+    "seen": 1794319155.1086195,
+    "ast_hash": "3eb41708a65c74893ec727fa6e1c90ab",
+    "semantic_hash": "3eb41708a65c74893ec727fa6e1c90ab"
+  },
+  "apps/web/src/app/features/validacion-documental/validacion-documental.component.ts": {
+    "mtime": 1794341571.328788,
+    "seen": 1794343118.421238,
+    "ast_hash": "735d74fa68ae95c5443e85cc22512508",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/validacion-documental/vd-cola.component.ts": {
+    "mtime": 1794268144.6535373,
+    "seen": 1794319155.1086214,
+    "ast_hash": "8d3e3a0709fb97e9e14d264df3acff88",
+    "semantic_hash": "8d3e3a0709fb97e9e14d264df3acff88"
+  },
+  "apps/web/src/app/features/validacion-documental/vd-estados.component.ts": {
+    "mtime": 1794266886.782698,
+    "seen": 1794319155.108622,
+    "ast_hash": "9bda6bb30f7688a10f41069928ade88c",
+    "semantic_hash": "9bda6bb30f7688a10f41069928ade88c"
+  },
+  "apps/web/src/app/features/validacion-documental/vd-motores.component.ts": {
+    "mtime": 1794341571.333373,
+    "seen": 1794343118.421245,
+    "ast_hash": "b77b3aa50ca19c50cbe5b7fb263cc789",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/validacion-documental/vd-progreso.component.ts": {
+    "mtime": 1794268408.786354,
+    "seen": 1794319155.108624,
+    "ast_hash": "3404826da99ff3f99b1211178cefc99d",
+    "semantic_hash": "3404826da99ff3f99b1211178cefc99d"
+  },
+  "apps/web/src/app/features/validacion-documental/vd-signal-rail.component.ts": {
+    "mtime": 1794341339.514828,
+    "seen": 1794343118.4212499,
+    "ast_hash": "855703dd679b1816e4e0c192d0709b75",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/validacion-documental/vd-supervision.component.ts": {
+    "mtime": 1794236119.07453,
+    "seen": 1794319155.1086257,
+    "ast_hash": "264cdc68be0a6f6392da361d5322b3d4",
+    "semantic_hash": "264cdc68be0a6f6392da361d5322b3d4"
+  },
+  "apps/web/src/app/features/validacion-documental/vd.estado.ts": {
+    "mtime": 1794235953.9920516,
+    "seen": 1794319155.1086264,
+    "ast_hash": "3e2d339dad700f71f9d50928f5b94e8a",
+    "semantic_hash": "3e2d339dad700f71f9d50928f5b94e8a"
+  },
+  "apps/web/src/app/features/validacion-documental/vd.senal.ts": {
+    "mtime": 1794256934.8817573,
+    "seen": 1794319155.1086276,
+    "ast_hash": "ab1d5e8a87e015ba1319c2fcd8245a38",
+    "semantic_hash": "ab1d5e8a87e015ba1319c2fcd8245a38"
+  },
+  "apps/web/src/app/features/validacion-documental/vd.util.ts": {
+    "mtime": 1794235922.8267052,
+    "seen": 1794319155.1086283,
+    "ast_hash": "f37545bf16c5fb7471af7f6d796db035",
+    "semantic_hash": "f37545bf16c5fb7471af7f6d796db035"
+  },
+  "apps/web/src/app/features/vistas/vistas.component.ts": {
+    "mtime": 1792078636.0303917,
+    "seen": 1794319155.1086292,
+    "ast_hash": "e7dea4a675e9b4db304bc0d428ac8918",
+    "semantic_hash": "e7dea4a675e9b4db304bc0d428ac8918"
+  },
+  "apps/web/src/app/layout/shell.component.ts": {
+    "mtime": 1794347648.1878862,
+    "seen": 1794348773.9837272,
+    "ast_hash": "2b1991c976b962248cc9dce18ba16b75",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/avisos.component.ts": {
+    "mtime": 1792078636.0670593,
+    "seen": 1794319155.108631,
+    "ast_hash": "d6ddae08e086e910e9550eda6f0f6344",
+    "semantic_hash": "d6ddae08e086e910e9550eda6f0f6344"
+  },
+  "apps/web/src/app/shared/components/cronograma.component.ts": {
+    "mtime": 1793221634.2921875,
+    "seen": 1794319155.1086318,
+    "ast_hash": "22ec06d5a604284496a4a7bcef33ba9b",
+    "semantic_hash": "22ec06d5a604284496a4a7bcef33ba9b"
+  },
+  "apps/web/src/app/shared/components/esqueleto.component.ts": {
+    "mtime": 1792078636.0740666,
+    "seen": 1794319155.1086326,
+    "ast_hash": "48125e6489b89fa7001e4a51b45ba7ce",
+    "semantic_hash": "48125e6489b89fa7001e4a51b45ba7ce"
+  },
+  "apps/web/src/app/shared/components/estado.component.ts": {
+    "mtime": 1792078636.0773098,
+    "seen": 1794319155.1086335,
+    "ast_hash": "05e40e9fd6f68bce43c2db8f92eac4be",
+    "semantic_hash": "05e40e9fd6f68bce43c2db8f92eac4be"
+  },
+  "apps/web/src/app/shared/pipes/etiquetas.pipe.ts": {
+    "mtime": 1793049688.3282819,
+    "seen": 1794319155.1086345,
+    "ast_hash": "ea7b503782bc26b5e7df5875458a8e64",
+    "semantic_hash": "ea7b503782bc26b5e7df5875458a8e64"
+  },
+  "apps/web/src/app/shared/utils/errores.ts": {
+    "mtime": 1792078636.0946658,
+    "seen": 1794319155.1086354,
+    "ast_hash": "8167537b1551dcef5a3b7e19aaeadec5",
+    "semantic_hash": "8167537b1551dcef5a3b7e19aaeadec5"
+  },
+  "apps/web/src/app/shared/utils/moneda.ts": {
+    "mtime": 1792078636.0946658,
+    "seen": 1794319155.1086361,
+    "ast_hash": "f18ddc09c0c1f6190bcb19495f0b060e",
+    "semantic_hash": "f18ddc09c0c1f6190bcb19495f0b060e"
+  },
+  "apps/web/src/app/shared/utils/motores-documentales.ts": {
+    "mtime": 1794235902.5494108,
+    "seen": 1794319155.108637,
+    "ast_hash": "1772b3d5531866af4d01e6ebb16a082a",
+    "semantic_hash": "1772b3d5531866af4d01e6ebb16a082a"
+  },
+  "apps/web/src/app/shared/utils/tema.ts": {
+    "mtime": 1794256188.7224693,
+    "seen": 1794319155.1086383,
+    "ast_hash": "710de8ff018eeac0a2fe459de3fd35e8",
+    "semantic_hash": "710de8ff018eeac0a2fe459de3fd35e8"
+  },
+  "apps/web/src/assets/tema-inicial.js": {
+    "mtime": 1794256045.7885919,
+    "seen": 1794319155.108639,
+    "ast_hash": "1f06031116ab0359b42284103177e1c8",
+    "semantic_hash": "1f06031116ab0359b42284103177e1c8"
+  },
+  "apps/web/src/environments/environment.prod.ts": {
+    "mtime": 1792078636.2433672,
+    "seen": 1794319155.10864,
+    "ast_hash": "63c48034d2d1d4ac5e90f531f5aee8ff",
+    "semantic_hash": "63c48034d2d1d4ac5e90f531f5aee8ff"
+  },
+  "apps/web/src/environments/environment.ts": {
+    "mtime": 1792078636.2433672,
+    "seen": 1794319155.108641,
+    "ast_hash": "081fe9fd07cf7da6cb72d21daeff5234",
+    "semantic_hash": "081fe9fd07cf7da6cb72d21daeff5234"
+  },
+  "apps/web/src/main.ts": {
+    "mtime": 1792078635.7323031,
+    "seen": 1794319155.1086419,
+    "ast_hash": "666ada9d92b6f43f768e29367004c22f",
+    "semantic_hash": "666ada9d92b6f43f768e29367004c22f"
+  },
+  "apps/web/tsconfig.app.json": {
+    "mtime": 1792078635.7166765,
+    "seen": 1794319155.1086428,
+    "ast_hash": "330335d8030be4eff76977091b6ee6fd",
+    "semantic_hash": "330335d8030be4eff76977091b6ee6fd"
+  },
+  "apps/web/tsconfig.json": {
+    "mtime": 1792078635.7166765,
+    "seen": 1794319155.1086435,
+    "ast_hash": "44eab693a050b760c9150caecf6ef4f4",
+    "semantic_hash": "44eab693a050b760c9150caecf6ef4f4"
+  },
+  "apps/web/tsconfig.spec.json": {
+    "mtime": 1793050845.2200558,
+    "seen": 1794319155.1086447,
+    "ast_hash": "8350dd6e7df25b9fcc4f8a3fb8302b14",
+    "semantic_hash": "8350dd6e7df25b9fcc4f8a3fb8302b14"
+  },
+  "infra/docker/alertas.yml": {
+    "mtime": 1792078636.2903824,
+    "seen": 1794319155.1086454,
+    "ast_hash": "c5f850233b13cb3deeb85731f6b7c3bd",
+    "semantic_hash": "c5f850233b13cb3deeb85731f6b7c3bd"
+  },
+  "infra/docker/docker-compose.yml": {
+    "mtime": 1793027978.7038016,
+    "seen": 1794319155.1086464,
+    "ast_hash": "897c6f44b345d12fecb240af88926cfc",
+    "semantic_hash": "897c6f44b345d12fecb240af88926cfc"
+  },
+  "infra/docker/prometheus.yml": {
+    "mtime": 1793027978.7027962,
+    "seen": 1794319155.108647,
+    "ast_hash": "1f6f6def57c7cefd611983e84effb11e",
+    "semantic_hash": "1f6f6def57c7cefd611983e84effb11e"
+  },
+  "infra/gcp/aprovisionar-ambiente.sh": {
+    "mtime": 1793038115.4939017,
+    "seen": 1794319155.1086485,
+    "ast_hash": "a5913fc1409e90f78b50e1f60b0ba53d",
+    "semantic_hash": "a5913fc1409e90f78b50e1f60b0ba53d"
+  },
+  "infra/gcp/arranque-unico.sh": {
+    "mtime": 1793038115.4915462,
+    "seen": 1794319155.1086493,
+    "ast_hash": "dc0126d74be17f1f05afa585bf7e6c97",
+    "semantic_hash": "dc0126d74be17f1f05afa585bf7e6c97"
+  },
+  "infra/gcp/cloudbuild.yaml": {
+    "mtime": 1793027978.7088535,
+    "seen": 1794319155.10865,
+    "ast_hash": "cc7f3de8178b1fe2bda2dc403062224d",
+    "semantic_hash": "cc7f3de8178b1fe2bda2dc403062224d"
+  },
+  "infra/gcp/desplegar.sh": {
+    "mtime": 1793027157.7491107,
+    "seen": 1794319155.108651,
+    "ast_hash": "f1b5741e0d286f2b875250a5e09009a0",
+    "semantic_hash": "f1b5741e0d286f2b875250a5e09009a0"
+  },
+  "infra/gcp/nube-imagen.yaml": {
+    "mtime": 1792078636.3372812,
+    "seen": 1794319155.1086519,
+    "ast_hash": "b925c8de8d8cafb704d61452def606e4",
+    "semantic_hash": "b925c8de8d8cafb704d61452def606e4"
+  },
+  "infra/gcp/permisos.sh": {
+    "mtime": 1792078636.3372812,
+    "seen": 1794319155.1086528,
+    "ast_hash": "3dd573e1326cbf489f5af04e624b0ddf",
+    "semantic_hash": "3dd573e1326cbf489f5af04e624b0ddf"
+  },
+  "infra/gcp/red-privada.sh": {
+    "mtime": 1792078636.3372812,
+    "seen": 1794319155.1086535,
+    "ast_hash": "131c0e69e4c4647379fa176bddf661ed",
+    "semantic_hash": "131c0e69e4c4647379fa176bddf661ed"
+  },
+  "infra/gcp/tareas-programadas.sh": {
+    "mtime": 1792078636.3529096,
+    "seen": 1794319155.1086543,
+    "ast_hash": "afbdcf6df932934fbcdedb360ce2d3e8",
+    "semantic_hash": "afbdcf6df932934fbcdedb360ce2d3e8"
+  },
+  "package.json": {
+    "mtime": 1793115541.9780064,
+    "seen": 1794319155.1086555,
+    "ast_hash": "2d5d35482a16f8cbe6405ac922c86f02",
+    "semantic_hash": "2d5d35482a16f8cbe6405ac922c86f02"
+  },
+  "CLAUDE.md": {
+    "mtime": 1793116764.7135148,
+    "seen": 1794319155.1086562,
+    "ast_hash": "e93d96ab1b7977eff6fe4cad671479b1",
+    "semantic_hash": "e93d96ab1b7977eff6fe4cad671479b1"
+  },
+  "README.md": {
+    "mtime": 1793027157.7107716,
+    "seen": 1794319155.108657,
+    "ast_hash": "b8d9cf697bfbaf8bb16bd78d3fb2c69a",
+    "semantic_hash": "b8d9cf697bfbaf8bb16bd78d3fb2c69a"
+  },
+  "apps/web/src/assets/fuentes/LICENCIA-DejaVu.txt": {
+    "mtime": 1792078636.1086743,
+    "seen": 1794319155.108658,
+    "ast_hash": "425865e1c534c5788b1341d401f131d9",
+    "semantic_hash": "425865e1c534c5788b1341d401f131d9"
+  },
+  "apps/web/src/index.html": {
+    "mtime": 1794256046.0186665,
+    "seen": 1794319155.1086593,
+    "ast_hash": "d6d61ff74d2c1b5fb934db4c2f559639",
+    "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
+  },
+  "docs/DOCUMENTO-TECNICO.md": {
+    "mtime": 1794415250.760662,
+    "seen": 1794415531.4915273,
+    "ast_hash": "3a1b2f9ffc0d4dfb4e50b6af18788d86",
+    "semantic_hash": ""
+  },
+  "docs/prototipo/sipra-prototipo.html": {
+    "mtime": 1792078636.283844,
+    "seen": 1794319155.1086607,
+    "ast_hash": "611ffe3388d2947ff8c198a3147b5ee8",
+    "semantic_hash": "611ffe3388d2947ff8c198a3147b5ee8"
+  },
+  "apps/web/src/assets/favicon.svg": {
+    "mtime": 1792078636.1086743,
+    "seen": 1794319155.1086614,
+    "ast_hash": "29cd8299a7af315cdfd7363ae597d991",
+    "semantic_hash": "29cd8299a7af315cdfd7363ae597d991"
+  },
+  "apps/web/src/assets/iconos/sprite.svg": {
+    "mtime": 1792078636.1407795,
+    "seen": 1794319155.1086626,
+    "ast_hash": "3d3a5c46984c6f9b0c5a141c5f8caf93",
+    "semantic_hash": "3d3a5c46984c6f9b0c5a141c5f8caf93"
+  },
+  "apps/web/src/assets/ilustraciones/acceso.svg": {
+    "mtime": 1792078636.1407795,
+    "seen": 1794319155.1086633,
+    "ast_hash": "709a7a8547cb51ab79c2d8cc4d4fe060",
+    "semantic_hash": "709a7a8547cb51ab79c2d8cc4d4fe060"
+  },
+  "apps/web/src/assets/ilustraciones/conexion.svg": {
+    "mtime": 1792078636.1407795,
+    "seen": 1794319155.1086643,
+    "ast_hash": "392d787d93232a2739aef55e46bd717f",
+    "semantic_hash": "392d787d93232a2739aef55e46bd717f"
+  },
+  "apps/web/src/assets/ilustraciones/diseno.svg": {
+    "mtime": 1792078636.1564147,
+    "seen": 1794319155.108665,
+    "ast_hash": "6330f82f114710fc9ec7837ec5017cc7",
+    "semantic_hash": "6330f82f114710fc9ec7837ec5017cc7"
+  },
+  "apps/web/src/assets/ilustraciones/documentos.svg": {
+    "mtime": 1792078636.1564147,
+    "seen": 1794319155.1086662,
+    "ast_hash": "416793bba37b2bd5ad96669a2d401e3d",
+    "semantic_hash": "416793bba37b2bd5ad96669a2d401e3d"
+  },
+  "apps/web/src/assets/ilustraciones/empresas.svg": {
+    "mtime": 1792078636.1564147,
+    "seen": 1794319155.108667,
+    "ast_hash": "94a2a065f5cf5e5a9b2dbaa93ef4b2bf",
+    "semantic_hash": "94a2a065f5cf5e5a9b2dbaa93ef4b2bf"
+  },
+  "apps/web/src/assets/ilustraciones/logistica.svg": {
+    "mtime": 1792078636.1564147,
+    "seen": 1794319155.1086679,
+    "ast_hash": "903f5656859c39486c04cf8da99a32c0",
+    "semantic_hash": "903f5656859c39486c04cf8da99a32c0"
+  },
+  "apps/web/src/assets/ilustraciones/seguimiento.svg": {
+    "mtime": 1792078636.1720736,
+    "seen": 1794319155.1086686,
+    "ast_hash": "e28e439ca448b49d9d08e67e2a07bf9d",
+    "semantic_hash": "e28e439ca448b49d9d08e67e2a07bf9d"
+  },
+  "apps/web/src/assets/ilustraciones/sinconexion.svg": {
+    "mtime": 1792078636.1720736,
+    "seen": 1794319155.1086698,
+    "ast_hash": "7f8f4b5b10a7831da4c36146cf25c0ff",
+    "semantic_hash": "7f8f4b5b10a7831da4c36146cf25c0ff"
+  },
+  "apps/web/src/assets/ilustraciones/sindocumentos.svg": {
+    "mtime": 1792078636.192058,
+    "seen": 1794319155.1086705,
+    "ast_hash": "6eb7224061b53d02d8915804eaf83096",
+    "semantic_hash": "6eb7224061b53d02d8915804eaf83096"
+  },
+  "apps/web/src/assets/ilustraciones/sinresultados.svg": {
+    "mtime": 1792078636.1970694,
+    "seen": 1794319155.1086714,
+    "ast_hash": "bcd6e82e820bbe7c776227f7cf96790f",
+    "semantic_hash": "bcd6e82e820bbe7c776227f7cf96790f"
+  },
+  "apps/web/src/assets/marca/favicon-16.png": {
+    "mtime": 1792078636.1971443,
+    "seen": 1794319155.1086721,
+    "ast_hash": "44fbd65628b9536508aab1408f4d9132",
+    "semantic_hash": "44fbd65628b9536508aab1408f4d9132"
+  },
+  "apps/web/src/assets/marca/favicon-32.png": {
+    "mtime": 1792078636.2132144,
+    "seen": 1794319155.108673,
+    "ast_hash": "92ffaeeba8cb4537df777deee08f2dd0",
+    "semantic_hash": "92ffaeeba8cb4537df777deee08f2dd0"
+  },
+  "apps/web/src/assets/marca/icono-app-192.png": {
+    "mtime": 1792078636.2182176,
+    "seen": 1794319155.108674,
+    "ast_hash": "a6377fbd34e49e401bb83b75facfa402",
+    "semantic_hash": "a6377fbd34e49e401bb83b75facfa402"
+  },
+  "apps/web/src/assets/marca/icono-app-512.png": {
+    "mtime": 1792078636.2232158,
+    "seen": 1794319155.108675,
+    "ast_hash": "7f15d7660b35a219f23882130396c60a",
+    "semantic_hash": "7f15d7660b35a219f23882130396c60a"
+  },
+  "apps/web/src/assets/marca/logo-horizontal-blanco.svg": {
+    "mtime": 1792078636.2262154,
+    "seen": 1794319155.1086762,
+    "ast_hash": "18d2c8cc60400664b8890970ad8f4bf6",
+    "semantic_hash": "18d2c8cc60400664b8890970ad8f4bf6"
+  },
+  "apps/web/src/assets/marca/logo-horizontal-oscuro.svg": {
+    "mtime": 1792078636.2312343,
+    "seen": 1794319155.1086771,
+    "ast_hash": "cb39d9352432632569637d9a23162c52",
+    "semantic_hash": "cb39d9352432632569637d9a23162c52"
+  },
+  "apps/web/src/assets/marca/logo-horizontal-verde.svg": {
+    "mtime": 1792078636.235217,
+    "seen": 1794319155.1086779,
+    "ast_hash": "164be79412f17c69064ce7766a1d37fb",
+    "semantic_hash": "164be79412f17c69064ce7766a1d37fb"
+  },
+  "apps/web/src/assets/marca/simbolo-oscuro.svg": {
+    "mtime": 1792078636.2392187,
+    "seen": 1794319155.1086788,
+    "ast_hash": "034e713d3556311dabc72b5e9abd8696",
+    "semantic_hash": "034e713d3556311dabc72b5e9abd8696"
+  },
+  "apps/web/src/assets/marca/simbolo-verde.svg": {
+    "mtime": 1792078636.2433672,
+    "seen": 1794319155.1086798,
+    "ast_hash": "346c3d6ea61d2ddae0cece6175ce1c76",
+    "semantic_hash": "346c3d6ea61d2ddae0cece6175ce1c76"
+  },
+  "apps/web/pruebas/expediente-v3.spec.ts": {
+    "mtime": 1794327896.9846964,
+    "seen": 1794343118.4210176,
+    "ast_hash": "5c481dc985cd3046e6f51a1a0611e6f9",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/inicio-v3.spec.ts": {
+    "mtime": 1794326536.020277,
+    "seen": 1794343118.4210255,
+    "ast_hash": "c93e74ee89a332f119305fa5c695de94",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/kit-v3-controles.spec.ts": {
+    "mtime": 1794321365.7732685,
+    "seen": 1794343118.4210286,
+    "ast_hash": "784507db305d399397d1e092d20d2a64",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/practicas-v3.spec.ts": {
+    "mtime": 1794326537.2003727,
+    "seen": 1794343118.4210343,
+    "ast_hash": "64ac715a94946878cc5f65d1e0816d1f",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/vd-scroll.spec.ts": {
+    "mtime": 1794328965.229174,
+    "seen": 1794343118.4210572,
+    "ast_hash": "fc5880108ed19c520dceb63cc797e697",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/vistas-estudiante-v3.spec.ts": {
+    "mtime": 1794330164.318972,
+    "seen": 1794343118.4210627,
+    "ast_hash": "74344f05a3d890504755fac2efc79b5f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/practicas/expediente-senal.component.ts": {
+    "mtime": 1794327846.6361175,
+    "seen": 1794343118.4212022,
+    "ast_hash": "6969287fdc17152c946bf4b382df45e4",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/carga-senal.component.ts": {
+    "mtime": 1794325895.676103,
+    "seen": 1794343118.421269,
+    "ast_hash": "6e48ff8da5308c9d034714f25a225622",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/control-cuenta.component.ts": {
+    "mtime": 1794322324.7501335,
+    "seen": 1794343118.4212713,
+    "ast_hash": "8e33acea2f2585901dd94be708b19adf",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/control-tema.component.ts": {
+    "mtime": 1794322324.7521253,
+    "seen": 1794343118.4212732,
+    "ast_hash": "f713b180e1545b6c03f87558d0bcdc1e",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/estado-vacio.component.ts": {
+    "mtime": 1794325896.9384859,
+    "seen": 1794343118.4212825,
+    "ast_hash": "0e3d75b4a47fe2c43941b8be8668c093",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/explicacion-documento.component.ts": {
+    "mtime": 1794329405.1515448,
+    "seen": 1794343118.421287,
+    "ast_hash": "610e0f2d14fb2888828c4b2088a93570",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/senal-estado.component.ts": {
+    "mtime": 1794327085.6054282,
+    "seen": 1794343118.4212892,
+    "ast_hash": "89ffe35135091c532c873b18d0ed935a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/shared/components/tira-metricas.component.ts": {
+    "mtime": 1794327509.5992908,
+    "seen": 1794343118.4212914,
+    "ast_hash": "2ecc2f5fb23582611d27b05088bcb151",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/reportes/alcance-reportes.ts": {
+    "mtime": 1794343642.030896,
+    "seen": 1794346201.414439,
+    "ast_hash": "aac351eecb26e81062506513ddcc7876",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/reportes/reportes-analitica.use-case.ts": {
+    "mtime": 1794415049.3319323,
+    "seen": 1794415530.7959962,
+    "ast_hash": "ab31ac87fc54e490ef9148bf2e16fc63",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/ports/out/reportes-analitica.port.ts": {
+    "mtime": 1794414328.635874,
+    "seen": 1794415530.8424935,
+    "ast_hash": "66a7a6187952d668fde1ee0dc36528a5",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/reportes-analitica.adapter.ts": {
+    "mtime": 1794414328.6379392,
+    "seen": 1794415531.015064,
+    "ast_hash": "a109fa0bc8f5435d47033e81743cdfb4",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/controllers/reportes-analitica.controller.ts": {
+    "mtime": 1794414328.6420076,
+    "seen": 1794415531.0612142,
+    "ast_hash": "4dbefba6ae6f520d144ebe0eb48e4320",
+    "semantic_hash": ""
+  },
+  "apps/api/test/reportes-analitica.spec.ts": {
+    "mtime": 1794414439.2077222,
+    "seen": 1794415531.2357278,
+    "ast_hash": "d7d0258e7abbaba930529529380c5e2f",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/reportes-v3.spec.ts": {
+    "mtime": 1794415049.334521,
+    "seen": 1794415531.3267963,
+    "ast_hash": "beb24b402c95317ca69caad8d40cddc1",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/core/models/reportes-analitica.model.ts": {
+    "mtime": 1794415049.334521,
+    "seen": 1794415531.3517985,
+    "ast_hash": "fd800202051072651841d6aa7a97c3d6",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-analitica.util.ts": {
+    "mtime": 1794414782.5780807,
+    "seen": 1794415531.419906,
+    "ast_hash": "516336efa4a4e1573bbbc93ab72fbea7",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-detalle.component.ts": {
+    "mtime": 1794414782.5780807,
+    "seen": 1794415531.422311,
+    "ast_hash": "1ce5caf7c92d2145734c223a0f074c0a",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-documentos.component.ts": {
+    "mtime": 1794414782.5902445,
+    "seen": 1794415531.4223175,
+    "ast_hash": "7f34b89b0c6578f62f5725c8827d8e37",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-estudiantes.component.ts": {
+    "mtime": 1794413212.490576,
+    "seen": 1794413693.7663035,
+    "ast_hash": "8f1d1176daa019880b49582f57cc55d3",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-exportaciones.component.ts": {
+    "mtime": 1794347330.206292,
+    "seen": 1794348773.983635,
+    "ast_hash": "29c5f30cf0b01ed23ebc8df7a2b90e9c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-general.component.ts": {
+    "mtime": 1794414782.5902445,
+    "seen": 1794415531.4248266,
+    "ast_hash": "3440e02eb7b6363171e9987b9a7adda9",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-periodos.component.ts": {
+    "mtime": 1794413212.491621,
+    "seen": 1794413693.7672021,
+    "ast_hash": "7501526d4ef8b52c04cef211c4e0a3de",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes.estado.ts": {
+    "mtime": 1794414782.588733,
+    "seen": 1794415531.4256396,
+    "ast_hash": "e0d558f919f55c5229d3e75c65ba4f6b",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes.estilos.ts": {
+    "mtime": 1794411660.70727,
+    "seen": 1794412532.2478015,
+    "ast_hash": "042d7fde1d5b0619e1fa6328a50dbc9e",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-apiladas.component.ts": {
+    "mtime": 1794347663.2777777,
+    "seen": 1794348773.9836152,
+    "ast_hash": "d5f3beab7c9d7005bb574a8c7790018c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-barras.component.ts": {
+    "mtime": 1794347076.6952713,
+    "seen": 1794348773.9836202,
+    "ast_hash": "e6a9f4a1190d951413c9669fb7295930",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/seed-reportes-1000.ts": {
+    "mtime": 1794414528.5278506,
+    "seen": 1794415530.7080176,
+    "ast_hash": "ef187d89f220fff4965990631115cdb3",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-organizaciones.component.ts": {
+    "mtime": 1794414760.2806332,
+    "seen": 1794415531.424831,
+    "ast_hash": "6e13e75db665e61230e4832fc263a1f9",
+    "semantic_hash": ""
+  },
+  "package-lock.json": {
+    "mtime": 1794255891.5036156,
+    "seen": 1794343118.4214206,
+    "ast_hash": "8cff15da586260c8fa0ae049688bef0a",
+    "semantic_hash": ""
+  }
+}

@@ -15,6 +15,16 @@ import { descargarBlob, leerError, nombreDeCabecera } from '@shared/utils/errore
 type ReporteSgp = 'practicas' | 'bitacoras' | 'cartas';
 
 /**
+ * Perfiles que el servidor autoriza en cada exportación (espejo de los `@Roles` de la API; la UI no amplía permisos):
+ * - Bases del SGP (`/reportes/sgp/*`): administración, coordinación, auxiliar y docente.
+ * - Estado de catálogos (`/reportes/catalogos`): administración, extensión y coordinación.
+ * - Archivos del SPE (`/reportes/spe/*`): administración y extensión.
+ */
+export const ROLES_SGP = ['administrador', 'coordinador', 'auxiliar', 'tutor'];
+export const ROLES_CATALOGOS = ['administrador', 'extension', 'coordinador'];
+export const ROLES_SPE = ['administrador', 'extension'];
+
+/**
  * Exportaciones existentes, sin cambios de lógica: bases del SGP en Excel (manual de coordinación) y archivos
  * regulatorios del SPE. Cada generación queda en la auditoría. Antes vivían en la raíz de /reportes.
  */
@@ -41,6 +51,7 @@ type ReporteSgp = 'practicas' | 'bitacoras' | 'cartas';
     .vista td, .vista th { font-size:var(--fs-xs); white-space:nowrap; }
   `],
   template: `
+    @if (puedeSgp()) {
     <h2 class="seccion">Bases del SGP en Excel</h2>
     <p class="pista" style="max-width:74ch;margin-bottom:1.2rem">Bases en Excel con las columnas del manual de coordinación. Cada generación queda en la auditoría. El alcance de su perfil acota lo que sale.</p>
     <div class="sgp" style="margin-bottom:1.2rem">
@@ -76,9 +87,10 @@ type ReporteSgp = 'practicas' | 'bitacoras' | 'cartas';
           <tbody>@for (f of v.filas.slice(0, 50); track $index) { <tr>@for (c of v.columnas; track c.clave) { <td>{{ celda(f[c.clave]) }}</td> }</tr> }</tbody></table></div>
       </div>
     }
+    }
 
     @if (esRegulatorio()) {
-    <h2 class="seccion" style="margin-top:var(--sp-6)">Reportes regulatorios</h2>
+    <h2 class="seccion" [style.margin-top]="puedeSgp() ? 'var(--sp-6)' : '0'">Reportes regulatorios</h2>
     <p class="pista" style="max-width:74ch;margin-bottom:1.2rem">
       Archivos para la Unidad del Servicio Público de Empleo. Solo entran las vacantes en marco
       laboral: las de marco práctica son un requisito académico y no constituyen intermediación.
@@ -124,6 +136,7 @@ type ReporteSgp = 'practicas' | 'bitacoras' | 'cartas';
       }
     </div>
 
+    @if (generaSpe()) {
     <div class="tarjeta">
       <h2>Generar archivos</h2>
       <p class="pista">
@@ -150,6 +163,9 @@ type ReporteSgp = 'practicas' | 'bitacoras' | 'cartas';
         </div>
       }
     </div>
+    } @else {
+      <p class="pista">La generación de los archivos del SPE corresponde a administración y extensión.</p>
+    }
     }
   `,
 })
@@ -166,7 +182,9 @@ export class ReportesExportacionesComponent implements OnInit {
   readonly rpModalidad = signal(''); readonly rpEstado = signal('');
   readonly rbTipo = signal('seguimiento'); readonly rbPeriodo = signal(''); readonly rbEstado = signal('');
   readonly rcPeriodo = signal(''); readonly rcDesde = signal(''); readonly rcHasta = signal('');
-  readonly esRegulatorio = computed(() => ['administrador', 'extension', 'coordinador'].includes(this.sesion.rol() ?? ''));
+  readonly puedeSgp = computed(() => ROLES_SGP.includes(this.sesion.rol() ?? ''));
+  readonly esRegulatorio = computed(() => ROLES_CATALOGOS.includes(this.sesion.rol() ?? ''));
+  readonly generaSpe = computed(() => ROLES_SPE.includes(this.sesion.rol() ?? ''));
 
   alternarPeriodo(codigo: string): void { this.periodosSel.update((l) => (l.includes(codigo) ? l.filter((x) => x !== codigo) : [...l, codigo])); }
   celda(v: unknown): string {
@@ -211,7 +229,7 @@ export class ReportesExportacionesComponent implements OnInit {
   );
 
   async ngOnInit(): Promise<void> {
-    void firstValueFrom(this.api.listarPeriodos()).then((p) => { this.periodos.set(p); this.periodosSel.set(p.filter((x) => x.vigente && x.activo).map((x) => x.codigo)); }).catch(() => undefined);
+    if (this.puedeSgp()) void firstValueFrom(this.api.listarPeriodos()).then((p) => { this.periodos.set(p); this.periodosSel.set(p.filter((x) => x.vigente && x.activo).map((x) => x.codigo)); }).catch(() => undefined);
     if (!this.esRegulatorio()) { this.cargando.set(false); return; }
     try {
       this.catalogos.set(

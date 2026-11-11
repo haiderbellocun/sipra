@@ -323,12 +323,15 @@ export class ShellComponent {
     { initialValue: '' },
   );
 
-  /** Vistas de trabajo denso que piden todo el ancho útil (Mesas de EPS, Actas, RUT y Cámara). */
+  /**
+   * Vistas de trabajo denso que piden todo el ancho útil (Mesas de EPS, Actas, RUT y Cámara, y Reportes, cuya tabla
+   * granular de 13 columnas y cruces no caben en 78rem). El resto conserva su medida de lectura.
+   */
   readonly anchoCompleto = toSignal(
     this.router.events.pipe(
       filter((e) => e instanceof NavigationEnd),
       startWith(null),
-      map(() => /^\/(?:eps|actas|mesa-rut|mesa-camara)(?:[/?#]|$)/.test(this.router.url)),
+      map(() => /^\/(?:eps|actas|mesa-rut|mesa-camara|reportes)(?:[/?#]|$)/.test(this.router.url)),
     ),
     { initialValue: false },
   );

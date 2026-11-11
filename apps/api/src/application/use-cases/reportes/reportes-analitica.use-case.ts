@@ -1,10 +1,10 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import { EstadoDocumento, TipoDocumento } from '../../../domain/entities/documento.entity';
-import { ModalidadPractica } from '../../../domain/entities/modalidad.entity';
+import { ModalidadPractica, definicionModalidad } from '../../../domain/entities/modalidad.entity';
 import { AUDITORIA_REPOSITORY, AuditoriaRepositoryPort } from '../../../domain/ports/out/repositorios.port';
 import {
-  FiltroAnalitica, PracticaAnalitica, REPORTES_ANALITICA, ReportesAnaliticaPort, VersionAnalitica,
+  FiltroAnalitica, PeriodoAnalitica, PracticaAnalitica, REPORTES_ANALITICA, ReportesAnaliticaPort, VersionAnalitica,
 } from '../../../domain/ports/out/reportes-analitica.port';
 import { AvanceDocumental, AvanceDocumentalDomainService } from '../../../domain/services/avance-documental.domain-service';
 import { Actor } from '../practicas/gestionar-practica.use-case';
@@ -17,6 +17,28 @@ export type SituacionExpediente = 'completo' | 'requiere_correccion' | 'sin_inic
 
 export const ESTADOS_OBLIGACION: readonly EstadoObligacion[] = ['sin_cargar', 'en_proceso', 'en_revision', 'correccion', 'rechazado', 'aprobado'];
 export const SITUACIONES: readonly SituacionExpediente[] = ['completo', 'requiere_correccion', 'en_curso', 'sin_iniciar', 'sin_matriz'];
+/** Orden académico del nivel de formación (`practicas.ciclo`); otros valores, si aparecieran, van al final por texto. */
+export const ORDEN_CICLOS: readonly string[] = ['tecnico', 'tecnologo', 'profesional'];
+/** Valor de filtro para las prácticas sin empresa registrada (en la base es NULL; no se inventa un nombre). */
+export const SIN_EMPRESA = '__sin_empresa__';
+/** Valor de filtro para «sin dato» en sector o ciudad (NULL en la base). */
+export const SIN_DATO = '__sin_dato__';
+/**
+ * Clave de ciudad para receptoras en el exterior. SIPRA no guarda país: solo existe con la ubicación sintética de dev
+ * (`dimensiones.ubicacionInternacional === 'sintetica'`). En producción esas receptoras quedan en «sin dato».
+ */
+export const INTERNACIONAL = '__internacional__';
+export const NOMBRE_INTERNACIONAL = 'Internacional · sin DIVIPOLA';
+/**
+ * Tipo de organización receptora, derivado del DOMINIO: las modalidades articuladas tienen «escenario dentro de la
+ * institución» (práctica interna CUN); las demás, en el sector productivo (externa). No hay un campo aparte.
+ */
+export type TipoReceptor = 'interna_cun' | 'externa';
+export const TIPOS_RECEPTOR: readonly TipoReceptor[] = ['interna_cun', 'externa'];
+export const MODALIDADES_ARTICULADAS: readonly string[] = Object.values(ModalidadPractica).filter((m) => definicionModalidad(m).articulada);
+export function tipoReceptor(modalidad: string): TipoReceptor | null {
+  try { return definicionModalidad(modalidad as ModalidadPractica).articulada ? 'interna_cun' : 'externa'; } catch { return null; }
+}
 
 /** Filtros de la petición (sin alcance: el alcance lo impone el actor). */
 export interface FiltroReporteAnalitica {
@@ -25,6 +47,20 @@ export interface FiltroReporteAnalitica {
   programa?: string;
   modalidad?: string;
   estado?: string;
+  /** Nivel de formación: `practicas.ciclo` (técnico, tecnólogo, profesional). */
+  ciclo?: string;
+  /** Razón social registrada, o `SIN_EMPRESA`. */
+  empresa?: string;
+  /** Situación del expediente: se aplica después de calcular el avance (mismo cálculo que el Expediente). */
+  situacion?: SituacionExpediente;
+  /** Semestre: solo existe con el overlay sintético de pruebas (`dimensiones.semestre === 'sintetica'`). */
+  semestre?: number;
+  /** Sección CIIU de la empresa receptora, o `SIN_DATO`. */
+  sector?: string;
+  /** Municipio DIVIPOLA de la empresa receptora, o `SIN_DATO`. */
+  ciudad?: string;
+  /** Interna CUN (modalidad articulada) o externa. */
+  tipoReceptor?: TipoReceptor;
 }
 
 /** Recorte del detalle (drilldown): una situación de expediente, o un tipo de documento en un estado. */
@@ -42,11 +78,32 @@ export interface Cobertura {
   aprobados: number;
   correccion: number;
   completos: number;
+  /** Obligaciones por estado de su última versión (suman `exigidos`). */
+  obligaciones: Record<EstadoObligacion, number>;
+  /** Historial: versiones cargadas, documentos (práctica·tipo) con al menos una versión, con reenvío y decisiones auditadas. */
+  versiones: number;
+  documentos: number;
+  conReenvio: number;
+  devoluciones: number;
+  rechazos: number;
 }
+
+/** Celda de un cruce de dos dimensiones: estudiantes únicos y prácticas. */
+export interface Celda { fila: string; columna: string; estudiantes: number; practicas: number }
 
 export interface ReporteAnalitica {
   generadoEn: string;
   periodosDisponibles: string[];
+  /** Denominador «en alcance»: todo lo que el actor puede ver, sin los filtros de la petición. */
+  universo: { estudiantes: number; practicas: number };
+  /** Orden cronológico (ascendente) por `periodos_academicos.fecha_inicio`; los códigos sin fecha van al final. */
+  ordenPeriodos: string[];
+  /** Periodos de las prácticas que no están en `periodos_academicos`: su lugar en el orden no es cronológico. */
+  periodosSinFecha: string[];
+  /** Origen de cada dimensión que SIPRA no persiste. Semestre: `no_disponible` en producción. */
+  dimensiones: { semestre: 'sintetica' | 'no_disponible'; nombrePrograma: 'sintetico' | 'no_disponible'; ubicacionInternacional: 'sintetica' | 'no_disponible' };
+  /** Por semestre (vacío si no hay fuente). `semestre: null` = práctica sin el dato. */
+  semestres: ({ semestre: number | null } & Cobertura)[];
   resumen: Cobertura;
   expedientes: Record<SituacionExpediente, number>;
   estadosPractica: { estado: string; practicas: number }[];
@@ -58,31 +115,61 @@ export interface ReporteAnalitica {
   periodos: ({ periodo: string } & Cobertura)[];
   modalidades: ({ modalidad: string } & Cobertura)[];
   escuelas: ({ escuela: string; nombre: string; programas: ({ programa: string } & Cobertura)[] } & Cobertura)[];
-  empresas: { empresa: string; practicas: number; estudiantes: number }[];
+  /** Todas las empresas del filtro (la vista limita lo que pinta, no el universo). `null` = sin empresa registrada. */
+  empresas: { empresa: string | null; practicas: number; estudiantes: number; sector: string | null; ciudad: string | null; tipo: TipoReceptor | null }[];
+  /** Por sección CIIU (`sector: null` = sin empresa o sin CIIU). */
+  sectores: ({ sector: string | null; nombre: string | null } & Cobertura)[];
+  /** Por municipio DIVIPOLA (`ciudad: null` = sin empresa o sin municipio, p. ej. receptoras en el exterior). */
+  ciudades: ({ ciudad: string | null; nombre: string | null } & Cobertura)[];
+  /** Interna CUN frente a externa, con la misma cobertura documental (descriptivo, no causal). */
+  receptores: ({ tipo: TipoReceptor | null } & Cobertura)[];
+  /** Nombres para mostrar las claves de sector y ciudad que aparecen en los cruces. */
+  etiquetas: { sectores: Record<string, string>; ciudades: Record<string, string> };
+  niveles: ({ ciclo: string } & Cobertura)[];
+  /** `nombre`: solo con el mapping sintético de pruebas; en producción es null y se muestra el código. */
+  programas: ({ programa: string; nombre: string | null; escuela: string; nombreEscuela: string; ciclos: string[] } & Cobertura)[];
+  /** Celdas con semestre: la clave de fila/columna es el número como texto, o '' si la práctica no tiene semestre. */
+  cruces: Record<'programaModalidad' | 'programaNivel' | 'nivelModalidad' | 'periodoPrograma' | 'periodoModalidad' | 'periodoNivel'
+    | 'semestreModalidad' | 'programaSemestre' | 'programaSector' | 'programaCiudad' | 'nivelSector' | 'modalidadSector'
+    | 'receptorPrograma' | 'receptorNivel', Celda[]>;
 }
 
 export interface FilaDetalle {
   practicaId: string;
   estudiante: string;
   programa: string;
+  programaNombre: string | null;
   escuela: string;
+  ciclo: string;
+  semestre: number | null;
   modalidad: string;
   empresa: string | null;
+  tipoReceptor: TipoReceptor | null;
+  sector: string | null;
+  ciudad: string | null;
   periodo: string;
   estado: string;
   exigidos: number;
   cargados: number;
   aprobados: number;
   correccion: number;
+  /** Exigidos aún no aprobados. */
+  pendientes: number;
+  /** Devoluciones auditadas en todo el historial de la práctica. */
+  devoluciones: number;
   situacion: SituacionExpediente;
   ultimoMovimiento: string | null;
 }
 
 export interface DetalleAnalitica {
+  /** Totales del recorte completo (aunque `filas` venga limitada). */
   total: number;
   estudiantesUnicos: number;
   filas: FilaDetalle[];
 }
+
+/** Filas que devuelve el detalle en JSON (la vista pinta estas; el CSV lleva todas). */
+export const LIMITE_FILAS_JSON = 200;
 
 const ESTADO_OBLIGACION: Readonly<Record<EstadoDocumento, EstadoObligacion>> = {
   [EstadoDocumento.RECIBIDO]: 'en_proceso',
@@ -106,6 +193,7 @@ interface Expediente {
   obligaciones: { tipo: string; estado: EstadoObligacion }[];
   situacion: SituacionExpediente;
   ultimoMovimiento: number;
+  historial: { versiones: number; documentos: number; conReenvio: number; devoluciones: number; rechazos: number };
 }
 
 /**
@@ -126,11 +214,25 @@ export class ReportesAnaliticaUseCase {
 
   async analitica(filtro: FiltroReporteAnalitica, actor: Actor, ahora = new Date()): Promise<ReporteAnalitica> {
     exigirReportes(actor);
-    const consulta = this.consulta(filtro, actor);
-    const [periodosDisponibles, practicas, versiones] = await Promise.all([
-      this.datos.periodos(escuelasDeReportes(actor)), this.datos.practicas(consulta), this.datos.versiones(consulta),
+    const alcance = escuelasDeReportes(actor);
+    const [periodosDisponibles, universo, { expedientes, versiones }] = await Promise.all([
+      this.datos.periodos(alcance), this.datos.universo(alcance), this.filtrados(filtro, actor),
     ]);
-    const expedientes = this.expedientes(practicas, versiones);
+    const practicas = expedientes.map((e) => e.practica);
+    const orden = ordenCronologico(periodosDisponibles);
+    const sinFecha = new Set(periodosDisponibles.filter((p) => !p.inicio).map((p) => p.codigo));
+    const posicion = new Map(orden.map((p, i) => [p, i]));
+    const conSemestre = this.datos.semestreSintetico();
+    const sem = (e: Expediente) => (e.practica.semestre === null ? '' : String(e.practica.semestre));
+    const sec = (e: Expediente) => e.practica.sector ?? '';
+    const ciu = (e: Expediente) => e.practica.ciudad ?? (e.practica.internacional ? INTERNACIONAL : '');
+    const rec = (e: Expediente) => tipoReceptor(e.practica.modalidad) ?? '';
+    const etiquetas = { sectores: {} as Record<string, string>, ciudades: {} as Record<string, string> };
+    for (const p of practicas) {
+      if (p.sector && p.sectorNombre) etiquetas.sectores[p.sector] = p.sectorNombre;
+      if (p.ciudad && p.ciudadNombre) etiquetas.ciudades[p.ciudad] = p.ciudadNombre;
+      if (!p.ciudad && p.internacional) etiquetas.ciudades[INTERNACIONAL] = NOMBRE_INTERNACIONAL;
+    }
 
     const documental = this.contadorObligaciones();
     const tipos = new Map<string, Record<EstadoObligacion, number>>();
@@ -154,7 +256,26 @@ export class ReportesAnaliticaUseCase {
 
     return {
       generadoEn: ahora.toISOString(),
-      periodosDisponibles: ordenarPeriodos(periodosDisponibles),
+      // Chips: con fecha del más reciente al más antiguo; los códigos sin fecha (cronología desconocida) al final.
+      periodosDisponibles: [...orden.filter((p) => !sinFecha.has(p))].reverse().concat(orden.filter((p) => sinFecha.has(p))),
+      universo,
+      ordenPeriodos: orden,
+      periodosSinFecha: periodosDisponibles.filter((p) => !p.inicio).map((p) => p.codigo).sort(compararPeriodos),
+      dimensiones: {
+        semestre: conSemestre ? 'sintetica' : 'no_disponible', nombrePrograma: this.datos.programasSinteticos() ? 'sintetico' : 'no_disponible',
+        ubicacionInternacional: this.datos.ubicacionSintetica() ? 'sintetica' : 'no_disponible',
+      },
+      sectores: agrupar(expedientes, sec).map(([s, g]) => ({ sector: s || null, nombre: s ? etiquetas.sectores[s] ?? s : null, ...cobertura(g) }))
+        .sort((a, b) => b.estudiantes - a.estudiantes || (a.sector ?? '~').localeCompare(b.sector ?? '~')),
+      ciudades: agrupar(expedientes, ciu).map(([c, g]) => ({ ciudad: c || null, nombre: c ? etiquetas.ciudades[c] ?? c : null, ...cobertura(g) }))
+        .sort((a, b) => b.estudiantes - a.estudiantes || (a.ciudad ?? '~').localeCompare(b.ciudad ?? '~')),
+      receptores: agrupar(expedientes, rec).map(([t, g]) => ({ tipo: (t || null) as TipoReceptor | null, ...cobertura(g) }))
+        .sort((a, b) => TIPOS_RECEPTOR.indexOf(a.tipo as TipoReceptor) - TIPOS_RECEPTOR.indexOf(b.tipo as TipoReceptor)),
+      etiquetas,
+      semestres: conSemestre
+        ? agrupar(expedientes, sem).map(([s, grupo]) => ({ semestre: s === '' ? null : Number(s), ...cobertura(grupo) }))
+          .sort((a, b) => (a.semestre ?? 999) - (b.semestre ?? 999))
+        : [],
       resumen: cobertura(expedientes),
       expedientes: situaciones,
       estadosPractica: [...estados.entries()].map(([estado, n]) => ({ estado, practicas: n })).sort((a, b) => b.practicas - a.practicas),
@@ -165,55 +286,94 @@ export class ReportesAnaliticaUseCase {
       semanas: this.semanas(versiones, ahora),
       periodos: agrupar(expedientes, (e) => e.practica.periodoAcademico)
         .map(([periodo, grupo]) => ({ periodo, ...cobertura(grupo) }))
-        .sort((a, b) => compararPeriodos(a.periodo, b.periodo)),
+        .sort((a, b) => (posicion.get(a.periodo) ?? 1e9) - (posicion.get(b.periodo) ?? 1e9) || compararPeriodos(a.periodo, b.periodo)),
       modalidades: agrupar(expedientes, (e) => e.practica.modalidad).map(([modalidad, grupo]) => ({ modalidad, ...cobertura(grupo) }))
         .sort((a, b) => b.practicas - a.practicas),
       escuelas: agrupar(expedientes, (e) => e.practica.escuelaId).map(([escuela, grupo]) => ({
         escuela, nombre: grupo[0].practica.escuela, ...cobertura(grupo),
         programas: agrupar(grupo, (e) => e.practica.programaId).map(([programa, g]) => ({ programa, ...cobertura(g) })).sort((a, b) => b.practicas - a.practicas),
       })).sort((a, b) => b.practicas - a.practicas),
-      empresas: agrupar(expedientes.filter((e) => e.practica.empresa), (e) => e.practica.empresa as string)
-        .map(([empresa, grupo]) => ({ empresa, practicas: grupo.length, estudiantes: new Set(grupo.map((e) => e.practica.estudianteId)).size }))
-        .sort((a, b) => b.practicas - a.practicas || a.empresa.localeCompare(b.empresa)).slice(0, 10),
+      empresas: agrupar(expedientes, (e) => e.practica.empresa ?? SIN_EMPRESA)
+        .map(([empresa, grupo]) => ({
+          empresa: empresa === SIN_EMPRESA ? null : empresa, practicas: grupo.length, estudiantes: new Set(grupo.map((e) => e.practica.estudianteId)).size,
+          sector: grupo[0].practica.sector, ciudad: grupo[0].practica.ciudad ?? (grupo[0].practica.internacional ? INTERNACIONAL : null),
+          tipo: tipoReceptor(grupo[0].practica.modalidad),
+        }))
+        .sort((a, b) => b.estudiantes - a.estudiantes || b.practicas - a.practicas || (a.empresa ?? '~').localeCompare(b.empresa ?? '~')),
+      niveles: agrupar(expedientes, (e) => e.practica.ciclo).map(([ciclo, grupo]) => ({ ciclo, ...cobertura(grupo) }))
+        .sort((a, b) => compararCiclos(a.ciclo, b.ciclo)),
+      programas: agrupar(expedientes, (e) => e.practica.programaId).map(([programa, grupo]) => {
+        const [escuela, enEscuela] = agrupar(grupo, (e) => e.practica.escuelaId).sort((a, b) => b[1].length - a[1].length)[0];
+        return {
+          programa, nombre: grupo.find((e) => e.practica.programaNombre)?.practica.programaNombre ?? null, escuela, nombreEscuela: enEscuela[0].practica.escuela,
+          ciclos: [...new Set(grupo.map((e) => e.practica.ciclo))].sort(compararCiclos), ...cobertura(grupo),
+        };
+      }).sort((a, b) => b.estudiantes - a.estudiantes || b.practicas - a.practicas || a.programa.localeCompare(b.programa)),
+      cruces: {
+        programaModalidad: cruce(expedientes, (e) => e.practica.programaId, (e) => e.practica.modalidad),
+        programaNivel: cruce(expedientes, (e) => e.practica.programaId, (e) => e.practica.ciclo),
+        nivelModalidad: cruce(expedientes, (e) => e.practica.ciclo, (e) => e.practica.modalidad),
+        periodoPrograma: cruce(expedientes, (e) => e.practica.periodoAcademico, (e) => e.practica.programaId),
+        periodoModalidad: cruce(expedientes, (e) => e.practica.periodoAcademico, (e) => e.practica.modalidad),
+        periodoNivel: cruce(expedientes, (e) => e.practica.periodoAcademico, (e) => e.practica.ciclo),
+        programaSector: cruce(expedientes, (e) => e.practica.programaId, sec),
+        programaCiudad: cruce(expedientes, (e) => e.practica.programaId, ciu),
+        nivelSector: cruce(expedientes, (e) => e.practica.ciclo, sec),
+        modalidadSector: cruce(expedientes, (e) => e.practica.modalidad, sec),
+        receptorPrograma: cruce(expedientes, rec, (e) => e.practica.programaId),
+        receptorNivel: cruce(expedientes, rec, (e) => e.practica.ciclo),
+        semestreModalidad: conSemestre ? cruce(expedientes, sem, (e) => e.practica.modalidad) : [],
+        programaSemestre: conSemestre ? cruce(expedientes, (e) => e.practica.programaId, sem) : [],
+      },
     };
   }
 
   /** Detalle por práctica con los mismos filtros y definiciones que la analítica (los totales coinciden). */
-  async detalle(filtro: FiltroReporteAnalitica, segmento: SegmentoDetalle, actor: Actor): Promise<DetalleAnalitica> {
+  async detalle(filtro: FiltroReporteAnalitica, segmento: SegmentoDetalle, actor: Actor, buscar = '', limite = Infinity): Promise<DetalleAnalitica> {
     exigirReportes(actor);
     if (segmento.situacion && !SITUACIONES.includes(segmento.situacion)) throw new BadRequestException('Situación de expediente no reconocida');
     if (segmento.estadoDocumental && !ESTADOS_OBLIGACION.includes(segmento.estadoDocumental)) throw new BadRequestException('Estado documental no reconocido');
-    const consulta = this.consulta(filtro, actor);
-    const [practicas, versiones] = await Promise.all([this.datos.practicas(consulta), this.datos.versiones(consulta)]);
-    const elegidos = this.expedientes(practicas, versiones)
+    const termino = normalizar(buscar.trim().slice(0, 80));
+    const { expedientes } = await this.filtrados(filtro, actor);
+    const elegidos = expedientes
+      .filter((e) => !termino || [e.practica.estudiante, e.practica.programaId, e.practica.programaNombre ?? '', e.practica.empresa ?? '', e.practica.ciudadNombre ?? ''].some((t) => normalizar(t).includes(termino)))
       .filter((e) => !segmento.situacion || e.situacion === segmento.situacion)
       .filter((e) => !segmento.tipo && !segmento.estadoDocumental ? true
         : e.obligaciones.some((o) => (!segmento.tipo || o.tipo === segmento.tipo) && (!segmento.estadoDocumental || o.estado === segmento.estadoDocumental)));
     const filas = elegidos
       .map((e): FilaDetalle => ({
-        practicaId: e.practica.id, estudiante: e.practica.estudiante, programa: e.practica.programaId, escuela: e.practica.escuela,
-        modalidad: e.practica.modalidad, empresa: e.practica.empresa, periodo: e.practica.periodoAcademico, estado: e.practica.estado,
+        practicaId: e.practica.id, estudiante: e.practica.estudiante, programa: e.practica.programaId, programaNombre: e.practica.programaNombre, escuela: e.practica.escuela,
+        ciclo: e.practica.ciclo, semestre: e.practica.semestre, modalidad: e.practica.modalidad, empresa: e.practica.empresa,
+        tipoReceptor: tipoReceptor(e.practica.modalidad), sector: e.practica.sectorNombre,
+        ciudad: e.practica.ciudadNombre ?? (e.practica.internacional ? NOMBRE_INTERNACIONAL : null), periodo: e.practica.periodoAcademico, estado: e.practica.estado,
         exigidos: e.avance?.exigidos ?? 0, cargados: e.avance?.cargados ?? 0, aprobados: e.avance?.aprobados ?? 0,
-        correccion: e.obligaciones.filter((o) => o.estado === 'correccion').length, situacion: e.situacion,
+        correccion: e.obligaciones.filter((o) => o.estado === 'correccion').length,
+        pendientes: (e.avance?.exigidos ?? 0) - (e.avance?.aprobados ?? 0), devoluciones: e.historial.devoluciones, situacion: e.situacion,
         ultimoMovimiento: e.ultimoMovimiento > 0 ? new Date(e.ultimoMovimiento).toISOString() : null,
       }))
       .sort((a, b) => a.periodo.localeCompare(b.periodo) || a.estudiante.localeCompare(b.estudiante));
-    return { total: filas.length, estudiantesUnicos: new Set(elegidos.map((e) => e.practica.estudianteId)).size, filas };
+    return { total: filas.length, estudiantesUnicos: new Set(elegidos.map((e) => e.practica.estudianteId)).size, filas: filas.slice(0, limite) };
   }
 
   /** CSV del detalle (filtrado y auditado). Sin documento de identidad ni correo; celdas protegidas contra fórmulas. */
-  async csv(filtro: FiltroReporteAnalitica, segmento: SegmentoDetalle, actor: Actor): Promise<{ nombreArchivo: string; contenido: Buffer; filas: number }> {
-    const detalle = await this.detalle(filtro, segmento, actor);
+  async csv(filtro: FiltroReporteAnalitica, segmento: SegmentoDetalle, actor: Actor, buscar = ''): Promise<{ nombreArchivo: string; contenido: Buffer; filas: number }> {
+    const detalle = await this.detalle(filtro, segmento, actor, buscar);
     const columnas: [keyof FilaDetalle, string][] = [
-      ['estudiante', 'Estudiante'], ['programa', 'Programa'], ['escuela', 'Escuela'], ['modalidad', 'Modalidad'], ['empresa', 'Empresa'],
+      ['estudiante', 'Estudiante'], ['programa', 'Programa'],
+      ...(this.datos.programasSinteticos() ? [['programaNombre', 'Nombre del programa (dato sintético de prueba)'] as [keyof FilaDetalle, string]] : []),
+      ['escuela', 'Escuela'], ['ciclo', 'Nivel de formación'],
+      ...(this.datos.semestreSintetico() ? [['semestre', 'Semestre (dato sintético de prueba)'] as [keyof FilaDetalle, string]] : []),
+      ['modalidad', 'Modalidad'],
+      ['empresa', 'Organización receptora'], ['tipoReceptor', 'Tipo de receptor'], ['sector', 'Sector económico (sección CIIU)'], ['ciudad', 'Ciudad'],
       ['periodo', 'Periodo'], ['estado', 'Estado de la práctica'], ['exigidos', 'Documentos exigidos'], ['cargados', 'Cargados'],
-      ['aprobados', 'Aprobados'], ['correccion', 'En corrección'], ['situacion', 'Expediente'], ['ultimoMovimiento', 'Último movimiento'],
+      ['aprobados', 'Aprobados'], ['pendientes', 'Pendientes'], ['correccion', 'En corrección'], ['devoluciones', 'Devoluciones (historial)'],
+      ['situacion', 'Expediente'], ['ultimoMovimiento', 'Último movimiento'],
     ];
     const lineas = [columnas.map(([, t]) => celdaCsv(t)).join(';'), ...detalle.filas.map((f) => columnas.map(([k]) => celdaCsv(f[k])).join(';'))];
     await this.auditoria.registrar({
       actorId: actor.id, actorCorreo: actor.correo, actorRol: actor.rol, accion: AccionAuditada.REPORTE_GENERADO,
       entidad: 'reporte_analitica', entidadId: null, justificacion: null,
-      metadatos: { reporte: 'Detalle analítico', ...filtro, ...segmento, filas: detalle.total },
+      metadatos: { reporte: 'Detalle analítico', ...filtro, ...segmento, ...(buscar.trim() ? { buscar: buscar.trim().slice(0, 80) } : {}), filas: detalle.total },
       ip: actor.ip ?? null, agenteUsuario: actor.agenteUsuario ?? null, ocurridoEn: new Date(),
     });
     const sello = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -228,7 +388,29 @@ export class ReportesAnaliticaUseCase {
     return {
       periodos: filtro.periodos?.length ? filtro.periodos : undefined, escuelaIds,
       programaId: filtro.programa || undefined, modalidad: filtro.modalidad || undefined, estado: filtro.estado || undefined,
+      ciclo: filtro.ciclo || undefined, empresa: filtro.empresa || undefined, semestre: filtro.semestre,
+      sector: filtro.sector || undefined, ciudad: filtro.ciudad || undefined,
+      modalidades: filtro.tipoReceptor === 'interna_cun' ? MODALIDADES_ARTICULADAS
+        : filtro.tipoReceptor === 'externa' ? Object.values(ModalidadPractica).filter((m) => !MODALIDADES_ARTICULADAS.includes(m)) : undefined,
     };
+  }
+
+  /**
+   * Universo filtrado, el MISMO para agregados, detalle y CSV: filtros en SQL (con el alcance) y la situación del expediente
+   * sobre el avance calculado. Las versiones devueltas son solo las de las prácticas que quedan.
+   */
+  private async filtrados(filtro: FiltroReporteAnalitica, actor: Actor): Promise<{ expedientes: Expediente[]; versiones: VersionAnalitica[] }> {
+    if (filtro.situacion && !SITUACIONES.includes(filtro.situacion)) throw new BadRequestException('Situación de expediente no reconocida');
+    if (filtro.tipoReceptor && !TIPOS_RECEPTOR.includes(filtro.tipoReceptor)) throw new BadRequestException('Tipo de receptor no reconocido');
+    if (filtro.semestre !== undefined && (!this.datos.semestreSintetico() || !Number.isInteger(filtro.semestre) || filtro.semestre < 1 || filtro.semestre > 12)) {
+      throw new BadRequestException('El semestre no está disponible en SIPRA (solo existe en SINU)');
+    }
+    const consulta = this.consulta(filtro, actor);
+    const [practicas, todas] = await Promise.all([this.datos.practicas(consulta), this.datos.versiones(consulta)]);
+    const expedientes = this.expedientes(practicas, todas).filter((e) => !filtro.situacion || e.situacion === filtro.situacion);
+    if (!filtro.situacion) return { expedientes, versiones: todas };
+    const ids = new Set(expedientes.map((e) => e.practica.id));
+    return { expedientes, versiones: todas.filter((v) => ids.has(v.practicaId)) };
   }
 
   private expedientes(practicas: readonly PracticaAnalitica[], versiones: readonly VersionAnalitica[]): Expediente[] {
@@ -236,17 +418,22 @@ export class ReportesAnaliticaUseCase {
     return practicas.map((practica) => {
       const docs = porPractica.get(practica.id) ?? [];
       const ultimoMovimiento = Math.max(0, ...docs.map((d) => Math.max(d.cargadoEn.getTime(), d.decididoEn?.getTime() ?? 0)));
+      const porTipo = agrupar(docs, (d) => d.tipo);
+      const historial = {
+        versiones: docs.length, documentos: porTipo.length, conReenvio: porTipo.filter(([, g]) => g.length > 1).length,
+        devoluciones: docs.filter((d) => d.decision === 'devolver').length, rechazos: docs.filter((d) => d.decision === 'rechazar').length,
+      };
       let avance: AvanceDocumental | null = null;
       try {
         avance = this.avance.calcular(practica.modalidad as ModalidadPractica, docs.map((d) => ({ tipo: d.tipo as TipoDocumento, version: d.version, estado: d.estado as EstadoDocumento })));
       } catch {
-        return { practica, avance: null, obligaciones: [], situacion: 'sin_matriz' as const, ultimoMovimiento };
+        return { practica, avance: null, obligaciones: [], situacion: 'sin_matriz' as const, ultimoMovimiento, historial };
       }
       const obligaciones = avance.momentos.flatMap((m) => m.documentos.map((d) => ({ tipo: String(d.tipo), estado: d.estado === null ? 'sin_cargar' as const : ESTADO_OBLIGACION[d.estado] })));
       const situacion: SituacionExpediente = avance.exigidos > 0 && avance.aprobados === avance.exigidos ? 'completo'
         : obligaciones.some((o) => o.estado === 'correccion' || o.estado === 'rechazado') ? 'requiere_correccion'
           : obligaciones.every((o) => o.estado === 'sin_cargar') ? 'sin_iniciar' : 'en_curso';
-      return { practica, avance, obligaciones, situacion, ultimoMovimiento };
+      return { practica, avance, obligaciones, situacion, ultimoMovimiento, historial };
     });
   }
 
@@ -302,13 +489,43 @@ export class ReportesAnaliticaUseCase {
 }
 
 function cobertura(grupo: readonly Expediente[]): Cobertura {
-  let exigidos = 0, cargados = 0, aprobados = 0, correccion = 0, completos = 0;
+  let exigidos = 0, cargados = 0, aprobados = 0, completos = 0;
+  const obligaciones = Object.fromEntries(ESTADOS_OBLIGACION.map((k) => [k, 0])) as Record<EstadoObligacion, number>;
+  const h = { versiones: 0, documentos: 0, conReenvio: 0, devoluciones: 0, rechazos: 0 };
   for (const e of grupo) {
     exigidos += e.avance?.exigidos ?? 0; cargados += e.avance?.cargados ?? 0; aprobados += e.avance?.aprobados ?? 0;
-    correccion += e.obligaciones.filter((o) => o.estado === 'correccion').length;
+    for (const o of e.obligaciones) obligaciones[o.estado] += 1;
+    for (const k of Object.keys(h) as (keyof typeof h)[]) h[k] += e.historial[k];
     if (e.situacion === 'completo') completos += 1;
   }
-  return { estudiantes: new Set(grupo.map((e) => e.practica.estudianteId)).size, practicas: grupo.length, exigidos, cargados, aprobados, correccion, completos };
+  return {
+    estudiantes: new Set(grupo.map((e) => e.practica.estudianteId)).size, practicas: grupo.length, exigidos, cargados, aprobados,
+    correccion: obligaciones.correccion, completos, obligaciones, ...h,
+  };
+}
+
+/** Cruce de dos dimensiones sobre prácticas: estudiantes únicos por celda (una persona cuenta una vez en cada celda). */
+function cruce(grupo: readonly Expediente[], fila: (e: Expediente) => string, columna: (e: Expediente) => string): Celda[] {
+  const celdas = new Map<string, Celda & { ids: Set<string> }>();
+  for (const e of grupo) {
+    const f = fila(e), c = columna(e), k = JSON.stringify([f, c]);
+    const celda = celdas.get(k) ?? { fila: f, columna: c, estudiantes: 0, practicas: 0, ids: new Set<string>() };
+    celda.practicas += 1;
+    celda.ids.add(e.practica.estudianteId);
+    celdas.set(k, celda);
+  }
+  return [...celdas.values()].map(({ ids, ...c }) => ({ ...c, estudiantes: ids.size }))
+    .sort((a, b) => a.fila.localeCompare(b.fila) || b.estudiantes - a.estudiantes);
+}
+
+export function compararCiclos(a: string, b: string): number {
+  const ia = ORDEN_CICLOS.indexOf(a), ib = ORDEN_CICLOS.indexOf(b);
+  return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+}
+
+/** Minúsculas sin tildes, para buscar «Ingenieria» o «ingeniería» por igual. */
+function normalizar(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 function agrupar<T>(lista: readonly T[], clave: (x: T) => string): [string, T[]][] {
@@ -340,8 +557,15 @@ export function compararPeriodos(a: string, b: string): number {
   return a.localeCompare(b);
 }
 
-function ordenarPeriodos(periodos: readonly string[]): string[] {
-  return [...new Set(periodos)].sort((a, b) => compararPeriodos(b, a));
+/**
+ * Orden cronológico ascendente con la fuente real: `periodos_academicos.fecha_inicio`. Los códigos que no están en esa
+ * entidad no tienen cronología conocida y van al final, por el orden de texto de `compararPeriodos` (no se inventa).
+ */
+export function ordenCronologico(periodos: readonly PeriodoAnalitica[]): string[] {
+  const unicos = [...new Map(periodos.map((p) => [p.codigo, p])).values()];
+  const conFecha = unicos.filter((p) => p.inicio).sort((a, b) => (a.inicio as string).localeCompare(b.inicio as string) || compararPeriodos(a.codigo, b.codigo));
+  const sinFecha = unicos.filter((p) => !p.inicio).sort((a, b) => compararPeriodos(a.codigo, b.codigo));
+  return [...conFecha, ...sinFecha].map((p) => p.codigo);
 }
 
 /** Celda CSV con «;»: comillas dobles y protección contra inyección de fórmulas (=, +, -, @). */
