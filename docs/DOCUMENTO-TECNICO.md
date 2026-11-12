@@ -137,7 +137,7 @@ fuente de RUES es cambiar **una línea** en `app.module.ts`.
 |---|---|
 | `UsuarioRepositoryPort`, `PracticaRepositoryPort`, `DocumentoRepositoryPort`, `EmpresaRepositoryPort`, `ObligacionRepositoryPort`, `VacanteRepositoryPort`, `AuditoriaRepositoryPort` | PostgreSQL vía TypeORM |
 | `AlmacenamientoPort` | Disco local · Cloud Storage |
-| `ExtraccionIaPort` | Simulado determinístico (capa de texto del PDF) · **OpenAI (Responses API, salida JSON estricta)** · API de Anthropic |
+| `ExtraccionIaPort` | Simulado determinístico (capa de texto del PDF) · **OpenAI (Responses API, salida JSON estricta)** · API de Anthropic · **Local** (`ExtraccionLocalAdapter`, token `EXTRACCION_LOCAL`) para los tipos de procesamiento solo local (§19.1) |
 | `CoherenciaCruzadaPort` | Determinístico sobre extracciones |
 | `RuesPort` | Simulado (pendiente el convenio de acceso real) |
 | `SinuPort` | Simulado (pendiente la definición de Tecnología) |
@@ -3077,7 +3077,9 @@ La capa 2 del pipeline (sección 4) lee cada documento cargado con un modelo
 de OpenAI y devuelve **lo que el documento dice**, si **cumple los criterios
 del manual** y si es **legible**. No decide: la decisión sigue siendo del
 puntaje de la capa 5 y, cuando este no alcanza, de una persona. Un documento
-nunca se rechaza solo.
+nunca se rechaza solo. Excepción por política: los tipos de procesamiento solo
+local (EPS, acta de iniciación, RUT y Cámara de Comercio) no usan el proveedor
+configurado ni se autoaprueban (§19.1, §19.3).
 
 ### 19.1 Arquitectura
 
@@ -3095,6 +3097,26 @@ nunca se rechaza solo.
 `IA_DRIVER` elige el adaptador: `simulado` (sin llave; lee la capa de texto de
 los PDF, incluidos los flujos comprimidos), `openai` o `anthropic`. Cambiar de
 proveedor es cambiar una variable: el dominio no sabe cuál está detrás.
+
+**Política por tipo documental** (`domain/services/politica-procesamiento.ts`,
+verificada en el código el 12 de noviembre de 2026). `IA_DRIVER` aplica solo a
+los tipos en modo `configurado`. Los de modo `procesamiento_local`
+—`certificado_eps`, `acta_inicio`, `rut_natural`, `rut_juridico` y
+`camara_comercio`, por llevar datos de salud, identificación o contacto— se leen
+únicamente con `ExtraccionLocalAdapter` (token `EXTRACCION_LOCAL`), sea cual sea
+`IA_DRIVER`:
+
+- nunca salen a un proveedor externo;
+- no consumen el tope diario ni el límite de lecturas por práctica, porque no
+  tienen costo de IA;
+- si no hay extractor local disponible, el documento queda en revisión humana
+  sin recurrir a uno externo;
+- **nunca se autoaprueban** (`permiteAutoAprobacionDelPipeline`): con puntaje
+  verde quedan en revisión con la bandera `C3_AUTOAPROBACION_NO_HABILITADA`.
+
+Cambiar esta lista es una decisión institucional, no técnica. Los motores
+especializados de esos tipos (Mesa Única, §7.15 y siguientes) usan la misma
+lectura local.
 
 ### 19.2 El «entrenamiento»: base de conocimiento, no afinamiento
 
@@ -3127,7 +3149,7 @@ instruido con precisión. El entrenamiento consiste en:
 
 | Lo que pasa | Bandera | Severidad | Resultado |
 |---|---|---|---|
-| Lectura limpia, criterios en «sí», tipo correcto | — | — | Puntaje ≥ umbral verde → `auto_aprobado` |
+| Lectura limpia, criterios en «sí», tipo correcto | — | — | Puntaje ≥ umbral verde → `auto_aprobado` (solo tipos en modo `configurado`; los de procesamiento local quedan `en_revision` con `C3_AUTOAPROBACION_NO_HABILITADA`, §19.1) |
 | Documento de otro tipo | `C2_TIPO_INCORRECTO` | alta | `en_revision` |
 | Un criterio del manual en «no» | `C2_CRITERIO_<código>` | alta | `en_revision` |
 | Criterios no determinables con el documento | `C2_CRITERIOS_NO_DETERMINABLES` | informativa | No pesa; se anota para el revisor |
@@ -3455,6 +3477,15 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.38.3 — 12 de noviembre de 2026
+
+**Documentación de la lectura asistida.** Solo documentación; sin cambios de código.
+- **README:** nueva sección breve «Validación documental asistida» (qué hace y qué principio sigue; sin llaves, secretos, precios, modelo ni procedimientos de despliegue). La sección antigua del README sobre OpenAI no se trasladó tal cual: el detalle ya vivía en §19 de este documento.
+- **§19 contrastada con el código actual.** Era correcta salvo dos omisiones, ahora documentadas:
+  1. la política de procesamiento solo local (EPS, acta de iniciación, RUT y Cámara de Comercio): `ExtraccionLocalAdapter`, sin proveedor externo, sin tope ni límite y sin respaldo externo;
+  2. la ausencia de autoaprobación para esos tipos (`C3_AUTOAPROBACION_NO_HABILITADA`).
+- La tabla de puertos de §2 incluye el adaptador local.
 
 ### 0.38.2 — 12 de noviembre de 2026
 
