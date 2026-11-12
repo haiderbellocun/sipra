@@ -5,6 +5,12 @@
 **Corporación Unificada Nacional de Educación Superior — CUN**
 
 [![CI](https://github.com/haiderbellocun/sipra/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/haiderbellocun/sipra/actions/workflows/ci.yml)
+![Estado](https://img.shields.io/badge/estado-desarrollo%20activo-0E7C86)
+![Angular](https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-TypeORM-4169E1?logo=postgresql&logoColor=white)
+![Google Cloud](https://img.shields.io/badge/Google%20Cloud-4285F4?logo=googlecloud&logoColor=white)
+![Licencia](https://img.shields.io/badge/licencia-UNLICENSED-555555)
 
 SIPRA centraliza el ciclo de prácticas, el expediente documental, la validación asistida de soportes y la inteligencia operativa del proceso en una única plataforma institucional.
 
@@ -14,21 +20,62 @@ Su arquitectura separa las reglas de negocio de la infraestructura y combina aut
 > **Stack principal:** Angular 20 · NestJS 11 · Fastify · PostgreSQL · TypeORM · Google Cloud  
 > **Documentación técnica:** [`docs/DOCUMENTO-TECNICO.md`](docs/DOCUMENTO-TECNICO.md)
 
+## Stack tecnológico
+
+<p>
+  <img src="https://skillicons.dev/icons?i=angular,ts,nodejs,nestjs,postgres,docker,gcp,githubactions,prometheus,jest" alt="Angular, TypeScript, Node.js, NestJS, PostgreSQL, Docker, Google Cloud, GitHub Actions, Prometheus y Jest" />
+</p>
+
+- **Frontend:** Angular 20 · componentes standalone · signals · `OnPush` · TypeScript · RxJS
+- **Backend:** NestJS 11 · Fastify · arquitectura hexagonal · Swagger/OpenAPI · TypeORM
+- **Datos:** PostgreSQL con migraciones · métricas con `prom-client` (Prometheus)
+- **Infraestructura:** Google Cloud (Cloud Storage, Cloud Tasks) · Docker · GitHub Actions
+
 ---
 
 ## Vista del producto
 
-![SIPRA · Reportes V3](docs/assets/reportes-v3/general-v33.webp)
-
-### Inteligencia operativa
-
-| Estudiantes | Documentación |
-|---|---|
-| ![Reportes de estudiantes](docs/assets/reportes-v3/estudiantes-v33.webp) | ![Reportes documentales](docs/assets/reportes-v3/documentos-v33.webp) |
-
-| Períodos | Organizaciones |
-|---|---|
-| ![Análisis por períodos](docs/assets/reportes-v3/periodos-v33.webp) | ![Organizaciones receptoras](docs/assets/reportes-v3/organizaciones-circle-labels.webp) |
+<table>
+  <tr>
+    <td width="50%">
+      <p><strong>Ingreso</strong></p>
+      <img src="docs/assets/readme/login.webp" width="100%" alt="Pantalla de ingreso de SIPRA en tema oscuro, con la selección de perfiles de prueba del ambiente de desarrollo" />
+    </td>
+    <td width="50%">
+      <p><strong>Validación documental</strong></p>
+      <img src="docs/assets/readme/validacion-documental.webp" width="100%" alt="Mesa Única de Validación Documental en tema claro: cola operativa, línea de documentos del expediente e inspector del documento seleccionado" />
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <p><strong>Reportes · General</strong></p>
+      <img src="docs/assets/reportes-v3/general-v33.webp" width="100%" alt="Pestaña General de Reportes con indicadores del universo filtrado y gráficos de estudiantes por programa y situación de los expedientes" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <p><strong>Reportes · Estudiantes</strong></p>
+      <img src="docs/assets/reportes-v3/estudiantes-v33.webp" width="100%" alt="Pestaña Estudiantes de Reportes en tema oscuro, con indicadores y gráficos del universo de estudiantes" />
+    </td>
+    <td width="50%">
+      <p><strong>Reportes · Organizaciones</strong></p>
+      <img src="docs/assets/reportes-v3/organizaciones-circle-labels.webp" width="100%" alt="Pestaña Organizaciones de Reportes con un diagrama de círculos de organizaciones receptoras agrupadas por sector" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <p><strong>Versión móvil</strong></p>
+      <img src="docs/assets/reportes-v3/mobile-dark.webp" width="100%" alt="Reportes en un teléfono, tema oscuro, con indicadores apilados y navegación inferior" />
+    </td>
+    <td width="50%">
+      <details>
+        <summary><strong>Más vistas de Reportes</strong></summary>
+        <p><img src="docs/assets/reportes-v3/documentos-v33.webp" width="100%" alt="Pestaña Documentos de Reportes en tema oscuro, con indicadores y gráficos de la señal documental" /></p>
+        <p><img src="docs/assets/reportes-v3/periodos-v33.webp" width="100%" alt="Pestaña Períodos de Reportes en tema oscuro, con la comparación de prácticas entre períodos académicos" /></p>
+      </details>
+    </td>
+  </tr>
+</table>
 
 ---
 
