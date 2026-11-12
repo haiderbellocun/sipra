@@ -89,7 +89,6 @@ código, datos ni despliegue con esta.
 
 ```
 sipra-practicas/
-├── .github/workflows/          ci.yml (integración continua) · desplegar.yml
 ├── apps/
 │   ├── api/                    NestJS · arquitectura hexagonal
 │   │   └── src/
@@ -125,8 +124,8 @@ ni Google Cloud.
 
 Esta regla **no es una convención de estilo: la hace cumplir el linter.**
 `apps/api/eslint.config.mjs` prohíbe que `src/domain/**` importe `@nestjs/*`,
-`typeorm`, `@google-cloud/*`, `fastify` o `pg`. Un intento rompe el lint y con
-él la integración continua.
+`typeorm`, `@google-cloud/*`, `fastify` o `pg`. Un intento rompe `npm run lint`,
+que valida esta regla.
 
 Consecuencia práctica: cambiar de proveedor de IA, de almacenamiento o de
 fuente de RUES es cambiar **una línea** en `app.module.ts`.
@@ -1253,10 +1252,10 @@ validación para ~6 funcionarios con reserva atómica, «tomar siguiente», deci
 5. Si, y bajo qué evidencia, se evaluará algún día la autoaprobación (hoy **imposible**: el arranque se niega si `EPS_AUTOAPROBACION_HABILITADA=true`).
 6. Responsables y capacidad del piloto (§7.21.9) y quién puede apagar un interruptor en un incidente.
 
-#### 7.21.4 Arranque real, CI y migraciones
+#### 7.21.4 Arranque real, verificación de calidad y migraciones
 
 - **Smoke de arranque** (`npm run smoke:arranque`): carga el JS **compilado**, resuelve `AppModule`, escucha en un puerto libre, exige `/salud` 200, rutas protegidas 401 y `/metrics` no abierto, y cierra. Se verificó por **mutación** que detecta los dos defectos reales de la Fase 3 (import tardío → `Cannot access … before initialization`; `@Inject` ausente → `UnknownDependenciesException`).
-- **CI** (`ci.yml`, el despliegue sigue **manual**): se añadieron pruebas del frontend, smoke de arranque, `test:pg` y la verificación de migraciones al job con PostgreSQL.
+- **Validación local** (el despliegue sigue **manual**): pruebas del frontend, smoke de arranque, `test:pg` y la verificación de migraciones se ejecutan como comandos locales (GitHub Actions se retiró del repositorio, bitácora 0.38.4).
 - **Orden exacto de migraciones (16):** `1756000000000` EsquemaInicial · `…001000` RolAplicacionMinimoPrivilegio · `…002000` CatalogosYEstado · `…003000` ParametrosOperativos · `…004000` ModalidadesRealesYEtapas · `…005000` ProcesoBaseSgp · `…006000` FormularioUnicoRegistro · `…007000` BitacoraYCierre · `…008000` SolicitudesArl · `…009000` CronogramaYPqrs · `…010000` ConsentimientoVersionado · **EPS:** `…011000` ValidacionEps · `…012000` EvidenciaEpsOcr · `…013000` VerificacionEps · `…014000` ConsultaAdres · `…015000` MesaEps. Todas tienen `up()` y `down()`.
 - **Desde cero** (`npm run verificar:migraciones`, solo PostgreSQL local): 16 aplicadas en orden, segunda ejecución sin cambios, restricciones e índices válidos, 0 filas huérfanas, disparadores de inmutabilidad, privilegios de `sipra_app` (sin UPDATE/DELETE en `auditoria` ni en evidencias).
 - **Reversibilidad.** `down` de 15, 14 y 13 es seguro (quita columnas, índices y restricciones propias; el de 14 restituye una restricción anterior y **se niega** si hay datos que la contradigan). El de **12 se niega a propósito** si existen evidencias de OCR (tabla de solo inserción): verificado, queda registrada y sin daño. El de **11 elimina las tablas EPS con todos sus datos**: solo para bases desechables; **en un ambiente real el rollback es corregir hacia adelante y apagar con un interruptor, no revertir migraciones**.
@@ -1337,7 +1336,7 @@ Los interruptores se leen en cada uso (no se cachean). Apagar no borra ni reasig
 
 #### 7.21.10 Runbook (no se ejecutó ningún despliegue)
 
-1. **Desplegar:** manual (`desplegar.yml` no se reactiva). Antes: CI verde incluido el smoke de arranque, `verificar:migraciones` y `test:pg`.
+1. **Desplegar:** manual con `bash infra/gcp/desplegar.sh`. Antes: validación local en verde (`lint`, pruebas, `build`), incluidos el smoke de arranque, `verificar:migraciones` y `test:pg`.
 2. **Migrar:** `npm run migration:run` en la base del ambiente (nunca `synchronize`); aplicar en orden las 16; en `qa`/`pre`/`prod` solo con el responsable de datos. **Rollback = corregir hacia adelante + interruptor**, no `migration:revert` (§7.21.4).
 3. **Verificar salud:** `GET /api/v1/salud` 200 y `npm run smoke:arranque` sobre el build; `/metrics` con token.
 4. **Comprobar el worker:** `sipra_eps_documentos_procesados_total` crece; `sipra_eps_procesamiento_atascado = 0`; en Cloud Tasks sin trabajos fallidos. Los documentos «analizando» con reclamo vencido (15 min) se retoman solos (tarea cada 10 min).
@@ -2439,22 +2438,36 @@ npm run test:aislamiento
 ```
 
 **Condición de despliegue.** Si una empresa alcanza un solo registro de otra, la
-construcción falla. No es un check informativo: está en la integración continua
-y en Cloud Build, antes de que se construya la imagen.
+construcción falla. No es un check informativo: está en Cloud Build, antes de que
+se construya la imagen, y se ejecuta localmente con el comando anterior.
 
 Incluye el caso adverso de que un usuario de empresa y el estudiante de una
 práctica ajena compartan identificador por error.
 
-### 13.2 Verificaciones en la integración continua
+### 13.2 Verificaciones locales
 
-Además de lint, pruebas y compilación, el flujo de GitHub Actions:
+El repositorio ya no tiene flujos de GitHub Actions (bitácora 0.38.4). Además de
+`npm run lint`, `npm test`, `npm run test:web` y `npm run build`, contra una
+PostgreSQL **local**:
 
-1. Ejecuta las migraciones contra PostgreSQL real y carga las semillas.
-2. **Intenta** un `UPDATE` y un `DELETE` sobre `auditoria` y falla si alguno
-   tiene éxito.
-3. **Intenta** insertar una práctica activa sin afiliación a ARL y falla si el
-   motor lo permite.
-4. Escanea el árbol en busca de credenciales y de archivos `.env` versionados.
+1. `npm run migration:run` aplica las migraciones; `npm run verificar:migraciones`
+   las comprueba desde cero, con el disparador de inmutabilidad de `auditoria`
+   y la ausencia de `UPDATE`/`DELETE` para `sipra_app`.
+2. **Compuerta ARL en el motor** (dentro de `verificar:migraciones`, sobre la base
+   desde cero ya sembrada): **intenta** insertar una práctica `activa`, modalidad
+   `pasantia`, con `arl_verificada = false` y claves foráneas válidas tomadas de
+   una práctica sembrada; exige que la rechace exactamente
+   `ck_practicas_compuerta_arl` (SQLSTATE 23514), no otra causa. Revierte siempre.
+3. `npm run test:pg` verifica concurrencia y restricciones en el motor.
+4. `npm run smoke:arranque` arranca el JS compilado.
+5. `npm run verificar:secretos` (Node, multiplataforma; no requiere base) recorre
+   los archivos que Git versionaría —versionados y nuevos no ignorados; quedan
+   fuera `node_modules`, `.git`, `dist` y lo ignorado— en busca de claves de
+   OpenAI, Anthropic y Google, secretos OAuth de Google, claves privadas PEM,
+   JSON de cuenta de servicio y archivos `.env` sensibles (se admite
+   `.env.example`). Sale con 0 si está limpio y con 1 si encuentra algo; nunca
+   imprime el valor completo. Las excepciones sintéticas se declaran en
+   `PERMITIDOS` dentro de `apps/api/herramientas/verificar-secretos.mjs`.
 
 Las garantías se verifican, no se asumen.
 
@@ -2496,7 +2509,7 @@ Contra el manual *Estándares, Arquitectura y Stack Tecnológico*, versión 2.0.
 | Cuatro señales de oro | 7.2 | ✔ |
 | Métricas de negocio instrumentadas | 7.3 | ✔ Ocho métricas propias |
 | GitHub Flow, `main` siempre desplegable | 8.1 | ✔ |
-| CI en cada Pull Request | 8.1 | ✔ |
+| CI en cada Pull Request | 8.1 | ◐ GitHub Actions retirado por decisión de operación (0.38.4); validación con comandos locales y Cloud Build |
 | Pirámide de pruebas | 8.3 | ◐ Base unitaria sólida; integración y E2E pendientes |
 
 Leyenda: ✔ cumplido · ◐ parcial, con el pendiente identificado.
@@ -3375,8 +3388,8 @@ y omitir `npm run infra:up` (Redis es opcional en local).
 Shell, el que se usa hoy), `gcp/cloudbuild.yaml` (flujo de integración
 continua para los cuatro ambientes), `gcp/aprovisionar-ambiente.sh`,
 `permisos.sh`, `red-privada.sh`, `tareas-programadas.sh`, `nube-imagen.yaml`;
-`docker/` para el entorno local. **Flujos de GitHub Actions** en
-`.github/workflows/` (`ci.yml`, `desplegar.yml`), ya dentro del repositorio.
+`docker/` para el entorno local. El repositorio no tiene flujos de GitHub
+Actions (retirados en 0.38.4).
 
 ### 20.5 Cómo se hacen los cambios habituales
 
@@ -3477,6 +3490,18 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.38.4 — 12 de noviembre de 2026
+
+**Retiro de GitHub Actions.** Decisión de operación del proyecto; sin cambios de código.
+- Se eliminaron `.github/workflows/ci.yml` y `.github/workflows/desplegar.yml`: el repositorio no ejecuta flujos en *push*, *pull request* ni de forma manual.
+- Las validaciones siguen disponibles como comandos locales (`npm run lint`, `npm test`, `npm run test:web`, `npm run test:aislamiento`, `npm run build`, `npm run migration:run`, `npm run smoke:arranque`, `npm run test:pg`, `npm run verificar:migraciones`); `package.json` no cambia.
+- El despliegue en GCP se mantiene mediante `infra/gcp/desplegar.sh` desde Cloud Shell.
+- README: sin la insignia de CI ni GitHub Actions en el stack. §2, §7.21.4, §7.21.10, §13, §14 y §20 actualizadas. Las entradas anteriores de la bitácora y de la auditoría conservan su texto histórico.
+- **Controles del flujo retirado, conservados en local** (§13.2):
+  - `verificar:migraciones` incorpora el intento real de insertar una práctica activa sin ARL; antes solo comprobaba que la restricción existiera.
+  - Nuevo `npm run verificar:secretos` (`apps/api/herramientas/verificar-secretos.mjs`). El comentario de `apps/api/eslint.config.mjs` ya no menciona la integración continua; ninguna regla del linter cambió.
+- `infra/gcp/arranque-unico.sh` conserva, sin cambios, la federación de identidades creada para GitHub Actions; se decidirá aparte si se retira.
 
 ### 0.38.3 — 12 de noviembre de 2026
 

@@ -23,6 +23,7 @@
     "verificar:migraciones": "npm run verificar:migraciones --workspace=@sipra/api",
     "test:pg": "npm run test:pg --workspace=@sipra/api",
     "test:aislamiento": "npm run test:aislamiento --workspace=@sipra/api",
+    "verificar:secretos": "node apps/api/herramientas/verificar-secretos.mjs",
     "lint": "npm run lint --workspace=@sipra/api && npm run lint --workspace=@sipra/web",
     "migration:run": "npm run migration:run --workspace=@sipra/api",
     "seed": "npm run seed --workspace=@sipra/api",

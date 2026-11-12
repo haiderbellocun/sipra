@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
  *
  * La regla de dependencia de la arquitectura hexagonal se hace cumplir aquí:
  * el dominio no puede importar infraestructura ni framework. Si alguien lo
- * intenta, el lint falla y la integración continua no pasa.
+ * intenta, `npm run lint` falla.
  */
 export default tseslint.config(
   { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'eslint.config.mjs'] },

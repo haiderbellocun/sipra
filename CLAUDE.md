@@ -106,7 +106,7 @@ debe exigir tocar lógica de negocio.
 
 **La escritura en Git la hace el propietario del repositorio.** Un asistente no ejecuta `git add`,
 `commit`, `push`, `merge`, `rebase`, `tag` ni `reset --hard`, ni crea o borra ramas: solo lee
-(`status`, `diff`, `log`, `branch`). El despliegue es **manual** (`desplegar.yml`).
+(`status`, `diff`, `log`, `branch`). El despliegue es **manual** (`bash infra/gcp/desplegar.sh`); el repositorio no tiene GitHub Actions.
 
 ## Antes de dar algo por terminado
 
@@ -126,5 +126,5 @@ Fase 3 pasaron en verde y rompían `node dist/main.js`). `test:pg`, `verificar:m
 `carga:mesa` y `lectura:benchmark:concurrente` se niegan a correr contra una base que no sea local.
 El E2E de la Mesa (`apps/web/pruebas/e2e/mesa-eps.e2e.mjs`) usa Chrome o Edge instalados y datos sintéticos.
 
-La prueba de aislamiento entre empresas es bloqueante en CI y en Cloud Build.
+La prueba de aislamiento entre empresas es bloqueante en Cloud Build y se ejecuta localmente con `npm run test:aislamiento`.
 Si una empresa alcanza un solo registro de otra, no se despliega.

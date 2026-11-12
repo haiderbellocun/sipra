@@ -4,7 +4,6 @@
 
 **Corporación Unificada Nacional de Educación Superior — CUN**
 
-[![CI](https://github.com/haiderbellocun/sipra/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/haiderbellocun/sipra/actions/workflows/ci.yml)
 ![Estado](https://img.shields.io/badge/estado-desarrollo%20activo-0E7C86)
 ![Angular](https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white)
 ![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
@@ -23,13 +22,14 @@ Su arquitectura separa las reglas de negocio de la infraestructura y combina aut
 ## Stack tecnológico
 
 <p>
-  <img src="https://skillicons.dev/icons?i=angular,ts,nodejs,nestjs,postgres,docker,gcp,githubactions,prometheus,jest" alt="Angular, TypeScript, Node.js, NestJS, PostgreSQL, Docker, Google Cloud, GitHub Actions, Prometheus y Jest" />
+  <img src="https://skillicons.dev/icons?i=angular,ts,nodejs,nestjs,postgres,docker,gcp,github,prometheus,jest" alt="Angular, TypeScript, Node.js, NestJS, PostgreSQL, Docker, Google Cloud, GitHub, Prometheus y Jest" />
 </p>
 
 - **Frontend:** Angular 20 · componentes standalone · signals · `OnPush` · TypeScript · RxJS
 - **Backend:** NestJS 11 · Fastify · arquitectura hexagonal · Swagger/OpenAPI · TypeORM
 - **Datos:** PostgreSQL con migraciones · métricas con `prom-client` (Prometheus)
-- **Infraestructura:** Google Cloud (Cloud Storage, Cloud Tasks) · Docker · GitHub Actions
+- **Infraestructura:** Google Cloud (Cloud Storage, Cloud Tasks) · Docker · despliegue por script (`infra/gcp/desplegar.sh`)
+- **Repositorio:** GitHub (control de versiones)
 
 ---
 
@@ -399,9 +399,6 @@ sipra/
 │   ├── docker/
 │   └── gcp/
 │
-├── .github/
-│   └── workflows/
-│
 ├── package.json
 └── README.md
 ```
@@ -544,7 +541,7 @@ Principios implementados:
 - documentos privados;
 - auditoría;
 - minimización de datos;
-- secretos fuera del repositorio;
+- secretos fuera del repositorio, verificado localmente con `npm run verificar:secretos`;
 - validaciones de configuración por ambiente;
 - consentimiento cuando corresponde;
 - datos exclusivamente sintéticos en semillas de desarrollo.

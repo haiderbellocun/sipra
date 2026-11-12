@@ -2,7 +2,8 @@
  * Verificación de migraciones contra un PostgreSQL LOCAL DESECHABLE (Fase 6 EPS).
  *
  *   A. Desde cero: todas las migraciones en orden, esquema, restricciones válidas, disparadores,
- *      privilegios del rol de aplicación.
+ *      privilegios del rol de aplicación y la compuerta ARL en el motor (INSERT real rechazado
+ *      por `ck_practicas_compuerta_arl`).
  *   B. Reversión controlada del bloque EPS (15 → 11) con datos sintéticos que el `down()` debe
  *      proteger (la evidencia OCR de solo inserción impide revertir la 12 «a propósito») y luego
  *      reaplicación completa.
@@ -137,6 +138,41 @@ async function esquemaActa(ds: DataSource, etiqueta: string): Promise<void> {
 // ── Datos sintéticos ────────────────────────────────────────────────────────
 
 const PRACTICAS = ['00000000-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000042', '00000000-0000-4000-8000-000000000043'];
+/**
+ * Compuerta ARL en el motor: una práctica `activa`, de modalidad que exige ARL, con
+ * `arl_verificada = false` debe ser rechazada por `ck_practicas_compuerta_arl` y no por otra causa
+ * (una clave foránea rota también fallaría). Toma estudiante, programa, escuela, ciclo y período de
+ * una práctica sembrada para que las claves foráneas sean válidas, y revierte siempre.
+ */
+async function compuertaArl(ds: DataSource, etiqueta: string): Promise<void> {
+  const qr = ds.createQueryRunner();
+  await qr.connect();
+  await qr.startTransaction();
+  try {
+    const [ref] = (await qr.query(`SELECT estudiante_id, programa_id, escuela_id, ciclo, periodo_academico FROM practicas LIMIT 1`)) as Record<string, string>[];
+    if (!ref) { comprobar(`${etiqueta}: compuerta ARL (hay una práctica sembrada de referencia)`, false, 'sin prácticas'); return; }
+    let error: { code?: string; constraint?: string; message?: string } | null = null;
+    try {
+      await qr.query(
+        `INSERT INTO practicas (id, estudiante_id, programa_id, escuela_id, ciclo, periodo_academico, modalidad, estado, fecha_inicio, arl_verificada, ultima_actividad)
+         VALUES ($1, $2, $3, $4, $5, $6, 'pasantia', 'activa', now(), false, now())`,
+        [randomUUID(), ref.estudiante_id, ref.programa_id, ref.escuela_id, ref.ciclo, ref.periodo_academico],
+      );
+    } catch (e) {
+      const d = e as { driverError?: { code?: string; constraint?: string }; message?: string };
+      error = { code: d.driverError?.code, constraint: d.driverError?.constraint, message: d.message };
+    }
+    comprobar(
+      `${etiqueta}: la base rechaza una práctica activa sin ARL por ck_practicas_compuerta_arl (23514)`,
+      error?.code === '23514' && error.constraint === 'ck_practicas_compuerta_arl',
+      error ? `${error.code ?? '?'} ${error.constraint ?? ''} ${(error.message ?? '').slice(0, 160)}` : 'el INSERT se aceptó',
+    );
+  } finally {
+    await qr.rollbackTransaction();
+    await qr.release();
+  }
+}
+
 async function sintetizarPreEps(ds: DataSource): Promise<{ aprobador: string }> {
   const [{ id: aprobador }] = await ds.query(`SELECT id FROM usuarios WHERE rol = 'auxiliar' LIMIT 1`);
   const doc = async (practica: string, tipo: string, version: number, estado: string, extra: { decidido?: boolean } = {}): Promise<string> => {
@@ -180,6 +216,7 @@ async function main(): Promise<void> {
     await cargarCatalogos(ds);
     await sembrar(ds);
     await integridad(ds, 'cero + semillas');
+    await compuertaArl(ds, 'cero + semillas');
     await ds.destroy();
 
     // ── B. Reversión controlada ───────────────────────────────────────────
