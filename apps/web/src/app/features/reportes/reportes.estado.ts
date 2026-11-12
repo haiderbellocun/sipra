@@ -40,6 +40,20 @@ export class ReportesEstado {
   readonly exportando = signal(false);
 
   readonly activos = computed(() => cantidadFiltros(this.filtros()));
+  /** Dev sintético: periodos del dataset de pruebas (del servidor, derivados de los datos; nunca un número fijo). */
+  readonly dataset = signal<readonly string[] | null>(null);
+  /** El contexto de periodos es exactamente el del dataset. */
+  readonly presetActivo = computed(() => {
+    const d = this.dataset(), p = this.filtros().periodos;
+    return !!d && d.length === p.length && d.every((x) => p.includes(x));
+  });
+  /** Contexto inicial: el dataset en dev sintético; sin él, todo el alcance. «Limpiar» vuelve aquí. */
+  readonly inicial = computed<FiltrosAnalitica>(() => ({ ...FILTROS_VACIOS, periodos: [...(this.dataset() ?? [])] }));
+  readonly enInicio = computed(() => {
+    const f = this.filtros(), i = this.inicial();
+    return cantidadFiltros({ ...f, periodos: [] }) === 0 && f.periodos.length === i.periodos.length && i.periodos.every((x) => f.periodos.includes(x));
+  });
+  private presetAplicado = false;
   readonly programas = computed(() => {
     const escuela = this.filtros().escuela;
     const lista = this.opciones().escuelas.filter((e) => !escuela || e.codigo === escuela).flatMap((e) => e.programas);
@@ -65,6 +79,14 @@ export class ReportesEstado {
     try {
       const r = await firstValueFrom(this.api.reporteAnalitica(parametros(this.filtros())));
       if (mio !== this.turno) return;
+      // Primera carga en dev sintético: el contexto inicial es el dataset (antes de pintar, sin parpadeo de «Todos»).
+      if (!this.presetAplicado) {
+        this.presetAplicado = true;
+        if (r.dataset?.periodos.length) {
+          this.dataset.set(r.dataset.periodos);
+          if (this.activos() === 0) { this.filtros.set(this.inicial()); return this.cargar(); }
+        }
+      }
       this.datos.set(r);
       this.aprender(r);
     } catch (e) {
@@ -104,9 +126,16 @@ export class ReportesEstado {
     this.recargar();
   }
 
+  /** Vuelve al contexto inicial (el dataset en dev sintético; todo el alcance en los demás ambientes). */
   limpiar(): void {
-    this.filtros.set(FILTROS_VACIOS);
+    this.filtros.set(this.inicial());
     this.recargar();
+  }
+
+  /** Contexto «Dataset v4» (dev sintético): sus periodos, conservando los demás filtros. */
+  aplicarDataset(): void {
+    const d = this.dataset();
+    if (d) this.filtrar({ periodos: [...d] });
   }
 
   /** Abre la tabla granular del contexto (opcionalmente con un recorte documental). */

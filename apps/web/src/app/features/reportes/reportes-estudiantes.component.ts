@@ -1,34 +1,100 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
-import { ReportesApiladasComponent } from './reportes-apiladas.component';
+import { ReportesCrucesComponent } from './reportes-cruces.component';
+import { ReportesTreemapComponent } from './reportes-treemap.component';
 import { ReportesBarrasComponent } from './reportes-barras.component';
-import { ItemBarra, SIN_EMPRESA, compararNiveles, compararSemestres, nivel, porcentaje, semestre } from './reportes-analitica.util';
+import { ReportesDonaComponent } from './reportes-dona.component';
+import { ReportesColumnasComponent } from './reportes-columnas.component';
+import { TONOS_NIVEL } from './reportes-general.component';
+import { ParteGrafico } from './reportes-graficos.util';
+import { ReportesInsightsComponent, insights } from './reportes-insights.component';
+import { ReportesMatrizComponent } from './reportes-matriz.component';
+import { EjeRadar, ReportesRadarComponent, SerieRadar } from './reportes-radar.component';
+import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
+import { Cobertura, ItemBarra, compararNiveles, compararSemestres, nivel, pct1, porcentaje, semestre } from './reportes-analitica.util';
 import { ReportesEstado } from './reportes.estado';
 import { ESTILOS_REPORTES } from './reportes.estilos';
 
 /**
- * Estudiantes: composición académica (escuela → programa → nivel) y composición de prácticas (modalidad, empresa),
- * todo como cross-filter del mismo contexto, y al final la tabla granular (una fila por práctica → Expediente).
- * Sin ranking de personas: las filas agregadas son unidades académicas, modalidades o empresas.
+ * Estudiantes (nivel 2 · análisis): composición académica (escuela → programa), un explorador de cruces y, al final, la
+ * tabla granular (nivel 3) que lleva al Expediente. Organización, sector y ciudad viven en su pestaña (Organizaciones).
+ * Todo filtra el mismo contexto. Sin ranking de personas: las filas agregadas son unidades académicas.
  */
 @Component({
   selector: 'sipra-reportes-estudiantes',
   standalone: true,
-  imports: [ReportesBarrasComponent, ReportesApiladasComponent],
+  imports: [ReportesCrucesComponent, ReportesInsightsComponent, ReportesTreemapComponent, ReportesMatrizComponent, ReportesRadarComponent, ReportesBarrasComponent, ReportesDonaComponent, ReportesColumnasComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [ESTILOS_REPORTES, `
     .cob { display: grid; grid-template-columns: minmax(80px, 1fr) 3rem; gap: 8px; align-items: center; }
     .ancho { grid-column: 1 / -1; }
     .seccion { grid-column: 1 / -1; margin: 8px 0 -14px; font: 600 11px/16px var(--fuente); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); border-top: 1px solid var(--ra-regla); padding-top: 18px; }
     .seccion:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+    .comparar { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
+    .comparar select { height: 30px; max-width: 260px; padding: 0 8px; font: inherit; color: var(--text-primary); background: var(--vd-campo, color-mix(in srgb, var(--surface-raised) 70%, transparent)); border: 1px solid var(--border-default); border-radius: 6px; }
+    .comparar select:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 1px; }
   `],
   template: `
     @if (estado.datos(); as r) {
-      <div class="ra-rejilla">
-        <h2 class="seccion">Composición académica · ¿quiénes son nuestros estudiantes en práctica?</h2>
+      <sipra-reportes-insights [lineas]="lecturas()" />
+      <div class="ra-g12">
+        <section class="ra-bloque ra-zona zona-academica c8 alto-l" aria-labelledby="e-jer">
+          <h2 id="e-jer">Estudiantes por escuela</h2>
+          <p class="ra-nota">Empiece por las escuelas y entre a programas, nivel y semestre. El tamaño de cada bloque es su número de estudiantes.</p>
+          <sipra-reportes-treemap titulo="Estudiantes por escuela, programa, nivel y semestre" [filas]="r.jerarquia" [textos]="textosJerarquia" [seleccion]="{ escuela: f().escuela, programa: f().programa }" (filtrar)="filtrarRama($event)" />
+        </section>
+        <section class="ra-bloque ra-zona zona-academica c4 alto-l" aria-labelledby="e-prog">
+          <h2 id="e-prog">Estudiantes por programa</h2>
+          <p class="ra-nota">Top 10 de {{ programas().length }}.</p>
+          <sipra-reportes-barras titulo="Estudiantes por programa" [items]="programas()" [total]="r.facetas.programa.estudiantes" ejeX="Estudiantes" [seleccion]="f().programa" (elegir)="estado.alternar('programa', $event)" />
+        </section>
+      </div>
+      <div class="ra-g12">
+        <section class="ra-bloque ra-zona zona-academica c7 alto-m" aria-labelledby="e-mapa">
+          <h2 id="e-mapa">{{ r.dimensiones.semestre === 'sintetica' ? 'Programa × semestre' : 'Programa × nivel' }}</h2>
+          <p class="ra-nota">Estudiantes por celda: más intenso = más estudiantes. El encabezado filtra la fila o la columna.</p>
+          @if (r.dimensiones.semestre === 'sintetica') {
+            <sipra-reportes-matriz titulo="Estudiantes por programa y semestre" rotuloFilas="Programa" rotuloColumnas="Semestre" [celdas]="r.cruces.programaSemestre" [ordenColumnas]="ordenSemestres()"
+              [textoFila]="estado.nombrePrograma" [textoColumna]="textoSemestre" [cortoColumna]="cortoSemestre" tono="c0" [seleccionFila]="f().programa" [seleccionColumna]="f().semestre || null"
+              (elegirFila)="estado.alternar('programa', $event)" (elegirColumna)="semestreDe($event)" (elegirCelda)="celdaSemestre($event)" />
+          } @else {
+            <sipra-reportes-matriz titulo="Estudiantes por programa y nivel" rotuloFilas="Programa" rotuloColumnas="Nivel" [celdas]="r.cruces.programaNivel" [ordenColumnas]="['tecnico', 'tecnologo', 'profesional']"
+              [textoFila]="estado.nombrePrograma" [textoColumna]="nivel" [cortoColumna]="nivel" tono="c0" [seleccionFila]="f().programa" [seleccionColumna]="f().ciclo || null"
+              (elegirFila)="estado.alternar('programa', $event)" (elegirColumna)="estado.alternar('ciclo', $event)" />
+          }
+        </section>
+        <section class="ra-bloque ra-zona zona-academica c5 alto-m" aria-labelledby="e-perfil">
+          <h2 id="e-perfil">Perfil del programa</h2>
+          <p class="ra-nota">Cinco tasas de 0 a 100 (no volumen), frente al conjunto o a otro programa.</p>
+          @if (perfil(); as p) {
+            <div class="comparar"><label>Comparar con <select (change)="comparado.set(valor($event))">
+              <option value="" [selected]="!comparado()">Conjunto de programas del filtro</option>
+              @for (o of r.programas; track o.programa) { @if (o.programa !== f().programa) { <option [value]="o.programa" [selected]="comparado() === o.programa">{{ o.nombre ?? o.programa }}</option> } }
+            </select></label></div>
+            <sipra-reportes-radar [titulo]="'Perfil de ' + p.series[0].texto" [ejes]="ejesPerfil" [series]="p.series" />
+          } @else {
+            <p class="ra-nota">Elija un programa (en el mapa, el ranking o aquí) para ver su perfil.</p>
+            <label class="comparar">Programa <select (change)="estado.alternar('programa', valor($event))"><option value="">—</option>
+              @for (o of r.programas; track o.programa) { <option [value]="o.programa">{{ o.nombre ?? o.programa }}</option> }</select></label>
+          }
+        </section>
+      </div>
+      <div class="ra-g12">
+        <section class="ra-bloque ra-zona zona-academica c6 alto-s" aria-labelledby="e-niv">
+          <h2 id="e-niv">Nivel de formación</h2>
+          <sipra-reportes-dona titulo="Estudiantes por nivel de formación" [partes]="niveles()" centro="estudiantes" [seleccion]="f().ciclo" (elegir)="estado.alternar('ciclo', $event)" />
+        </section>
+        @if (r.dimensiones.semestre === 'sintetica') {
+          <section class="ra-bloque ra-zona zona-academica c6 alto-s" aria-labelledby="e-sem">
+            <h2 id="e-sem">Semestre</h2>
+            <sipra-reportes-columnas titulo="Estudiantes por semestre" [items]="semestres()" [total]="r.facetas.semestre.estudiantes" ejeX="Semestre" [corto]="numeroSemestre" [seleccion]="f().semestre" (elegir)="estado.alternar('semestre', $event)" />
+          </section>
+        }
+      </div>
+      <div class="ra-rejilla" style="margin-top:32px">
+        <h2 class="seccion">Cifras exactas</h2>
         <section class="ra-bloque ancho" aria-labelledby="e-esc">
           <h2 id="e-esc">Escuelas y programas</h2>
-          <p class="ra-nota">Estudiantes únicos (una persona con dos prácticas cuenta una vez). Aprobado = obligaciones aprobadas / exigidas. El nombre de la escuela o del programa filtra el reporte; la flecha despliega sus programas.</p>
+          <p class="ra-nota">Estudiantes únicos. Aprobado = obligaciones aprobadas / exigidas. El nombre filtra el reporte; la flecha despliega los programas.</p>
           <div class="ra-desliza">
             <table class="ra-tabla">
               <caption class="ra-sr">Estudiantes, prácticas y cobertura por escuela y programa</caption>
@@ -56,57 +122,15 @@ import { ESTILOS_REPORTES } from './reportes.estilos';
             </table>
           </div>
         </section>
-
-        <section class="ra-bloque" aria-labelledby="e-pn">
-          <h2 id="e-pn">Programa × nivel de formación</h2>
-          <p class="ra-nota">Qué programas pertenecen a cada nivel, según el ciclo registrado en cada práctica (no se deduce del nombre).</p>
-          <sipra-reportes-apiladas titulo="Estudiantes por programa y nivel" rotuloFilas="Programa" rotuloColumnas="nivel" [celdas]="r.cruces.programaNivel"
-            [texto]="nivel" [textoFila]="estado.nombrePrograma" [ordenColores]="ordenNiveles()" [seleccionFila]="f().programa" [seleccionColumna]="f().ciclo"
-            (elegirFila)="estado.alternar('programa', $event)" (elegirColumna)="estado.alternar('ciclo', $event)" />
-        </section>
-        @if (r.dimensiones.semestre === 'sintetica') {
-          <section class="ra-bloque" aria-labelledby="e-ps">
-            <h2 id="e-ps">Programa × semestre</h2>
-            <p class="ra-nota">Semestre: dato sintético de prueba (tabla auxiliar de desarrollo); en producción SIPRA no lo guarda.</p>
-            <sipra-reportes-apiladas titulo="Estudiantes por programa y semestre" rotuloFilas="Programa" rotuloColumnas="semestre" [celdas]="r.cruces.programaSemestre"
-              [texto]="semestre" [textoFila]="estado.nombrePrograma" [ordenColores]="ordenSemestres()" [seleccionFila]="f().programa" [seleccionColumna]="f().semestre"
-              (elegirFila)="estado.alternar('programa', $event)" (elegirColumna)="semestreElegido($event)" />
-          </section>
-        } @else {
-          <section class="ra-bloque" aria-labelledby="e-sem">
-            <h2 id="e-sem">Semestre</h2>
-            <p class="ra-nota">No disponible: SIPRA no guarda el semestre en la práctica. Solo existe en SINU, que se consulta estudiante por estudiante (lo usa el Excel del SGP). No se infiere del periodo.</p>
-          </section>
+        @if (r.dimensiones.semestre !== 'sintetica') {
+          <p class="ra-nota ancho">Semestre: no disponible. SIPRA no lo guarda en la práctica (vive en SINU, por estudiante) y no se infiere del periodo.</p>
         }
 
-        <h2 class="seccion">Composición de prácticas · ¿qué práctica están haciendo?</h2>
-        <section class="ra-bloque" aria-labelledby="e-pm">
-          <h2 id="e-pm">Programa × modalidad</h2>
-          <p class="ra-nota">Qué programas concentran cada modalidad y cuáles son minoritarias.</p>
-          <sipra-reportes-apiladas titulo="Estudiantes por programa y modalidad" rotuloFilas="Programa" rotuloColumnas="modalidad" [celdas]="r.cruces.programaModalidad"
-            [texto]="etiqueta" [textoFila]="estado.nombrePrograma" [ordenColores]="ordenModalidades()" [seleccionFila]="f().programa" [seleccionColumna]="f().modalidad"
-            (elegirFila)="estado.alternar('programa', $event)" (elegirColumna)="estado.alternar('modalidad', $event)" />
-        </section>
-        <section class="ra-bloque" aria-labelledby="e-nm">
-          <h2 id="e-nm">Nivel × modalidad</h2>
-          <p class="ra-nota">Modalidades que usa cada nivel de formación (distribución, no causalidad).</p>
-          <sipra-reportes-apiladas titulo="Estudiantes por nivel y modalidad" rotuloFilas="Nivel" rotuloColumnas="modalidad" [celdas]="r.cruces.nivelModalidad"
-            [texto]="etiqueta" [textoFila]="nivel" [ordenFilas]="compararNiveles" [ordenColores]="ordenModalidades()" [seleccionFila]="f().ciclo" [seleccionColumna]="f().modalidad"
-            (elegirFila)="estado.alternar('ciclo', $event)" (elegirColumna)="estado.alternar('modalidad', $event)" />
-        </section>
-        @if (r.dimensiones.semestre === 'sintetica') {
-          <section class="ra-bloque" aria-labelledby="e-sm">
-            <h2 id="e-sm">Semestre × modalidad</h2>
-            <p class="ra-nota">Cómo cambia la modalidad según el avance académico. Semestre: dato sintético de prueba (tabla auxiliar de desarrollo); en producción SIPRA no lo guarda.</p>
-            <sipra-reportes-apiladas titulo="Estudiantes por semestre y modalidad" rotuloFilas="Semestre" rotuloColumnas="modalidad" [celdas]="r.cruces.semestreModalidad"
-              [texto]="etiqueta" [textoFila]="semestre" [ordenFilas]="compararSemestres" [ordenColores]="ordenModalidades()" [seleccionFila]="f().semestre" [seleccionColumna]="f().modalidad"
-              (elegirFila)="semestreElegido($event)" (elegirColumna)="estado.alternar('modalidad', $event)" />
-          </section>
-        }
-        <section class="ra-bloque" aria-labelledby="e-emp">
-          <h2 id="e-emp">Empresas</h2>
-          <p class="ra-nota">Por razón social registrada; «Sin empresa registrada» es un dato faltante, no una empresa. Secundario: elija una para ver sus programas y modalidades.</p>
-          <sipra-reportes-barras titulo="Estudiantes por empresa" [items]="empresas()" [total]="r.resumen.estudiantes" [seleccion]="f().empresa" [limite]="8" (elegir)="estado.alternar('empresa', $event)" />
+        <p class="ra-nota ancho">Organización receptora, empresa, sector y ciudad: pestaña <button type="button" class="ra-ir" (click)="estado.pestana.set('organizaciones')">Organizaciones</button>.</p>
+
+        <h2 class="seccion">Cruces</h2>
+        <section class="ra-bloque ancho" aria-label="Explorador de cruces">
+          <sipra-reportes-cruces />
         </section>
       </div>
     }
@@ -118,22 +142,53 @@ export class ReportesEstudiantesComponent implements OnInit {
   protected readonly abiertas = signal<ReadonlySet<string>>(new Set());
   protected readonly pct = porcentaje;
   protected readonly nivel = nivel;
-  protected readonly semestre = semestre;
-  protected readonly compararNiveles = compararNiveles;
-  protected readonly compararSemestres = compararSemestres;
-  private readonly pipe = new EtiquetaPipe();
-  protected readonly etiqueta = (v: string): string => this.pipe.transform(v);
+  private readonly etiqueta = new EtiquetaPipe();
+  protected readonly lecturas = computed(() => {
+    const r = this.estado.datos(), t = (v: string) => this.etiqueta.transform(v);
+    return r ? insights.estudiantes(r, { programa: this.estado.nombrePrograma, modalidad: t, tipo: t, escuela: this.estado.nombreEscuela }) : [];
+  });
+  protected readonly textosJerarquia: ((v: string) => string)[] = [this.estado.nombreEscuela, this.estado.nombrePrograma, nivel, (v) => semestre(v)];
+  protected readonly textoSemestre = (v: string): string => semestre(v);
+  protected readonly cortoSemestre = (v: string): string => (v === '' ? '—' : v);
+  protected readonly ordenSemestres = computed(() => [...new Set((this.estado.datos()?.cruces.programaSemestre ?? []).map((c) => c.columna))].sort(compararSemestres));
+  /** Ejes del perfil: solo tasas 0–100 con la misma definición que el resto del reporte. */
+  protected readonly ejesPerfil: EjeRadar[] = EJES_PERFIL;
+  protected readonly programas = computed<ItemBarra[]>(() => (this.estado.datos()?.programas ?? []).map((p) => ({ clave: p.programa, texto: p.nombre ?? p.programa, n: p.estudiantes, detalle: [p.nombreEscuela] })));
+  protected readonly niveles = computed<ParteGrafico[]>(() => {
+    const r = this.estado.datos();
+    if (!r) return [];
+    return [...r.niveles].sort((a, b) => compararNiveles(a.ciclo, b.ciclo))
+      .map((n, k) => ({ clave: n.ciclo, texto: nivel(n.ciclo), n: n.estudiantes, pct: pct1(n.estudiantes, r.facetas.ciclo.estudiantes), tono: TONOS_NIVEL[k % TONOS_NIVEL.length] }));
+  });
+  protected readonly semestres = computed<ItemBarra[]>(() => (this.estado.datos()?.semestres ?? [])
+    .filter((x) => x.semestre !== null).map((x) => ({ clave: String(x.semestre), texto: semestre(x.semestre), n: x.estudiantes })));
+  protected readonly numeroSemestre = (i: ItemBarra): string => i.clave;
+  protected readonly comparado = signal('');
+  protected readonly perfil = computed(() => {
+    const r = this.estado.datos(), sel = this.f().programa;
+    const p = r?.programas.find((x) => x.programa === sel);
+    if (!r || !p) return null;
+    const otro = r.programas.find((x) => x.programa === this.comparado());
+    const conjunto = sumarCobertura(r.programas);
+    const series: SerieRadar[] = [
+      { clave: p.programa, texto: p.nombre ?? p.programa, valores: perfilDe(p), tono: 'principal' },
+      otro ? { clave: otro.programa, texto: otro.nombre ?? otro.programa, valores: perfilDe(otro), tono: 'comparacion' }
+        : { clave: '__conjunto__', texto: 'Conjunto del filtro', valores: perfilDe(conjunto), tono: 'comparacion' },
+    ];
+    return { series };
+  });
 
-  protected readonly ordenModalidades = computed(() => [...(this.estado.datos()?.modalidades ?? [])].sort((a, b) => b.estudiantes - a.estudiantes).map((m) => m.modalidad));
-  protected readonly ordenNiveles = computed(() => ['tecnico', 'tecnologo', 'profesional']);
-  protected readonly ordenSemestres = computed(() => this.estado.opciones().semestres.map(String));
-
-  /** «Sin información» ('') no es un filtro: no se convierte un dato faltante en un valor. */
-  protected semestreElegido(s: string): void {
-    if (s !== '') this.estado.alternar('semestre', s);
+  protected valor(e: Event): string { return (e.target as HTMLSelectElement).value; }
+  protected filtrarRama(n: { nivel: number; clave: string }): void {
+    if (n.nivel === 0) this.estado.alternar('escuela', n.clave); else this.estado.alternar('programa', n.clave);
   }
-  protected readonly empresas = computed<ItemBarra[]>(() => (this.estado.datos()?.empresas ?? [])
-    .map((e) => ({ clave: e.empresa ?? SIN_EMPRESA, texto: e.empresa ?? 'Sin empresa registrada', n: e.estudiantes })));
+  protected semestreDe(c: string): void { if (c !== '') this.estado.alternar('semestre', c); }
+  protected celdaSemestre(c: { fila: string; columna: string }): void {
+    if (c.columna === '') return;
+    const f = this.f();
+    if (f.programa === c.fila && f.semestre === c.columna) this.estado.filtrar({ programa: '', semestre: '' });
+    else this.estado.filtrar({ programa: c.fila, semestre: c.columna });
+  }
 
   ngOnInit(): void {
     // La navegación analítica termina en la tabla granular: en Estudiantes está siempre abierta para el contexto.
@@ -147,4 +202,26 @@ export class ReportesEstudiantesComponent implements OnInit {
   protected alternar(escuela: string): void {
     this.abiertas.update((s) => { const n = new Set(s); if (n.has(escuela)) n.delete(escuela); else n.add(escuela); return n; });
   }
+}
+
+export const EJES_PERFIL: EjeRadar[] = [
+  { clave: 'cobertura', texto: 'Cobertura', definicion: 'obligaciones cargadas / exigidas' },
+  { clave: 'aprobacion', texto: 'Aprobación', definicion: 'obligaciones aprobadas / exigidas' },
+  { clave: 'completos', texto: 'Completos', definicion: 'expedientes completos / prácticas' },
+  { clave: 'sinCorreccion', texto: 'Sin corrección', definicion: '100 − obligaciones en corrección / exigidas' },
+  { clave: 'sinReenvio', texto: 'Sin reenvío', definicion: '100 − documentos con reenvío / documentos cargados' },
+];
+
+/** Perfil 0–100 de un grupo (programa o conjunto): todas tasas, null sin denominador (no se inventa un cero). */
+export function perfilDe(c: Cobertura): (number | null)[] {
+  const t = (n: number, d: number) => (d > 0 ? Math.round((n * 1000) / d) / 10 : null);
+  const inv = (v: number | null) => (v === null ? null : Math.round((100 - v) * 10) / 10);
+  return [t(c.cargados, c.exigidos), t(c.aprobados, c.exigidos), t(c.completos, c.practicas), inv(t(c.correccion, c.exigidos)), inv(t(c.conReenvio, c.documentos))];
+}
+
+/** Suma de coberturas (el «conjunto» del radar): mismas definiciones, sobre todos los programas de la faceta. */
+export function sumarCobertura(grupos: readonly Cobertura[]): Cobertura {
+  const z = { estudiantes: 0, practicas: 0, exigidos: 0, cargados: 0, aprobados: 0, correccion: 0, completos: 0, versiones: 0, documentos: 0, conReenvio: 0, devoluciones: 0, rechazos: 0 };
+  for (const g of grupos) for (const k of Object.keys(z) as (keyof typeof z)[]) z[k] += g[k];
+  return { ...z, obligaciones: { sin_cargar: 0, en_proceso: 0, en_revision: 0, correccion: 0, rechazado: 0, aprobado: 0 } };
 }

@@ -2,6 +2,7 @@ import {
   Celda, Cobertura, DetalleAnalitica, EstadoObligacion, FilaDetalleAnalitica, ReporteAnalitica, SituacionExpediente, TipoReceptor,
 } from '@core/models/reportes-analitica.model';
 import { TonoV3 } from '@shared/components/senal-estado.component';
+import { ParteGrafico, TonoGrafico, tonoDe } from './reportes-graficos.util';
 
 /**
  * Contrato y lógica pura de la analítica de Reportes. Las cifras vienen calculadas del servidor
@@ -84,6 +85,11 @@ export function partes<K extends string>(categorias: readonly Categoria<K>[], co
     if (c.n > 0) { c.pct += 1; resto -= 1; }
   }
   return base.filter((c) => c.n > 0).map(({ clave, texto, tono, clase, n, pct }) => ({ clave, texto, tono, clase, n, pct }));
+}
+
+/** Segmentos de dominio → partes de gráfica (composición 100 %, dona), con su tono del SIPRA Charts Theme. */
+export function partesGrafico<K extends string>(segmentos: readonly Segmento<K>[]): ParteGrafico[] {
+  return segmentos.map((g) => ({ clave: g.clave, texto: g.texto, n: g.n, pct: `${g.pct} %`, tono: tonoDe(g.tono, g.clase) }));
 }
 
 /** Porcentaje entero; «—» se decide en la vista cuando el denominador es 0. */
@@ -189,8 +195,11 @@ export function hayDatos(r: ReporteAnalitica | null): boolean {
   return !!r && r.resumen.practicas > 0;
 }
 
-/** Barra ordenable y seleccionable (una fila por categoría de una dimensión). */
-export interface ItemBarra { clave: string; texto: string; n: number; sub?: string }
+/**
+ * Barra ordenable y seleccionable (una fila por categoría de una dimensión). `detalle`: líneas de contexto que van solo al
+ * tooltip y al `aria-label` (p. ej. la escuela de un programa, o el sector y la ciudad de una organización), nunca a la etiqueta.
+ */
+export interface ItemBarra { clave: string; texto: string; n: number; detalle?: string[]; tono?: TonoGrafico }
 
 /** Paleta de categorías: pocas clases estables (sin arcoíris). Las categorías más allá de la quinta comparten «otras». */
 export const CLASES_SERIE = ['s0', 's1', 's2', 's3', 's4'] as const;

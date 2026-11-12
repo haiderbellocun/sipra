@@ -82,6 +82,17 @@ export class ReportesAnaliticaAdapter implements ReportesAnaliticaPort {
     return filas.map((f) => ({ codigo: f.periodo, inicio: f.inicio }));
   }
 
+  async periodosSinteticos(escuelaIds?: readonly string[]): Promise<string[]> {
+    if (!this.conSemestre) return [];
+    const filas: { periodo: string }[] = await this.datos.query(
+      `SELECT DISTINCT p.periodo_academico AS periodo FROM practicas p
+       JOIN ${TABLA_SEMESTRE_SINTETICO} ss ON ss.practica_id = p.id
+       WHERE ($1::text[] IS NULL OR p.escuela_id = ANY($1::text[]))`,
+      [escuelaIds ? [...escuelaIds] : null],
+    );
+    return filas.map((f) => f.periodo);
+  }
+
   async universo(escuelaIds?: readonly string[]): Promise<{ estudiantes: number; practicas: number }> {
     const [fila]: { estudiantes: string; practicas: string }[] = await this.datos.query(
       `SELECT COUNT(DISTINCT p.estudiante_id) AS estudiantes, COUNT(*) AS practicas FROM practicas p

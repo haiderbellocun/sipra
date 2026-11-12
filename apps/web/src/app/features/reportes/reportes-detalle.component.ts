@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CargaSenalComponent } from '@shared/components/carga-senal.component';
 import { EstadoVacioComponent } from '@shared/components/estado-vacio.component';
@@ -40,11 +40,20 @@ export const LIMITE_FILAS_DETALLE = 200;
     .error { padding: 12px 0; font-size: 13px; color: var(--text-primary); }
     .pend { color: var(--ra-aviso); font-weight: 600; }
     .ra-tabla td { white-space: nowrap; }
-    .ra-tabla td.envuelve { white-space: normal; min-width: 9rem; }
+    /* Encabezado fijo dentro de la propia tabla (contenedor con alto máximo): seguro con el desplazamiento horizontal. */
+    .marco-tabla { max-height: min(72vh, 760px); overflow: auto; }
+    .marco-tabla thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-raised); }
+    /* Densa: una línea por práctica; el texto largo se recorta con «…» y el nombre completo queda en el title. */
+    .ra-tabla td.envuelve { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; }
+    /* «Abrir expediente» siempre a la vista: columna fija a la derecha mientras la tabla se desplaza en horizontal. */
+    .ra-tabla .accion { position: sticky; right: 0; background: var(--surface-raised); box-shadow: -8px 0 8px -8px rgb(0 0 0 / .35); }
+    .marco-tabla thead th.accion { z-index: 2; }
     @media (width < 700px) {
       .ra-tabla thead { display: none; }
       .ra-tabla tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--ra-regla); }
       .ra-tabla td { padding: 0; border: 0; }
+      .ra-tabla td.envuelve { max-width: none; white-space: normal; }
+      .ra-tabla .accion { position: static; box-shadow: none; background: none; }
       .ra-tabla td.oculta-movil { display: none; }
     }
   `],
@@ -59,6 +68,7 @@ export const LIMITE_FILAS_DETALLE = 200;
           <div class="botones">
             <label class="ra-sr" for="det-buscar">Buscar por estudiante, programa o empresa</label>
             <input id="det-buscar" class="busca" type="search" placeholder="Buscar estudiante, programa o empresa" [value]="estado.buscar()" (input)="buscar($event)" />
+            <button type="button" class="bt" [attr.aria-pressed]="todas()" (click)="todas.set(!todas())">{{ todas() ? 'Columnas esenciales' : 'Todas las columnas' }}</button>
             <button type="button" class="bt" [disabled]="estado.exportando() || !estado.detalle()?.total" (click)="estado.exportar()">{{ estado.exportando() ? 'Generando…' : 'Descargar CSV' }}</button>
             @if (cerrable()) { <button type="button" class="bt" (click)="estado.cerrarDetalle()">Cerrar</button> }
           </div>
@@ -71,30 +81,32 @@ export const LIMITE_FILAS_DETALLE = 200;
           @if (d.total === 0) {
             <sipra-estado-vacio titulo="Sin prácticas en este recorte" [texto]="estado.buscar() ? 'Ninguna práctica del contexto coincide con la búsqueda.' : 'Ninguna práctica del contexto cumple esta condición.'" />
           } @else {
-            <div class="ra-desliza">
+            <div class="ra-desliza marco-tabla">
               <table class="ra-tabla">
                 <caption class="ra-sr">Prácticas de {{ titulo() }}</caption>
-                <thead><tr><th scope="col">Estudiante</th><th scope="col">Programa</th><th scope="col">Nivel</th>@if (conSemestre()) { <th scope="col" title="Dato sintético de prueba">Sem.</th> }<th scope="col">Modalidad</th><th scope="col">Organización</th><th scope="col">Receptor</th><th scope="col">Sector</th><th scope="col">Ciudad</th><th scope="col">Periodo</th><th scope="col">Estado</th><th scope="col" class="d">Avance</th><th scope="col" class="d">Pend.</th><th scope="col" class="d">Devol.</th><th scope="col">Expediente</th><th scope="col">Último mov.</th><th scope="col"><span class="ra-sr">Acción</span></th></tr></thead>
+                <thead><tr><th scope="col">Estudiante</th><th scope="col">Programa</th><th scope="col">Nivel</th>@if (conSemestre()) { <th scope="col" title="Dato sintético de prueba">Sem.</th> }<th scope="col">Modalidad</th><th scope="col">Organización</th>@if (todas()) { <th scope="col">Receptor</th> }<th scope="col">Sector</th><th scope="col">Ciudad</th><th scope="col">Periodo</th>@if (todas()) { <th scope="col">Estado</th> }<th scope="col">Expediente</th><th scope="col" class="d">Avance</th>@if (todas()) { <th scope="col" class="d">Pend.</th><th scope="col" class="d">Devol.</th><th scope="col">Último mov.</th> }<th scope="col" class="accion"><span class="ra-sr">Acción</span></th></tr></thead>
                 <tbody>
                   @for (f of filas(); track f.practicaId) {
                     <tr>
-                      <td class="envuelve">{{ f.estudiante }}</td>
+                      <td class="envuelve" [title]="f.estudiante">{{ f.estudiante }}</td>
                       <td class="oculta-movil envuelve" [title]="f.programa + ' · ' + f.escuela">{{ f.programaNombre ?? f.programa }}</td>
                       <td class="oculta-movil">{{ nivel(f.ciclo) }}</td>
                       @if (conSemestre()) { <td class="oculta-movil d">{{ f.semestre ?? '—' }}</td> }
                       <td class="oculta-movil">{{ f.modalidad | etiqueta }}</td>
-                      <td class="oculta-movil envuelve">{{ f.empresa ?? '—' }}</td>
-                      <td class="oculta-movil">{{ f.tipoReceptor ? receptores[f.tipoReceptor] : '—' }}</td>
+                      <td class="oculta-movil envuelve" [title]="f.empresa ?? ''">{{ f.empresa ?? '—' }}</td>
+                      @if (todas()) { <td class="oculta-movil">{{ f.tipoReceptor ? receptores[f.tipoReceptor] : '—' }}</td> }
                       <td class="oculta-movil envuelve" [title]="f.sector ?? ''">{{ f.sector ?? 'Sin información' }}</td>
                       <td class="oculta-movil">{{ f.ciudad ?? 'Sin municipio' }}</td>
                       <td class="ra-num oculta-movil">{{ f.periodo }}</td>
-                      <td class="oculta-movil">{{ f.estado | etiqueta }}</td>
-                      <td class="d" [title]="'Aprobados ' + f.aprobados + ' de ' + f.exigidos + ' exigidos'">{{ f.aprobados }}/{{ f.exigidos }}</td>
-                      <td class="d" [class.pend]="f.pendientes > 0">{{ f.pendientes }}</td>
-                      <td class="d oculta-movil">{{ f.devoluciones }}</td>
+                      @if (todas()) { <td class="oculta-movil">{{ f.estado | etiqueta }}</td> }
                       <td><sipra-senal-estado [tono]="tono(f.situacion)" [texto]="texto(f.situacion)" /></td>
-                      <td class="ra-num oculta-movil" [title]="f.ultimoMovimiento ? (f.ultimoMovimiento | date: 'yyyy-MM-dd HH:mm' : '-0500') + ' (hora de Colombia)' : ''">{{ f.ultimoMovimiento ? (f.ultimoMovimiento | date: 'yyyy-MM-dd' : '-0500') : '—' }}</td>
-                      <td><a [routerLink]="['/practicas', f.practicaId]" [attr.aria-label]="'Abrir expediente de ' + f.estudiante">Abrir expediente</a></td>
+                      <td class="d" [title]="'Aprobados ' + f.aprobados + ' de ' + f.exigidos + ' exigidos; ' + f.pendientes + ' pendientes'">{{ f.aprobados }}/{{ f.exigidos }}</td>
+                      @if (todas()) {
+                        <td class="d" [class.pend]="f.pendientes > 0">{{ f.pendientes }}</td>
+                        <td class="d oculta-movil">{{ f.devoluciones }}</td>
+                        <td class="ra-num oculta-movil" [title]="f.ultimoMovimiento ? (f.ultimoMovimiento | date: 'yyyy-MM-dd HH:mm' : '-0500') + ' (hora de Colombia)' : ''">{{ f.ultimoMovimiento ? (f.ultimoMovimiento | date: 'yyyy-MM-dd' : '-0500') : '—' }}</td>
+                      }
+                      <td class="accion"><a [routerLink]="['/practicas', f.practicaId]" [attr.aria-label]="'Abrir expediente de ' + f.estudiante">Abrir expediente</a></td>
                     </tr>
                   }
                 </tbody>
@@ -111,6 +123,8 @@ export class ReportesDetalleComponent {
   protected readonly limite = LIMITE_FILAS_DETALLE;
   protected readonly nivel = nivel;
   protected readonly receptores = RECEPTORES;
+  /** Por defecto, las columnas esenciales de la investigación; «Todas» suma receptor, estado, pendientes, devoluciones y fecha. */
+  protected readonly todas = signal(false);
   protected readonly semestre = semestre;
   protected readonly conSemestre = computed(() => this.estado.datos()?.dimensiones.semestre === 'sintetica');
   private readonly etiqueta = new EtiquetaPipe();

@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
-  MODALIDADES_ARTICULADAS, ReportesAnaliticaUseCase, SIN_DATO, SIN_EMPRESA, tipoReceptor, celdaCsv, compararCiclos, compararPeriodos,
+  FACETAS, MAX_MUESTRAS_TIEMPO, MODALIDADES_ARTICULADAS, ReportesAnaliticaUseCase, SIN_DATO, SIN_EMPRESA, tipoReceptor, celdaCsv, compararCiclos, compararPeriodos,
 } from '../src/application/use-cases/reportes/reportes-analitica.use-case';
 import { EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
 import { ModalidadPractica, documentosExigidos } from '../src/domain/entities/modalidad.entity';
@@ -62,6 +62,7 @@ function armar(practicas = PRACTICAS, versiones = VERSIONES, conSemestre = false
     && (!f.ciudad || (f.ciudad === '__internacional__' ? conSemestre && p.internacional : f.ciudad === '__sin_dato__' ? p.ciudad === null && !(conSemestre && p.internacional) : p.ciudad === f.ciudad)) && (!f.empresa || (f.empresa === SIN_EMPRESA ? p.empresa === null : p.empresa === f.empresa));
   const puerto: ReportesAnaliticaPort = {
     periodos: async (escuelas) => practicas.filter((p) => !escuelas || escuelas.includes(p.escuelaId)).map((p) => ({ codigo: p.periodoAcademico, inicio: INICIOS[p.periodoAcademico] ?? null })),
+    periodosSinteticos: async (escuelas) => (conSemestre ? [...new Set(practicas.filter((p) => p.semestre !== null && (!escuelas || escuelas.includes(p.escuelaId))).map((p) => p.periodoAcademico))] : []),
     semestreSintetico: () => conSemestre,
     programasSinteticos: () => conSemestre,
     ubicacionSintetica: () => conSemestre,
@@ -182,7 +183,7 @@ describe('Reportes · analítica (solo lectura)', () => {
     expect(r.niveles).toEqual([]);
     expect(r.programas).toEqual([]);
     expect(r.cruces.programaModalidad).toEqual([]);
-    expect(r.tiempos).toEqual({ decisiones: 0, medianaHoras: null, p90Horas: null, porTipo: [] });
+    expect(r.tiempos).toEqual({ decisiones: 0, medianaHoras: null, p90Horas: null, porTipo: [], muestras: [] });
     expect(r.semanas.every((s) => s.cargas === 0)).toBe(true);
     expect(r.periodos).toEqual([]);
     expect(r.empresas).toEqual([]);
@@ -502,5 +503,143 @@ describe('Reportes · internacional frente a sin información', () => {
     expect((await caso.detalle({ ciudad: SIN_DATO }, {}, coordinacionGeneral)).total).toBe(14);
     const d = await caso.detalle({ ciudad: '__internacional__' }, {}, coordinacionGeneral);
     expect(d.filas.every((f) => f.ciudad === 'Internacional · sin DIVIPOLA')).toBe(true);
+  });
+});
+
+/**
+ * V3.2 · filtrado por facetas. Universo sintético: dos programas, dos niveles, interna y externa, dos sectores, dos ciudades
+ * (una en el exterior) y dos periodos; con semestre sintético (dev).
+ */
+describe('Reportes · facetas (cross-filter con lo no elegido visible)', () => {
+  const P = [
+    practica({ id: 'f1', estudianteId: 'g1', programaId: 'ING-SIS', ciclo: 'profesional', semestre: 8, sector: 'J', sectorNombre: 'Información', ciudad: '11001', ciudadNombre: 'Bogotá', periodoAcademico: '2026A', empresa: 'Uno S.A.S.' }),
+    practica({ id: 'f2', estudianteId: 'g2', programaId: 'ING-SIS', ciclo: 'tecnologo', semestre: 5, sector: 'P', sectorNombre: 'Educación', ciudad: '05001', ciudadNombre: 'Medellín', periodoAcademico: '2026A', empresa: 'Dos S.A.S.' }),
+    practica({ id: 'f3', estudianteId: 'g3', programaId: 'ADM-PRO', ciclo: 'profesional', semestre: 8, sector: 'J', sectorNombre: 'Información', ciudad: null, internacional: true, periodoAcademico: '2026C', empresa: 'Tres Ltd.' }),
+    practica({ id: 'f4', estudianteId: 'g4', programaId: 'ADM-PRO', ciclo: 'profesional', semestre: 9, modalidad: MODALIDADES_ARTICULADAS[0], sector: 'P', sectorNombre: 'Educación', ciudad: '11001', ciudadNombre: 'Bogotá', periodoAcademico: '2026C', empresa: 'CUN' }),
+    practica({ id: 'f5', estudianteId: 'g5', programaId: 'ADM-PRO', ciclo: 'tecnologo', semestre: null, periodoAcademico: '2026-2', empresa: null }),
+  ];
+  const V = [
+    version({ id: 'w1', practicaId: 'f1', estado: EstadoDocumento.APROBADO, cargadoEn: h('2026-09-01T10:00:00Z'), decididoEn: h('2026-09-01T14:00:00Z'), decision: 'aprobar' }),
+    version({ id: 'w2', practicaId: 'f3', estado: EstadoDocumento.DEVUELTO, cargadoEn: h('2026-09-02T10:00:00Z'), decididoEn: h('2026-09-03T10:00:00Z'), decision: 'devolver' }),
+  ];
+  const conjunto = (r: { programa?: string }[], k: string) => r.map((x) => (x as Record<string, unknown>)[k]).sort();
+
+  it('sin filtros, cada faceta es el universo filtrado (y no hay consulta extra)', async () => {
+    const { caso, consultas } = armar(P, V, true);
+    const r = await caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(consultas).toHaveLength(1);
+    for (const k of FACETAS) expect(r.facetas[k]).toEqual({ estudiantes: r.resumen.estudiantes, practicas: r.resumen.practicas });
+  });
+
+  it('cada dimensión ignora SU filtro y respeta los demás; resumen y detalle usan todos (una sola consulta extra)', async () => {
+    const { caso, consultas } = armar(P, V, true);
+    const filtro = { programa: 'ING-SIS', ciclo: 'profesional' };
+    const r = await caso.analitica(filtro, coordinacionGeneral, AHORA);
+    expect(consultas).toHaveLength(2);
+    expect(r.resumen.practicas).toBe(1);
+    // Programa: respeta nivel profesional, ignora programa → ING-SIS (resaltado) y ADM-PRO (atenuado).
+    expect(r.programas.map((p) => [p.programa, p.practicas]).sort()).toEqual([['ADM-PRO', 2], ['ING-SIS', 1]]);
+    // Nivel: respeta programa, ignora nivel → los dos niveles de ING-SIS.
+    expect(r.niveles.map((n) => [n.ciclo, n.practicas])).toEqual([['tecnologo', 1], ['profesional', 1]]);
+    // Invariante: cada faceta coincide con el reporte pedido SIN ese filtro.
+    const sinPrograma = await caso.analitica({ ciclo: 'profesional' }, coordinacionGeneral, AHORA);
+    expect(r.programas).toEqual(sinPrograma.programas);
+    expect(r.facetas.programa).toEqual({ estudiantes: sinPrograma.resumen.estudiantes, practicas: sinPrograma.resumen.practicas });
+    const sinNivel = await caso.analitica({ programa: 'ING-SIS' }, coordinacionGeneral, AHORA);
+    expect(r.niveles).toEqual(sinNivel.niveles);
+    // Lo que no es faceta sigue con todos los filtros.
+    expect(r.periodos.map((p) => p.practicas)).toEqual([1]);
+    const d = await caso.detalle(filtro, {}, coordinacionGeneral);
+    expect(d.total).toBe(r.resumen.practicas);
+  });
+
+  it('invariantes por faceta: sector, ciudad (internacional / sin dato), receptor, empresa, semestre y situación', async () => {
+    const { caso } = armar(P, V, true);
+    const filtros = [
+      { sector: 'J' }, { sector: SIN_DATO }, { ciudad: '__internacional__' }, { ciudad: SIN_DATO }, { ciudad: '11001' },
+      { tipoReceptor: 'interna_cun' as const }, { empresa: SIN_EMPRESA }, { empresa: 'Uno S.A.S.' }, { semestre: 8 },
+      { situacion: 'requiere_correccion' as const }, { sector: 'P', ciudad: '11001', periodos: ['2026C'] },
+    ];
+    const campo = { sector: 'sectores', ciudad: 'ciudades', tipoReceptor: 'receptores', empresa: 'empresas', semestre: 'semestres' } as const;
+    for (const f of filtros) {
+      const r = await caso.analitica(f, coordinacionGeneral, AHORA);
+      for (const k of Object.keys(f).filter((x) => x !== 'periodos') as (keyof typeof f)[]) {
+        const sin = await caso.analitica({ ...f, [k]: undefined }, coordinacionGeneral, AHORA);
+        if (k === 'situacion') expect(r.expedientes).toEqual(sin.expedientes);
+        else expect(r[campo[k as keyof typeof campo]]).toEqual(sin[campo[k as keyof typeof campo]]);
+        expect(r.facetas[k as keyof typeof r.facetas].practicas).toBe(sin.resumen.practicas);
+      }
+      // El universo filtrado (KPI, detalle) no cambia: el mismo que el SQL con todos los filtros.
+      const d = await caso.detalle(f, {}, coordinacionGeneral);
+      expect(r.resumen.practicas).toBe(d.total);
+    }
+  });
+
+  it('las distribuciones suman su universo: interna + externa = prácticas; situaciones = prácticas', async () => {
+    const { caso } = armar(P, V, true);
+    for (const f of [{}, { programa: 'ADM-PRO' }, { tipoReceptor: 'externa' as const }, { situacion: 'completo' as const }]) {
+      const r = await caso.analitica(f, coordinacionGeneral, AHORA);
+      expect(r.receptores.reduce((n, x) => n + x.practicas, 0)).toBe(r.facetas.tipoReceptor.practicas);
+      expect(Object.values(r.expedientes).reduce((n, x) => n + x, 0)).toBe(r.facetas.situacion.practicas);
+      expect(r.cruces.modalidadSituacion.reduce((n, c) => n + c.practicas, 0)).toBe(r.facetas.situacion.practicas);
+      expect(r.programas.reduce((n, x) => n + x.practicas, 0)).toBe(r.facetas.programa.practicas);
+    }
+  });
+
+  it('dataset sintético: periodos del overlay en orden cronológico (dev); sin overlay, null', async () => {
+    const dev = await armar(P, V, true).caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(dev.dataset).toEqual({ periodos: ['2026A', '2026C'] });
+    const prod = await armar(P, V, false).caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(prod.dataset).toBeNull();
+  });
+
+  it('jerarquía escuela → programa → nivel → semestre suma los estudiantes; sin overlay, semestre null', async () => {
+    const r = await armar(P, V, true).caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.jerarquia.reduce((n, j) => n + j.estudiantes, 0)).toBe(r.resumen.estudiantes);
+    expect(r.jerarquia.find((j) => j.programa === 'ADM-PRO' && j.semestre === 8)).toMatchObject({ ciclo: 'profesional', estudiantes: 1 });
+    const prod = await armar(P, V, false).caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(prod.jerarquia.every((j) => j.semestre === null)).toBe(true);
+  });
+
+  it('tiempos: una muestra por decisión (tipo, programa, horas); estadísticas sobre todas; tope de puntos', async () => {
+    const r = await armar(P, V, true).caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(r.tiempos.muestras).toEqual([
+      { tipo: TipoDocumento.CERTIFICADO_ARL, programa: 'ING-SIS', horas: 4 },
+      { tipo: TipoDocumento.CERTIFICADO_ARL, programa: 'ADM-PRO', horas: 24 },
+    ]);
+    const muchas = Array.from({ length: 4000 }, (_, i) => version({ id: `m${String(i).padStart(5, '0')}`, practicaId: 'f1', cargadoEn: h('2026-09-01T10:00:00Z'), decididoEn: h('2026-09-01T12:00:00Z'), decision: 'aprobar' }));
+    const g = await armar(P, muchas, true).caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(g.tiempos.decisiones).toBe(4000);
+    expect(g.tiempos.muestras.length).toBe(MAX_MUESTRAS_TIEMPO);
+    const otra = await armar(P, muchas, true).caso.analitica({}, coordinacionGeneral, AHORA);
+    expect(otra.tiempos.muestras).toEqual(g.tiempos.muestras);
+  });
+
+  it('las facetas no amplían el alcance del docente', async () => {
+    const { caso, consultas } = armar();
+    await caso.analitica({ programa: 'ADM-PRO', ciclo: 'profesional' }, docenteNegocios, AHORA);
+    expect(consultas.length).toBe(2);
+    expect(consultas.every((c) => c.escuelaIds?.join() === 'ESC-NEG')).toBe(true);
+    void conjunto;
+  });
+});
+
+/** V3.3 · reconciliación de la tira de KPI: todas las cifras pertenecen a universos que cierran (sin cambiar definiciones). */
+describe('Reportes · reconciliación de KPI', () => {
+  it('situaciones = prácticas; exigidas = cargadas vigentes + por reenviar (corrección + rechazo) + sin cargar; aprobadas ≤ cargadas ≤ exigidas', async () => {
+    const { caso } = armar();
+    for (const f of [{}, { programa: 'ADM-PRO' }, { modalidad: ModalidadPractica.PASANTIA }, { periodos: ['2026C'] }]) {
+      const r = await caso.analitica(f, coordinacionGeneral, AHORA);
+      const s = r.resumen, o = r.documental;
+      expect(Object.values(r.expedientes).reduce((n, x) => n + x, 0)).toBe(r.facetas.situacion.practicas);
+      expect(Object.values(o).reduce((n, x) => n + x, 0)).toBe(s.exigidos);
+      // «Cargada» es la del dominio (versión vigente que no requiere reenvío): devuelta, ilegible o rechazada va aparte.
+      expect(s.cargados + o.correccion + o.rechazado + o.sin_cargar).toBe(s.exigidos);
+      expect(s.aprobados).toBe(o.aprobado);
+      expect(s.aprobados).toBeLessThanOrEqual(s.cargados);
+      expect(s.cargados).toBeLessThanOrEqual(s.exigidos);
+      expect(s.completos).toBe(r.expedientes.completo);
+      expect(r.receptores.reduce((n, x) => n + x.practicas, 0)).toBe(r.facetas.tipoReceptor.practicas);
+    }
   });
 });

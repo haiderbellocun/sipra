@@ -9,9 +9,13 @@ import { ReportesDocumentosComponent } from './reportes-documentos.component';
 import { ReportesEstudiantesComponent } from './reportes-estudiantes.component';
 import { ReportesExportacionesComponent } from './reportes-exportaciones.component';
 import { ReportesGeneralComponent } from './reportes-general.component';
-import { ReportesPeriodosComponent } from './reportes-periodos.component';
 import { ReportesOrganizacionesComponent } from './reportes-organizaciones.component';
+import { ReportesPeriodosComponent } from './reportes-periodos.component';
 import { SIN_EMPRESA, hayDatos, migas, nivel, semestre } from './reportes-analitica.util';
+import { num } from './reportes-graficos.util';
+
+/** Nombre del contexto inicial en dev sintético (los periodos los entrega el servidor). */
+export const ROTULO_DATASET = 'Dataset v4';
 import { PestanaReportes, ReportesEstado } from './reportes.estado';
 
 /** Perfiles que consultan la analítica (los mismos del servidor). Extensión solo ve las exportaciones regulatorias. */
@@ -36,7 +40,7 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
   standalone: true,
   imports: [
     DatePipe, EtiquetaPipe, CargaSenalComponent, EstadoVacioComponent, ReportesGeneralComponent, ReportesEstudiantesComponent,
-    ReportesDocumentosComponent, ReportesPeriodosComponent, ReportesDetalleComponent, ReportesOrganizacionesComponent, ReportesExportacionesComponent,
+    ReportesDocumentosComponent, ReportesOrganizacionesComponent, ReportesPeriodosComponent, ReportesDetalleComponent, ReportesExportacionesComponent,
   ],
   providers: [ReportesEstado],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,14 +48,15 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
     :host { display: block; --rp-regla: var(--vd-regla, var(--border-subtle)); }
     :host-context([data-theme='dark']) { --text-muted: #94aeac; }
     .sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .cabecera { display: flex; flex-wrap: wrap; gap: 8px 32px; align-items: flex-end; justify-content: space-between; animation: entra 200ms var(--ease-out) both; }
-    .kicker { margin: 0; font: 600 12px/16px var(--fuente); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
-    .cabecera h1 { margin: 2px 0; font: 600 24px/30px var(--fuente); letter-spacing: -.02em; color: var(--text-primary); }
-    .ayuda { margin: 0; max-width: 92ch; font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+    /* Encabezado de una línea: el título del Shell ya nombra la vista; aquí solo identidad, definición corta y sello. */
+    .cabecera { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; animation: entra 200ms var(--ease-out) both; }
+    /* El título visible lo pone la barra de la aplicación («Reportes»): el h1 queda para lectores de pantalla, sin duplicarlo. */
+    .cabecera h1 { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .ayuda { margin: 0; flex: 1 1 360px; font-size: 13px; line-height: 20px; color: var(--text-secondary); }
     .sello { font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
-    :host-context([data-theme='light']) .sello, :host-context([data-theme='light']) .actualizando { color: var(--text-secondary); }
+    :host-context([data-theme='light']) .sello { color: var(--text-secondary); }
 
-    .herramientas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 14px 0 0; padding: 10px 0; border-top: 1px solid var(--rp-regla); border-bottom: 1px solid var(--rp-regla); }
+    .herramientas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0 0; padding: 8px 0; border-top: 1px solid var(--rp-regla); border-bottom: 1px solid var(--rp-regla); }
     .rotulo { font: 600 11px/16px var(--fuente); letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
     .periodos { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1 1 420px; }
     .chip { height: 30px; padding: 0 12px; font: 500 13px/1 var(--fuente-mono); color: var(--text-primary); background: transparent; border: 1px solid var(--border-default); border-radius: 15px; cursor: pointer; transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out); }
@@ -68,7 +73,12 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
     .panel label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
     .ctl { height: 36px; padding: 0 8px; font: inherit; font-size: 13px; font-weight: 400; color: var(--text-primary); background: var(--vd-campo, color-mix(in srgb, var(--surface-raised) 70%, transparent)); border: 1px solid var(--border-default); border-radius: 6px; }
 
-    .pestanas { display: flex; gap: 2px; margin: 16px 0 20px; border-bottom: 1px solid var(--border-default); overflow-x: auto; scrollbar-width: none; }
+    /* Pestañas y estado en la misma fila: recalcular no desplaza el contenido. */
+    .barra-pestanas { display: flex; align-items: center; gap: 12px; margin: 10px 0 16px; border-bottom: 1px solid var(--border-default); }
+    .pestanas { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+    .estado-linea { margin-left: auto; flex: none; display: flex; gap: 8px; align-items: center; min-height: 34px; font: 500 12px/16px var(--fuente-mono); color: var(--text-secondary); }
+    [role='tabpanel'] { transition: opacity 140ms var(--ease-out); }
+    [role='tabpanel'].recalculando { opacity: .6; }
     [role='tab'] { position: relative; flex: none; height: 40px; padding: 0 14px; font: 500 14px/1 var(--fuente); color: var(--text-secondary); background: none; border: 0; cursor: pointer; }
     [role='tab']:hover { color: var(--text-primary); }
     [role='tab'][aria-selected='true'] { color: var(--text-primary); font-weight: 600; }
@@ -86,21 +96,28 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
     .quitar svg { width: 10px; height: 10px; stroke: currentColor; stroke-width: 1.8; }
     .quitar:focus-visible, .miga.raiz:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 1px; }
     .universo { font: 500 12px/16px var(--fuente-mono); color: var(--text-secondary); }
-    .actualizando { margin: -12px 0 12px; font: 500 12px/16px var(--fuente-mono); color: var(--text-muted); }
+    .universo.dev { font-family: var(--fuente); color: var(--text-muted); }
+    :host-context([data-theme='light']) .universo.dev { color: var(--text-secondary); }
+    .chip.preset { font-family: var(--fuente); }
+
     .error { display: grid; justify-items: start; gap: 10px; padding: 24px 0; }
     .error strong { font-size: 15px; color: var(--text-primary); }
     .error span { font-size: 13px; color: var(--text-secondary); }
     @keyframes entra { from { opacity: 0; transform: translateY(4px); } }
-    @media (prefers-reduced-motion: reduce) { .cabecera { animation: none; } .chip, .bt { transition: none; } }
-    @media (width < 700px) { .cabecera h1 { font-size: 21px; line-height: 28px; } [role='tab'] { padding: 0 10px; font-size: 13px; } }
+    @media (prefers-reduced-motion: reduce) { .cabecera { animation: none; } .chip, .bt, [role='tabpanel'] { transition: none; } }
+    /* Móvil: periodos en una fila desplazable (no una pared de chips); la ayuda larga se oculta. */
+    @media (width < 700px) {
+      .ayuda { display: none; }
+      .periodos { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex-basis: 100%; }
+      .chip, .periodos .rotulo { flex: none; }
+      [role='tab'] { padding: 0 10px; font-size: 13px; }
+      .estado-linea { display: none; }
+    }
   `],
   template: `
     <header class="cabecera">
-      <div>
-        <p class="kicker">Inteligencia operativa</p>
-        <h1>Reportes</h1>
-        <p class="ayuda">Cifras reales del proceso de prácticas dentro de su alcance. Estudiantes se cuentan una vez; los documentos, una vez por obligación exigida.</p>
-      </div>
+      <h1>Reportes</h1>
+      <p class="ayuda">Inteligencia operativa de prácticas en su alcance: estudiantes únicos; documentos por obligación exigida.</p>
       @if (estado.datos(); as r) { <span class="sello">Calculado {{ r.generadoEn | date: 'yyyy-MM-dd HH:mm' : '-0500' }} · hora de Colombia</span> }
     </header>
 
@@ -108,6 +125,9 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
       <div class="herramientas" role="group" aria-label="Filtros del reporte">
         <div class="periodos" role="group" aria-labelledby="rp-per">
           <span class="rotulo" id="rp-per">Periodo</span>
+          @if (estado.dataset()) {
+            <button type="button" class="chip preset" [attr.aria-pressed]="estado.presetActivo()" (click)="estado.aplicarDataset()" title="">{{ rotuloDataset }}</button>
+          }
           <button type="button" class="chip" [attr.aria-pressed]="estado.filtros().periodos.length === 0" (click)="estado.filtrar({ periodos: [] })">Todos</button>
           @for (p of estado.opciones().periodos; track p) {
             <button type="button" class="chip" [attr.aria-pressed]="estado.filtros().periodos.includes(p)" (click)="estado.alternarPeriodo(p)">{{ p }}</button>
@@ -117,7 +137,11 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filtros
           @if (otrosActivos()) { <span class="contador" [attr.aria-label]="otrosActivos() + ' activos'">{{ otrosActivos() }}</span> }
         </button>
-        <button type="button" class="bt" [disabled]="!estado.activos()" (click)="estado.limpiar()">Limpiar</button>
+        <button type="button" class="bt" [disabled]="estado.enInicio()" (click)="estado.limpiar()">Limpiar</button>
+        @if (estado.datos(); as r) {
+          <span class="universo">{{ num(r.resumen.estudiantes) }} de {{ num(r.universo.estudiantes) }} estudiantes en alcance</span>
+          @if (contextoDev(); as c) { <span class="universo dev">{{ c }}</span> }
+        }
       </div>
       <div class="panel" id="rp-filtros" [hidden]="!panel()">
         <label for="rp-escuela">Escuela
@@ -170,30 +194,38 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
         <label for="rp-empresa">Empresa
           <select id="rp-empresa" class="ctl" [value]="estado.filtros().empresa" (change)="estado.filtrar({ empresa: valor($event) })">
             <option value="">Todas</option>
-            @for (e of estado.opciones().empresas; track e) { <option [value]="e ?? sinEmpresa" [selected]="(e ?? sinEmpresa) === estado.filtros().empresa">{{ e ?? 'Sin empresa registrada' }}</option> }
+            @for (e of empresasDelContexto(); track e) { <option [value]="e ?? sinEmpresa" [selected]="(e ?? sinEmpresa) === estado.filtros().empresa">{{ e ?? 'Sin empresa registrada' }}</option> }
           </select></label>
       </div>
-      <nav class="contexto" aria-label="Contexto del reporte">
-        <span class="rotulo">Contexto</span>
-        <ol>
-          <li><button type="button" class="miga raiz" [disabled]="!estado.activos()" (click)="estado.limpiar()">Todo el alcance</button></li>
-          @for (m of migas(); track m.clave) {
-            <li><span class="miga activa" [attr.aria-label]="m.rotulo + ': ' + m.valor"><span class="mr">{{ m.rotulo }}</span> {{ m.valor }}
-              <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + m.rotulo + ' ' + m.valor" (click)="estado.quitar(m.clave)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></span></li>
-          }
-        </ol>
-        @if (estado.datos(); as r) { <span class="universo">{{ r.resumen.estudiantes }} de {{ r.universo.estudiantes }} estudiantes en alcance</span> }
-      </nav>
+      @if (migas().length) {
+        <nav class="contexto" aria-label="Contexto del reporte">
+          <span class="rotulo">Contexto</span>
+          <ol>
+            <li><button type="button" class="miga raiz" (click)="estado.limpiar()">Todo el alcance</button></li>
+            @for (m of migas(); track m.clave) {
+              <li><span class="miga activa" [attr.aria-label]="m.rotulo + ': ' + m.valor"><span class="mr">{{ m.rotulo }}</span> {{ m.valor }}
+                <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + m.rotulo + ' ' + m.valor" (click)="estado.quitar(m.clave)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></span></li>
+            }
+          </ol>
+        </nav>
+      }
     }
 
-    <div class="pestanas" role="tablist" aria-label="Vistas del reporte">
-      @for (p of pestanas(); track p.id) {
-        <button type="button" role="tab" [id]="'tab-' + p.id" [attr.aria-selected]="estado.pestana() === p.id" [attr.aria-controls]="'vista-' + p.id"
-                [attr.tabindex]="estado.pestana() === p.id ? 0 : -1" (click)="irA(p.id)" (keydown)="teclado($event)">{{ p.texto }}</button>
-      }
+    <div class="barra-pestanas">
+      <div class="pestanas" role="tablist" aria-label="Vistas del reporte">
+        @for (p of pestanas(); track p.id) {
+          <button type="button" role="tab" [id]="'tab-' + p.id" [attr.aria-selected]="estado.pestana() === p.id" [attr.aria-controls]="'vista-' + p.id"
+                  [attr.tabindex]="estado.pestana() === p.id ? 0 : -1" (click)="irA(p.id)" (keydown)="teclado($event)">{{ p.texto }}</button>
+        }
+      </div>
+      <div class="estado-linea" role="status" aria-live="polite">
+        @if (estado.cargando() && estado.datos()) { <span>Actualizando…</span> }
+        @if (estado.error() && estado.datos()) { <span role="alert">No se pudo actualizar: se muestran las cifras anteriores.</span><button type="button" class="bt" (click)="estado.cargar()">Reintentar</button> }
+      </div>
     </div>
 
-    <div role="tabpanel" [id]="'vista-' + estado.pestana()" [attr.aria-labelledby]="'tab-' + estado.pestana()" tabindex="0">
+    <div role="tabpanel" [id]="'vista-' + estado.pestana()" [attr.aria-labelledby]="'tab-' + estado.pestana()" tabindex="0"
+         [class.recalculando]="estado.cargando() && !!estado.datos()" [attr.aria-busy]="estado.cargando()">
       @if (estado.pestana() === 'exportaciones') {
         <sipra-reportes-exportaciones />
       } @else if (estado.error() && !estado.datos()) {
@@ -213,8 +245,6 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
           <sipra-estado-vacio titulo="Aún no hay prácticas en su alcance" texto="Cuando se registren prácticas en sus escuelas, aquí verá su avance documental y su evolución por periodo." />
         }
       } @else {
-        @if (estado.cargando()) { <p class="actualizando" role="status">Actualizando…</p> }
-        @if (estado.error(); as e) { <p class="actualizando" role="alert">No se pudo actualizar ({{ e }}). Se muestran las cifras anteriores. <button type="button" class="bt" (click)="estado.cargar()">Reintentar</button></p> }
         @switch (estado.pestana()) {
           @case ('general') { <sipra-reportes-general /> }
           @case ('estudiantes') { <sipra-reportes-estudiantes /> }
@@ -240,12 +270,35 @@ export class ReportesComponent implements OnInit {
   protected readonly semestre = semestre;
   protected readonly sinEmpresa = SIN_EMPRESA;
   private readonly etiqueta = new EtiquetaPipe();
-  protected readonly migas = computed(() => migas(this.estado.filtros(), { escuela: this.estado.nombreEscuela, etiqueta: (v) => this.etiqueta.transform(v), programa: this.estado.nombrePrograma, sector: this.estado.nombreSector, ciudad: this.estado.nombreCiudad }));
+  protected readonly migas = computed(() => migas(this.estado.filtros(), { escuela: this.estado.nombreEscuela, etiqueta: (v) => this.etiqueta.transform(v), programa: this.estado.nombrePrograma, sector: this.estado.nombreSector, ciudad: this.estado.nombreCiudad })
+    .map((m) => (m.clave === 'periodos' && this.estado.presetActivo() ? { ...m, valor: `${ROTULO_DATASET} (${this.estado.filtros().periodos.length} periodos)` } : m)));
+  protected readonly rotuloDataset = ROTULO_DATASET;
+  protected readonly num = num;
+  /**
+   * Solo dev sintético: explica la diferencia entre el dataset y «Todos» con un conteo calculado (universo menos las
+   * prácticas de los periodos del dataset), nunca un número fijo. En producción no hay `dataset` y no se muestra nada.
+   */
+  protected readonly contextoDev = computed(() => {
+    const r = this.estado.datos(), d = this.estado.dataset();
+    if (!r || !d) return '';
+    if (this.estado.presetActivo()) return `${ROTULO_DATASET} · ${d.length} periodos`;
+    if (this.estado.activos() > 0) return '';
+    const enDataset = r.periodos.filter((p) => d.includes(p.periodo)).reduce((n, p) => n + p.practicas, 0);
+    const fuera = r.universo.practicas - enDataset;
+    return fuera > 0 ? `Todos los datos · incluye ${num(fuera)} práctica${fuera === 1 ? '' : 's'} fuera del ${ROTULO_DATASET}` : 'Todos los datos en alcance';
+  });
 
   ngOnInit(): void {
     if (this.analitica()) void this.estado.cargar();
     else this.estado.pestana.set('exportaciones');
   }
+
+  /** Empresas del universo filtrado (coherentes con receptor, sector y ciudad), más la elegida si ya no aparece. */
+  protected readonly empresasDelContexto = computed(() => {
+    const lista = (this.estado.datos()?.empresas ?? []).map((e) => e.empresa);
+    const elegida = this.estado.filtros().empresa;
+    return elegida && !lista.includes(elegida) ? [...lista, elegida] : lista;
+  });
 
   protected valor(evento: Event): string { return (evento.target as HTMLSelectElement).value; }
   protected valorReceptor(evento: Event): '' | 'interna_cun' | 'externa' { return this.valor(evento) as '' | 'interna_cun' | 'externa'; }

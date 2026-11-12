@@ -88,6 +88,16 @@ export interface Cobertura {
   rechazos: number;
 }
 
+/**
+ * Dimensiones con FILTRADO POR FACETAS: la distribución de cada una se calcula ignorando SU PROPIO filtro y respetando todos
+ * los demás (así la vista muestra lo elegido resaltado y el resto atenuado). Periodo, escuela y estado de la práctica son
+ * contexto: no son facetas. Los totales (`resumen`), el detalle y el CSV usan siempre todos los filtros.
+ */
+export type Faceta = 'programa' | 'ciclo' | 'semestre' | 'modalidad' | 'tipoReceptor' | 'sector' | 'ciudad' | 'empresa' | 'situacion';
+export const FACETAS: readonly Faceta[] = ['programa', 'ciclo', 'semestre', 'modalidad', 'tipoReceptor', 'sector', 'ciudad', 'empresa', 'situacion'];
+/** Puntos del enjambre de tiempos (uno por decisión): muestra determinista; las estadísticas usan todas las decisiones. */
+export const MAX_MUESTRAS_TIEMPO = 1500;
+
 /** Celda de un cruce de dos dimensiones: estudiantes únicos y prácticas. */
 export interface Celda { fila: string; columna: string; estudiantes: number; practicas: number }
 
@@ -100,6 +110,12 @@ export interface ReporteAnalitica {
   ordenPeriodos: string[];
   /** Periodos de las prácticas que no están en `periodos_academicos`: su lugar en el orden no es cronológico. */
   periodosSinFecha: string[];
+  /** Solo en dev sintético: periodos del dataset de pruebas (contexto inicial de la vista). En producción, null. */
+  dataset: { periodos: string[] } | null;
+  /** Universo de cada faceta (estudiantes y prácticas sin el filtro propio): denominador de su distribución. */
+  facetas: Record<Faceta, { estudiantes: number; practicas: number }>;
+  /** Escuela → programa → nivel → semestre (estudiantes únicos), para la vista jerárquica. Semestre null sin el dato. */
+  jerarquia: { escuela: string; programa: string; ciclo: string; semestre: number | null; estudiantes: number }[];
   /** Origen de cada dimensión que SIPRA no persiste. Semestre: `no_disponible` en producción. */
   dimensiones: { semestre: 'sintetica' | 'no_disponible'; nombrePrograma: 'sintetico' | 'no_disponible'; ubicacionInternacional: 'sintetica' | 'no_disponible' };
   /** Por semestre (vacío si no hay fuente). `semestre: null` = práctica sin el dato. */
@@ -110,7 +126,11 @@ export interface ReporteAnalitica {
   documental: Record<EstadoObligacion, number>;
   porTipo: ({ tipo: string; exigidos: number } & Record<EstadoObligacion, number>)[];
   friccion: { tipo: string; documentos: number; versiones: number; conReenvio: number; devoluciones: number; rechazos: number; promedioVersiones: number }[];
-  tiempos: { decisiones: number; medianaHoras: number | null; p90Horas: number | null; porTipo: { tipo: string; decisiones: number; medianaHoras: number | null }[] };
+  tiempos: {
+    decisiones: number; medianaHoras: number | null; p90Horas: number | null; porTipo: { tipo: string; decisiones: number; medianaHoras: number | null }[];
+    /** Una decisión por punto (tipo, programa y horas de carga a decisión), hasta MAX_MUESTRAS_TIEMPO por muestreo determinista. */
+    muestras: { tipo: string; programa: string; horas: number }[];
+  };
   semanas: { semana: string; cargas: number; aprobaciones: number; devoluciones: number; rechazos: number }[];
   periodos: ({ periodo: string } & Cobertura)[];
   modalidades: ({ modalidad: string } & Cobertura)[];
@@ -131,7 +151,7 @@ export interface ReporteAnalitica {
   /** Celdas con semestre: la clave de fila/columna es el número como texto, o '' si la práctica no tiene semestre. */
   cruces: Record<'programaModalidad' | 'programaNivel' | 'nivelModalidad' | 'periodoPrograma' | 'periodoModalidad' | 'periodoNivel'
     | 'semestreModalidad' | 'programaSemestre' | 'programaSector' | 'programaCiudad' | 'nivelSector' | 'modalidadSector'
-    | 'receptorPrograma' | 'receptorNivel', Celda[]>;
+    | 'receptorPrograma' | 'receptorNivel' | 'modalidadSituacion', Celda[]>;
 }
 
 export interface FilaDetalle {
@@ -215,9 +235,16 @@ export class ReportesAnaliticaUseCase {
   async analitica(filtro: FiltroReporteAnalitica, actor: Actor, ahora = new Date()): Promise<ReporteAnalitica> {
     exigirReportes(actor);
     const alcance = escuelasDeReportes(actor);
-    const [periodosDisponibles, universo, { expedientes, versiones }] = await Promise.all([
-      this.datos.periodos(alcance), this.datos.universo(alcance), this.filtrados(filtro, actor),
+    // Facetas activas: UNA consulta extra (sin las facetas) y predicados en memoria; nunca una consulta por dimensión.
+    const activas = FACETAS.filter((k) => filtro[k] !== undefined && filtro[k] !== '');
+    const sinFacetas: FiltroReporteAnalitica = { ...filtro };
+    for (const k of FACETAS) delete sinFacetas[k];
+    const [periodosDisponibles, universo, sinteticos, { expedientes, versiones }, base] = await Promise.all([
+      this.datos.periodos(alcance), this.datos.universo(alcance), this.datos.periodosSinteticos(alcance), this.filtrados(filtro, actor),
+      activas.length ? this.filtrados(sinFacetas, actor).then((r) => r.expedientes) : Promise.resolve(null),
     ]);
+    const faceta = (k: Faceta): Expediente[] => (!base || !activas.includes(k) ? expedientes
+      : base.filter((e) => activas.every((o) => o === k || cumpleFaceta(e, filtro, o))));
     const practicas = expedientes.map((e) => e.practica);
     const orden = ordenCronologico(periodosDisponibles);
     const sinFecha = new Set(periodosDisponibles.filter((p) => !p.inicio).map((p) => p.codigo));
@@ -228,7 +255,8 @@ export class ReportesAnaliticaUseCase {
     const ciu = (e: Expediente) => e.practica.ciudad ?? (e.practica.internacional ? INTERNACIONAL : '');
     const rec = (e: Expediente) => tipoReceptor(e.practica.modalidad) ?? '';
     const etiquetas = { sectores: {} as Record<string, string>, ciudades: {} as Record<string, string> };
-    for (const p of practicas) {
+    // Etiquetas de todo lo que la vista puede pintar (incluidas las categorías de las facetas).
+    for (const p of (base ?? expedientes).map((e) => e.practica)) {
       if (p.sector && p.sectorNombre) etiquetas.sectores[p.sector] = p.sectorNombre;
       if (p.ciudad && p.ciudadNombre) etiquetas.ciudades[p.ciudad] = p.ciudadNombre;
       if (!p.ciudad && p.internacional) etiquetas.ciudades[INTERNACIONAL] = NOMBRE_INTERNACIONAL;
@@ -249,7 +277,7 @@ export class ReportesAnaliticaUseCase {
       .sort((a, b) => (b.exigidos - b.aprobado) - (a.exigidos - a.aprobado) || a.tipo.localeCompare(b.tipo));
 
     const situaciones = Object.fromEntries(SITUACIONES.map((s) => [s, 0])) as Record<SituacionExpediente, number>;
-    for (const e of expedientes) situaciones[e.situacion] += 1;
+    for (const e of faceta('situacion')) situaciones[e.situacion] += 1;
 
     const estados = new Map<string, number>();
     for (const p of practicas) estados.set(p.estado, (estados.get(p.estado) ?? 0) + 1);
@@ -261,19 +289,30 @@ export class ReportesAnaliticaUseCase {
       universo,
       ordenPeriodos: orden,
       periodosSinFecha: periodosDisponibles.filter((p) => !p.inicio).map((p) => p.codigo).sort(compararPeriodos),
+      dataset: sinteticos.length ? { periodos: [...new Set(sinteticos)].sort((a, b) => (posicion.get(a) ?? 1e9) - (posicion.get(b) ?? 1e9) || compararPeriodos(a, b)) } : null,
+      facetas: Object.fromEntries(FACETAS.map((k) => {
+        const g = faceta(k);
+        return [k, { estudiantes: new Set(g.map((e) => e.practica.estudianteId)).size, practicas: g.length }];
+      })) as Record<Faceta, { estudiantes: number; practicas: number }>,
+      jerarquia: agrupar(expedientes, (e) => JSON.stringify([e.practica.escuelaId, e.practica.programaId, e.practica.ciclo, conSemestre ? e.practica.semestre : null]))
+        .map(([k, g]) => {
+          const [escuela, programa, ciclo, semestre] = JSON.parse(k) as [string, string, string, number | null];
+          return { escuela, programa, ciclo, semestre, estudiantes: new Set(g.map((e) => e.practica.estudianteId)).size };
+        })
+        .sort((a, b) => a.escuela.localeCompare(b.escuela) || a.programa.localeCompare(b.programa) || compararCiclos(a.ciclo, b.ciclo) || (a.semestre ?? 99) - (b.semestre ?? 99)),
       dimensiones: {
         semestre: conSemestre ? 'sintetica' : 'no_disponible', nombrePrograma: this.datos.programasSinteticos() ? 'sintetico' : 'no_disponible',
         ubicacionInternacional: this.datos.ubicacionSintetica() ? 'sintetica' : 'no_disponible',
       },
-      sectores: agrupar(expedientes, sec).map(([s, g]) => ({ sector: s || null, nombre: s ? etiquetas.sectores[s] ?? s : null, ...cobertura(g) }))
+      sectores: agrupar(faceta('sector'), sec).map(([s, g]) => ({ sector: s || null, nombre: s ? etiquetas.sectores[s] ?? s : null, ...cobertura(g) }))
         .sort((a, b) => b.estudiantes - a.estudiantes || (a.sector ?? '~').localeCompare(b.sector ?? '~')),
-      ciudades: agrupar(expedientes, ciu).map(([c, g]) => ({ ciudad: c || null, nombre: c ? etiquetas.ciudades[c] ?? c : null, ...cobertura(g) }))
+      ciudades: agrupar(faceta('ciudad'), ciu).map(([c, g]) => ({ ciudad: c || null, nombre: c ? etiquetas.ciudades[c] ?? c : null, ...cobertura(g) }))
         .sort((a, b) => b.estudiantes - a.estudiantes || (a.ciudad ?? '~').localeCompare(b.ciudad ?? '~')),
-      receptores: agrupar(expedientes, rec).map(([t, g]) => ({ tipo: (t || null) as TipoReceptor | null, ...cobertura(g) }))
+      receptores: agrupar(faceta('tipoReceptor'), rec).map(([t, g]) => ({ tipo: (t || null) as TipoReceptor | null, ...cobertura(g) }))
         .sort((a, b) => TIPOS_RECEPTOR.indexOf(a.tipo as TipoReceptor) - TIPOS_RECEPTOR.indexOf(b.tipo as TipoReceptor)),
       etiquetas,
       semestres: conSemestre
-        ? agrupar(expedientes, sem).map(([s, grupo]) => ({ semestre: s === '' ? null : Number(s), ...cobertura(grupo) }))
+        ? agrupar(faceta('semestre'), sem).map(([s, grupo]) => ({ semestre: s === '' ? null : Number(s), ...cobertura(grupo) }))
           .sort((a, b) => (a.semestre ?? 999) - (b.semestre ?? 999))
         : [],
       resumen: cobertura(expedientes),
@@ -282,27 +321,27 @@ export class ReportesAnaliticaUseCase {
       documental,
       porTipo,
       friccion: this.friccion(versiones),
-      tiempos: this.tiempos(versiones),
+      tiempos: this.tiempos(versiones, expedientes),
       semanas: this.semanas(versiones, ahora),
       periodos: agrupar(expedientes, (e) => e.practica.periodoAcademico)
         .map(([periodo, grupo]) => ({ periodo, ...cobertura(grupo) }))
         .sort((a, b) => (posicion.get(a.periodo) ?? 1e9) - (posicion.get(b.periodo) ?? 1e9) || compararPeriodos(a.periodo, b.periodo)),
-      modalidades: agrupar(expedientes, (e) => e.practica.modalidad).map(([modalidad, grupo]) => ({ modalidad, ...cobertura(grupo) }))
+      modalidades: agrupar(faceta('modalidad'), (e) => e.practica.modalidad).map(([modalidad, grupo]) => ({ modalidad, ...cobertura(grupo) }))
         .sort((a, b) => b.practicas - a.practicas),
       escuelas: agrupar(expedientes, (e) => e.practica.escuelaId).map(([escuela, grupo]) => ({
         escuela, nombre: grupo[0].practica.escuela, ...cobertura(grupo),
         programas: agrupar(grupo, (e) => e.practica.programaId).map(([programa, g]) => ({ programa, ...cobertura(g) })).sort((a, b) => b.practicas - a.practicas),
       })).sort((a, b) => b.practicas - a.practicas),
-      empresas: agrupar(expedientes, (e) => e.practica.empresa ?? SIN_EMPRESA)
+      empresas: agrupar(faceta('empresa'), (e) => e.practica.empresa ?? SIN_EMPRESA)
         .map(([empresa, grupo]) => ({
           empresa: empresa === SIN_EMPRESA ? null : empresa, practicas: grupo.length, estudiantes: new Set(grupo.map((e) => e.practica.estudianteId)).size,
           sector: grupo[0].practica.sector, ciudad: grupo[0].practica.ciudad ?? (grupo[0].practica.internacional ? INTERNACIONAL : null),
           tipo: tipoReceptor(grupo[0].practica.modalidad),
         }))
         .sort((a, b) => b.estudiantes - a.estudiantes || b.practicas - a.practicas || (a.empresa ?? '~').localeCompare(b.empresa ?? '~')),
-      niveles: agrupar(expedientes, (e) => e.practica.ciclo).map(([ciclo, grupo]) => ({ ciclo, ...cobertura(grupo) }))
+      niveles: agrupar(faceta('ciclo'), (e) => e.practica.ciclo).map(([ciclo, grupo]) => ({ ciclo, ...cobertura(grupo) }))
         .sort((a, b) => compararCiclos(a.ciclo, b.ciclo)),
-      programas: agrupar(expedientes, (e) => e.practica.programaId).map(([programa, grupo]) => {
+      programas: agrupar(faceta('programa'), (e) => e.practica.programaId).map(([programa, grupo]) => {
         const [escuela, enEscuela] = agrupar(grupo, (e) => e.practica.escuelaId).sort((a, b) => b[1].length - a[1].length)[0];
         return {
           programa, nombre: grupo.find((e) => e.practica.programaNombre)?.practica.programaNombre ?? null, escuela, nombreEscuela: enEscuela[0].practica.escuela,
@@ -324,6 +363,8 @@ export class ReportesAnaliticaUseCase {
         receptorNivel: cruce(expedientes, rec, (e) => e.practica.ciclo),
         semestreModalidad: conSemestre ? cruce(expedientes, sem, (e) => e.practica.modalidad) : [],
         programaSemestre: conSemestre ? cruce(expedientes, (e) => e.practica.programaId, sem) : [],
+        // Composición de la operación: misma faceta que la situación (con su filtro activo, se ve el resto atenuado).
+        modalidadSituacion: cruce(faceta('situacion'), (e) => e.practica.modalidad, (e) => e.situacion),
       },
     };
   }
@@ -459,11 +500,21 @@ export class ReportesAnaliticaUseCase {
   }
 
   /** Carga → decisión humana, solo con los dos eventos fiables (nunca `actualizado_en`). */
-  private tiempos(versiones: readonly VersionAnalitica[]): ReporteAnalitica['tiempos'] {
-    const decididas = versiones.filter((v) => v.decididoEn && v.decididoEn >= v.cargadoEn);
+  private tiempos(versiones: readonly VersionAnalitica[], expedientes: readonly Expediente[]): ReporteAnalitica['tiempos'] {
+    const ids = new Map(expedientes.map((e) => [e.practica.id, e.practica.programaId]));
+    const decididas = versiones.filter((v) => v.decididoEn && v.decididoEn >= v.cargadoEn && ids.has(v.practicaId));
     const horas = (v: VersionAnalitica) => ((v.decididoEn as Date).getTime() - v.cargadoEn.getTime()) / 3_600_000;
     const todas = decididas.map(horas);
+    // Muestreo determinista (orden por id, paso fijo): el mismo filtro produce los mismos puntos.
+    const ordenadas = [...decididas].sort((a, b) => a.id.localeCompare(b.id));
+    const paso = Math.max(1, ordenadas.length / MAX_MUESTRAS_TIEMPO);
+    const muestras: ReporteAnalitica['tiempos']['muestras'] = [];
+    for (let i = 0; i < ordenadas.length && muestras.length < MAX_MUESTRAS_TIEMPO; i += paso) {
+      const v = ordenadas[Math.floor(i)];
+      muestras.push({ tipo: v.tipo, programa: ids.get(v.practicaId) as string, horas: Math.round(horas(v) * 10) / 10 });
+    }
     return {
+      muestras,
       decisiones: decididas.length, medianaHoras: percentil(todas, 0.5), p90Horas: percentil(todas, 0.9),
       porTipo: agrupar(decididas, (v) => v.tipo).map(([tipo, g]) => ({ tipo, decisiones: g.length, medianaHoras: percentil(g.map(horas), 0.5) }))
         .sort((a, b) => (b.medianaHoras ?? 0) - (a.medianaHoras ?? 0)),
@@ -485,6 +536,25 @@ export class ReportesAnaliticaUseCase {
       }
     }
     return [...filas.values()];
+  }
+}
+
+/** ¿Cumple el expediente el filtro de UNA faceta? Mismo criterio que el SQL del adaptador (y que la situación calculada). */
+function cumpleFaceta(e: Expediente, f: FiltroReporteAnalitica, k: Faceta): boolean {
+  const p = e.practica;
+  switch (k) {
+    case 'programa': return p.programaId === f.programa;
+    case 'ciclo': return p.ciclo === f.ciclo;
+    case 'semestre': return p.semestre === f.semestre;
+    case 'modalidad': return p.modalidad === f.modalidad;
+    case 'tipoReceptor': return tipoReceptor(p.modalidad) === f.tipoReceptor;
+    case 'sector': return f.sector === SIN_DATO ? p.sector === null : p.sector === f.sector;
+    case 'ciudad': {
+      const clave = p.ciudad ?? (p.internacional ? INTERNACIONAL : null);
+      return f.ciudad === SIN_DATO ? clave === null : clave === f.ciudad;
+    }
+    case 'empresa': return (p.empresa ?? SIN_EMPRESA) === f.empresa;
+    case 'situacion': return e.situacion === f.situacion;
   }
 }
 

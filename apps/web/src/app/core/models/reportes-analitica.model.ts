@@ -14,7 +14,9 @@ export interface Cobertura {
 export interface Celda { fila: string; columna: string; estudiantes: number; practicas: number }
 export type CruceAnalitica = 'programaModalidad' | 'programaNivel' | 'nivelModalidad' | 'periodoPrograma' | 'periodoModalidad' | 'periodoNivel'
   | 'semestreModalidad' | 'programaSemestre' | 'programaSector' | 'programaCiudad' | 'nivelSector' | 'modalidadSector'
-  | 'receptorPrograma' | 'receptorNivel';
+  | 'receptorPrograma' | 'receptorNivel' | 'modalidadSituacion';
+/** Dimensiones con filtrado por facetas: su distribución ignora SU propio filtro y respeta los demás. */
+export type Faceta = 'programa' | 'ciclo' | 'semestre' | 'modalidad' | 'tipoReceptor' | 'sector' | 'ciudad' | 'empresa' | 'situacion';
 /** Interna CUN = modalidad articulada del dominio («escenario dentro de la institución»); externa = las demás. */
 export type TipoReceptor = 'interna_cun' | 'externa';
 
@@ -27,6 +29,12 @@ export interface ReporteAnalitica {
   ordenPeriodos: string[];
   /** Códigos que no están en `periodos_academicos`: su posición no es cronológica. */
   periodosSinFecha: string[];
+  /** Solo en dev sintético: periodos del dataset de pruebas (contexto inicial «Dataset v4»). En producción, null. */
+  dataset: { periodos: string[] } | null;
+  /** Universo de cada faceta (sin su propio filtro): denominador de su distribución. */
+  facetas: Record<Faceta, { estudiantes: number; practicas: number }>;
+  /** Escuela → programa → nivel → semestre (estudiantes únicos). */
+  jerarquia: { escuela: string; programa: string; ciclo: string; semestre: number | null; estudiantes: number }[];
   /** Semestre: `no_disponible` en producción (vive en SINU); `sintetica` solo en bases de prueba con el overlay. */
   /** `ubicacionInternacional`: solo en dev sintético se distingue «Internacional · sin DIVIPOLA» (clave `__internacional__`) de «Sin información». */
   dimensiones: { semestre: 'sintetica' | 'no_disponible'; nombrePrograma: 'sintetico' | 'no_disponible'; ubicacionInternacional: 'sintetica' | 'no_disponible' };
@@ -38,7 +46,11 @@ export interface ReporteAnalitica {
   documental: Record<EstadoObligacion, number>;
   porTipo: ({ tipo: string; exigidos: number } & Record<EstadoObligacion, number>)[];
   friccion: { tipo: string; documentos: number; versiones: number; conReenvio: number; devoluciones: number; rechazos: number; promedioVersiones: number }[];
-  tiempos: { decisiones: number; medianaHoras: number | null; p90Horas: number | null; porTipo: { tipo: string; decisiones: number; medianaHoras: number | null }[] };
+  tiempos: {
+    decisiones: number; medianaHoras: number | null; p90Horas: number | null; porTipo: { tipo: string; decisiones: number; medianaHoras: number | null }[];
+    /** Una decisión por punto (muestra determinista acotada); las estadísticas usan todas las decisiones. */
+    muestras: { tipo: string; programa: string; horas: number }[];
+  };
   semanas: { semana: string; cargas: number; aprobaciones: number; devoluciones: number; rechazos: number }[];
   periodos: ({ periodo: string } & Cobertura)[];
   modalidades: ({ modalidad: string } & Cobertura)[];

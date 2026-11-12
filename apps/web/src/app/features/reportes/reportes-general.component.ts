@@ -1,162 +1,156 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
-import { MetricaV3, TiraMetricasComponent } from '@shared/components/tira-metricas.component';
+import { MetricaV3 } from '@shared/components/tira-metricas.component';
 import { ReportesBarrasComponent } from './reportes-barras.component';
+import { ReportesColumnasComponent } from './reportes-columnas.component';
+import { ReportesDonaComponent } from './reportes-dona.component';
+import { ReportesInsightsComponent, insights } from './reportes-insights.component';
+import { ReportesKpisComponent } from './reportes-kpis.component';
+import { ReportesComposicionComponent } from './reportes-composicion.component';
+import { ReportesProporcionComponent } from './reportes-proporcion.component';
 import {
-  CATEGORIAS_EXPEDIENTE, ItemBarra, RECEPTORES, ReporteAnalitica, SIN_DATO, SIN_EMPRESA, TASAS, TipoReceptor, escalaSemanas, horas, nivel, partes, pct1,
-  porcentaje, semanaCorta, semestre,
+  CATEGORIAS_EXPEDIENTE, ItemBarra, RECEPTORES, ReporteAnalitica, SituacionExpediente, TipoReceptor, compararNiveles, nivel, partes, partesGrafico, pct1, porcentaje, semestre,
 } from './reportes-analitica.util';
+import { ParteGrafico, TonoGrafico, num, tonoDe } from './reportes-graficos.util';
 import { ReportesEstado } from './reportes.estado';
 import { ESTILOS_REPORTES } from './reportes.estilos';
 
 /**
- * Cifras de la franja General. Estudiantes = DISTINCT; prácticas = filas; documentos = obligaciones de la matriz.
- * Con filtros activos, el contexto muestra el denominador «en alcance» (lo que el perfil puede ver sin filtros).
+ * Franja ejecutiva (6 cifras). Estudiantes = DISTINCT; prácticas = filas; cobertura = obligaciones cargadas / exigidas;
+ * aprobación = aprobadas / exigidas. Con filtros, el contexto muestra el denominador «en alcance».
  */
-export function metricasGenerales(r: ReporteAnalitica, filtrado = false): MetricaV3[] {
-  const { resumen: s, expedientes: e, tiempos: t, universo: u } = r;
-  const pctCompletos = porcentaje(s.completos, s.practicas);
-  const pctAprobados = porcentaje(s.aprobados, s.exigidos);
+export function metricasGenerales(r: ReporteAnalitica, filtrado = false, situacion = ''): MetricaV3[] {
+  const { resumen: s, expedientes: e, universo: u } = r;
+  const cobertura = porcentaje(s.cargados, s.exigidos);
+  const aprobacion = porcentaje(s.aprobados, s.exigidos);
+  // La distribución de situaciones es una faceta (ignora su propio filtro); la cifra de la tira es del universo filtrado.
+  const correccion = situacion ? (situacion === 'requiere_correccion' ? s.practicas : 0) : e.requiere_correccion;
   return [
-    { n: s.estudiantes, t: 'Estudiantes', tono: 'info', contexto: filtrado ? `de ${u.estudiantes} en alcance · ${s.practicas} práctica(s)` : `${s.practicas} práctica(s)` },
-    { n: s.completos, t: 'Expedientes completos', tono: 'ok', contexto: pctCompletos === null ? 'sin prácticas' : `${pctCompletos} % de las prácticas` },
-    { n: e.requiere_correccion, t: 'Requieren corrección', tono: e.requiere_correccion ? 'aviso' : 'neutra', contexto: `${s.correccion} documento(s) devuelto(s)` },
-    { n: s.aprobados, t: 'Aprobados', tono: 'ok', contexto: pctAprobados === null ? 'documentos · sin exigidos' : `documentos · ${pctAprobados} % de ${s.exigidos}` },
-    { n: s.cargados, t: 'Cargados', tono: 'info', contexto: 'documentos vigentes' },
-    { n: t.decisiones, t: 'Decisiones', tono: 'neutra', contexto: `auditadas · mediana ${horas(t.medianaHoras)}` },
+    { n: s.estudiantes, t: 'Estudiantes', tono: 'info', contexto: filtrado ? `únicos · de ${num(u.estudiantes)} en alcance` : 'únicos en su alcance' },
+    { n: s.practicas, t: 'Prácticas', tono: 'neutra', contexto: filtrado ? `de ${num(u.practicas)} en alcance` : 'registradas en su alcance' },
+    { n: s.completos, t: 'Expedientes completos', tono: 'ok', contexto: `${num(s.completos)} / ${num(s.practicas)} · ${pct1(s.completos, s.practicas)}` },
+    { n: correccion, t: 'Requieren corrección', tono: correccion ? 'aviso' : 'neutra', contexto: `${num(correccion)} / ${num(s.practicas)} · ${pct1(correccion, s.practicas)}` },
+    { n: cobertura ?? 0, t: 'Cobertura vigente %', tono: 'info', contexto: `${num(s.cargados)} / ${num(s.exigidos)} obligaciones` },
+    { n: aprobacion ?? 0, t: 'Aprobación %', tono: 'ok', contexto: `${num(s.aprobados)} / ${num(s.exigidos)} obligaciones` },
   ];
 }
 
+/** Agrupación de la tira por universo: personas y prácticas · expedientes · obligaciones documentales. */
+export const GRUPOS_GENERAL = [{ titulo: 'Operación', n: 2 }, { titulo: 'Expedientes', n: 2 }, { titulo: 'Documentación', n: 2 }] as const;
+
+/**
+ * Reconciliación visible (sin cambiar definiciones): situaciones = prácticas; obligaciones = vigentes + por reenviar +
+ * sin cargar. «Cargada» es la del dominio (versión vigente que NO requiere reenvío): devuelta, ilegible o rechazada va aparte.
+ */
+export function reconciliacion(r: ReporteAnalitica, situacionActiva = ''): { situaciones: ParteGrafico[]; practicas: number; obligaciones: ParteGrafico[]; exigidas: number; cierra: boolean } {
+  const s = r.resumen, o = r.documental;
+  const sit = situacionActiva ? { ...Object.fromEntries(CATEGORIAS_EXPEDIENTE.map((c) => [c.clave, 0])), [situacionActiva]: s.practicas } as Record<SituacionExpediente, number> : r.expedientes;
+  const porReenviar = o.correccion + o.rechazado;
+  const obligaciones: ParteGrafico[] = [
+    { clave: 'vigentes', texto: 'cargadas vigentes', n: s.cargados, pct: pct1(s.cargados, s.exigidos), tono: 'info' },
+    { clave: 'reenvio', texto: 'por reenviar (corrección o rechazo)', n: porReenviar, pct: pct1(porReenviar, s.exigidos), tono: 'aviso' },
+    { clave: 'sin_cargar', texto: 'sin cargar', n: o.sin_cargar, pct: pct1(o.sin_cargar, s.exigidos), tono: 'muted' },
+  ];
+  const situaciones = partesGrafico(partes(CATEGORIAS_EXPEDIENTE, sit));
+  return { situaciones, practicas: s.practicas, obligaciones, exigidas: s.exigidos,
+    cierra: situaciones.reduce((n, x) => n + x.n, 0) === s.practicas && obligaciones.reduce((n, x) => n + x.n, 0) === s.exigidos };
+}
+
+/** Interna CUN / externa como partes (% de un decimal sobre el universo de esa faceta). Interna = teal; externa = azul. */
+export function partesReceptor(r: ReporteAnalitica): ParteGrafico[] {
+  const tono: Record<TipoReceptor, TonoGrafico> = { interna_cun: 'interna', externa: 'externa' };
+  const base = r.facetas?.tipoReceptor.estudiantes ?? r.resumen.estudiantes;
+  return r.receptores.filter((x) => x.tipo).map((x) => ({
+    clave: x.tipo as string, texto: RECEPTORES[x.tipo as TipoReceptor], n: x.estudiantes, pct: pct1(x.estudiantes, base), tono: tono[x.tipo as TipoReceptor],
+  }));
+}
+
+/** Acentos de la tira ejecutiva (microseñal por cifra; no seis tarjetas de colores). */
+export const ACENTOS_GENERAL: readonly TonoGrafico[] = ['c0', 'c8', 'ok', 'aviso', 'info', 'c4'];
+/** Nivel de formación: rampa fría coordinada (técnico → tecnólogo → profesional). */
+export const TONOS_NIVEL: readonly TonoGrafico[] = ['c8', 'info', 'c0'];
+
+/**
+ * General · página ejecutiva (V3.3, claridad antes que sofisticación). Tira de KPI agrupada por universo con denominadores
+ * visibles y una línea de reconciliación; dos lecturas; composición por modalidad y situación (barras apiladas con
+ * cantidades absolutas, 7/12) junto al ranking de programas (5/12); luego nivel, semestre e interna/externa (4/12 cada uno).
+ * Toda categoría es un filtro; con un filtro activo, su gráfica muestra lo elegido y atenúa el resto (facetas).
+ */
 @Component({
   selector: 'sipra-reportes-general',
   standalone: true,
-  imports: [TiraMetricasComponent, ReportesBarrasComponent],
+  imports: [ReportesKpisComponent, ReportesInsightsComponent, ReportesComposicionComponent, ReportesBarrasComponent, ReportesColumnasComponent, ReportesDonaComponent, ReportesProporcionComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [ESTILOS_REPORTES, `
-    .tira { margin: 4px 0 28px; }
-    .cobertura { display: grid; gap: 10px; margin: 2px 0 6px; }
-    .cobertura div { display: grid; grid-template-columns: 9.5rem 1fr 4.5rem; align-items: center; gap: 12px; font-size: 13px; }
-    .cobertura .ra-mini { height: 10px; border-radius: 5px; }
-    .semanas { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: end; gap: 6px; height: 132px; padding: 0 0 4px; border-bottom: 1px solid var(--border-default); }
-    .semana { display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 100%; }
-    .semana span { width: 42%; max-width: 14px; min-height: 1px; border-radius: 2px 2px 0 0; }
-    .ejes { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; margin-top: 4px; font: 500 10px/14px var(--fuente-mono); color: var(--text-muted); text-align: center; }
-    .leyenda { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 10px 0 0; font-size: 12px; color: var(--text-secondary); }
-    details { margin-top: 10px; font-size: 13px; }
-    summary { cursor: pointer; color: var(--text-secondary); width: max-content; }
-    summary:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 2px; }
-    .seccion { grid-column: 1 / -1; margin: 8px 0 -14px; font: 600 11px/16px var(--fuente); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); border-top: 1px solid var(--ra-regla); padding-top: 18px; }
-    @media (width < 700px) { .ejes span:nth-child(odd) { visibility: hidden; } .cobertura div { grid-template-columns: 7rem 1fr 3.5rem; } }
+    .tira { margin: 0 0 10px; }
+    .rec { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 32px; margin: 0 0 24px; }
+    .rec-i { display: grid; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+    .rec-barra { display: flex; gap: 1px; height: 6px; border-radius: 3px; overflow: hidden; }
+    .rec-barra span { background: var(--c); }
+    .rec-txt { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+    .rec-txt b { font: 650 12px/16px var(--fuente-mono); color: var(--text-primary); }
+    .rec-txt i { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--c); font-style: normal; }
+    .rec-txt .igual { color: var(--text-primary); }
+    .ir { justify-self: start; padding: 4px 0; font: 500 13px/18px var(--fuente); color: var(--signal-default); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    :host-context([data-theme='light']) .ir { color: #03587a; }
+    .ir:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 1px; }
+    @media (width < 900px) { .rec { grid-template-columns: 1fr; } }
   `],
   template: `
     @if (estado.datos(); as r) {
-      <sipra-tira-metricas class="tira" [etiqueta]="filtrado() ? 'Resumen del universo filtrado' : 'Resumen del alcance'" [metricas]="metricas()" />
-      <div class="ra-rejilla">
-        <section class="ra-bloque" aria-labelledby="g-prog">
-          <h2 id="g-prog">Estudiantes por programa</h2>
-          <p class="ra-nota">Estudiantes únicos por programa (código registrado en la práctica), sobre {{ r.resumen.estudiantes }} del universo filtrado. Elija un programa para recalcular todo el reporte con él.</p>
-          <sipra-reportes-barras titulo="Estudiantes por programa" [items]="programas()" [total]="r.resumen.estudiantes" [seleccion]="f().programa" (elegir)="estado.alternar('programa', $event)" />
-        </section>
-
-        <section class="ra-bloque" aria-labelledby="g-exp">
-          <h2 id="g-exp">Situación de los expedientes</h2>
-          <p class="ra-nota">Una categoría por práctica: completo (todo aprobado), requiere corrección (algún documento devuelto, ilegible o rechazado), en curso y sin iniciar. Mismo avance del Expediente. Elegir una filtra el reporte.</p>
-          <div class="ra-pila" aria-hidden="true">
-            @for (p of expedientes(); track p.clave) { <span [class]="'t-' + p.tono" [style.flex-grow]="p.n" [title]="p.texto + ': ' + p.n"></span> }
+      <sipra-reportes-kpis class="tira" [etiqueta]="filtrado() ? 'Resumen del universo filtrado' : 'Resumen del alcance'" [metricas]="metricas()" [acentos]="acentos" [grupos]="grupos" />
+      @if (cuadre(); as c) {
+        <div class="rec" aria-label="Cómo cuadran las cifras">
+          <div class="rec-i">
+            <span class="rec-barra" aria-hidden="true">@for (p of c.situaciones; track p.clave) { <span [class]="'gt-' + p.tono" [style.flex-grow]="p.n"></span> }</span>
+            <span class="rec-txt">@for (p of c.situaciones; track p.clave) { <span [class]="'gt-' + p.tono"><i></i><b>{{ num(p.n) }}</b> {{ p.texto.toLowerCase() }}</span> }<span class="igual">= <b>{{ num(c.practicas) }}</b> prácticas</span></span>
           </div>
-          <table class="ra-tabla">
-            <caption class="ra-sr">Prácticas por situación del expediente</caption>
-            <thead><tr><th scope="col">Situación</th><th scope="col" class="d">Prácticas</th><th scope="col" class="d">%</th></tr></thead>
-            <tbody>
-              @for (p of expedientes(); track p.clave) {
-                <tr>
-                  <th scope="row"><button type="button" class="ra-ir" [attr.aria-pressed]="f().situacion === p.clave" (click)="estado.alternar('situacion', p.clave)"><span class="ra-punto" [class]="'t-' + p.tono" aria-hidden="true"></span>{{ p.texto }}</button></th>
-                  <td class="d">{{ p.n }}</td>
-                  <td class="d ra-tenue">{{ p.pct }} %</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </section>
+          <div class="rec-i">
+            <span class="rec-barra" aria-hidden="true">@for (p of c.obligaciones; track p.clave) { <span [class]="'gt-' + p.tono" [style.flex-grow]="p.n"></span> }</span>
+            <span class="rec-txt">@for (p of c.obligaciones; track p.clave) { <span [class]="'gt-' + p.tono"><i></i><b>{{ num(p.n) }}</b> {{ p.texto }}</span> }<span class="igual">= <b>{{ num(c.exigidas) }}</b> obligaciones exigidas</span></span>
+          </div>
+        </div>
+      }
+      <sipra-reportes-insights [lineas]="lecturas()" />
 
-        <h2 class="seccion">Composición</h2>
-        <section class="ra-bloque" aria-labelledby="g-mod">
-          <h2 id="g-mod">Modalidad de práctica</h2>
-          <p class="ra-nota">Estudiantes únicos por modalidad (la entidad real del dominio).</p>
-          <sipra-reportes-barras titulo="Estudiantes por modalidad" [items]="modalidades()" [total]="r.resumen.estudiantes" [seleccion]="f().modalidad" [limite]="8" (elegir)="estado.alternar('modalidad', $event)" />
+      <div class="ra-g12">
+        <section class="ra-bloque ra-zona zona-academica c7 alto-l" aria-labelledby="g-op">
+          <h2 id="g-op">Composición por modalidad y situación</h2>
+          <p class="ra-nota">Cada barra es una modalidad; su largo es el número de prácticas y los colores, la situación del expediente.</p>
+          <sipra-reportes-composicion titulo="Prácticas por modalidad y situación del expediente" [celdas]="r.cruces.modalidadSituacion" [categorias]="situaciones()" [textoFila]="etiquetaModalidad"
+            [seleccionFila]="f().modalidad" [seleccionColumna]="f().situacion" (elegirFila)="estado.alternar('modalidad', $event)" (elegirColumna)="situacion($event)" />
         </section>
-        <section class="ra-bloque" aria-labelledby="g-niv">
+        <section class="ra-bloque ra-zona zona-academica c5 alto-l" aria-labelledby="g-prog">
+          <h2 id="g-prog">Estudiantes por programa</h2>
+          <p class="ra-nota">Top 8 de {{ programas().length }} · estudiantes únicos.</p>
+          <sipra-reportes-barras titulo="Estudiantes por programa" [items]="programas()" [total]="r.facetas.programa.estudiantes" ejeX="Estudiantes" [seleccion]="f().programa" [limite]="8" (elegir)="estado.alternar('programa', $event)" />
+        </section>
+      </div>
+
+      <div class="ra-g12">
+        <section class="ra-bloque ra-zona zona-academica c4 alto-s" aria-labelledby="g-niv">
           <h2 id="g-niv">Nivel de formación</h2>
-          <p class="ra-nota">Ciclo registrado en la práctica.@if (r.dimensiones.semestre === 'no_disponible') { El semestre no está en SIPRA (solo en SINU, por estudiante): no se muestra ni se deduce. }</p>
-          <sipra-reportes-barras titulo="Estudiantes por nivel de formación" [items]="niveles()" [total]="r.resumen.estudiantes" [seleccion]="f().ciclo" (elegir)="estado.alternar('ciclo', $event)" />
+          <p class="ra-nota">Ciclo registrado en la práctica.</p>
+          <sipra-reportes-dona titulo="Estudiantes por nivel de formación" [partes]="niveles()" centro="estudiantes" [seleccion]="f().ciclo" (elegir)="estado.alternar('ciclo', $event)" />
         </section>
         @if (r.dimensiones.semestre === 'sintetica') {
-          <section class="ra-bloque" aria-labelledby="g-semestre">
-            <h2 id="g-semestre">Estudiantes por semestre</h2>
-            <p class="ra-nota">Semestre: dato sintético de prueba (tabla auxiliar de desarrollo); en producción SIPRA no lo guarda. Orden numérico.</p>
-            <sipra-reportes-barras titulo="Estudiantes por semestre" [items]="semestres()" [total]="r.resumen.estudiantes" [seleccion]="f().semestre" [limite]="12" (elegir)="estado.alternar('semestre', $event)" />
+          <section class="ra-bloque ra-zona zona-academica c4 alto-s" aria-labelledby="g-semestre">
+            <h2 id="g-semestre">Semestre</h2>
+            <p class="ra-nota">Dato sintético de prueba (SIPRA no lo guarda en producción).</p>
+            <sipra-reportes-columnas titulo="Estudiantes por semestre" [items]="semestres()" [total]="r.facetas.semestre.estudiantes" ejeX="Semestre" [corto]="numeroSemestre"
+              [seleccion]="f().semestre" (elegir)="estado.alternar('semestre', $event)" />
+          </section>
+        } @else {
+          <section class="ra-bloque ra-zona zona-doc c4 alto-s" aria-labelledby="g-doc">
+            <h2 id="g-doc">Documentación</h2>
+            <p class="ra-nota">El análisis por tipo, grupo y tiempo está en Documentos.</p>
+            <button type="button" class="ir" (click)="estado.pestana.set('documentos')">Ir a Documentos</button>
           </section>
         }
-        <section class="ra-bloque" aria-labelledby="g-est">
-          <h2 id="g-est">Estado de la práctica</h2>
-          <p class="ra-nota">Prácticas por estado registrado (no es el estado documental).</p>
-          <sipra-reportes-barras titulo="Prácticas por estado" unidad="prácticas" [items]="estados()" [total]="r.resumen.practicas" [seleccion]="f().estado" (elegir)="estado.alternar('estado', $event)" />
-        </section>
-        <section class="ra-bloque" aria-labelledby="g-cob">
-          <h2 id="g-cob">Salud documental</h2>
-          <p class="ra-nota">{{ tasa.texto }} = {{ tasa.definicion }}: {{ r.resumen.aprobados }} / {{ r.resumen.exigidos }}. «Cargado» es la última versión vigente; no se suma con aprobado. Detalle por programa, nivel y tipo en Documentos.</p>
-          <div class="cobertura">
-            <div><span>Cargado</span><span class="ra-mini" aria-hidden="true"><span class="t-info" [style.width.%]="pctCargado() ?? 0"></span></span><span class="d ra-num">{{ pctCargado() ?? '—' }} %</span></div>
-            <div><span>Aprobado</span><span class="ra-mini" aria-hidden="true"><span class="t-ok" [style.width.%]="pctAprobado() ?? 0"></span></span><span class="d ra-num">{{ pctAprobado() ?? '—' }} %</span></div>
-          </div>
-          <p class="ra-nota" style="margin-top:10px">{{ r.resumen.correccion }} en corrección · {{ r.resumen.devoluciones }} devoluciones auditadas · carga → decisión: mediana {{ horas(r.tiempos.medianaHoras) }}, p90 {{ horas(r.tiempos.p90Horas) }}.</p>
-        </section>
-
-        <h2 class="seccion">Organizaciones receptoras</h2>
-        <section class="ra-bloque" aria-labelledby="g-rec">
-          <h2 id="g-rec">Tipo de organización receptora</h2>
-          <p class="ra-nota">Interna CUN: modalidad articulada («escenario dentro de la institución», regla del dominio). Externa: las demás.</p>
-          <sipra-reportes-barras titulo="Estudiantes por tipo de receptor" [items]="receptores()" [total]="r.resumen.estudiantes" [seleccion]="f().tipoReceptor" [limite]="2" (elegir)="tipo($event)" />
-        </section>
-        <section class="ra-bloque" aria-labelledby="g-emp">
-          <h2 id="g-emp">Empresas con más estudiantes</h2>
-          <p class="ra-nota">Por razón social registrada. Elija una para recalcular el reporte; «Ver todos» lista el universo completo.</p>
-          <sipra-reportes-barras titulo="Estudiantes por empresa" [items]="empresas()" [total]="r.resumen.estudiantes" [seleccion]="f().empresa" (elegir)="estado.alternar('empresa', $event)" />
-        </section>
-        <section class="ra-bloque" aria-labelledby="g-sector">
-          <h2 id="g-sector">Sector económico</h2>
-          <p class="ra-nota">Sección CIIU de la actividad registrada de la empresa (catálogo oficial cargado en SIPRA).</p>
-          <sipra-reportes-barras titulo="Estudiantes por sector económico" [items]="sectores()" [total]="r.resumen.estudiantes" [seleccion]="f().sector" [limite]="12" (elegir)="filtrarDato('sector', $event)" />
-        </section>
-        <section class="ra-bloque" aria-labelledby="g-ciudad">
-          <h2 id="g-ciudad">Ciudad</h2>
-          <p class="ra-nota">Municipio DIVIPOLA de la empresa.@if (r.dimensiones.ubicacionInternacional === 'sintetica') { «Internacional · sin DIVIPOLA» proviene del dataset sintético de prueba (SIPRA no guarda país); «Sin municipio registrado» es un dato faltante. } @else { Sin municipio registrado: dato faltante (incluye receptoras en el exterior, porque SIPRA no guarda país). }</p>
-          <sipra-reportes-barras titulo="Estudiantes por ciudad" [items]="ciudades()" [total]="r.resumen.estudiantes" [seleccion]="f().ciudad" [limite]="12" (elegir)="filtrarDato('ciudad', $event)" />
-        </section>
-
-        <section class="ra-bloque" aria-labelledby="g-sem" style="grid-column:1 / -1">
-          <h2 id="g-sem">Movimiento de las últimas 12 semanas</h2>
-          <p class="ra-nota">Semanas de lunes a domingo en hora de Colombia. Cargas por fecha de carga; decisiones por su registro en la auditoría. La última semana está en curso.</p>
-          <div class="semanas" aria-hidden="true">
-            @for (s of r.semanas; track s.semana) {
-              <div class="semana" [title]="semanaCorta(s.semana) + ': ' + s.cargas + ' cargas, ' + (s.aprobaciones + s.devoluciones + s.rechazos) + ' decisiones'">
-                <span class="t-info" [style.height.%]="alto(s.cargas)"></span>
-                <span class="t-ok" [style.height.%]="alto(s.aprobaciones + s.devoluciones + s.rechazos)"></span>
-              </div>
-            }
-          </div>
-          <div class="ejes" aria-hidden="true">@for (s of r.semanas; track s.semana) { <span>{{ semanaCorta(s.semana) }}</span> }</div>
-          <div class="leyenda" aria-hidden="true"><span><span class="ra-punto t-info"></span>Cargas</span><span><span class="ra-punto t-ok"></span>Decisiones (aprobar, devolver, rechazar)</span></div>
-          <details>
-            <summary>Ver la serie como tabla</summary>
-            <div class="ra-desliza">
-              <table class="ra-tabla" style="margin-top:8px">
-                <caption class="ra-sr">Cargas y decisiones por semana</caption>
-                <thead><tr><th scope="col">Semana</th><th scope="col" class="d">Cargas</th><th scope="col" class="d">Aprobaciones</th><th scope="col" class="d">Devoluciones</th><th scope="col" class="d">Rechazos</th></tr></thead>
-                <tbody>@for (s of r.semanas; track s.semana) { <tr><td>{{ semanaCorta(s.semana) }}</td><td class="d">{{ s.cargas }}</td><td class="d">{{ s.aprobaciones }}</td><td class="d">{{ s.devoluciones }}</td><td class="d">{{ s.rechazos }}</td></tr> }</tbody>
-              </table>
-            </div>
-          </details>
+        <section class="ra-bloque ra-zona zona-org c4 alto-s" aria-labelledby="g-rec">
+          <h2 id="g-rec">Interna CUN y externa</h2>
+          <p class="ra-nota">Interna = modalidad articulada («escenario dentro de la institución»).</p>
+          <sipra-reportes-proporcion titulo="Estudiantes por tipo de organización receptora" [partes]="receptores()" [grande]="true" [seleccion]="f().tipoReceptor" (elegir)="tipo($event)" />
         </section>
       </div>
     }
@@ -164,42 +158,35 @@ export function metricasGenerales(r: ReporteAnalitica, filtrado = false): Metric
 })
 export class ReportesGeneralComponent {
   protected readonly estado = inject(ReportesEstado);
-  protected readonly horas = horas;
-  protected readonly semanaCorta = semanaCorta;
-  protected readonly tasa = TASAS.aprobacion;
   private readonly etiqueta = new EtiquetaPipe();
+  protected readonly acentos = ACENTOS_GENERAL;
+  protected readonly grupos = GRUPOS_GENERAL;
+  protected readonly cuadre = computed(() => { const r = this.estado.datos(); return r ? reconciliacion(r, this.f().situacion) : null; });
+  protected readonly num = num;
 
   protected readonly f = this.estado.filtros;
   protected readonly filtrado = computed(() => this.estado.activos() > 0);
-  protected readonly metricas = computed(() => { const r = this.estado.datos(); return r ? metricasGenerales(r, this.filtrado()) : []; });
-  protected readonly expedientes = computed(() => { const r = this.estado.datos(); return r ? partes(CATEGORIAS_EXPEDIENTE, r.expedientes) : []; });
+  protected readonly metricas = computed(() => { const r = this.estado.datos(); return r ? metricasGenerales(r, this.filtrado(), this.f().situacion) : []; });
+  protected readonly lecturas = computed(() => { const r = this.estado.datos(); return r ? insights.general(r, this.nombres) : []; });
+  protected readonly etiquetaModalidad = (v: string): string => this.etiqueta.transform(v);
+  private readonly nombres = { programa: this.estado.nombrePrograma, modalidad: this.etiquetaModalidad, tipo: this.etiquetaModalidad, escuela: this.estado.nombreEscuela };
+  /** Situaciones en su orden semántico, con su color fijo (completo verde, en curso cielo, corrección ámbar, sin iniciar gris). */
+  protected readonly situaciones = computed<ParteGrafico[]>(() => CATEGORIAS_EXPEDIENTE.map((c) => ({ clave: c.clave, texto: c.texto, n: 0, pct: '', tono: tonoDe(c.tono, c.clase) })));
+  /** Solo el nombre del programa en la etiqueta; la escuela va al tooltip. Familia azul (dato principal). */
   protected readonly programas = computed<ItemBarra[]>(() => (this.estado.datos()?.programas ?? [])
-    .map((p) => ({ clave: p.programa, texto: p.nombre ?? p.programa, n: p.estudiantes, sub: p.nombre ? p.programa : p.nombreEscuela })));
-  protected readonly modalidades = computed<ItemBarra[]>(() => [...(this.estado.datos()?.modalidades ?? [])]
-    .sort((a, b) => b.estudiantes - a.estudiantes).map((m) => ({ clave: m.modalidad, texto: this.etiqueta.transform(m.modalidad), n: m.estudiantes })));
-  protected readonly niveles = computed<ItemBarra[]>(() => (this.estado.datos()?.niveles ?? [])
-    .map((n) => ({ clave: n.ciclo, texto: nivel(n.ciclo), n: n.estudiantes, sub: `${pct1(n.aprobados, n.exigidos)} aprobado` })));
+    .map((p) => ({ clave: p.programa, texto: p.nombre ?? p.programa, n: p.estudiantes, detalle: [p.nombreEscuela] })));
+  protected readonly niveles = computed<ParteGrafico[]>(() => {
+    const r = this.estado.datos();
+    if (!r) return [];
+    return [...r.niveles].sort((a, b) => compararNiveles(a.ciclo, b.ciclo))
+      .map((n, k) => ({ clave: n.ciclo, texto: nivel(n.ciclo), n: n.estudiantes, pct: pct1(n.estudiantes, r.facetas.ciclo.estudiantes), tono: TONOS_NIVEL[k % TONOS_NIVEL.length] }));
+  });
   /** Semestres en orden numérico (no por volumen): el eje es académico. «Sin información» no es filtrable. */
   protected readonly semestres = computed<ItemBarra[]>(() => (this.estado.datos()?.semestres ?? [])
-    .filter((s) => s.semestre !== null).map((s) => ({ clave: String(s.semestre), texto: semestre(s.semestre), n: s.estudiantes, sub: `${pct1(s.aprobados, s.exigidos)} aprobado` })));
-  protected readonly receptores = computed<ItemBarra[]>(() => (this.estado.datos()?.receptores ?? [])
-    .filter((x) => x.tipo).map((x) => ({ clave: x.tipo as string, texto: RECEPTORES[x.tipo as TipoReceptor], n: x.estudiantes })));
-  protected readonly empresas = computed<ItemBarra[]>(() => (this.estado.datos()?.empresas ?? [])
-    .map((e) => ({ clave: e.empresa ?? SIN_EMPRESA, texto: e.empresa ?? 'Sin empresa registrada', n: e.estudiantes, sub: e.ciudad ? this.estado.nombreCiudad(e.ciudad) : undefined })));
-  protected readonly sectores = computed<ItemBarra[]>(() => (this.estado.datos()?.sectores ?? [])
-    .map((s) => ({ clave: s.sector ?? SIN_DATO, texto: s.nombre ?? 'Sin información', n: s.estudiantes })));
-  protected readonly ciudades = computed<ItemBarra[]>(() => (this.estado.datos()?.ciudades ?? [])
-    .map((c) => ({ clave: c.ciudad ?? SIN_DATO, texto: c.nombre ?? 'Sin municipio registrado', n: c.estudiantes })));
-  protected tipo(t: string): void { this.estado.alternar('tipoReceptor', t as TipoReceptor); }
-  protected filtrarDato(k: 'sector' | 'ciudad', v: string): void { this.estado.alternar(k, v); }
-  protected readonly estados = computed<ItemBarra[]>(() => (this.estado.datos()?.estadosPractica ?? [])
-    .map((e) => ({ clave: e.estado, texto: this.etiqueta.transform(e.estado), n: e.practicas })));
-  protected readonly pctCargado = computed(() => { const s = this.estado.datos()?.resumen; return s ? porcentaje(s.cargados, s.exigidos) : null; });
-  protected readonly pctAprobado = computed(() => { const s = this.estado.datos()?.resumen; return s ? porcentaje(s.aprobados, s.exigidos) : null; });
-  private readonly maximo = computed(() => escalaSemanas(this.estado.datos()?.semanas ?? []));
+    .filter((s) => s.semestre !== null).map((s) => ({ clave: String(s.semestre), texto: semestre(s.semestre), n: s.estudiantes })));
+  protected readonly receptores = computed(() => { const r = this.estado.datos(); return r ? partesReceptor(r) : []; });
+  protected readonly numeroSemestre = (i: ItemBarra): string => i.clave;
 
-  protected alto(n: number): number {
-    const max = this.maximo();
-    return max === 0 ? 0 : Math.max(n > 0 ? 3 : 0, Math.round((n * 100) / max));
-  }
+  protected tipo(t: string): void { this.estado.alternar('tipoReceptor', t as TipoReceptor); }
+  protected situacion(s: string): void { this.estado.alternar('situacion', s as SituacionExpediente); }
 }

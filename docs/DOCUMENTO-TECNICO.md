@@ -1860,6 +1860,12 @@ expedientes en una hora. **No bloquea: notifica.**
 - **Contexto único de filtros** (el mismo para agregados, detalle y CSV): `periodos`, `escuela`, `programa`, `ciclo` (nivel), `modalidad`, `estado`, `empresa` (o `__sin_empresa__`) y `situacion` (situación del expediente). Los siete primeros viajan a PostgreSQL; la situación se aplica sobre el avance calculado.
 - **Recorte documental del detalle:** `tipo` y `estadoDocumental`. **Búsqueda:** `buscar`, por nombre del estudiante, programa o empresa, sin tildes y nunca por documento de identidad.
 - El detalle en JSON trae como máximo 200 filas (`LIMITE_FILAS_JSON`), con `total` y `estudiantesUnicos` del recorte completo; el CSV lleva todas.
+- **Filtrado por facetas (0.38.0).** Las distribuciones de `programa`, `ciclo`, `semestre`, `modalidad`, `tipoReceptor`, `sector`, `ciudad`, `empresa` y `situacion` (y el cruce `modalidadSituacion`) se calculan ignorando SU propio filtro y respetando todos los demás; periodo, escuela y estado de la práctica son contexto, no facetas. Así la vista muestra lo elegido resaltado y el resto atenuado.
+  - `resumen`, los demás cruces, el detalle y el CSV usan siempre TODOS los filtros: ninguna métrica cambió de definición.
+  - Costo: a lo sumo UNA consulta extra (la misma sin las facetas, solo si hay alguna faceta activa) y predicados en memoria con el mismo criterio del SQL; nunca una consulta por dimensión.
+  - `facetas`: estudiantes y prácticas del universo de cada faceta (denominador de su distribución). Invariantes probados: cada faceta = el reporte pedido sin ese filtro; interna + externa = prácticas de su faceta; situaciones = prácticas de su faceta.
+- **Campos para visualizaciones (0.38.0):** `jerarquia` (escuela → programa → nivel → semestre, estudiantes únicos), `tiempos.muestras` (una decisión por punto: tipo, programa y horas; muestra determinista de hasta 1.500, mientras mediana y p90 usan todas) y `cruces.modalidadSituacion`.
+- **`dataset` (solo dev sintético):** periodos de las prácticas con el overlay sintético (consulta de `periodosSinteticos`, que en producción no se ejecuta y devuelve vacío). La vista lo usa como contexto inicial «Dataset v4»; no altera ninguna cifra.
 
 **Dimensiones verificadas en la fuente** (no se infiere ninguna):
 
@@ -1942,17 +1948,32 @@ Agregarlo exigiría N consultas a SINU por reporte o un dato que hoy no se persi
 **Pantalla** (`features/reportes`):
 
 - **Pestañas ARIA:**
-  - **General:** cifras, estudiantes por programa (top 10 con «Ver todos»), situación de los expedientes, modalidad, nivel, estado de la práctica, salud documental y movimiento semanal.
-  - **Estudiantes:** composición académica (escuela → programa, programa × nivel; semestre declarado no disponible), composición de prácticas (programa × modalidad, nivel × modalidad, empresas) y la tabla granular.
-  - **Documentos:** salud documental por programa, nivel, modalidad o periodo, con tasas; obligaciones por tipo; correcciones y versiones; tiempos.
-  - **Períodos:** comparativo, A frente a B, evolución de hasta 5 programas, periodo × modalidad y periodo × nivel.
+  Tres niveles de lectura: visión general → análisis → detalle (tabla granular → Expediente). Desde 0.38.1 (V3.3, «la sofisticación visual no le gana a la claridad»), seis pestañas; cada gráfica debe leerse en 3–5 segundos:
+  - **General (página ejecutiva):** tira de KPI agrupada por universo (Operación · Expedientes · Documentación) con denominador visible («225 / 1.000 · 22,5 %»); línea de reconciliación (situaciones = prácticas; cargadas vigentes + por reenviar + sin cargar = obligaciones exigidas); hasta dos lecturas; **composición por modalidad y situación** en barras horizontales APILADAS con cantidades absolutas (misma altura, el largo es el volumen, Top 7 + «Otras», «Ver todas», control Cantidad | %) en 7/12 junto a programas (5/12); luego nivel, semestre e interna/externa (4/12 cada uno). El Mekko de V3.2 se retiró: no se entendía qué representaban alto, ancho y segmento.
+  - **Estudiantes:** **drilldown por niveles** (Escuelas → Programas → Nivel de formación → Semestre, de a uno, con miga): «Mapa» (treemap squarified, área = estudiantes, etiqueta completa solo en bloques grandes) por defecto y «Ranking» (barras) como alternativa —en móvil, siempre ranking—; «Filtrar el reporte» en una escuela o un programa. Reemplaza al Icicle (cuatro columnas de astillas, difícil de leer). Se mantienen programas (barras), HeatMap programa × semestre, perfil del programa (Radar), nivel (dona), semestre (columnas), tabla de escuelas y programas, explorador de cruces y tabla granular.
+  - **Organizaciones:** KPI y lecturas; **Circle packing** sector → organización (externas; zoom por sector, clic filtra) junto al ranking de organizaciones externas (la CUN aparte); **HeatMap** programa × sector; ciudades (barras; sin mapa porque el repositorio no tiene geometría DIVIPOLA confiable) e interna/externa (dona) con el ranking de sectores; franja de la organización elegida.
+  - **Documentos:** jerarquía vertical: A. salud documental (KPI con «Cargados vigentes») y situación, a todo el ancho; B. tipos con problemas: HeatMap tipo × estado (7/12) y ranking de correcciones (5/12); C. **tiempos de decisión** con cabecera (mediana, p90, decisiones) y el Swarm a todo el ancho, con la mediana por tipo plegada debajo; D. movimiento semanal (líneas) a todo el ancho; E. tablas detalladas (grupos afectados, tipos, correcciones y versiones) plegadas, a todo el ancho, una línea por fila con «…» y encabezado fijo.
+  - **Períodos:** línea de cobertura y aprobación por periodo y UNA vista a la vez: **Estudiantes por programa** (por defecto: líneas por cantidad, 5 programas seleccionables, eje por fecha de inicio), composición por modalidad (Stream), **movimiento en ranking** (Bump, secundario y explicado: 1 = el programa con más estudiantes; la distancia no es volumen; selector compacto en lugar de 17 chips) y A frente a B. El AreaBump se evaluó con capturas y se descartó: «Otros programas» ocupaba ~65 % del área y las cinco bandas se cruzaban.
   - **Exportaciones:** el Excel del SGP y los archivos del SPE de antes.
+  - **Descartados (y por qué):** Mekko e Icicle (V3.3: menos comprensibles que barras apiladas y drilldown), AreaBump (confuso con «Otros» dominante), Tree (el Icicle comunica mejor composición y tamaño), Network programa–sector (con 17 programas y 11 sectores es ruido; el HeatMap responde lo mismo), ParallelCoordinates (por empresa solo hay volumen, sin tasas comparables), PolarBar (más decorativo y menos preciso que la dona o la barra para tres niveles), Bullet (no hay metas institucionales confirmadas; no se inventan) y Choropleth (sin geometría confiable).
+- **Contexto «Dataset v4» (dev sintético):** la primera carga aplica los periodos de `dataset` antes de pintar (1.000 estudiantes, 1.000 prácticas, 120 internas, 880 externas). «Todos» sigue existiendo (1.003, con los tres registros base) y la barra explica la diferencia con un conteo calculado («incluye 3 prácticas fuera del Dataset v4»); «Limpiar» vuelve al contexto inicial. En producción no hay `dataset`: el contexto inicial es todo el alcance y no aparece texto técnico.
+- **Capa de gráficas (SVG/CSS propia, sin dependencias):** `barras`, `columnas`, `proporcion`, `dona`, `lineas`, `grupos`, `matriz` (HeatMap), `apiladas`, `mekko`, `bump`, `stream`, `swarm`, `icicle`, `pack`, `radar`, `kpis`, `insights` y `tooltip` (compartido, con punto y cifra en el color de la serie y la acción como chip; `aria-hidden`; nunca el `title` nativo). Componentes presentacionales, sin lógica de dominio.
+  - **ECharts reevaluado (0.38.0):** cubriría heatmap, radar, tree, sunburst/treemap, themeRiver, graph y parallel, pero no circle packing, icicle ni bump nativos (habría que programarlos igual), dibuja en canvas por defecto (peor accesibilidad: sin botones ni `aria-pressed`), su tema vive en JavaScript (no en los tokens V3) y su núcleo con esos módulos supera los 300 kB en el chunk perezoso. La capa propia sumó ~180 kB sin minificar (16 kB transferidos). Se mantiene.
+  - **Paleta BI (`--bi-*`) por familias** (V3.3), sin morado ni arcoíris: académico (blue #2563EB, sky #0284C7, cyan #0E7490), organizaciones (teal #0F766E, emerald #15803D, lime #4D7C0F), atención (amber #B45309, orange #C2410C), crítico (coral #C2412E, rose #BE123C) y neutro (slate #64748B), con variantes claras en oscuro. En claro cada tono es ≥ 3:1 como marca sobre el lienzo y las cifras de serie van en tinta (`--gr-valor`); en oscuro, en el color de la serie. Significados fijos: programa/ranking azul; comparación naranja; completo/aprobado esmeralda; en curso cielo; corrección ámbar; rechazado/riesgo rosa; sin iniciar gris; interna CUN teal; externa azul. Categorías (sectores, modalidades, escuelas) en el orden fijo c0–c9.
+  - **Ritmo (V3.3):** rejilla de 12 columnas (`.ra-g12`, anchos 4/5/6/7/8/12), alturas S/M/L (240/340/460 px) y 32 px entre filas de sección, 20 px entre gráficas.
+  - **Texto y superficies:** títulos en tinta fuerte, notas en muted, cifra de KPI con su acento, valores de serie en su color cuando aporta, leyendas con muestra de color y texto neutro; zonas analíticas con un tinte casi imperceptible (académica azul, organizaciones teal, documentación ámbar, tiempo cielo).
+  - **HeatMap accesible:** una sola polaridad de texto y techo de intensidad por tema (45 % oscuro, 65 % claro) para que la cifra cumpla AA en toda la escala.
+  - **Móvil:** Icicle → lista de la rama; HeatMap → los cruces mayores; Circle packing → lista por sector; Bump, Stream y Swarm → tabla.
+  - **Interacción y motion:** hover = más contraste en la marca señalada y el resto atenuado; selección = lo no elegido a muted (gracias a las facetas); foco de teclado con anillo y el mismo tooltip; transiciones de 380 ms con easing suave al filtrar (sin rebote) y ninguna con `prefers-reduced-motion`.
 - **Cross-filter (`ReportesEstado` es el único contexto):**
   - Cada barra, fila apilada, entrada de leyenda o fila de tabla agregada es un botón con `aria-pressed`; Enter o Espacio aplican el filtro y elegirlo otra vez lo quita.
   - Elegir un programa fija su escuela como contexto; quitar la escuela suelta el programa.
-  - Breadcrumb «Contexto» (Todo el alcance / Periodo / Escuela / Programa / Nivel / Modalidad / Estado / Empresa / Expediente), con quitar por nivel, «Limpiar» y «N de M estudiantes en alcance».
-- **Tabla granular:** una fila por práctica, con estudiante, programa, nivel, modalidad, empresa, periodo, estado, avance, pendientes, devoluciones, expediente y último movimiento. Tiene búsqueda, CSV del mismo recorte y «Abrir expediente», que lleva a la ruta existente `/practicas/:id`. Sigue abierta y se recarga cuando cambia el contexto.
-- Las gráficas son decorativas (`aria-hidden`); el texto visible y «Ver como tabla» son la alternativa tabular. La paleta de categorías tiene cinco tonos de la familia de señal más «otras», sin arcoíris.
+  - Breadcrumb «Contexto» (Todo el alcance / Periodo / Escuela / Programa / Nivel / Semestre / Modalidad / Estado / Receptor / Sector / Ciudad / Empresa / Expediente): aparece solo con filtros, muestra solo los niveles elegidos, con quitar por nivel y «Limpiar». «N de M estudiantes en alcance» va en la barra de herramientas.
+  - Filtros dependientes: las opciones de programa, sector, ciudad y empresa salen del contexto (con Interna CUN no se ofrecen empresas externas ni ciudades sin internas).
+  - Selección: lo no elegido se atenúa (solo la marca gráfica; el texto conserva su contraste) y lo elegido lleva `aria-pressed`, borde y negrita: no depende solo del color.
+  - Recarga sin saltos: el panel baja a opacidad 0,6 con `aria-busy`, y la línea de estado (`role=status`) de la barra de pestañas dice «Actualizando…» o el error con «Reintentar», conservando las cifras anteriores.
+- **Tabla granular:** una fila por práctica (una línea; el texto largo se recorta con «…» y el nombre completo queda en el `title`). Columnas esenciales: estudiante, programa, nivel, semestre, modalidad, organización, sector, ciudad, periodo, expediente y avance. «Todas las columnas» suma receptor, estado, pendientes, devoluciones y último movimiento. El encabezado y «Abrir expediente» (ruta existente `/practicas/:id`) quedan fijos. Tiene búsqueda por estudiante, programa o empresa (nunca por documento) y CSV del mismo recorte. Sigue abierta y se recarga cuando cambia el contexto.
+- Las marcas gráficas son decorativas (`aria-hidden`); los controles son botones con `aria-label` completo (cifra, % y contexto) y las tablas equivalentes («Ver como tabla», tablas de periodos y de salud, la matriz como tabla real) se conservan. La paleta de categorías es la del SIPRA Charts Theme, sin arcoíris.
 - Error y vacío se distinguen: «Reintentar», «Sin prácticas para estos filtros» y «Aún no hay prácticas en su alcance».
 - Cada componente se mantiene bajo el presupuesto de 12 kB de estilos.
 
@@ -3434,6 +3455,113 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.38.2 — 12 de noviembre de 2026
+
+**Reportes · Organizaciones: etiquetas legibles en «Sectores y organizaciones».** Solo frontend; sin cambios de datos, filtros ni métricas.
+- **Nombres de sector fuera de las burbujas:** van en canales laterales unidos por una guía discreta.
+  - Cada nombre ocupa 1–2 líneas de palabras completas a 12 px, sin «…» si caben; las burbujas no se deforman y su área sigue siendo el número de estudiantes.
+  - La utilidad `envolverEtiqueta` mide con canvas y nunca corta una palabra.
+- **Guías:** cada sector va al lado (izquierda o derecha) cuya guía cruza menos círculos, y la guía elegida es la más corta que no cruza ninguno, cuando existe.
+- **Nombre completo siempre disponible:**
+  - tooltip BI con hover y foco (nombre, estudiantes, organizaciones y % de los estudiantes en organizaciones externas; «Clic para explorar organizaciones»);
+  - `aria-label`, una leyenda seleccionable de 2 columnas y, al ampliar, una cabecera y una miga sin recorte.
+- **Al ampliar un sector:** el lienzo recorta y solo se dibuja ese sector.
+- **Organizaciones dentro de su sector:** un nombre corto (sin las palabras comunes a todo el sector ni la forma jurídica) solo si cabe; si no, sin texto. El nombre completo, los estudiantes y la ciudad van en el tooltip.
+- **Disposición de la fila:** pasa de 7/5 a 8/4 para dar ancho a los canales. En móvil, lista de sectores con cantidad e indicador.
+- **QA en 1440 × 1024:**
+  - 10 sectores; 8 nombres completos en el gráfico y 2 abreviados (los dos más pequeños, de 86 y 89 caracteres), con su nombre completo en el tooltip, la leyenda y la miga;
+  - 0 solapes entre etiquetas y 0 etiquetas sobre círculos; 2 guías de sectores centrales pasan sobre un vecino.
+- **Pruebas:** web 420 y captura `organizaciones-circle-labels.webp`.
+
+### 0.38.1 — 12 de noviembre de 2026
+
+**Reportes V3.3: comprensión.** Sin cambios en el seed v4, permisos, CSV, reglas de dominio ni definiciones de métricas.
+
+- **Auditoría de comprensión** (sobre las capturas de V3.2):
+  - General «Composición de la operación» (Mekko): CONFUSO;
+  - Estudiantes «Estructura académica» (Icicle): CONFUSO a nivel de nivel y semestre;
+  - Documentos: REQUIERE EXPLICACIÓN (tablas y tiempos apretados, nombres en varias líneas);
+  - Períodos «Ranking de programas» (Bump) como vista principal: CONFUSO (se lee la distancia como volumen).
+- **Reconciliación de KPI** (API y SQL sobre `sipra_reportes_1000`, Dataset v4):
+  - todo cierra: 1.000 estudiantes y 1.000 prácticas; situaciones 225 + 425 + 275 + 75 = 1.000; 120 + 880 = 1.000;
+  - obligaciones: 6.210 = 3.000 aprobadas + 844 en revisión + 521 recibidas + 400 en corrección + 74 rechazadas + 1.371 sin cargar;
+  - lo único que no cuadraba a la vista era «cargadas + sin cargar = exigidas» (4.365 + 1.371 ≠ 6.210): no es un error, la «cargada» del dominio es la versión vigente que no requiere reenvío. La identidad es 4.365 vigentes + 474 por reenviar + 1.371 sin cargar = 6.210. Se corrigió la presentación, no la definición, y una prueba de la API fija la identidad.
+- **Cambios:** composición en barras apiladas absolutas (reemplaza al Mekko); drilldown treemap/ranking (reemplaza al Icicle); Documentos en bloques verticales; Períodos abre en líneas por cantidad (el Bump queda secundario; AreaBump descartado); KPI agrupados con denominadores; paleta por familias; rejilla de 12 columnas y alturas S/M/L; lecturas en lenguaje operativo (por ejemplo, «Publicidad y Mercadeo pasó de 8 a 18 estudiantes»).
+- **Prueba con persona no técnica** (respuestas leídas solo de la pantalla): modalidad con más estudiantes (Pasantía · 300), en corrección (275), programa con más (Ingeniería de Sistemas · 73), semestre con más (6 · 182), documento que más tarda (Carta de finalización, mediana 32,8 h), programa que creció (Publicidad y Mercadeo, de 8 a 18) y dónde (Bogotá 22,2 % de las externas; Educación recibe de 17 programas).
+- **Verificación:** recorrido de 24 comprobaciones; sin desborde en 1920–390; contraste AA en ambos temas: 316 mediciones, mínimo 4,90.
+- **Capturas:** `general-v33`, `estudiantes-v33`, `documentos-v33`, `periodos-v33` y `v32-v33-{general,estudiantes,documentos,periodos}`.
+- **Pruebas:**
+  - API: reconciliación de KPI (43 en la suite de analítica);
+  - web: 415 (reconciliación, KPI agrupados, rejilla y alturas, composición, drilldown y squarify, Documentos y Períodos);
+  - lint con 0 advertencias y build de producción (inicial 360,42 kB; chunk de Reportes 543 kB, 59 kB transferidos).
+
+### 0.38.0 — 12 de noviembre de 2026
+
+**Reportes V3.2: analítica visual y filtrado por facetas.** Sin cambios en el seed v4, las definiciones de métricas, los permisos, el CSV ni el dominio documental.
+
+- **Universo 1.000 / 1.003:** la base tiene 1.000 registros del seed y 3 fixtures base; no había error aritmético (121 + 882 = 1.003). Nuevo contexto inicial «Dataset v4» en dev sintético (periodos derivados de los datos por el servidor, sin cifras fijas): 1.000 estudiantes, 1.000 prácticas, 120 + 880, situaciones = 1.000. «Todos» = 1.003, explicado en la barra.
+- **Backend (solo lo necesario):** filtrado por facetas (una consulta extra como máximo), `facetas`, `dataset`, `jerarquia`, `tiempos.muestras` y `cruces.modalidadSituacion` (§8.9).
+- **Visualizaciones:** Mekko, Icicle, Circle packing, Bump, Stream, Swarm, Radar y HeatMap (programa × sector, programa × semestre, tipo × estado); se mantienen Bar, Line, columnas, dona, 100 % y agrupadas donde son el tipo correcto. Descartados con su motivo: AreaBump, Tree, Network, ParallelCoordinates, PolarBar, Bullet y Choropleth.
+- **Fusionado o retirado de V3.1:** situación del expediente y modalidad de General → Mekko; señal documental → KPI y Documentos; evolución de programas en líneas → Bump; periodo × modalidad y periodo × nivel apilados → Stream; ranking de sectores → Organizaciones junto a interna/externa.
+- **Paleta BI y jerarquía de texto** (§8.9); lecturas deterministas (máximo dos por pestaña).
+- **Verificación** (web 4200 → API 3000 → `sipra_reportes_1000` en 5433):
+  - recorrido de 28 comprobaciones: preset, «Todos», facetas (lo elegido resaltado y el resto atenuado), «Limpiar», zoom del Icicle, Radar, zoom y filtro del Circle packing, Swarm, HeatMap, Bump, Stream y A/B;
+  - sin desborde en 1920, 1440, 1366, 1024, 768 y 390, con los fallback móviles activos;
+  - contraste AA en ambos temas: 282 mediciones, mínimo 4,90.
+- **Capturas:** `general-v31` / `general-v32`, `organizaciones-v31` / `organizaciones-v32`, `estudiantes-v32`, `documentos-v32`, `periodos-v32` y las comparativas `comparativa-general-v31-v32` y `comparativa-organizaciones-v31-v32`.
+- **Pruebas:** API 2.983 en 111 suites (8 nuevas: facetas e invariantes, dataset, jerarquía, muestras, alcance); web 410 (16 nuevas: preset, Todos, facetas en la tira, Mekko, Bump, Stream, Swarm, Icicle, Circle packing, Radar, lecturas, fallback móvil, paleta y contraste, reduced motion). Lint con 0 advertencias y build de producción: inicial 360,42 kB sin cambios; chunk perezoso de Reportes 496 kB (56 kB transferidos).
+
+### 0.37.5 — 12 de noviembre de 2026
+
+**Reportes V3.1: capa visual BI.** Sin cambios de backend, API, SQL, métricas, permisos, cross-filter, CSV ni del dataset v4 (los 3 fixtures base siguen: «Todos» = 1003; los 7 periodos del seed = 1000).
+
+- **Problema:** las gráficas eran barras sobre rieles (indicadores de progreso), sin escala ni ejes.
+- **Decisión:** capa propia SVG/CSS consumiendo tokens V3; sin dependencia nueva. ECharts se descartó por peso del chunk, canvas por defecto (accesibilidad) y tema en JS; Nivo no aplica (React) y sirvió solo como referencia de proporciones, ejes, leyendas, etiquetas, interacción y motion (§8.9).
+- **Componentes:** barras, columnas, proporción 100 %, dona, líneas, agrupadas, matriz de calor, apiladas con escala, tira de KPI y tooltip compartido; `reportes-graficos.util.ts`; SIPRA Charts Theme (`--gr-*`).
+- **Pestañas:** se recupera **Organizaciones** (General, Estudiantes, Organizaciones, Documentos, Períodos, Exportaciones). General con KPI + dos visualizaciones en el primer viewport; tipos de gráfica según la pregunta (ranking = barras; composición = 100 %; 2–4 categorías = dona; distribución académica = columnas; tiempo = líneas; A/B = agrupadas; cruce = matriz o apilada).
+- **Verificación** (web 4200 → API 3000 → `sipra_reportes_1000` en 5433):
+  - recorrido en navegador: tooltip con cifra, % y escuela; clic y Enter aplican el filtro y un segundo clic lo quita; 7 periodos → 1000; 120 / 880; KPI de Organizaciones 90 / 89 / 120 / 11 / 12 / 60; CUN fuera del ranking; franja de organización y «Ver estudiantes»;
+  - sin desborde horizontal en 1920, 1440, 1366, 1024, 768 y 390 (Top 5 en móvil);
+  - contraste AA: 214 mediciones en ambos temas, mínimo 4,81.
+- **Capturas** en `docs/assets/reportes-v3/`: `general-bi-dark`, `general-bi-light`, `organizaciones-dark`, `estudiantes-bi-dark`, `documentos-bi-dark`, `periodos-bi-light`, `cross-filter-bi`, `mobile-bi` y la comparación `antes-programas` / `despues-programas` / `antes-despues-programas`.
+- **Pruebas:** web 394 (382 + 12: escala, tonos, KPI, interna/externa, responsive, Organizaciones —KPI y lecturas—, tema, selección, tooltip, motion y leyendas); typecheck de pruebas, lint con 0 advertencias y build de producción (inicial 360,42 kB sin cambios; chunk perezoso de Reportes 317 kB / 40 kB transferidos).
+
+### 0.37.4 — 11 de noviembre de 2026
+
+**Reportes V3: prueba visual final (UX/UI).** Sin cambios de backend, de métricas ni del dataset v4 (huella `dca96f0a711ec8b4bb35d67df3e949e4`).
+
+- **Estructura:** visión general → análisis → detalle. Se mantienen las pestañas General, Estudiantes, Documentos, Períodos y Exportaciones (§8.9).
+- **Fusionado o retirado:**
+  - la pestaña **Organizaciones** se fusionó en Estudiantes (organizaciones externas, sector, ciudad y el explorador de cruces) y en Documentos (dimensión «Interna / externa»);
+  - las secciones de cruces separadas pasaron a un solo explorador;
+  - de General salieron el estado de la práctica (queda como filtro), las empresas, el sector y la ciudad (viven en Estudiantes);
+  - el movimiento semanal pasó a una tabla plegable en Documentos;
+  - la doble pila de obligaciones de Documentos quedó como una tira y una pila.
+- **Encabezado compacto:**
+  - el h1 queda solo para lectores de pantalla, porque el Shell ya muestra «Reportes»;
+  - una línea de ayuda;
+  - el contexto aparece solo con filtros.
+  - El primer gráfico subió de y=531 a y=370 (1440×1024) y a y=390 (1366×768). En 390×844 el rótulo «Periodo» ya no se parte en vertical y el primer gráfico entra en la primera pantalla.
+- **Comportamiento:**
+  - selección con énfasis y atenuación;
+  - empresas del filtro según el contexto;
+  - estado de recarga y error sin saltos;
+  - tabla granular densa con columnas esenciales, encabezado fijo y «Abrir expediente» fijo a la derecha;
+  - A/B de Períodos por defecto entre los dos últimos periodos con fecha.
+- **Verificación en navegador** (API 3101, web 4203, base desechable `sipra_reportes_1000`): cuatro recorridos hasta el Expediente, con conteos por nivel:
+  - **R1:** 1003 → 264 → 73 → 39 → 11 → 4 → 1 (escuela, programa, nivel, semestre 8, modalidad, sector; luego ciudad y empresa).
+  - **R2:** interna 121 → 17 → 2 → 2. Con interna, solo se ofrecen Bogotá, Educación y la CUN.
+  - **R3:** externa 882 → 117 → 26 → 26 → 5.
+  - **R4:** 73 → 12 → 3 → tipo documental 1.
+  - **Otros estados:** vacío de búsqueda; error simulado con cifras conservadas y «Reintentar»; teclado (flechas en pestañas, Enter en barras y en la X de cada miga).
+  - **Calidad visual:** contraste AA (180 mediciones, mínimo 4,90) y sin desborde horizontal en 1920, 1440, 1366, 1024, 768 y 390.
+- **Capturas** `.webp` en `docs/assets/reportes-v3/`: `general-dark`, `general-light`, `estudiantes-dark`, `documentos-dark`, `periodos-light`, `cross-filter-dark`, `granular-dark` y `mobile-dark`.
+- **Pruebas:** `pruebas/reportes-v3.spec.ts` se ajustó a la estructura nueva y suma las aserciones de selección, contexto de empresas, línea de estado, columna fija y A/B. Resultados:
+  - web: 382 pruebas;
+  - API: 2.975 pruebas en 111 suites;
+  - aislamiento: 10;
+  - lint con 0 advertencias, build de producción dentro de presupuesto y smoke de arranque OK.
 
 ### 0.37.3 — 11 de noviembre de 2026
 

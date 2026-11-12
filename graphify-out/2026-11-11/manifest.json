@@ -1440,9 +1440,9 @@
     "semantic_hash": "57c35be7af933a41a7ec3349849a47a5"
   },
   "apps/api/src/infrastructure/config/configuracion.ts": {
-    "mtime": 1794412960.7575083,
-    "seen": 1794413693.5156546,
-    "ast_hash": "b1fa6ba285c57b8bb3ab3144e49dd1e1",
+    "mtime": 1794417089.097738,
+    "seen": 1794417690.126667,
+    "ast_hash": "b6b37d0e16bd92422ea7fe9b80bf17f6",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/actas-iniciacion.controller.ts": {
@@ -2034,9 +2034,9 @@
     "semantic_hash": "ea9c710b4d4af13e5cd70106c429504e"
   },
   "apps/api/test/configuracion-entorno.spec.ts": {
-    "mtime": 1794412960.760084,
-    "seen": 1794413693.594876,
-    "ast_hash": "c048a3d48a0d10520894e4ab8d4d5439",
+    "mtime": 1794417089.099781,
+    "seen": 1794417690.2302668,
+    "ast_hash": "007e7e92324754844965b24aede7ebad",
     "semantic_hash": ""
   },
   "apps/api/test/conocimiento-documental.spec.ts": {
@@ -3540,9 +3540,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1794415250.760662,
-    "seen": 1794415531.4915273,
-    "ast_hash": "3a1b2f9ffc0d4dfb4e50b6af18788d86",
+    "mtime": 1794417385.449445,
+    "seen": 1794417690.5460923,
+    "ast_hash": "bc3a7d9bbe22111ce6778582256bddb5",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -3768,21 +3768,21 @@
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/reportes/reportes-analitica.use-case.ts": {
-    "mtime": 1794415049.3319323,
-    "seen": 1794415530.7959962,
-    "ast_hash": "ab31ac87fc54e490ef9148bf2e16fc63",
+    "mtime": 1794417089.1094556,
+    "seen": 1794417689.973226,
+    "ast_hash": "c44d053d106fd932d9981358ffcb63c1",
     "semantic_hash": ""
   },
   "apps/api/src/domain/ports/out/reportes-analitica.port.ts": {
-    "mtime": 1794414328.635874,
-    "seen": 1794415530.8424935,
-    "ast_hash": "66a7a6187952d668fde1ee0dc36528a5",
+    "mtime": 1794417089.099781,
+    "seen": 1794417690.0070395,
+    "ast_hash": "2afdeb97b5c0ce693017e7f1ed985d0e",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/reportes-analitica.adapter.ts": {
-    "mtime": 1794414328.6379392,
-    "seen": 1794415531.015064,
-    "ast_hash": "a109fa0bc8f5435d47033e81743cdfb4",
+    "mtime": 1794417125.5167305,
+    "seen": 1794417690.1124249,
+    "ast_hash": "00ea86b8045d2a979c99bf966cca678b",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/reportes-analitica.controller.ts": {
@@ -3792,21 +3792,21 @@
     "semantic_hash": ""
   },
   "apps/api/test/reportes-analitica.spec.ts": {
-    "mtime": 1794414439.2077222,
-    "seen": 1794415531.2357278,
-    "ast_hash": "d7d0258e7abbaba930529529380c5e2f",
+    "mtime": 1794417187.1663177,
+    "seen": 1794417690.286322,
+    "ast_hash": "c6fa6f969d650f1c39a5d46504e31720",
     "semantic_hash": ""
   },
   "apps/web/pruebas/reportes-v3.spec.ts": {
-    "mtime": 1794415049.334521,
-    "seen": 1794415531.3267963,
-    "ast_hash": "beb24b402c95317ca69caad8d40cddc1",
+    "mtime": 1794417230.7951267,
+    "seen": 1794417690.3568044,
+    "ast_hash": "d0b67b2255c2f5e5ffb19f12df9b04d3",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/reportes-analitica.model.ts": {
-    "mtime": 1794415049.334521,
-    "seen": 1794415531.3517985,
-    "ast_hash": "fd800202051072651841d6aa7a97c3d6",
+    "mtime": 1794417230.792186,
+    "seen": 1794417690.3743303,
+    "ast_hash": "f21b86084fe25a4d903e4b78aab1ed16",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-analitica.util.ts": {
@@ -3840,9 +3840,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-general.component.ts": {
-    "mtime": 1794414782.5902445,
-    "seen": 1794415531.4248266,
-    "ast_hash": "3440e02eb7b6363171e9987b9a7adda9",
+    "mtime": 1794417230.7951267,
+    "seen": 1794417690.457782,
+    "ast_hash": "656617e96e0b4ab2d4f0e76e00341034",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-periodos.component.ts": {
@@ -3876,15 +3876,27 @@
     "semantic_hash": ""
   },
   "apps/api/herramientas/seed-reportes-1000.ts": {
-    "mtime": 1794414528.5278506,
-    "seen": 1794415530.7080176,
-    "ast_hash": "ef187d89f220fff4965990631115cdb3",
+    "mtime": 1794417005.0791826,
+    "seen": 1794417689.8956847,
+    "ast_hash": "fcfee04ce1a8e74d1034615da4f2644b",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-organizaciones.component.ts": {
     "mtime": 1794414760.2806332,
     "seen": 1794415531.424831,
     "ast_hash": "6e13e75db665e61230e4832fc263a1f9",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/seed-reportes-1000.generador.ts": {
+    "mtime": 1794416947.1612632,
+    "seen": 1794417689.8956754,
+    "ast_hash": "9f2c545eee395b3a74ccd24347b244a6",
+    "semantic_hash": ""
+  },
+  "apps/api/test/seed-reportes-1000.spec.ts": {
+    "mtime": 1794417031.0739827,
+    "seen": 1794417690.2953603,
+    "ast_hash": "1f94fab8f2cba62c4e61a571d7424199",
     "semantic_hash": ""
   },
   "package-lock.json": {

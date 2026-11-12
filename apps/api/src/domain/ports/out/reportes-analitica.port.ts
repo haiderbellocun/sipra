@@ -82,6 +82,11 @@ export interface ReportesAnaliticaPort {
   programasSinteticos(): boolean;
   /** ¿Se distingue «internacional» de «sin información»? Solo con la ubicación sintética en `dev`. */
   ubicacionSintetica(): boolean;
+  /**
+   * Periodos del dataset sintético de pruebas (los de las prácticas con el overlay de semestre). Solo con el overlay en `dev`;
+   * en producción, siempre vacío. Alimenta el contexto inicial «Dataset» de la vista; no cambia ninguna métrica.
+   */
+  periodosSinteticos(escuelaIds?: readonly string[]): Promise<string[]>;
   /** Estudiantes únicos y prácticas del alcance, sin filtros (denominador «en alcance»). */
   universo(escuelaIds?: readonly string[]): Promise<{ estudiantes: number; practicas: number }>;
   practicas(filtro: FiltroAnalitica): Promise<PracticaAnalitica[]>;

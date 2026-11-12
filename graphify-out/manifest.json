@@ -3222,9 +3222,9 @@
     "semantic_hash": "582e7fcf001357e92023f533e80d962c"
   },
   "apps/web/src/app/features/reportes/reportes.component.ts": {
-    "mtime": 1794414782.588733,
-    "seen": 1794415531.425636,
-    "ast_hash": "208e1040653909b997d810a1b1952e7a",
+    "mtime": 1794496010.0027843,
+    "seen": 1794498469.9025862,
+    "ast_hash": "79a3203fbc1231b53a948b0ab256f71e",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/rut/rut-decision.component.ts": {
@@ -3540,9 +3540,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1794417385.449445,
-    "seen": 1794417690.5460923,
-    "ast_hash": "bc3a7d9bbe22111ce6778582256bddb5",
+    "mtime": 1794502285.9094849,
+    "seen": 1794502339.3186915,
+    "ast_hash": "e92f4c55ef730aaa929f2a2b60b8a12f",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -3768,21 +3768,21 @@
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/reportes/reportes-analitica.use-case.ts": {
-    "mtime": 1794417089.1094556,
-    "seen": 1794417689.973226,
-    "ast_hash": "c44d053d106fd932d9981358ffcb63c1",
+    "mtime": 1794495748.2266607,
+    "seen": 1794498469.6951845,
+    "ast_hash": "dc663c9ac876f865785e809e141565a3",
     "semantic_hash": ""
   },
   "apps/api/src/domain/ports/out/reportes-analitica.port.ts": {
-    "mtime": 1794417089.099781,
-    "seen": 1794417690.0070395,
-    "ast_hash": "2afdeb97b5c0ce693017e7f1ed985d0e",
+    "mtime": 1794495720.379286,
+    "seen": 1794498469.71161,
+    "ast_hash": "058a5e74257803c1be54e68dce341308",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/reportes-analitica.adapter.ts": {
-    "mtime": 1794417125.5167305,
-    "seen": 1794417690.1124249,
-    "ast_hash": "00ea86b8045d2a979c99bf966cca678b",
+    "mtime": 1794495720.379286,
+    "seen": 1794498469.7610037,
+    "ast_hash": "44345eb3ae72b4ccd3d77724cad6df84",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/reportes-analitica.controller.ts": {
@@ -3792,45 +3792,45 @@
     "semantic_hash": ""
   },
   "apps/api/test/reportes-analitica.spec.ts": {
-    "mtime": 1794417187.1663177,
-    "seen": 1794417690.286322,
-    "ast_hash": "c6fa6f969d650f1c39a5d46504e31720",
+    "mtime": 1794500424.8221817,
+    "seen": 1794500882.0833588,
+    "ast_hash": "54afb9bbe942a7ab7842aec9d3639b01",
     "semantic_hash": ""
   },
   "apps/web/pruebas/reportes-v3.spec.ts": {
-    "mtime": 1794417230.7951267,
-    "seen": 1794417690.3568044,
-    "ast_hash": "d0b67b2255c2f5e5ffb19f12df9b04d3",
+    "mtime": 1794502020.256379,
+    "seen": 1794502339.2048478,
+    "ast_hash": "8b5f32f8134ead324277c7afbc3e0b67",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/reportes-analitica.model.ts": {
-    "mtime": 1794417230.792186,
-    "seen": 1794417690.3743303,
-    "ast_hash": "f21b86084fe25a4d903e4b78aab1ed16",
+    "mtime": 1794496009.9973574,
+    "seen": 1794498469.8782473,
+    "ast_hash": "04ad478c39d5dccd9d96fbf8cdd6218f",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-analitica.util.ts": {
-    "mtime": 1794414782.5780807,
-    "seen": 1794415531.419906,
-    "ast_hash": "516336efa4a4e1573bbbc93ab72fbea7",
+    "mtime": 1794496152.8367336,
+    "seen": 1794498469.8996806,
+    "ast_hash": "046065be776a28fce1f56ae5c3bccee3",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-detalle.component.ts": {
-    "mtime": 1794414782.5780807,
-    "seen": 1794415531.422311,
-    "ast_hash": "1ce5caf7c92d2145734c223a0f074c0a",
+    "mtime": 1794421272.4693105,
+    "seen": 1794421779.23138,
+    "ast_hash": "75abd39bd107e5a847d0ec8436477971",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-documentos.component.ts": {
-    "mtime": 1794414782.5902445,
-    "seen": 1794415531.4223175,
-    "ast_hash": "7f34b89b0c6578f62f5725c8827d8e37",
+    "mtime": 1794500159.0440855,
+    "seen": 1794500882.1936927,
+    "ast_hash": "ba2bab284fa807a46223434dd116a59d",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-estudiantes.component.ts": {
-    "mtime": 1794413212.490576,
-    "seen": 1794413693.7663035,
-    "ast_hash": "8f1d1176daa019880b49582f57cc55d3",
+    "mtime": 1794499900.736152,
+    "seen": 1794500882.1942787,
+    "ast_hash": "27b8c93a1bc9468658d42ad6c507791d",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-exportaciones.component.ts": {
@@ -3840,51 +3840,45 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-general.component.ts": {
-    "mtime": 1794417230.7951267,
-    "seen": 1794417690.457782,
-    "ast_hash": "656617e96e0b4ab2d4f0e76e00341034",
+    "mtime": 1794499802.645147,
+    "seen": 1794500882.194825,
+    "ast_hash": "fb1dc390f25eb2a6fddf11cb44802c0d",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-periodos.component.ts": {
-    "mtime": 1794413212.491621,
-    "seen": 1794413693.7672021,
-    "ast_hash": "7501526d4ef8b52c04cef211c4e0a3de",
+    "mtime": 1794500159.039873,
+    "seen": 1794500882.1994474,
+    "ast_hash": "cb2d894cdf20aa989237f5c6f3963545",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes.estado.ts": {
-    "mtime": 1794414782.588733,
-    "seen": 1794415531.4256396,
-    "ast_hash": "e0d558f919f55c5229d3e75c65ba4f6b",
+    "mtime": 1794496010.0004482,
+    "seen": 1794498469.9025874,
+    "ast_hash": "e5592cd1ae5f3e859b64e16997963ca0",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes.estilos.ts": {
-    "mtime": 1794411660.70727,
-    "seen": 1794412532.2478015,
-    "ast_hash": "042d7fde1d5b0619e1fa6328a50dbc9e",
+    "mtime": 1794500398.9604433,
+    "seen": 1794500882.20207,
+    "ast_hash": "16eb2ed8dca10faaec7850ed64b433eb",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-apiladas.component.ts": {
-    "mtime": 1794347663.2777777,
-    "seen": 1794348773.9836152,
-    "ast_hash": "d5f3beab7c9d7005bb574a8c7790018c",
+    "mtime": 1794494859.3744798,
+    "seen": 1794495134.8397317,
+    "ast_hash": "47d469e7b79eb9fb8e905867de0dd1d1",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-barras.component.ts": {
-    "mtime": 1794347076.6952713,
-    "seen": 1794348773.9836202,
-    "ast_hash": "e6a9f4a1190d951413c9669fb7295930",
+    "mtime": 1794499705.5775132,
+    "seen": 1794500882.1923974,
+    "ast_hash": "4d0e7b9bb3ee7fba104ed894ce3043f4",
     "semantic_hash": ""
   },
   "apps/api/herramientas/seed-reportes-1000.ts": {
     "mtime": 1794417005.0791826,
     "seen": 1794417689.8956847,
     "ast_hash": "fcfee04ce1a8e74d1034615da4f2644b",
-    "semantic_hash": ""
-  },
-  "apps/web/src/app/features/reportes/reportes-organizaciones.component.ts": {
-    "mtime": 1794414760.2806332,
-    "seen": 1794415531.424831,
-    "ast_hash": "6e13e75db665e61230e4832fc263a1f9",
     "semantic_hash": ""
   },
   "apps/api/herramientas/seed-reportes-1000.generador.ts": {
@@ -3897,6 +3891,348 @@
     "mtime": 1794417031.0739827,
     "seen": 1794417690.2953603,
     "ast_hash": "1f94fab8f2cba62c4e61a571d7424199",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-cruces.component.ts": {
+    "mtime": 1794418475.3404818,
+    "seen": 1794421779.2313771,
+    "ast_hash": "efe28caed6d1a069c34711b64a997a49",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/cross-filter-dark.webp": {
+    "mtime": 1794421382.7680397,
+    "seen": 1794421779.283422,
+    "ast_hash": "a75a79bc921122cf5ab04e8cc791104e",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/documentos-dark.webp": {
+    "mtime": 1794421382.7795856,
+    "seen": 1794421779.2834249,
+    "ast_hash": "19890d46f1dbd9d731ec611e3e864b43",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/estudiantes-dark.webp": {
+    "mtime": 1794421382.794764,
+    "seen": 1794421779.2834265,
+    "ast_hash": "18664f1f7f02ba253202470ac73f00a2",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/general-dark.webp": {
+    "mtime": 1794421382.8037546,
+    "seen": 1794421779.283428,
+    "ast_hash": "b329c1b289355115ca481620d011bf58",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/general-light.webp": {
+    "mtime": 1794421382.817104,
+    "seen": 1794421779.2834299,
+    "ast_hash": "e176bb14473d51899ea471222a050336",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/granular-dark.webp": {
+    "mtime": 1794421382.8249147,
+    "seen": 1794421779.2834315,
+    "ast_hash": "dfdc0f2eb43c1744cddd47529aeabc35",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/mobile-dark.webp": {
+    "mtime": 1794421382.829878,
+    "seen": 1794421779.2834332,
+    "ast_hash": "111629109aedec6cfdaaebf161257c2d",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/periodos-light.webp": {
+    "mtime": 1794421382.83465,
+    "seen": 1794421779.2834349,
+    "ast_hash": "d146985e8331489cb671ef189a6adf9e",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-columnas.component.ts": {
+    "mtime": 1794499705.5795755,
+    "seen": 1794500882.1924033,
+    "ast_hash": "2e4bbadab1d7207374db629091114fc5",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-dona.component.ts": {
+    "mtime": 1794496152.8480432,
+    "seen": 1794498469.9006805,
+    "ast_hash": "afc888fa892d7535aee580bc9cc87308",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-graficos.util.ts": {
+    "mtime": 1794501280.5376787,
+    "seen": 1794502339.2683666,
+    "ast_hash": "23c9285a5a2363beda0124aa4935956c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-grupos.component.ts": {
+    "mtime": 1794496152.8502302,
+    "seen": 1794498469.901529,
+    "ast_hash": "fd5e6e56a395f3ea3c966782e1d25d01",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-kpis.component.ts": {
+    "mtime": 1794499705.5805252,
+    "seen": 1794500882.1963422,
+    "ast_hash": "0d3eadc76aa773898c6b8e0babec0951",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-lineas.component.ts": {
+    "mtime": 1794494465.8466754,
+    "seen": 1794495134.840342,
+    "ast_hash": "6f6759f320bcbc47a842d9d9c1dc6d88",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-matriz.component.ts": {
+    "mtime": 1794497548.4187837,
+    "seen": 1794498469.9025552,
+    "ast_hash": "3e59c13f411acb502dcdd437376ec0c2",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-organizaciones.component.ts": {
+    "mtime": 1794501464.9530313,
+    "seen": 1794502339.2706203,
+    "ast_hash": "e57a98508029f894cd2dfa7c7f6f541c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-proporcion.component.ts": {
+    "mtime": 1794496958.844859,
+    "seen": 1794498469.9025788,
+    "ast_hash": "3c360f5b9584d2b491a10d3e0c75d1ba",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-tooltip.component.ts": {
+    "mtime": 1794496124.3344696,
+    "seen": 1794498469.902584,
+    "ast_hash": "9143e1aa43e224edb018354d456d70a9",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/antes-despues-programas.webp": {
+    "mtime": 1794494918.5942657,
+    "seen": 1794495134.8540943,
+    "ast_hash": "e1896104340cf1da8d35844ac83611a2",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/antes-programas.webp": {
+    "mtime": 1794493068.5987833,
+    "seen": 1794495134.8540967,
+    "ast_hash": "52245d818f47e3974ba6bceb2d9ffc5e",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/cross-filter-bi.webp": {
+    "mtime": 1794494914.9469643,
+    "seen": 1794495134.8540983,
+    "ast_hash": "29a10891cfb2782c97d6f4874ff63a2d",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/despues-programas.webp": {
+    "mtime": 1794494889.7740183,
+    "seen": 1794495134.8543067,
+    "ast_hash": "d6dd3714a64630ac809da4635758b822",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/documentos-bi-dark.webp": {
+    "mtime": 1794494903.5967672,
+    "seen": 1794495134.8543084,
+    "ast_hash": "3cb0cd33a1a3be5dd1cb2278673f3d5b",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/estudiantes-bi-dark.webp": {
+    "mtime": 1794494899.6962075,
+    "seen": 1794495134.854479,
+    "ast_hash": "d43fccd775e42066ef6ae01bb7b8cdb7",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/general-bi-dark.webp": {
+    "mtime": 1794494886.7802017,
+    "seen": 1794495134.8546221,
+    "ast_hash": "d939c771fab7da2cfe7a8074f7aa34ae",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/general-bi-light.webp": {
+    "mtime": 1794494892.0491507,
+    "seen": 1794495134.8546243,
+    "ast_hash": "0846728f926c43f895d54e4f1a9047fa",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/mobile-bi.webp": {
+    "mtime": 1794494917.479169,
+    "seen": 1794495134.855179,
+    "ast_hash": "e34299ba184fa675dd347b3cb475c3cf",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/organizaciones-dark.webp": {
+    "mtime": 1794494895.4669988,
+    "seen": 1794495134.855619,
+    "ast_hash": "b6421ead0090ef31098e760834311481",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/periodos-bi-light.webp": {
+    "mtime": 1794494907.325927,
+    "seen": 1794495134.8556218,
+    "ast_hash": "051a2cebb982f3a8e7a540f61269d1ba",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-bump.component.ts": {
+    "mtime": 1794500011.682927,
+    "seen": 1794500882.192401,
+    "ast_hash": "605d5003e931b4f04f465439e3738b1f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-insights.component.ts": {
+    "mtime": 1794500297.6414855,
+    "seen": 1794500882.1963394,
+    "ast_hash": "bfb525bbe6a3e95e43e3aee91cf53b3c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-pack.component.ts": {
+    "mtime": 1794502180.3693278,
+    "seen": 1794502339.2706232,
+    "ast_hash": "dd8450751dbdd737141e75e874d1c515",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-radar.component.ts": {
+    "mtime": 1794500623.8949704,
+    "seen": 1794500882.199991,
+    "ast_hash": "bfcf153122bf72f407bce7d0976941dd",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-stream.component.ts": {
+    "mtime": 1794500159.042496,
+    "seen": 1794500882.1999938,
+    "ast_hash": "817760752adb906eb5a81b6e8cc674ae",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-swarm.component.ts": {
+    "mtime": 1794496316.570227,
+    "seen": 1794498469.902583,
+    "ast_hash": "97aabb77c93d5c477a80b11ca2208d32",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/comparativa-general-v31-v32.webp": {
+    "mtime": 1794498372.256548,
+    "seen": 1794498469.9372172,
+    "ast_hash": "90028894f842755559cde291e819b8db",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/comparativa-organizaciones-v31-v32.webp": {
+    "mtime": 1794498373.3377776,
+    "seen": 1794498469.9372191,
+    "ast_hash": "3f33eea91c5ba8974e24df2bbff412a7",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/documentos-v32.webp": {
+    "mtime": 1794498366.1807275,
+    "seen": 1794498469.941337,
+    "ast_hash": "7488ace7816ff644f907a9977540981b",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/estudiantes-v32.webp": {
+    "mtime": 1794498355.278966,
+    "seen": 1794498469.9420385,
+    "ast_hash": "576a08cff99b5735c9822cee92c3133a",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/general-v31.webp": {
+    "mtime": 1794495923.197222,
+    "seen": 1794498469.9432411,
+    "ast_hash": "d939c771fab7da2cfe7a8074f7aa34ae",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/general-v32.webp": {
+    "mtime": 1794498349.8936756,
+    "seen": 1794498469.943243,
+    "ast_hash": "ae2a1573a7f1ceb0b2d3283859d15e1c",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/organizaciones-v31.webp": {
+    "mtime": 1794495923.3473122,
+    "seen": 1794498469.944907,
+    "ast_hash": "b6421ead0090ef31098e760834311481",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/organizaciones-v32.webp": {
+    "mtime": 1794498360.532867,
+    "seen": 1794498469.9449096,
+    "ast_hash": "a11e47f4ff9ba19a864d53841fe678db",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/periodos-v32.webp": {
+    "mtime": 1794498371.1014538,
+    "seen": 1794498469.9455135,
+    "ast_hash": "d10dd6aa536d34f39c084245d3f08421",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-composicion.component.ts": {
+    "mtime": 1794500048.3862655,
+    "seen": 1794500882.1924057,
+    "ast_hash": "081718af6ef1177ae06ed8aace09e9e2",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-treemap.component.ts": {
+    "mtime": 1794500399.2817647,
+    "seen": 1794500882.2009892,
+    "ast_hash": "9e05b80d39fdf28f1fbc9becde068bce",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/documentos-v33.webp": {
+    "mtime": 1794500769.5408068,
+    "seen": 1794500882.2612524,
+    "ast_hash": "57ee0856f24bb0b3674e61f15cb8ecfe",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/estudiantes-v33.webp": {
+    "mtime": 1794500761.1541426,
+    "seen": 1794500882.2625854,
+    "ast_hash": "8a388df0d338a8610d036e3873833af8",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/general-v33.webp": {
+    "mtime": 1794500753.588523,
+    "seen": 1794500882.2655895,
+    "ast_hash": "f741b67524d147e6816576b803ba2c71",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/periodos-v33.webp": {
+    "mtime": 1794500776.5560522,
+    "seen": 1794500882.2717803,
+    "ast_hash": "eab5c81754e1e7b5734f1c2dab99c073",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/v32-v33-documentos.webp": {
+    "mtime": 1794500780.485614,
+    "seen": 1794500882.2717826,
+    "ast_hash": "eee7b80e0f41f25a35c57be9f28e4e95",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/v32-v33-estudiantes.webp": {
+    "mtime": 1794500779.2393408,
+    "seen": 1794500882.2717843,
+    "ast_hash": "9a79020ef50f61373a84f22e4df968fe",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/v32-v33-general.webp": {
+    "mtime": 1794500778.059418,
+    "seen": 1794500882.2717865,
+    "ast_hash": "28ce6e644d94d87637f5a77195e2cf69",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/v32-v33-periodos.webp": {
+    "mtime": 1794500781.6844494,
+    "seen": 1794500882.2717881,
+    "ast_hash": "611e503f4136bb73087ef99253de056b",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/organizaciones-circle-labels-zoom.webp": {
+    "mtime": 1794502268.8492851,
+    "seen": 1794502339.3498237,
+    "ast_hash": "ae15ee2e70454cb9e789819125c0af14",
+    "semantic_hash": ""
+  },
+  "docs/assets/reportes-v3/organizaciones-circle-labels.webp": {
+    "mtime": 1794502267.614719,
+    "seen": 1794502339.3498263,
+    "ast_hash": "93f91ed05f8220c90d057412c71909c2",
     "semantic_hash": ""
   },
   "package-lock.json": {
