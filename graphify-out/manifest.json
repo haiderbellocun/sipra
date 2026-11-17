@@ -3204,10 +3204,10 @@
     "semantic_hash": "779b34bb1d7a900605a1d983fa32d638"
   },
   "apps/web/src/app/features/registro/registro.component.ts": {
-    "mtime": 1793381419.8660836,
-    "seen": 1794319155.1086116,
-    "ast_hash": "582e7fcf001357e92023f533e80d962c",
-    "semantic_hash": "582e7fcf001357e92023f533e80d962c"
+    "mtime": 1794937404.110317,
+    "seen": 1794937756.2304454,
+    "ast_hash": "645c9f6d907d921c1f0dcee55df18439",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes.component.ts": {
     "mtime": 1794931725.3264916,
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1794935674.812422,
-    "seen": 1794936263.2926476,
-    "ast_hash": "d17597d47af356671256f62944179b73",
+    "mtime": 1794937715.05005,
+    "seen": 1794937756.347336,
+    "ast_hash": "5b07110717c648134b3bd15e56c33d96",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -4335,6 +4335,48 @@
     "mtime": 1794934114.5795386,
     "seen": 1794936263.3145778,
     "ast_hash": "77788e0dc8cc7233e5bea084238ce255",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/aviso-arl-g3.spec.ts": {
+    "mtime": 1794937404.110317,
+    "seen": 1794937756.0954287,
+    "ast_hash": "17357fda7184aaee93b0419d298b5184",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/registro/aviso-arl.component.ts": {
+    "mtime": 1794937115.6867347,
+    "seen": 1794937756.2304332,
+    "ast_hash": "49a80a645542180cbd2dfa4682e1fe90",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/registro/aviso-arl.ts": {
+    "mtime": 1794936600.3228438,
+    "seen": 1794937756.23044,
+    "ast_hash": "d7f5fdedac2a399388b29ae031c61d33",
+    "semantic_hash": ""
+  },
+  "docs/assets/g3/g3-formulario-informacion-arl.webp": {
+    "mtime": 1794937609.7631087,
+    "seen": 1794937756.4093049,
+    "ast_hash": "4923792bba62b23ae488aa685f887d75",
+    "semantic_hash": ""
+  },
+  "docs/assets/g3/g3-modal-arl-claro.webp": {
+    "mtime": 1794937574.8128939,
+    "seen": 1794937756.4093144,
+    "ast_hash": "f1552598ed142b1e0ea9b5551a5b1368",
+    "semantic_hash": ""
+  },
+  "docs/assets/g3/g3-modal-arl-movil-390.webp": {
+    "mtime": 1794937580.0929909,
+    "seen": 1794937756.4093215,
+    "ast_hash": "f30177b6c817fc5da42b5546c8b50b06",
+    "semantic_hash": ""
+  },
+  "docs/assets/g3/g3-modal-arl-oscuro.webp": {
+    "mtime": 1794937564.1642873,
+    "seen": 1794937756.4093266,
+    "ast_hash": "d51bd2089e3ab8aef9dc4b70f21a8118",
     "semantic_hash": ""
   },
   "package-lock.json": {

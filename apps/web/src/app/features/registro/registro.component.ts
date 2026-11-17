@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -13,6 +13,8 @@ import { leerError } from '@shared/utils/errores';
 import {
   ResponsableArl, ResponsableArlFormulario, ERROR_ARL_SIN_ELEGIR, ayudaArl, sugerenciaArl,
 } from './arl-registro';
+import { AperturaAvisoArl } from './aviso-arl';
+import { AvisoArlComponent } from './aviso-arl.component';
 
 /**
  * Pasos 1 y 2 del estudiante en el SGP: la carta de presentación y el
@@ -22,7 +24,7 @@ import {
 @Component({
   selector: 'sipra-registro',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink, EtiquetaPipe, CronogramaComponent],
+  imports: [FormsModule, DatePipe, RouterLink, EtiquetaPipe, CronogramaComponent, AvisoArlComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     .pasos { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; align-items: start; }
@@ -37,6 +39,9 @@ import {
     .momento ul { margin: 0; padding-left: 1.1em; }
     .cond { font-size: var(--fs-xs); color: var(--texto-tenue); padding-left: 1.1em; margin: 0 0 var(--sp-3); }
     .terminos { display: flex; gap: var(--sp-2); align-items: flex-start; font-size: var(--fs-sm); margin: var(--sp-3) 0; }
+    /* G3 · acceso discreto al aviso de ARL junto a la pregunta. */
+    .info-arl { display:inline-flex; align-items:center; gap:6px; margin:2px 0 var(--sp-2); padding:4px 2px; min-height:32px; font:inherit; font-size:var(--fs-xs); font-weight:600; color:var(--marca); background:none; border:0; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+    .info-arl svg { width:16px; height:16px; flex:none; } .info-arl:focus-visible { outline:2px solid var(--marca); outline-offset:2px; border-radius:4px; }
     .terminos input { width: 18px; height: 18px; margin-top: 3px; }
     .carta { display: flex; gap: var(--sp-3); align-items: center; padding: var(--sp-2) 0; border-bottom: 1px solid var(--borde); font-size: var(--fs-sm); }
     .carta:last-child { border-bottom: none; }
@@ -107,6 +112,7 @@ import {
           <strong>no se modifican</strong> después de registrar; los datos de la vacante sí.
         </p>
 
+        <sipra-aviso-arl />
         <form (ngSubmit)="registrar()" #formulario="ngForm">
           <p class="pista" style="margin:0 0 var(--sp-3)">Todos los campos son obligatorios, salvo los marcados como opcionales.</p>
           <div class="rej">
@@ -180,11 +186,12 @@ import {
                 <option value="remunerada">Remunerada</option><option value="no_remunerada">No remunerada</option>
               </select>
             </div>
-            <fieldset class="grupo" [attr.aria-describedby]="mostrarErrorArl() ? 'r-arl-ayuda r-arl-error' : 'r-arl-ayuda'" [attr.aria-invalid]="mostrarErrorArl() ? 'true' : null">
+            <fieldset #grupoArl class="grupo" (focusin)="llegarASeccionArl()" [attr.aria-describedby]="mostrarErrorArl() ? 'r-arl-ayuda r-arl-error' : 'r-arl-ayuda'" [attr.aria-invalid]="mostrarErrorArl() ? 'true' : null">
               <legend>¿Quién asume la ARL?</legend>
+              <button #infoArl type="button" class="info-arl" aria-haspopup="dialog" (click)="avisoArl().abrir(infoArl)"><svg aria-hidden="true"><use href="#sipra-seguridad" /></svg>Información sobre ARL</button>
               <div class="opciones">
-                <label class="opcion"><input type="radio" name="responsableArl" value="empresa" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" (blur)="arlTocada.set(true)" required /> Empresa</label>
-                <label class="opcion"><input type="radio" name="responsableArl" value="cun" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" (blur)="arlTocada.set(true)" required /> CUN</label>
+                <label class="opcion"><input type="radio" name="responsableArl" value="empresa" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" (blur)="tocarArl()" required /> Empresa</label>
+                <label class="opcion"><input type="radio" name="responsableArl" value="cun" [ngModel]="fur.responsableArl" (ngModelChange)="elegirArl($event)" (blur)="tocarArl()" required /> CUN</label>
               </div>
               <span class="pista" id="r-arl-ayuda">{{ ayudaArl() }}</span>
               @if (mostrarErrorArl()) { <span class="error-campo" id="r-arl-error" role="alert" style="color:var(--peligro);font-size:var(--fs-sm)">{{ errorArl }}</span> }
@@ -233,7 +240,7 @@ import {
     </div>
   `,
 })
-export class RegistroComponent implements OnInit {
+export class RegistroComponent implements OnInit, AfterViewInit {
   readonly sesion = inject(SesionService);
   readonly api = inject(ApiService);
   private readonly avisos = inject(AvisosService);
@@ -276,6 +283,43 @@ export class RegistroComponent implements OnInit {
 
   readonly sugerenciaArl = computed(() => sugerenciaArl(this.modalidadElegida()?.responsableArl));
   readonly ayudaArl = computed(() => ayudaArl(this.modalidadElegida() !== null, this.sugerenciaArl(), this.arlSeleccionada()));
+
+  // ── G3 · aviso institucional sobre la ARL (informativo; no cambia el registro ni su envío) ──
+  readonly avisoArl = viewChild.required(AvisoArlComponent);
+  private readonly grupoArl = viewChild<ElementRef<HTMLFieldSetElement>>('grupoArl');
+  private readonly infoArl = viewChild<ElementRef<HTMLButtonElement>>('infoArl');
+  private readonly destruir = inject(DestroyRef);
+  /** Una vez por instancia del formulario y solo para el estudiante. */
+  private readonly aperturaArl = new AperturaAvisoArl(this.sesion.rol());
+
+  /** El estudiante llegó a «¿Quién asume la ARL?» (la vio o la enfocó): el aviso se abre solo, una vez. */
+  llegarASeccionArl(): void {
+    if (this.aperturaArl.alLlegarASeccion()) this.avisoArl().abrir(this.infoArl()?.nativeElement ?? null);
+  }
+
+  ngAfterViewInit(): void {
+    const grupo = this.grupoArl()?.nativeElement;
+    if (!grupo || this.sesion.rol() !== 'estudiante' || typeof IntersectionObserver === 'undefined') return;
+    // Si la sección ya se ve al cargar, eso no es «llegar»: se espera a que el estudiante la recorra
+    // (desplazándose hasta ella) o la enfoque. Así el aviso nunca aparece apenas se abre la pantalla.
+    let lecturaInicial = true;
+    const observador = new IntersectionObserver((entradas) => {
+      const visible = entradas.some((e) => e.isIntersecting);
+      if (lecturaInicial) { lecturaInicial = false; if (visible) return; }
+      if (visible) { observador.disconnect(); this.llegarASeccionArl(); }
+    }, { threshold: 0.6 });
+    observador.observe(grupo);
+    this.destruir.onDestroy(() => observador.disconnect());
+  }
+
+  /**
+   * El grupo cuenta como «tocado» al salir de él sin elegir (y entonces se ve el error). Si la salida es porque se
+   * abrió el aviso de ARL (el foco pasa al diálogo), no cuenta: el estudiante aún no tuvo oportunidad de elegir.
+   */
+  tocarArl(): void {
+    if (this.avisoArl().abierto) return;
+    this.arlTocada.set(true);
+  }
 
   elegirArl(valor: ResponsableArlFormulario): void {
     this.fur.responsableArl = valor;

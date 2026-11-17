@@ -3553,6 +3553,32 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.41.0 — 17 de noviembre de 2026
+
+**Gobierno operativo · G3: aviso institucional sobre la afiliación a ARL.** Solo interfaz: no cambia el backend, el dominio, la compuerta ARL (`ck_practicas_compuerta_arl`), la sugerencia por modalidad, `responsableArlPractica` ni las solicitudes de ARL. Tampoco cambia nada de G2.
+- **Finalidad.** Es informativa. El texto institucional se muestra EXACTO: «La afiliación a ARL por parte de la CUN aplica únicamente para prácticas articuladas y entidades del tercer sector». Debajo va la orientación «Revisa quién será responsable de tu afiliación antes de continuar con el registro de la práctica.». No es un error, ni un bloqueo, ni un `alert()`.
+- **Sin consentimiento.** No hay casilla «Acepto», tabla, marca de tiempo ni evidencia. «Entendido» y la X solo cierran. La regla de ARL la sigue haciendo cumplir el backend.
+- **Dónde aparece.** En el Formulario Único de Registro (`/registro`), en el grupo «¿Quién asume la ARL?».
+  - Se abre solo la primera vez que el ESTUDIANTE llega a ese grupo: al desplazarse hasta él o al enfocar sus opciones.
+  - Si el grupo ya se ve al cargar la pantalla, eso no cuenta como llegar: nunca aparece apenas se entra.
+  - Una vez por instancia del formulario: es estado de interfaz, sin base de datos ni `localStorage`, de modo que un registro futuro vuelve a mostrarlo.
+  - Coordinación, analista, dirección, administración, docente y auxiliar no reciben la apertura automática.
+- **Reapertura.** El botón «Información sobre ARL», junto a la pregunta, abre el MISMO diálogo para cualquier perfil.
+- **Accesibilidad.** Es un `<dialog>` nativo con `showModal()`, el mismo patrón de los diálogos de las Mesas:
+  - `aria-modal`, con título y descripción asociados;
+  - foco inicial en «Entendido» y foco atrapado (Tab y Mayús+Tab giran dentro del diálogo);
+  - Esc cierra; el clic fuera no cierra, como en el resto de diálogos de SIPRA;
+  - al cerrar, el foco vuelve a quien lo abrió (o al botón «Información sobre ARL» si lo abrió el desplazamiento).
+  - Si el aviso se abre porque el estudiante enfocó una opción, salir del grupo no lo marca como «tocado»: el error «Selecciona quién asume la ARL.» no aparece antes de que pueda elegir. La validación normal no cambia.
+- **Diseño.** V3, con tokens del sistema (Signal Dark / Arctic Light), escudo del sprite existente (`#sipra-seguridad`) y una pequeña señal ámbar. Ancho de 560 px y, en móvil, el ancho disponible con márgenes de 19 px.
+- **Hallazgos del dominio.** «Articulada» ya está modelada en el catálogo de modalidades (`MATRIZ_MODALIDADES[].articulada`). «Tercer sector» NO está modelado como tipo de entidad ni de organización: solo aparece como texto en una condición de la pasantía. No se inventó ninguna clasificación ni regla automática; el aviso conserva el mensaje institucional.
+- **Archivos.** `features/registro/aviso-arl.ts` (texto y regla de apertura), `aviso-arl.component.ts` (diálogo) y `registro.component.ts` (integración). El envío del FUR no cambia.
+- **Pruebas.**
+  - Web: `pruebas/aviso-arl-g3.spec.ts`; la suite web queda en 463/463.
+  - Navegador real (CDP, con emulación de foco): no se abre al entrar; se abre al llegar; texto exacto; foco inicial; foco atrapado; Esc; foco devuelto; no se reabre solo; «Información sobre ARL» lo reabre con el teclado; coordinación sin apertura automática; sin desborde horizontal en 1440, 1366, 1024, 768 y 390 px.
+  - API de registro y ARL sin cambios (55/55).
+- **Capturas:** `docs/assets/g3/`.
+
 ### 0.40.0 — 17 de noviembre de 2026
 
 **Gobierno operativo · G2: periodos académicos y control estricto del cargue documental del estudiante.**
