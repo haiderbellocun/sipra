@@ -370,11 +370,47 @@ al SPE. El resto es operación interna.
 | Cambiar el estado de la práctica | — | ✓ | ✓ | — | ✓ | — | — |
 | Registrar afiliación a ARL | — | — | ✓ | ✓ | ✓ | — | — |
 | Asignar tutor / sincronizar docentes | — | — | ✓ (área) | — | ✓ | — | — |
-| Gestión de usuarios y de periodos | — | — | ✓ (área) | — | ✓ | — | — |
+| Gestión de usuarios y de periodos | — | — | — (0.39.1: administrador y director) | — | ✓ | — | — |
 | Reportes del SGP | — | ✓ (su alcance) | ✓ | ✓ | ✓ | — | — |
 | Habilitar empresas | — | — | — | — | ✓ | — | — |
 | Publicar vacantes | — | — | — | — | ✓ | ✓ | ✓ |
 | Consultar la auditoría | — | — | — | — | ✓ | — | — |
+
+**Gobierno y operación (G1, corregido en 0.39.1).** La columna «Coordinador»
+vale para **coordinador y analista** (operación de prácticas). El **director no
+es un coordinador con más permisos**: es gobierno más supervisión institucional,
+y no hereda las escrituras operativas.
+
+| Capacidad | Administrador | Director | Coordinador | Analista |
+|---|:--:|:--:|:--:|:--:|
+| Gestionar periodos (crear, habilitar/deshabilitar) | ✓ | ✓ | — | — |
+| Gestionar usuarios administrativos | ✓ todos | ✓ solo operativos¹ | — | — |
+| Ver la institución (prácticas, expedientes, documentos, bitácora, reportes, cumplimiento) | ✓ | ✓ lectura | según `escuelas`² | según `escuelas`² |
+| Modificar la práctica — capacidad de G5, aún sin consumir | — | — | ✓ | ✓ |
+| Decidir documentos | ✓ | — | ✓ | ✓ |
+| Operar y supervisar Mesas (EPS, RUT, Cámara, Actas, Validación Documental) | ✓ | — | ✓ | ✓ |
+| Operar ARL (radicar, decidir, remitir certificado, registrar afiliación) | ✓ | — | ✓ | ✓ |
+| Administración técnica (empresas, auditoría, parámetros) | ✓ | — | — | — |
+
+¹ Coordinador, analista, auxiliar, docente y extensión. Solo el administrador
+crea, modifica o inhabilita administradores y directores.
+² Vacío = Área de Prácticas, institucional; con escuelas, solo las suyas. El
+director es siempre institucional (no se le guardan escuelas).
+
+La supervisión de las Mesas incluye **liberar reservas ajenas**, que es una
+escritura: por eso el director no la tiene. Una supervisión de solo lectura para
+el director se definirá cuando se pida, como capacidad propia.
+
+**`@Roles(...)` significa exactamente los roles declarados**; no hay expansión de
+grupos. Las rutas de operación declaran `Rol.COORDINADOR, Rol.ANALISTA`; las de
+lectura del director lo nombran a él; las de gobierno, `Rol.ADMINISTRADOR,
+Rol.DIRECTOR`. Las capacidades viven en `domain/value-objects/rol.vo.ts`:
+`esCoordinacionOperativa`, `escuelasDeCoordinacion`,
+`esCoordinacionInstitucional` (coordinador o analista sin escuelas; nunca el
+director), `puedeSupervisarInstitucionalmente`, `puedeGestionarPeriodos`,
+`puedeGestionarUsuarios`, `rolesGestionablesPor` y `puedeModificarPractica`. La
+interfaz compara roles de forma exacta (`core/auth/roles.ts`, `tieneRol`), solo
+para decidir qué muestra.
 
 Además del rol, cada usuario administrativo lleva un **permiso** de `consulta` o
 `escritura` (SGP, gestión de usuarios). El permiso viaja en el token y una guardia
@@ -2388,7 +2424,9 @@ layout). Remedio: detener `npm run dev:web`, volver a iniciarlo y recargar sin c
 | Estudiante | `andres.mora@estudiante.cun.edu.co` | Práctica detenida por la compuerta ARL |
 | Tutor | `tutor.negocios@cun.edu.co` | Bandeja de estudiantes por señal de riesgo |
 | Coordinador de prácticas | `coordinacion.practicas@cun.edu.co` | Área de Prácticas: registro FUR administrativo, usuarios, periodos, sincronización (es el que ofrece el selector) |
-| Analista | `analista.practicas@cun.edu.co` | Coordinación con permiso de **consulta**: ve todo, no escribe |
+| Coordinador (consulta) | `analista.practicas@cun.edu.co` | Coordinación con permiso de **consulta**: ve todo, no escribe. Sigue siendo `coordinador`: G1 no reasigna perfiles |
+| Director | `direccion.practicas@cun.edu.co` | Gobierno operativo institucional (G1) |
+| Analista de prácticas | `analista.ingenierias@cun.edu.co` | Perfil propio (G1), restringido a `ESC-ING` con el mismo mecanismo que la coordinación |
 | Coordinador de escuela | `coordinacion.ingenierias@cun.edu.co` | Alcance limitado a `ESC-ING` |
 | Auxiliar | `auxiliar.practicas@cun.edu.co` | Portal de ARL: valida, decide y remite el certificado |
 | Administrador | `admin.practicas@cun.edu.co` | Alcance institucional, auditoría, empresas |
@@ -2904,13 +2942,37 @@ y sobre eso se decide qué cambiar.
 - **El alcance acota la consulta.** Bandeja, bitácora, solicitudes de ARL y
   reportes aplican el alcance del actor en el servidor.
 - **Cronograma del proceso (0.13).** Al crear un periodo, el límite para
-  registrar y solicitar la ARL es dos meses después del inicio, la inducción
-  cae en la segunda semana y la fecha de cargue de documentos dos semanas antes
-  del cierre; coordinación puede ajustar cada fecha dentro del periodo. El
-  estudiante no radica la solicitud de ARL fuera de la ventana `solicitud_arl`.
-- **Plazo de cargue del estudiante (0.13).** Cerrada la fecha de cargue y
-  pasados ocho días calendario desde el fin de la práctica, el cargue se
-  cierra; una devolución del docente reabre el plazo de subsanación.
+  registrar y solicitar la ARL es dos meses después del inicio y la inducción
+  cae en la segunda semana; administración y dirección (0.39.1) ajustan cada
+  fecha dentro del periodo. La fecha de cargue de documentos del cronograma es
+  el «hasta» del cargue del estudiante (G2). El estudiante no radica la
+  solicitud de ARL fuera de la ventana `solicitud_arl`.
+- **Cargue de documentos del estudiante (G2, 0.40.0; reemplaza el plazo de la
+  0.13).**
+  - **Cargue ordinario.** Manda la ventana del periodo de su práctica. Solo
+    carga si el periodo está activo, el cargue está habilitado
+    (`cargue_estudiante_habilitado`, independiente de `activo`) y `desde ≤ hoy
+    ≤ hasta`, en día académico de Colombia e inclusivo: el día «hasta» completo
+    cuenta.
+  - **Falla cerrada.** Si el periodo no existe o no tiene ventana, no hay
+    cargue. El fin de la práctica más ocho días ya **no** extiende el cargue
+    ordinario.
+  - **Subsanación.** Es una excepción estrecha, por tipo de documento, y solo
+    con la ventana cerrada por fecha:
+    - un documento devuelto o ilegible, cuya última versión sigue así, se puede
+      volver a cargar hasta el día de la devolución más
+      `documentos.dias_subsanacion` (ocho días del manual del docente
+      facilitador);
+    - un «plazo de subsanación» que el docente registra en la bitácora habilita
+      solo los documentos que nombra.
+
+    Ninguna de las dos reabre el expediente, y con el cargue inhabilitado o el
+    periodo inactivo no hay excepción.
+  - **Dónde se decide.** La API rechaza `POST /documentos/practica/:id` antes
+    de leer el multipart (`prevalidarCargue`) y vuelve a exigir la regla por
+    tipo antes de procesar o guardar bytes.
+  - **Otros perfiles.** Docente, coordinación, analista y administración no
+    dependen de esta ventana; el director no carga.
 - **Matriz documental oficial (0.13).** La pasantía dura de uno a tres meses
   (la extensión la pide la empresa y la registra coordinación, con marca en la
   auditoría); el segundo contrato de aprendizaje exige subir de nivel en la
@@ -3490,6 +3552,88 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.40.0 — 17 de noviembre de 2026
+
+**Gobierno operativo · G2: periodos académicos y control estricto del cargue documental del estudiante.**
+
+**Estado anterior.** El plazo de cargue era el posterior de tres fechas: el «hasta» de la ventana del periodo, el fin de la práctica más `documentos.dias_subsanacion` y cada devolución más esos días. Cualquier devolución reabría el cargue de todo el expediente. Si no había periodo ni ventana, el estudiante seguía cargando (`limites.length === 0`). El controlador leía el archivo completo antes de validar. La hora de corte era el día UTC (a las 7 p. m. de Colombia ya era «mañana»). El cargue solo se podía cerrar borrando la ventana o desactivando el periodo entero.
+
+**Regla nueva.**
+- **Ventana del periodo.** Es la autoridad del cargue ordinario. Estado efectivo en el dominio: `PeriodoAcademico.estadoCargueEstudiante(ahora)` devuelve `abierto`, `aun_no_abre`, `cerrado_por_fecha`, `inhabilitado`, `periodo_inactivo` o `sin_ventana`, y `sin_periodo` cuando la práctica no tiene periodo. Fechas académicas inclusivas en día de Colombia (`diaAcademicoColombia`).
+- **Habilitación manual.** `cargue_estudiante_habilitado` es independiente de `activo`: inhabilitar no borra las fechas.
+- **Fechas.** `fijarVentanaCargueEstudiante` exige `inicioPeriodo ≤ desde ≤ hasta ≤ finPeriodo` y mantiene `fecha_cargue_documentos` igual a «hasta», así el cronograma no tiene dos verdades. La ventana de cargue del estudiante ya no se borra: se inhabilita.
+- **Subsanación.** Por tipo y solo con la ventana cerrada por fecha (§17.2). Incluye el plazo de la bitácora, que antes se anotaba pero el cargue ignoraba.
+- **Hallazgo documentado.** El «fin de la práctica + ocho días» venía de PQRS n.º 54 (§17.2, 0.13). Por instrucción de G2 deja de extender el cargue ordinario. Los ocho días de subsanación tras una devolución sí se conservan: los fija el manual del docente facilitador.
+
+**Persistencia.** Migración 23 `CargueEstudiantePeriodo1756000023000`: `ALTER TABLE periodos_academicos ADD COLUMN cargue_estudiante_habilitado boolean NOT NULL DEFAULT true`. Los periodos existentes quedan habilitados y no se toca ninguna fecha ni ventana.
+- **Aplicada en `sipra_dev`** con `npm run migration:run`, después de respaldar `periodos_academicos` y `migrations` con `pg_dump`.
+- **Comprobado:** la columna es booleana, no nula y TRUE por defecto; los 9 periodos quedaron en TRUE; la huella de códigos, fechas, ventanas, estados y modalidades es idéntica antes y después.
+- **No aplicada en `sipra_reportes_1000`.**
+
+**API.**
+- **Servicio único.** `CargueEstudianteService` reúne periodo, versiones documentales, plazos de la bitácora y el parámetro; lo usan el cargue y el detalle de la práctica.
+- **Cargue.** `GestionarDocumentoUseCase.prevalidarCargue` (perfil, práctica visible, periodo, habilitación, ventana o subsanación vigente) se llama en `DocumentosController.cargar` **antes** de `request.parts()`. Respuesta 403 con mensaje operativo.
+- **Detalle de la práctica.** `GET /practicas/:id` proyecta `cargueEstudiante {permitido, estado, desde, hasta, mensaje, subsanaciones[]}`.
+- **Periodos.** `POST /periodos` acepta `cargueEstudiante {habilitado, desde, hasta}`; `PATCH /periodos/:codigo` acepta `cargueEstudianteHabilitado` y `ventanaCargueEstudiante`. La respuesta incluye `cargueEstudiante {habilitado, estado, desde, hasta}`.
+- **Auditoría.** La acción `periodo_actualizado` registra `{campo, anterior, nuevo}` por cada cambio (activo, habilitación, desde, hasta, nombre, cronograma, ventanas…), junto con actor, rol y periodo.
+
+**Interfaz.**
+- **Gestión de periodos** (solo administración y dirección): resumen compacto (calendario, fechas, estado del periodo, cargue y ventana) y sección «Cargue de documentos del estudiante». Tiene un interruptor con etiqueta real (`role="switch"`), confirmación al inhabilitar, «Guardar ventana de cargue», validación previa y aviso de fecha ya pasada. El formulario de creación propone fechas visibles y editables. La pestaña de ventanas ya no muestra el término interno del cargue del estudiante.
+- **Expediente del estudiante.** Una línea compacta por estado (habilitado, próximamente, cerrado, temporalmente inhabilitado). Los botones «Cargar» y «Subir nueva versión» se deshabilitan por tipo, con motivo y `aria-describedby`; la zona de carga queda deshabilitada. «Corrección habilitada hasta …» aparece solo sobre el documento con subsanación. Sin proyección, falla cerrada. Utilidades en `shared/utils/cargue-estudiante.ts`, que solo presentan.
+
+**Pruebas.**
+- API: `plazo-cargue.spec.ts` reescrita (25) y `periodo-cargue-estudiante.spec.ts` (25). Cubren dominio en los bordes, cargue antes, durante y después, inhabilitado, periodo inactivo e inexistente, subsanación por tipo, prevalidación, otros perfiles, director, gestión, auditoría, permisos y que el controlador no lea el multipart si la prevalidación falla.
+- Web: `cargue-estudiante-g2.spec.ts`.
+- Prueba directa contra la API real (puerto temporal, `sipra_dev`): el estudiante recibió 403 en 0,2 s sin que se procesara el archivo; el coordinador pasa a la verificación del archivo.
+
+**Capturas:** `docs/assets/g2/`. Los estados «inhabilitado», «abierto» y «cerrado» del expediente se simularon interceptando la respuesta en el navegador, sin modificar datos.
+
+**Semillas: periodo inexistente «2026-2» (corregido al cierre de G2).** Al cierre de G2 se encontró que `sembrarPracticas()` insertaba las tres prácticas sintéticas con `periodo_academico = '2026-2'`, un periodo que no existe en `sembrarPeriodos()` (los códigos son `2026A–D`, `26V0x` y `26P0x`). Además usaba fechas relativas a hoy. Con G2 esos estudiantes quedaban, correctamente, en falla cerrada (`sin_periodo`).
+- **Fuente corregida.** Fechas FIJAS dentro de un periodo sembrado: caso 1 en `2026C` (18 ago → 27 nov 2026); casos 2 y 3 en `2026D` (23 nov 2026 → 19 feb 2027 y 7 dic 2026 → 26 feb 2027).
+- **Comprobación nueva en la propia semilla.** Falla con mensaje claro si una práctica apunta a un periodo inexistente o cae fuera de sus fechas. No se agregó un periodo «2026-2» ni una clave foránea.
+- **Preparador E2E.** El mismo defecto estaba en `herramientas/preparar-e2e-validacion-documental.ts` (práctica CUNBRE, 2 nov 2026 → 2 feb 2027): ahora usa `2026D`.
+- **Reparación controlada de `sipra_dev`.** `npm run seed` no repara filas existentes (`ON CONFLICT DO NOTHING`), así que se hizo a mano:
+  - se respaldaron `practicas` con `pg_dump`;
+  - se actualizó SOLO `periodo_academico` de las cuatro prácticas sintéticas conocidas (`…041` → `2026C`; `…042`, `…043` y `…0a3` → `2026D`), en una transacción, con las condiciones `id` exacto y `periodo_academico = '2026-2'`;
+  - el resto de columnas quedó idéntico (huella);
+  - resultado: 0 prácticas con periodo inexistente.
+
+  Pendiente no bloqueante: la fila `…041` conserva las fechas relativas con que se sembró (16 sep → 15 dic 2026), y su fin supera en 11 días el de `2026C`. Solo se autorizó corregir el periodo.
+
+**Migraciones en el entorno persistente de Reportes (`sipra_reportes_1000`, 127.0.0.1:5433).** Estaba en la migración 21. Con `DB_NAME=sipra_reportes_1000 npm run migration:run`, después de respaldar `periodos_academicos` y `migrations`, se aplicaron las pendientes: 22 (roles director y analista) y 23 (habilitación del cargue). No se volvió a sembrar ni a regenerar el dataset.
+- **Conteos idénticos:** 1026 usuarios, 1003 prácticas, 6807 documentos, 93 empresas, 9 periodos, 5372 auditorías y 1000 semestres.
+- **Huellas idénticas:** periodos y las cuatro del dataset (`seed-reportes-1000.ts huella`; la de prácticas sigue siendo la del dataset v4, `dca96f0a711ec8b4bb35d67df3e949e4`).
+- **Cambio:** solo estructural (la columna nueva, TRUE en los 9 periodos, y el CHECK de roles ampliado).
+- **Nota:** la herramienta `seed-reportes-1000.ts` se niega a correr en el puerto 5433 (guarda de cuando el dataset vivía en otro puerto). La huella se calculó con su misma consulta, solo lectura.
+
+**Deuda técnica (no bloqueante).**
+- G2 corrige el día académico de Colombia solo para `CARGUE_ESTUDIANTE`. Las ventanas de registro FUR, solicitud de ARL y carta de presentación siguen usando el día UTC: a partir de las 7 p. m. de Colombia ya cuentan el día siguiente.
+- El simulador de SINU (`externos.adapter.ts`) sigue usando el periodo «2026-2» en sus matrículas de ejemplo.
+
+### 0.39.1 — 17 de noviembre de 2026
+
+**Corrección de G1: gobierno separado de la operación.** La versión 0.39.0 trataba al director como parte de una «familia de coordinación» y expandía `@Roles(Rol.COORDINADOR)` a coordinador, analista y director. Riesgo: el director heredaba en silencio todas las escrituras operativas (decidir documentos, operar y supervisar Mesas, ARL, estados y datos de la práctica, asignación de docentes), y cualquier ruta futura con `COORDINADOR` lo habría incluido sin revisión.
+- **Sin expansión implícita:** `@Roles(...)` vuelve a significar exactamente los roles declarados. Se eliminan `expandirRoles`, `ROLES_COORDINACION`, `esCoordinacion` y `puedeGobernarPracticas`.
+- **Rutas (89 declaraciones):** donde estaba `Rol.COORDINADOR` ahora también está `Rol.ANALISTA`, de forma explícita; el analista conserva lo que tenía como coordinador. El director se nombra solo en lecturas (documentos: consulta y enlace; bitácora y cierre; reportes SGP, analítica y catálogos; tablero de cumplimiento) y en gobierno.
+- **Gobierno:** periodos (crear, habilitar) y gestión de usuarios pasan a **administrador + director**; la coordinación ya no los gestiona. El director gestiona perfiles operativos; solo el administrador gobierna administradores y directores.
+- **Capacidades** (`rol.vo.ts`): `esCoordinacionOperativa`, `esCoordinacionInstitucional` (sin director), `puedeSupervisarInstitucionalmente`, `puedeGestionarPeriodos`, `puedeGestionarUsuarios`, `rolesGestionablesPor` y `puedeModificarPractica` (exclusiva de coordinador y analista; preparada para G5, todavía sin consumir).
+- **Corregido de paso:** 0.39.0 no había incluido al analista en los controles que empezaban por `Rol.COORDINADOR`. Eran responsable de la ARL, corrección de datos gobernantes, PQRS, vistas SINU y destinatarios de avisos de ARL. Ahora son explícitos para coordinador y analista; el director no recibe avisos de ARL.
+- **Migración 22 aplicada en `sipra_dev`** con `npm run migration:run`, después de respaldar `usuarios` y `migrations` con `pg_dump`. Validada en una transacción revertida: acepta los nueve roles, rechaza uno inválido y la huella de `usuarios` (12 filas) no cambia. Los usuarios sintéticos de director y analista de las semillas no se cargaron en esa base.
+- **Pruebas:** matriz por capacidad y por objeto de valor (`test/roles-gobierno.spec.ts`) y auditoría sobre las rutas reales (`autorizacion-rutas.spec.ts`). Comprueba que el director no escribe fuera de usuarios y periodos, que no entra a Mesas, ARL ni administración técnica, y que toda ruta con coordinador declara al analista.
+
+### 0.39.0 — 17 de noviembre de 2026
+
+**Gobierno operativo · G1: roles y matriz de permisos.** *La «familia de coordinación» y la expansión de `@Roles` de esta entrada se retiraron en 0.39.1.* Solo modelo de autorización; no se implementan periodos nuevos, cargues, distribución ni el aviso de ARL.
+- **Roles nuevos:** `Rol.DIRECTOR = 'director'` (gobierno operativo institucional; no es administrador técnico) y `Rol.ANALISTA = 'analista'` (Área de Prácticas). **El analista deja de estar fusionado con el coordinador.** `Rol.COORDINADOR` no cambia.
+- **Familia de coordinación** (`ROLES_COORDINACION`): coordinador, analista y director heredan lo que el sistema concedía a la coordinación. `@Roles(Rol.COORDINADOR)` se expande en un solo lugar (`roles.decorator.ts`); los ~45 controles en casos de uso y objetos de valor usan ahora `esCoordinacion`, `escuelasDeCoordinacion` y `esCoordinacionInstitucional` en lugar de comparar con `Rol.COORDINADOR`.
+- **Alcance:** director, siempre institucional (`Practica.visiblePara`, filtros de la bandeja, reportes, Mesas); analista, el mismo mecanismo de `escuelas` que la coordinación (vacío = institucional). No hay un segundo modelo de alcance.
+- **Gestión de usuarios:** `ROLES_ADMINISTRATIVOS` incluye director y analista (siete perfiles; sin estudiantes ni empresas). Solo el administrador crea o modifica administradores y directores; el director gestiona los perfiles operativos. Al director no se le guardan escuelas.
+- **Capacidades para G2–G6** en `rol.vo.ts`: `puedeGestionarUsuarios`, `rolesGestionablesPor`, `puedeGestionarPeriodos`, `puedeGobernarPracticas`.
+- **Migración 22** `RolesGobiernoOperativo1756000022000`: amplía el CHECK `ck_usuarios_rol` con `director` y `analista`; no toca filas; su `down()` se niega si existen usuarios con esos roles.
+- **Compatibilidad:** los usuarios `coordinador` siguen siéndolo (incluido `analista.practicas@cun.edu.co`, coordinador con permiso de consulta); no se infieren perfiles. Semillas: dos usuarios sintéticos nuevos, director y analista.
+- **Interfaz:** tipo `Rol`, guardia de rutas, menú y controles de visibilidad usan `tieneRol` (`core/auth/roles.ts`); etiquetas «Director» y «Analista de prácticas»; el formulario de usuarios ofrece analista y, solo al administrador, director. Sin rediseño.
+- **Pruebas:** `test/roles-gobierno.spec.ts` (33) y `pruebas/roles-gobierno.spec.ts` (3). Las pruebas de matriz de acceso existentes (rutas, documentos, Mesas de EPS y Actas) incorporan a la familia de coordinación en vez de solo `coordinador`.
 
 ### 0.38.4 — 12 de noviembre de 2026
 

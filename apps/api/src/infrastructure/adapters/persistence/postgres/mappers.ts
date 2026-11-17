@@ -378,6 +378,7 @@ export const PeriodoMapper = {
       sincronizacionDocentes: orm.sincronizacion_docentes,
       modalidadesHabilitadas: (orm.modalidades_habilitadas ?? []) as ModalidadPractica[],
       activo: orm.activo,
+      cargueEstudianteHabilitado: orm.cargue_estudiante_habilitado ?? true,
       creadoEn: orm.creado_en,
       actualizadoEn: orm.actualizado_en,
     });
@@ -399,6 +400,7 @@ export const PeriodoMapper = {
     orm.sincronizacion_docentes = d.sincronizacionDocentes;
     orm.modalidades_habilitadas = d.modalidadesHabilitadas;
     orm.activo = d.activo;
+    orm.cargue_estudiante_habilitado = d.cargueEstudianteHabilitado;
     orm.creado_en = d.creadoEn;
     orm.actualizado_en = d.actualizadoEn;
     return orm;

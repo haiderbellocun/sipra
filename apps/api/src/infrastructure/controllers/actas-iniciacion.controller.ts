@@ -30,7 +30,7 @@ export class ActasIniciacionController {
   constructor(private readonly mesa: MesaActasUseCase, private readonly estudiante: ActaEstudianteUseCase) {}
 
   @Get()
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Bandeja de actas en revisión (versión vigente) con KPIs, filtros y prioridad',
     description:
@@ -54,7 +54,7 @@ export class ActasIniciacionController {
   }
 
   @Get('supervision')
-  @Roles(Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Casos libres, tomados, por vencer y vencidos; carga por funcionario; por estado y por discrepancia' })
   @ApiResponse({ status: 200, description: 'Resumen de supervisión' })
   supervision(@ActorActual() actor: Actor): Promise<SupervisionActaDto> {
@@ -62,7 +62,7 @@ export class ActasIniciacionController {
   }
 
   @Post('tomar-siguiente')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Tomar el siguiente caso disponible',
@@ -74,7 +74,7 @@ export class ActasIniciacionController {
   }
 
   @Get('motivos-devolucion')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Motivos de devolución permitidos para un Acta, con lo que leerá el estudiante',
     description: 'Fuente única del catálogo: código, título, mensaje al estudiante y si exige detalle. La pantalla no mantiene una copia.',
@@ -96,7 +96,7 @@ export class ActasIniciacionController {
   }
 
   @Get(':id')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Detalle: estudiante, práctica, resumen del acta, comparación SIPRA ↔ Acta, versiones e historial de la versión',
     description: 'El documento de identidad completo solo se devuelve a quien tiene el caso tomado, a supervisión o a quien lo decidió.',
@@ -107,7 +107,7 @@ export class ActasIniciacionController {
   }
 
   @Get(':id/archivo')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Contenido del acta para el visor',
     description: 'Se sirve por la sesión autenticada (cabecera Authorization): no hay enlace firmado ni credencial en la URL. La apertura queda auditada.',
@@ -123,7 +123,7 @@ export class ActasIniciacionController {
   }
 
   @Post(':id/tomar')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({ summary: 'Reservar el caso (15 minutos). Si otra persona ya lo tiene: 409.' })
   @ApiResponse({ status: 200, description: 'Reserva vigente' })
@@ -132,7 +132,7 @@ export class ActasIniciacionController {
   }
 
   @Post(':id/liberar')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({ summary: 'Liberar la reserva propia; coordinación y administración pueden liberar la de otra persona.' })
   @ApiResponse({ status: 200, description: 'Caso libre' })
@@ -141,7 +141,7 @@ export class ActasIniciacionController {
   }
 
   @Post(':id/decision')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Aprobar, devolver o rechazar el acta desde la Mesa',

@@ -8,6 +8,7 @@ import {
   RESPONSABLES_ARL_PRACTICA, ResponsableArlPractica, TipoRemuneracion,
 } from '../../domain/entities/practica.entity';
 import { AvanceDocumental } from '../../domain/services/avance-documental.domain-service';
+import { CargueEstudianteDto } from './cargue-estudiante.dto';
 
 export class CrearPracticaDto {
   @ApiProperty() @IsUUID() estudianteId!: string;
@@ -154,6 +155,11 @@ export class PracticaRespuestaDto {
   estadoSgp!: string;
   @ApiProperty({ description: 'Porcentajes de cargue y aprobación y detalle por momento.' })
   avance!: AvanceDocumental;
+  @ApiPropertyOptional({
+    type: () => CargueEstudianteDto,
+    description: 'G2 · solo en el detalle: estado del cargue del estudiante según la ventana del periodo, calculado en el servidor',
+  })
+  cargueEstudiante?: CargueEstudianteDto;
   @ApiProperty({ nullable: true }) fechaInicio!: string | null;
   @ApiProperty({ nullable: true }) fechaFin!: string | null;
   @ApiProperty({ nullable: true }) horasRegistradas!: number | null;

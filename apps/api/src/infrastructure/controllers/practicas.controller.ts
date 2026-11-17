@@ -92,7 +92,7 @@ export class PracticasController {
   }
 
   @Post('registro')
-  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Formulario Único de Registro (FUR)',
     description:
@@ -107,7 +107,7 @@ export class PracticasController {
   }
 
   @Patch(':id/vacante')
-  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR)
+  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR, Rol.AUXILIAR)
   @ApiOperation({
     summary: 'Actualizar los datos de la vacante',
     description: 'Solo los campos habilitados por el SGP: área, cargo, salario, horario, jefe inmediato, ' +
@@ -123,7 +123,7 @@ export class PracticasController {
   }
 
   @Patch(':id/datos-gobernantes')
-  @Roles(Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Corregir la remuneración y/o quién asume la ARL (con acta de iniciación cargada o no)',
     description:
@@ -154,7 +154,7 @@ export class PracticasController {
   }
 
   @Post()
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA)
   @ApiOperation({
     summary: 'Crear una práctica',
     description: 'Al crearse, el motor de obligaciones genera automáticamente sus obligaciones normativas.',
@@ -165,7 +165,7 @@ export class PracticasController {
   }
 
   @Patch(':id/estado')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.TUTOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.TUTOR)
   @ApiOperation({
     summary: 'Cambiar el estado de la práctica',
     description:
@@ -183,7 +183,7 @@ export class PracticasController {
   }
 
   @Patch(':id/arl')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA)
   @ApiOperation({
     summary: 'Registrar la afiliación a ARL',
     description:
@@ -202,7 +202,7 @@ export class PracticasController {
   }
 
   @Patch(':id/horas')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.TUTOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.TUTOR)
   @ApiOperation({ summary: 'Registrar las horas al cierre de la práctica' })
   registrarHoras(
     @Param('id', ParseUUIDPipe) id: string,
@@ -213,7 +213,7 @@ export class PracticasController {
   }
 
   @Patch(':id/tutor')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA)
   @ApiOperation({ summary: 'Asignar tutor académico' })
   asignarTutor(
     @Param('id', ParseUUIDPipe) id: string,

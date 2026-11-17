@@ -41,13 +41,13 @@ describe('Política de acceso documental (dominio)', () => {
     for (const tipo of TODOS_LOS_TIPOS) expect(puedeVerDocumento(rol, tipo)).toBe(false);
   });
 
-  it.each([Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR])('%s ve todos los tipos', (rol) => {
+  it.each([Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ADMINISTRADOR])('%s ve todos los tipos', (rol) => {
     for (const tipo of TODOS_LOS_TIPOS) expect(puedeVerDocumento(rol, tipo)).toBe(true);
   });
 
   it('cargan documentos: estudiante, docente, coordinación y administración; nadie más', () => {
     const cargan = Object.values(Rol).filter(puedeCargarDocumentos).sort();
-    expect(cargan).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ESTUDIANTE, Rol.TUTOR].sort());
+    expect(cargan).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ESTUDIANTE, Rol.TUTOR].sort());
   });
 });
 

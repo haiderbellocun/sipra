@@ -38,7 +38,7 @@ export class PqrsController {
   }
 
   @Get()
-  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Mis solicitudes (estudiante) o bandeja completa (quien atiende)' })
   @ApiQuery({ name: 'estado', required: false, enum: EstadoPqrs })
   @ApiQuery({ name: 'categoria', required: false, enum: CATEGORIAS_PQRS })
@@ -51,20 +51,20 @@ export class PqrsController {
   }
 
   @Get(':id')
-  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   obtener(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<PqrsRespuesta> {
     return this.pqrs.obtener(id, actor);
   }
 
   @Patch(':id/tomar')
-  @Roles(Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Marcar la solicitud en trámite' })
   tomar(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<PqrsRespuesta> {
     return this.pqrs.tomar(id, actor);
   }
 
   @Patch(':id/responder')
-  @Roles(Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Responder en el radicado (se notifica al estudiante)' })
   responder(
     @Param('id', ParseUUIDPipe) id: string, @Body() dto: ResponderPqrsDto, @ActorActual() actor: Actor,
@@ -73,7 +73,7 @@ export class PqrsController {
   }
 
   @Patch(':id/cerrar')
-  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Cerrar una solicitud ya respondida' })
   cerrar(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<PqrsRespuesta> {
     return this.pqrs.cerrar(id, actor);

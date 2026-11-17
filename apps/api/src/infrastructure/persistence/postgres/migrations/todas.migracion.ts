@@ -23,6 +23,8 @@ import { MesaActas1756000018000 } from './1756000018000-MesaActas';
 import { ValidacionDocumentoEmpresarial1756000019000 } from './1756000019000-ValidacionDocumentoEmpresarial';
 import { DecisionHumanaDocumentoEmpresarial1756000020000 } from './1756000020000-DecisionHumanaDocumentoEmpresarial';
 import { MotivosDecisionCamara1756000021000 } from './1756000021000-MotivosDecisionCamara';
+import { RolesGobiernoOperativo1756000022000 } from './1756000022000-RolesGobiernoOperativo';
+import { CargueEstudiantePeriodo1756000023000 } from './1756000023000-CargueEstudiantePeriodo';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -55,4 +57,6 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   ValidacionDocumentoEmpresarial1756000019000,
   DecisionHumanaDocumentoEmpresarial1756000020000,
   MotivosDecisionCamara1756000021000,
+  RolesGobiernoOperativo1756000022000,
+  CargueEstudiantePeriodo1756000023000,
 ];

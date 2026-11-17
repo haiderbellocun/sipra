@@ -1,3 +1,4 @@
+import { diaAcademicoColombia } from '../services/fechas-colombia';
 import { ModalidadPractica } from './modalidad.entity';
 
 /**
@@ -64,8 +65,36 @@ export interface DatosPeriodo {
   /** Vacío = todas las modalidades ofertadas. */
   modalidadesHabilitadas: ModalidadPractica[];
   activo: boolean;
+  /**
+   * Cargue de documentos del estudiante habilitado (G2). Independiente de `activo`: el periodo puede
+   * seguir vigente y el gobierno cerrar temporalmente el cargue, sin perder las fechas de la ventana.
+   */
+  cargueEstudianteHabilitado: boolean;
   creadoEn: Date;
   actualizadoEn: Date;
+}
+
+/**
+ * Estado efectivo del cargue ordinario del estudiante (G2). Lo calcula SOLO el dominio; la API lo
+ * proyecta y la interfaz lo muestra sin recalcularlo.
+ */
+export enum EstadoCargueEstudiante {
+  ABIERTO = 'abierto',
+  AUN_NO_ABRE = 'aun_no_abre',
+  CERRADO_POR_FECHA = 'cerrado_por_fecha',
+  INHABILITADO = 'inhabilitado',
+  PERIODO_INACTIVO = 'periodo_inactivo',
+  /** El periodo no tiene ventana de cargue del estudiante configurada. */
+  SIN_VENTANA = 'sin_ventana',
+  /** La práctica referencia un periodo que no existe o no se pudo recuperar (falla cerrada). */
+  SIN_PERIODO = 'sin_periodo',
+}
+
+export class VentanaCargueInvalidaError extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = 'VentanaCargueInvalidaError';
+  }
 }
 
 export class VentanaCerradaError extends Error {
@@ -138,13 +167,16 @@ function diaUtc(fecha: Date): number {
 export class PeriodoAcademico {
   private constructor(private datos: DatosPeriodo) {}
 
-  static desde(datos: DatosPeriodo): PeriodoAcademico {
+  /** `cargueEstudianteHabilitado` es opcional al construir: los datos anteriores a G2 quedan habilitados. */
+  static desde(datos: Omit<DatosPeriodo, 'cargueEstudianteHabilitado'> & { cargueEstudianteHabilitado?: boolean }): PeriodoAcademico {
     return new PeriodoAcademico({
       ...datos,
       ventanas: { ...datos.ventanas },
       jornadasInduccion: [...(datos.jornadasInduccion ?? [])],
       fechaCargueDocumentos: datos.fechaCargueDocumentos ?? null,
       modalidadesHabilitadas: [...datos.modalidadesHabilitadas],
+      // Periodos anteriores a G2 no traen el dato: quedan habilitados (como la migración 23).
+      cargueEstudianteHabilitado: datos.cargueEstudianteHabilitado ?? true,
     });
   }
 
@@ -197,6 +229,7 @@ export class PeriodoAcademico {
   get fechaInicio(): Date { return this.datos.fechaInicio; }
   get fechaFin(): Date { return this.datos.fechaFin; }
   get activo(): boolean { return this.datos.activo; }
+  get cargueEstudianteHabilitado(): boolean { return this.datos.cargueEstudianteHabilitado; }
 
   instantanea(): DatosPeriodo {
     return {
@@ -241,7 +274,24 @@ export class PeriodoAcademico {
     return this.datos.ventanas[tipo] ?? null;
   }
 
+  /**
+   * Estado del cargue ordinario del estudiante, por día académico de Colombia y con fechas
+   * inclusivas: `desde ≤ hoy ≤ hasta` es abierto; el día `hasta` completo cuenta.
+   * Orden: periodo inactivo → inhabilitado → sin ventana → aún no abre → cerrado por fecha → abierto.
+   */
+  estadoCargueEstudiante(ahora: Date = new Date()): EstadoCargueEstudiante {
+    if (!this.datos.activo) return EstadoCargueEstudiante.PERIODO_INACTIVO;
+    if (!this.datos.cargueEstudianteHabilitado) return EstadoCargueEstudiante.INHABILITADO;
+    const v = this.datos.ventanas[TipoVentana.CARGUE_ESTUDIANTE];
+    if (!v) return EstadoCargueEstudiante.SIN_VENTANA;
+    const hoy = diaAcademicoColombia(ahora);
+    if (hoy < diaUtc(v.desde)) return EstadoCargueEstudiante.AUN_NO_ABRE;
+    if (hoy > diaUtc(v.hasta)) return EstadoCargueEstudiante.CERRADO_POR_FECHA;
+    return EstadoCargueEstudiante.ABIERTO;
+  }
+
   ventanaAbierta(tipo: TipoVentana, ahora: Date = new Date()): boolean {
+    if (tipo === TipoVentana.CARGUE_ESTUDIANTE) return this.estadoCargueEstudiante(ahora) === EstadoCargueEstudiante.ABIERTO;
     const v = this.datos.ventanas[tipo];
     if (!v || !this.datos.activo) return false;
     const hoy = diaUtc(ahora);
@@ -319,6 +369,28 @@ export class PeriodoAcademico {
 
   activar(activo: boolean, ahora: Date = new Date()): void {
     this.datos.activo = activo;
+    this.datos.actualizadoEn = ahora;
+  }
+
+  /** Habilita o inhabilita el cargue del estudiante sin tocar las fechas de la ventana. */
+  habilitarCargueEstudiante(habilitado: boolean, ahora: Date = new Date()): void {
+    this.datos.cargueEstudianteHabilitado = habilitado;
+    this.datos.actualizadoEn = ahora;
+  }
+
+  /**
+   * Ventana de cargue del estudiante: `inicioPeriodo ≤ desde ≤ hasta ≤ finPeriodo`. La fecha de cargue de
+   * documentos del cronograma sigue a `hasta` (es la misma fecha institucional), para no tener dos verdades.
+   */
+  fijarVentanaCargueEstudiante(ventana: Ventana, ahora: Date = new Date()): void {
+    if (diaUtc(ventana.hasta) < diaUtc(ventana.desde)) {
+      throw new VentanaCargueInvalidaError('La fecha «hasta» del cargue no puede ser anterior a «desde»');
+    }
+    if (!this.contieneFechas(ventana.desde, ventana.hasta)) {
+      throw new VentanaCargueInvalidaError('Las fechas de cargue deben estar dentro de las fechas del periodo');
+    }
+    this.datos.ventanas[TipoVentana.CARGUE_ESTUDIANTE] = { desde: ventana.desde, hasta: ventana.hasta };
+    this.datos.fechaCargueDocumentos = ventana.hasta;
     this.datos.actualizadoEn = ahora;
   }
 }

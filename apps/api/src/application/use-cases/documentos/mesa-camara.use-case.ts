@@ -29,7 +29,7 @@ import {
 } from '../../../domain/services/mesa-camara.domain-service';
 import { POLITICA_CAMARA_POR_DEFECTO, evaluarCamara } from '../../../domain/services/vigencia-documento-empresarial.domain-service';
 import { esSupervisorRevisionCamara, puedeOperarRevisionCamara } from '../../../domain/value-objects/acceso-camara.vo';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import {
   CampoComparadoCamaraDto, CampoInformativoCamaraDto, DecisionCamaraDto, DetalleCamaraDto, ItemBandejaCamaraDto, ListadoBandejaCamaraDto,
   ReservaCamaraDto, ResultadoTomarSiguienteCamaraDto, SupervisionCamaraDto, TomarSiguienteCamaraDto,
@@ -138,7 +138,7 @@ export class MesaCamaraUseCase {
    */
   private alcance(actor: Actor): string[] | null {
     if (actor.rol === Rol.TUTOR) return [...actor.escuelas];
-    return actor.rol === Rol.COORDINADOR && actor.escuelas.length > 0 ? [...actor.escuelas] : null;
+    return escuelasDeCoordinacion(actor);
   }
 
   /** Datos personales completos: solo a quien tiene el caso tomado (reserva vigente), a supervisión o a quien lo decidió. */

@@ -21,7 +21,7 @@ import {
 import {
   ObligacionesDomainService,
 } from '../../../domain/services/obligaciones.domain-service';
-import { Permiso, Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion, Permiso } from '../../../domain/value-objects/rol.vo';
 import { ActualizarVacanteDto, CrearPracticaDto, PracticaRespuestaDto } from '../../dtos/practica.dto';
 import { CorregirDatosPracticaDto, CorreccionDatosPracticaRespuestaDto } from '../../dtos/acta-iniciacion.dto';
 import { TipoDocumento } from '../../../domain/entities/documento.entity';
@@ -30,6 +30,7 @@ import { ValidacionActaUseCase } from '../documentos/validacion-acta.use-case';
 import { proyectarPracticaPara } from './proyeccion-practica';
 import { AvanceDocumentalDomainService } from '../../../domain/services/avance-documental.domain-service';
 import { EQUIVALENCIA_SGP } from '../../../domain/entities/practica.entity';
+import { CargueEstudianteService } from '../documentos/cargue-estudiante.service';
 
 export interface Actor {
   id: string;
@@ -58,6 +59,7 @@ export class GestionarPracticaUseCase {
     @Inject(AUDITORIA_REPOSITORY) private readonly auditoria: AuditoriaRepositoryPort,
     private readonly parametros: ParametrosUseCase,
     @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
+    @Optional() private readonly cargueEstudiante?: CargueEstudianteService,
   ) {}
 
   /** Crea la práctica y, con ella, sus obligaciones normativas (M5). */
@@ -170,14 +172,14 @@ export class GestionarPracticaUseCase {
     // Quién asume la ARL es un acuerdo que el acta de iniciación luego confirma o contradice: tras el registro solo
     // coordinación y administración lo cambian (el estudiante lo fija al registrar; cambiarlo después silenciaría una
     // discrepancia). Se comprueba antes de aplicar nada para no dejar una edición a medias.
-    if (dto.responsableArl !== undefined && ![Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+    if (dto.responsableArl !== undefined && ![Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR].includes(actor.rol)) {
       throw new ForbiddenException('Solo coordinación o administración cambian quién asume la ARL de la práctica');
     }
     const practica = await this.exigirVisible(id, actor);
     // Con un acta de iniciación cargada, remuneración y responsable de la ARL gobiernan la comparación documental: ya no se
     // editan por aquí (ni siquiera coordinación). Se corrigen con la corrección controlada, con justificación y auditoría.
     if ((dto.tipoRemuneracion !== undefined || dto.responsableArl !== undefined) && await this.tieneActaCargada(id)) {
-      if (![Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+      if (![Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR].includes(actor.rol)) {
         throw new ForbiddenException('Con el acta de iniciación cargada, la remuneración y quién asume la ARL solo las corrige coordinación o administración, con justificación.');
       }
       throw new BadRequestException('Con el acta de iniciación cargada, la remuneración y quién asume la ARL se corrigen con la corrección controlada, que exige justificación.');
@@ -212,7 +214,7 @@ export class GestionarPracticaUseCase {
    * nueva; si ya estaba decidida, solo queda constancia de que los datos cambiaron después.
    */
   async corregirDatosGobernantes(id: string, dto: CorregirDatosPracticaDto, actor: Actor): Promise<CorreccionDatosPracticaRespuestaDto> {
-    if (![Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+    if (![Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR].includes(actor.rol)) {
       throw new ForbiddenException('Solo coordinación o administración corrigen estos datos de la práctica');
     }
     const justificacion = (dto.justificacion ?? '').trim();
@@ -252,7 +254,12 @@ export class GestionarPracticaUseCase {
   async obtener(id: string, actor: Actor): Promise<PracticaRespuestaDto> {
     const practica = await this.exigirVisible(id, actor);
     await this.registrarAuditoria(actor, AccionAuditada.EXPEDIENTE_CONSULTADO, id, null);
-    return this.presentar(practica, actor);
+    const respuesta = await this.presentar(practica, actor);
+    // G2: estado del cargue del estudiante calculado en el servidor (solo en el detalle, no en el listado).
+    if (this.cargueEstudiante) {
+      respuesta.cargueEstudiante = this.cargueEstudiante.proyectar(await this.cargueEstudiante.contexto(practica));
+    }
+    return respuesta;
   }
 
   /**
@@ -301,7 +308,7 @@ export class GestionarPracticaUseCase {
     documentoId: string | null,
     actor: Actor,
   ): Promise<PracticaRespuestaDto> {
-    if (![Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.AUXILIAR].includes(actor.rol)) {
+    if (![Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR].includes(actor.rol)) {
       throw new ForbiddenException('Solo administración o el auxiliar de prácticas registran la afiliación a ARL');
     }
     const practica = await this.exigirVisible(id, actor);
@@ -339,7 +346,7 @@ export class GestionarPracticaUseCase {
   }
 
   async asignarTutor(id: string, tutorId: string, actor: Actor): Promise<PracticaRespuestaDto> {
-    if (![Rol.ADMINISTRADOR, Rol.COORDINADOR].includes(actor.rol)) {
+    if (![Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA].includes(actor.rol)) {
       throw new ForbiddenException('Solo coordinación o administración asignan tutor');
     }
     const practica = await this.exigirVisible(id, actor);
@@ -363,8 +370,12 @@ export class GestionarPracticaUseCase {
       case Rol.TUTOR:
         return { ...filtro, escuelaIds: actor.escuelas, estudianteId: undefined };
       case Rol.COORDINADOR:
-        // Sin escuelas es la coordinación del Área de Prácticas: alcance institucional.
-        return actor.escuelas.length === 0 ? filtro : { ...filtro, escuelaIds: actor.escuelas };
+      case Rol.ANALISTA:
+      case Rol.DIRECTOR: {
+        // Coordinador y analista sin escuelas (Área de Prácticas) y director: institucional.
+        const escuelas = escuelasDeCoordinacion(actor);
+        return escuelas === null ? filtro : { ...filtro, escuelaIds: escuelas };
+      }
       case Rol.ADMINISTRADOR:
       case Rol.EXTENSION:
       case Rol.AUXILIAR:
@@ -436,7 +447,7 @@ export class GestionarPracticaUseCase {
 
     // Filtrado de columnas EN EL SERVIDOR: el estudiante no recibe la señal
     // interna de riesgo ni las observaciones de acompañamiento.
-    const esInterno = [Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.EXTENSION].includes(actor.rol);
+    const esInterno = [Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ADMINISTRADOR, Rol.EXTENSION].includes(actor.rol);
 
     const completa: PracticaRespuestaDto = {
       id: datos.id,

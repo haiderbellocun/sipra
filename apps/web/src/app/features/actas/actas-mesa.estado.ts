@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
@@ -46,7 +47,7 @@ export class ActasMesaEstado {
   readonly errorMotivos = signal(false);
 
   readonly items = computed(() => this.listado()?.items ?? []);
-  readonly esSupervisor = computed(() => ['coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly esSupervisor = computed(() => tieneRol(['coordinador', 'analista', 'administrador'], this.sesion.rol()));
   readonly reservaVencidaEnPantalla = computed(() => {
     const d = this.detalle();
     return d !== null && d.reserva.estado === 'mia' && d.reserva.hasta !== null && new Date(d.reserva.hasta).getTime() <= this.ahora();

@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { Rol } from '../models/modelos';
@@ -19,6 +20,7 @@ export const rolGuard = (...permitidos: Rol[]): CanActivateFn => {
     const router = inject(Router);
     const rol = sesion.rol();
     if (!rol) return router.createUrlTree(['/ingreso']);
-    return permitidos.includes(rol) ? true : router.createUrlTree(['/inicio']);
+    // Comparación exacta: sin expansión de grupos (0.39.1).
+    return tieneRol(permitidos, rol) ? true : router.createUrlTree(['/inicio']);
   };
 };

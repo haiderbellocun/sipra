@@ -24,7 +24,7 @@ import { puedeVerDocumento } from '../../../domain/value-objects/acceso-document
 import {
   esSupervisorValidacionDocumental, puedeOperarMotor, puedeUsarValidacionDocumental,
 } from '../../../domain/value-objects/acceso-validacion-documental.vo';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import {
   EncabezadoExpedienteDto, ExpedienteDto, ItemExpedienteDto, ListadoExpedientesDto, ResumenDocumentoDto, SupervisionDocumentalDto, VersionDocumentoDto,
 } from '../../dtos/expediente-documental.dto';
@@ -82,7 +82,7 @@ export class ExpedienteDocumentalUseCase {
    */
   private alcance(actor: Actor): FiltroExpedientes['alcance'] {
     if (actor.rol === Rol.TUTOR) return { escuelas: [...actor.escuelas], tutorId: actor.id };
-    if (actor.rol === Rol.COORDINADOR && actor.escuelas.length > 0) return { escuelas: [...actor.escuelas], tutorId: null };
+    if (escuelasDeCoordinacion(actor) !== null) return { escuelas: [...actor.escuelas], tutorId: null };
     return null;
   }
 

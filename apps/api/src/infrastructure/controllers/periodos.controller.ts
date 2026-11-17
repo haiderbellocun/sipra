@@ -1,8 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsDateString, IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsDateString, IsIn, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 import {
-  ActualizarPeriodo, CrearPeriodo, GestionarPeriodosUseCase, PeriodoRespuesta, VentanaDto,
+  ActualizarPeriodo, CargueEstudianteEntrada, CrearPeriodo, GestionarPeriodosUseCase, PeriodoRespuesta, VentanaDto,
 } from '../../application/use-cases/administracion/gestionar-periodos.use-case';
 import { Actor } from '../../application/use-cases/practicas/gestionar-practica.use-case';
 import { ModalidadPractica } from '../../domain/entities/modalidad.entity';
@@ -10,6 +11,15 @@ import { CalendarioPeriodo, TipoVentana } from '../../domain/entities/periodo.en
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
 import { Autenticado, Roles } from '../auth/roles.decorator';
+
+export class VentanaFechasDto implements VentanaDto {
+  @ApiProperty({ example: '2027-02-01' }) @IsDateString() desde!: string;
+  @ApiProperty({ example: '2027-05-30' }) @IsDateString() hasta!: string;
+}
+
+export class CargueEstudianteEntradaDto extends VentanaFechasDto implements CargueEstudianteEntrada {
+  @ApiProperty({ description: 'Cargue de documentos del estudiante habilitado' }) @IsBoolean() habilitado!: boolean;
+}
 
 export class CrearPeriodoDto implements CrearPeriodo {
   @ApiProperty({ example: '2027A' }) @IsString() @MaxLength(12) codigo!: string;
@@ -23,6 +33,8 @@ export class CrearPeriodoDto implements CrearPeriodo {
   @IsOptional() @IsDateString() fechaCargueDocumentos?: string;
   @ApiPropertyOptional({ type: [String], description: 'Jornadas de inducción; por defecto la segunda semana' })
   @IsOptional() @IsArray() @IsDateString({}, { each: true }) jornadasInduccion?: string[];
+  @ApiPropertyOptional({ type: CargueEstudianteEntradaDto, description: 'Cargue de documentos del estudiante (G2)' })
+  @IsOptional() @ValidateNested() @Type(() => CargueEstudianteEntradaDto) cargueEstudiante?: CargueEstudianteEntradaDto;
 }
 
 export class ActualizarPeriodoDto implements ActualizarPeriodo {
@@ -34,6 +46,10 @@ export class ActualizarPeriodoDto implements ActualizarPeriodo {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() sincronizacionDocentes?: boolean;
   @ApiPropertyOptional({ enum: ModalidadPractica, isArray: true }) @IsOptional() modalidadesHabilitadas?: ModalidadPractica[];
   @ApiPropertyOptional() @IsOptional() @IsBoolean() activo?: boolean;
+  @ApiPropertyOptional({ description: 'Habilita o inhabilita el cargue del estudiante sin borrar sus fechas (G2)' })
+  @IsOptional() @IsBoolean() cargueEstudianteHabilitado?: boolean;
+  @ApiPropertyOptional({ type: VentanaFechasDto, description: 'Ventana de cargue del estudiante, dentro del periodo (G2)' })
+  @IsOptional() @ValidateNested() @Type(() => VentanaFechasDto) ventanaCargueEstudiante?: VentanaFechasDto;
 }
 
 @ApiTags('Periodos académicos')
@@ -56,14 +72,14 @@ export class PeriodosController {
   }
 
   @Post()
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR)
   @ApiOperation({ summary: 'Crear un periodo con las ventanas habituales' })
   crear(@Body() dto: CrearPeriodoDto, @ActorActual() actor: Actor): Promise<PeriodoRespuesta> {
     return this.periodos.crear(dto, actor);
   }
 
   @Patch(':codigo')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR)
   @ApiOperation({ summary: 'Gestión de periodos: ventanas, modalidades ofertadas, sincronización, estado' })
   actualizar(
     @Param('codigo') codigo: string, @Body() dto: ActualizarPeriodoDto, @ActorActual() actor: Actor,

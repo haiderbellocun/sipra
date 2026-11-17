@@ -33,26 +33,26 @@ export const rutas: Routes = [
       {
         path: 'registro',
         title: 'Registrar mi práctica · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('estudiante', 'coordinador', 'administrador', 'tutor', 'auxiliar')],
+        canActivate: [rolGuard('estudiante', 'coordinador', 'analista', 'administrador', 'tutor', 'auxiliar')],
         loadComponent: () =>
           import('./features/registro/registro.component').then((m) => m.RegistroComponent),
       },
       {
         path: 'arl',
         title: 'Solicitud de ARL · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('estudiante', 'auxiliar', 'coordinador', 'administrador', 'tutor')],
+        canActivate: [rolGuard('estudiante', 'auxiliar', 'coordinador', 'analista', 'administrador', 'tutor')],
         loadComponent: () => import('./features/arl/arl.component').then((m) => m.ArlComponent),
       },
       {
         path: 'eps',
         title: 'Validación de EPS · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('auxiliar', 'coordinador', 'administrador')],
+        canActivate: [rolGuard('auxiliar', 'coordinador', 'analista', 'administrador')],
         loadComponent: () => import('./features/eps/eps.component').then((m) => m.EpsComponent),
       },
       {
         path: 'actas',
         title: 'Actas de iniciación · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('auxiliar', 'coordinador', 'administrador')],
+        canActivate: [rolGuard('auxiliar', 'coordinador', 'analista', 'administrador')],
         loadComponent: () => import('./features/actas/actas.component').then((m) => m.ActasComponent),
       },
       {
@@ -61,19 +61,19 @@ export const rutas: Routes = [
           ? (segmentos[1] ? { consumed: segmentos, posParams: { practicaId: segmentos[1] } } : { consumed: segmentos })
           : null),
         title: 'Validación documental · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('tutor', 'auxiliar', 'coordinador', 'administrador')],
+        canActivate: [rolGuard('tutor', 'auxiliar', 'coordinador', 'analista', 'administrador')],
         loadComponent: () => import('./features/validacion-documental/validacion-documental.component').then((m) => m.ValidacionDocumentalComponent),
       },
       {
         path: 'mesa-rut',
         title: 'Mesa de RUT · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('tutor', 'coordinador', 'administrador')],
+        canActivate: [rolGuard('tutor', 'coordinador', 'analista', 'administrador')],
         loadComponent: () => import('./features/rut/rut.component').then((m) => m.RutComponent),
       },
       {
         path: 'mesa-camara',
         title: 'Mesa de Cámara de Comercio · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('tutor', 'coordinador', 'administrador')],
+        canActivate: [rolGuard('tutor', 'coordinador', 'analista', 'administrador')],
         loadComponent: () => import('./features/camara/camara.component').then((m) => m.CamaraComponent),
       },
       {
@@ -84,27 +84,27 @@ export const rutas: Routes = [
       {
         path: 'pqrs',
         title: 'PQRS · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('estudiante', 'coordinador', 'administrador', 'auxiliar')],
+        canActivate: [rolGuard('estudiante', 'coordinador', 'analista', 'administrador', 'auxiliar')],
         loadComponent: () => import('./features/pqrs/pqrs.component').then((m) => m.PqrsComponent),
       },
       {
         path: 'gestion/usuarios',
         title: 'Gestión de usuarios · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('coordinador', 'administrador')],
+        canActivate: [rolGuard('administrador', 'director')],
         loadComponent: () =>
           import('./features/gestion/usuarios.component').then((m) => m.UsuariosComponent),
       },
       {
         path: 'gestion/periodos',
         title: 'Gestión de periodos · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('coordinador', 'administrador')],
+        canActivate: [rolGuard('administrador', 'director')],
         loadComponent: () =>
           import('./features/gestion/periodos.component').then((m) => m.PeriodosComponent),
       },
       {
         path: 'vistas',
         title: 'Vistas SINU · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('coordinador', 'administrador', 'auxiliar', 'tutor')],
+        canActivate: [rolGuard('coordinador', 'analista', 'administrador', 'auxiliar', 'tutor')],
         loadComponent: () =>
           import('./features/vistas/vistas.component').then((m) => m.VistasComponent),
       },
@@ -123,7 +123,7 @@ export const rutas: Routes = [
       {
         path: 'cumplimiento',
         title: 'Cumplimiento · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('administrador', 'coordinador', 'extension', 'tutor')],
+        canActivate: [rolGuard('administrador', 'director', 'coordinador', 'analista', 'extension', 'tutor')],
         loadComponent: () =>
           import('./features/cumplimiento/cumplimiento.component').then(
             (m) => m.CumplimientoComponent,
@@ -132,7 +132,7 @@ export const rutas: Routes = [
       {
         path: 'empresas',
         title: 'Empresas · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('administrador', 'coordinador', 'extension', 'empresa')],
+        canActivate: [rolGuard('administrador', 'coordinador', 'analista', 'extension', 'empresa')],
         loadComponent: () =>
           import('./features/empresas/empresas.component').then((m) => m.EmpresasComponent),
       },
@@ -145,14 +145,14 @@ export const rutas: Routes = [
       {
         path: 'reportes',
         title: 'Reportes · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('administrador', 'extension', 'coordinador', 'auxiliar', 'tutor')],
+        canActivate: [rolGuard('administrador', 'director', 'extension', 'coordinador', 'analista', 'auxiliar', 'tutor')],
         loadComponent: () =>
           import('./features/reportes/reportes.component').then((m) => m.ReportesComponent),
       },
       {
         path: 'costos-ia',
         title: 'Costos de IA · SIPRA PRÁCTICAS',
-        canActivate: [rolGuard('administrador', 'coordinador')],
+        canActivate: [rolGuard('administrador', 'coordinador', 'analista')],
         loadComponent: () =>
           import('./features/costos/costos-ia.component').then((m) => m.CostosIaComponent),
       },

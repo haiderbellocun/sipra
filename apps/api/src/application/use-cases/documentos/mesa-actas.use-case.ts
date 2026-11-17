@@ -21,7 +21,7 @@ import {
 } from '../../../domain/services/mesa-acta.domain-service';
 import { datosSipraDePractica, recalcularComparacion } from '../../../domain/services/validacion-acta.domain-service';
 import { esSupervisorMesaActas, puedeOperarMesaActas } from '../../../domain/value-objects/acceso-acta.vo';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import {
   CampoComparadoDto, DecisionActaDto, DetalleActaDto, ItemBandejaActaDto, ListadoBandejaActaDto, PrioridadActaDto, ReservaActaDto,
   ResultadoTomarSiguienteActaDto, SupervisionActaDto, TomarSiguienteActaDto,
@@ -80,7 +80,7 @@ export class MesaActasUseCase {
   }
 
   private alcance(actor: Actor): string[] | null {
-    return actor.rol === Rol.COORDINADOR && actor.escuelas.length > 0 ? [...actor.escuelas] : null;
+    return escuelasDeCoordinacion(actor);
   }
 
   /** Datos personales completos: solo a quien tiene el caso tomado (reserva vigente), a supervisión o a quien lo decidió. */

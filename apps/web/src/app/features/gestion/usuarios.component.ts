@@ -31,7 +31,7 @@ import { leerError } from '@shared/utils/errores';
       <section class="tarjeta">
         <div class="filtros">
           <div class="campo"><label for="u-nombre">Nombre</label><input id="u-nombre" [(ngModel)]="fNombre" (keyup.enter)="cargar()" /></div>
-          <div class="campo"><label for="u-perfil">Perfil</label><select id="u-perfil" [(ngModel)]="fPerfil" (ngModelChange)="cargar()"><option value="">Todos</option><option value="administrador">Administrador</option><option value="coordinador">Coordinador de prácticas</option><option value="auxiliar">Auxiliar</option><option value="tutor">Docente facilitador</option><option value="extension">Extensión</option></select></div>
+          <div class="campo"><label for="u-perfil">Perfil</label><select id="u-perfil" [(ngModel)]="fPerfil" (ngModelChange)="cargar()"><option value="">Todos</option><option value="administrador">Administrador</option><option value="director">Director</option><option value="coordinador">Coordinador de prácticas</option><option value="analista">Analista de prácticas</option><option value="auxiliar">Auxiliar</option><option value="tutor">Docente facilitador</option><option value="extension">Extensión</option></select></div>
           <div class="campo"><label for="u-estado">Estado</label><select id="u-estado" [(ngModel)]="fEstado" (ngModelChange)="cargar()"><option value="">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></div>
           <button type="button" class="boton compacto" (click)="cargar()">Buscar</button>
           <button type="button" class="boton compacto boton--primario" (click)="nuevo()">+ Crear usuario</button>
@@ -64,8 +64,8 @@ import { leerError } from '@shared/utils/errores';
           <div class="campo"><label for="e-correo">Correo institucional</label><input id="e-correo" type="email" [(ngModel)]="f.correo" [disabled]="!!editando()" placeholder="nombre@cun.edu.co" /></div>
           <div class="campo"><label for="e-doc">Documento</label><input id="e-doc" [(ngModel)]="f.documento" /></div>
           <div class="campo"><label for="e-rol">Tipo de actor</label><select id="e-rol" [(ngModel)]="f.rol" [disabled]="!!editando()">
-            <option value="coordinador">Coordinador de prácticas (y analista)</option><option value="auxiliar">Auxiliar</option><option value="tutor">Docente facilitador</option>
-            @if (sesion.rol() === 'administrador') { <option value="administrador">Administrador</option><option value="extension">Extensión</option> }</select></div>
+            <option value="coordinador">Coordinador de prácticas</option><option value="analista">Analista de prácticas</option><option value="auxiliar">Auxiliar</option><option value="tutor">Docente facilitador</option><option value="extension">Extensión</option>
+            @if (sesion.rol() === 'administrador') { <option value="administrador">Administrador</option><option value="director">Director</option> }</select></div>
           <div class="campo"><label for="e-permiso">Tipo de permiso</label><select id="e-permiso" [(ngModel)]="f.permiso"><option value="escritura">Escritura</option><option value="consulta">Consulta</option></select></div>
           <div class="campo"><label for="e-esc">Escuelas (códigos separados por coma)</label><input id="e-esc" [(ngModel)]="f.escuelas" placeholder="Vacío = institucional" /></div>
           <div class="campo"><label for="e-activo">Estado</label><select id="e-activo" [(ngModel)]="f.activo"><option [ngValue]="true">Activo</option><option [ngValue]="false">Inhabilitado</option></select></div>

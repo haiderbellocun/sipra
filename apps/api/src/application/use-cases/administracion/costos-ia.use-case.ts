@@ -17,7 +17,7 @@ import {
 } from '../../../domain/services/conocimiento-documental.domain-service';
 import { inicioDelDiaEnColombia } from '../../../domain/services/fechas-colombia';
 import { TipoDocumento } from '../../../domain/entities/documento.entity';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import { Actor } from '../practicas/gestionar-practica.use-case';
 import { ParametrosUseCase } from './parametros.use-case';
 
@@ -175,7 +175,7 @@ export class CostosIaUseCase {
   /** Alcance por escuelas, igual que en el resto de la API; `undefined` = institucional. */
   private alcance(actor?: Actor): readonly string[] | undefined {
     if (!actor) return undefined;
-    if (actor.rol === Rol.COORDINADOR && actor.escuelas.length > 0) return actor.escuelas;
+    if (escuelasDeCoordinacion(actor) !== null) return actor.escuelas;
     if (actor.rol === Rol.TUTOR) return actor.escuelas.length > 0 ? actor.escuelas : ['__sin_escuela__'];
     return undefined;
   }

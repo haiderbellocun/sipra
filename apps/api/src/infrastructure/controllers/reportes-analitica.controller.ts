@@ -17,7 +17,7 @@ import { Roles } from '../auth/roles.decorator';
 @ApiTags('Reportes analítica')
 @ApiBearerAuth()
 @Controller('reportes/analitica')
-@Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.AUXILIAR, Rol.TUTOR)
+@Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.TUTOR)
 export class ReportesAnaliticaController {
   constructor(private readonly reportes: ReportesAnaliticaUseCase) {}
 

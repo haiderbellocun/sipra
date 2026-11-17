@@ -253,7 +253,10 @@ export class ApiService {
     return this.http.get<Periodo[]>(`${this.base}/periodos`);
   }
 
-  crearPeriodo(dto: { codigo: string; nombre: string; calendario: string; fechaInicio: string; fechaFin: string; cierreFur?: string; fechaCargueDocumentos?: string }): Observable<Periodo> {
+  crearPeriodo(dto: {
+    codigo: string; nombre: string; calendario: string; fechaInicio: string; fechaFin: string; cierreFur?: string; fechaCargueDocumentos?: string;
+    cargueEstudiante?: { habilitado: boolean; desde: string; hasta: string };
+  }): Observable<Periodo> {
     return this.http.post<Periodo>(`${this.base}/periodos`, dto);
   }
 

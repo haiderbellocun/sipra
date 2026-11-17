@@ -1,5 +1,5 @@
 import { TipoDocumento } from '../entities/documento.entity';
-import { Rol } from './rol.vo';
+import { Rol, esCoordinacionOperativa } from './rol.vo';
 
 /**
  * Autorización específica de la validación del certificado de EPS.
@@ -12,7 +12,7 @@ import { Rol } from './rol.vo';
  * extensión: ninguno.
  */
 
-const OPERAN_VALIDACION_EPS: readonly Rol[] = [Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR];
+const OPERAN_VALIDACION_EPS: readonly Rol[] = [Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR];
 
 /** Quién consulta evidencia, toma casos (reserva) y los opera. */
 export function puedeOperarValidacionEps(rol: Rol): boolean {
@@ -21,7 +21,7 @@ export function puedeOperarValidacionEps(rol: Rol): boolean {
 
 /** Supervisores: pueden liberar la reserva de otro funcionario. */
 export function esSupervisorEps(rol: Rol): boolean {
-  return rol === Rol.COORDINADOR || rol === Rol.ADMINISTRADOR;
+  return esCoordinacionOperativa(rol) || rol === Rol.ADMINISTRADOR;
 }
 
 /** Quién ve el resultado de la validación (el estudiante, el suyo y reducido). */
@@ -35,13 +35,13 @@ export function puedeVerResultadoEps(rol: Rol): boolean {
  * certificado de EPS.
  */
 export function puedeDecidirDocumento(rol: Rol, tipo: TipoDocumento): boolean {
-  if (rol === Rol.TUTOR || rol === Rol.COORDINADOR || rol === Rol.ADMINISTRADOR) return true;
+  if (rol === Rol.TUTOR || esCoordinacionOperativa(rol) || rol === Rol.ADMINISTRADOR) return true;
   // El auxiliar decide el certificado de EPS y el acta de iniciación (esta última solo desde la Mesa de Actas).
   return rol === Rol.AUXILIAR && (tipo === TipoDocumento.CERTIFICADO_EPS || tipo === TipoDocumento.ACTA_INICIO);
 }
 
 /** Puntaje, banderas y lectura asistida del documento: los ve quien revisa ese tipo. */
 export function puedeVerLecturaInterna(rol: Rol, tipo: TipoDocumento): boolean {
-  if (rol === Rol.TUTOR || rol === Rol.COORDINADOR || rol === Rol.ADMINISTRADOR) return true;
+  if (rol === Rol.TUTOR || esCoordinacionOperativa(rol) || rol === Rol.ADMINISTRADOR) return true;
   return rol === Rol.AUXILIAR && tipo === TipoDocumento.CERTIFICADO_EPS;
 }

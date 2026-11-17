@@ -167,7 +167,7 @@ export class BitacoraUseCase {
 
   /** Cierre explícito desde coordinación cuando las condiciones ya se cumplen. */
   async cerrar(practicaId: string, actor: Actor, ahora: Date = new Date()): Promise<RespuestaCierre> {
-    if (![Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+    if (![Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR].includes(actor.rol)) {
       throw new ForbiddenException('Solo el docente facilitador o coordinación cierran el proceso');
     }
     const practica = await this.exigirVisible(practicaId, actor);
@@ -337,6 +337,7 @@ export class BitacoraUseCase {
         }
         return 'docente';
       case Rol.COORDINADOR:
+      case Rol.ANALISTA:
       case Rol.ADMINISTRADOR:
         return 'coordinacion';
       default:

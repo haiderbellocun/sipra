@@ -7,14 +7,16 @@ import { Rol } from './rol.vo';
  * expediente no basta para ver sus documentos, que contienen datos personales
  * (cédula, afiliación a salud, RUT).
  *
- *  · Estudiante, docente, coordinación y administración: todos los documentos
- *    de las prácticas dentro de su alcance.
+ *  · Estudiante, docente, coordinación (coordinador y analista) y administración:
+ *    consultan y cargan todos los documentos de las prácticas de su alcance.
+ *  · Director: CONSULTA todos los documentos (supervisión institucional), pero no
+ *    los carga ni los decide (0.39.1).
  *  · Auxiliar de prácticas: solo los que necesita para validar y gestionar la
  *    afiliación a ARL (`TIPOS_DEL_AUXILIAR`); nunca el expediente completo.
  *  · Empresa y extensión: ninguno por defecto.
  */
 const ROLES_CON_ACCESO_COMPLETO: readonly Rol[] = [
-  Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR,
+  Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ADMINISTRADOR,
 ];
 
 /** Documentos que respaldan la solicitud y la gestión de ARL. */
@@ -28,8 +30,8 @@ export const TIPOS_DEL_AUXILIAR: readonly TipoDocumento[] = [
   TipoDocumento.CERTIFICADO_ARL,
 ];
 
-/** Roles que cargan documentos (DT §5). Empresa, extensión y auxiliar no. */
-const ROLES_QUE_CARGAN: readonly Rol[] = ROLES_CON_ACCESO_COMPLETO;
+/** Roles que cargan documentos (DT §5). Empresa, extensión, auxiliar y director no. */
+const ROLES_QUE_CARGAN: readonly Rol[] = [Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR];
 
 /** ¿El rol puede consultar documentos en alguna medida? */
 export function puedeConsultarDocumentos(rol: Rol): boolean {

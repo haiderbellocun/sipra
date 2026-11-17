@@ -113,29 +113,29 @@ describe('Política de acceso · rutas sensibles', () => {
   const ordenados = (r: Rol[] | undefined): Rol[] => [...(r ?? [])].sort();
 
   it('empresas: bandeja y detalle solo para administración, coordinación, extensión y la propia empresa', () => {
-    const esperados = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EMPRESA, Rol.EXTENSION].sort();
+    const esperados = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EMPRESA, Rol.EXTENSION].sort();
     expect(ordenados(rolesDe('EmpresasController.listar'))).toEqual(esperados);
     expect(ordenados(rolesDe('EmpresasController.obtener'))).toEqual(esperados);
   });
 
-  it('documentos: consulta para estudiante, docente, auxiliar, coordinación y administración; empresa y extensión fuera', () => {
-    const esperados = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ESTUDIANTE, Rol.TUTOR].sort();
+  it('documentos: consulta para estudiante, docente, auxiliar, coordinación, director (lectura) y administración; empresa y extensión fuera', () => {
+    const esperados = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ESTUDIANTE, Rol.TUTOR].sort();
     expect(ordenados(rolesDe('DocumentosController.listar'))).toEqual(esperados);
     expect(ordenados(rolesDe('DocumentosController.enlace'))).toEqual(esperados);
   });
 
   it('documentos: cargar solo estudiante, docente, coordinación y administración', () => {
     expect(ordenados(rolesDe('DocumentosController.cargar')))
-      .toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ESTUDIANTE, Rol.TUTOR].sort());
+      .toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ESTUDIANTE, Rol.TUTOR].sort());
   });
 
   it('documentos: decidir lo hacen docente, coordinación, administración y el auxiliar (solo EPS, lo impone el caso de uso)', () => {
     expect(ordenados(rolesDe('DocumentosController.decidir')))
-      .toEqual([Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.TUTOR].sort());
+      .toEqual([Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.TUTOR].sort());
   });
 
   it('validación de EPS: el auxiliar opera, el estudiante solo consulta, docente/empresa/extensión fuera', () => {
-    const operan = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR].sort();
+    const operan = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA].sort();
     expect(ordenados(rolesDe('ValidacionesEpsController.consultar')))
       .toEqual([...operan, Rol.ESTUDIANTE].sort());
     for (const clave of ['evidencias', 'reservar', 'liberar', 'verificar', 'bandejaAdres', 'prepararAdres', 'resultadoAdres', 'procesarAdres']) {
@@ -149,11 +149,11 @@ describe('Política de acceso · rutas sensibles', () => {
   });
 
   it('Mesa de EPS: auxiliar, coordinación y administración; docente, estudiante, empresa y extensión no entran; supervisión solo coordinación y administración', () => {
-    const operan = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR].sort();
+    const operan = [Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA].sort();
     for (const clave of ['listar', 'siguiente', 'detalle', 'certificado', 'decidir']) {
       expect(ordenados(rolesDe(`MesaEpsController.${clave}`))).toEqual(operan);
     }
-    expect(ordenados(rolesDe('MesaEpsController.supervision'))).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR].sort());
+    expect(ordenados(rolesDe('MesaEpsController.supervision'))).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA].sort());
     const mesa = RUTAS.filter((r) => r.controlador === 'MesaEpsController');
     expect(mesa).toHaveLength(6);
     for (const r of mesa) for (const excluido of [Rol.TUTOR, Rol.ESTUDIANTE, Rol.EMPRESA, Rol.EXTENSION]) expect(r.roles).not.toContain(excluido);
@@ -161,8 +161,8 @@ describe('Política de acceso · rutas sensibles', () => {
     expect(mesa.find((r) => r.metodo === 'certificado')?.publico).toBe(false);
   });
 
-  it('bitácora: ni auxiliar, ni extensión, ni empresa', () => {
-    const esperados = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ESTUDIANTE, Rol.TUTOR].sort();
+  it('bitácora: ni auxiliar, ni extensión, ni empresa; el director solo lee', () => {
+    const esperados = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ESTUDIANTE, Rol.TUTOR].sort();
     expect(ordenados(rolesDe('BitacoraController.listar'))).toEqual(esperados);
     expect(ordenados(rolesDe('BitacoraController.estadoCierre'))).toEqual(esperados);
   });
@@ -181,7 +181,7 @@ describe('Política de acceso · rutas sensibles', () => {
     ]) {
       expect(r(clave)?.autenticado).toBe(true);
     }
-    expect(ordenados(rolesDe('ConsentimientosController.deUsuario'))).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR].sort());
+    expect(ordenados(rolesDe('ConsentimientosController.deUsuario'))).toEqual([Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA].sort());
     expect(rolesDe('ConsentimientosController.publicarPolitica')).toEqual([Rol.ADMINISTRADOR]);
   });
 
@@ -326,5 +326,59 @@ describe('PermisoEscrituraGuard', () => {
 
   it('sin actor no bloquea (lo resuelve el guard de sesión)', () => {
     expect(guard.canActivate(contexto('autenticada', { method: 'POST' }))).toBe(true);
+  });
+});
+
+describe('Matriz G1 (0.39.1) · gobierno separado de la operación, sobre las rutas reales', () => {
+  const ESCRITURA = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  const conRol = (rol: Rol) => RUTAS.filter((r) => r.roles?.includes(rol));
+  const rolesDe = (clave: string): Rol[] | undefined => RUTAS.find((r) => r.clave === clave)?.roles;
+
+  it('@Roles es exacto: toda ruta que declara COORDINADOR declara también ANALISTA (el analista conserva lo que tenía)', () => {
+    const sinAnalista = conRol(Rol.COORDINADOR).filter((r) => !r.roles?.includes(Rol.ANALISTA)).map((r) => r.clave);
+    expect(sinAnalista).toEqual([]);
+  });
+
+  it('el director NO escribe en ninguna ruta salvo gobierno (usuarios y periodos)', () => {
+    const escrituras = conRol(Rol.DIRECTOR).filter((r) => ESCRITURA.includes(r.verbo));
+    expect([...new Set(escrituras.map((r) => r.controlador))].sort()).toEqual(['PeriodosController', 'UsuariosController']);
+  });
+
+  it('el director no entra a Mesas, validación de EPS, ARL, empresas, PQRS, cartas, vistas SINU, costos ni consentimientos ajenos', () => {
+    const vetados = [
+      'MesaEpsController', 'MesaRutController', 'MesaCamaraController', 'ActasIniciacionController', 'ValidacionDocumentalController',
+      'ValidacionesEpsController', 'SolicitudesArlController', 'EmpresasController', 'PqrsController', 'CartasController',
+      'VistasController', 'CostosIaController', 'AdministracionController',
+    ];
+    const indebidas = conRol(Rol.DIRECTOR).filter((r) => vetados.includes(r.controlador)).map((r) => r.clave);
+    expect(indebidas).toEqual([]);
+    expect(rolesDe('ConsentimientosController.deUsuario')).not.toContain(Rol.DIRECTOR);
+  });
+
+  it('el director lee: documentos (consulta y enlace), bitácora, cierre, reportes y tablero de cumplimiento', () => {
+    for (const clave of ['DocumentosController.listar', 'DocumentosController.enlace', 'BitacoraController.listar', 'BitacoraController.estadoCierre']) {
+      expect(rolesDe(clave)).toContain(Rol.DIRECTOR);
+    }
+    for (const r of RUTAS.filter((x) => ['ReportesSgpController', 'ReportesAnaliticaController'].includes(x.controlador))) {
+      expect(r.roles).toContain(Rol.DIRECTOR);
+    }
+    expect(conRol(Rol.DIRECTOR).filter((r) => r.controlador === 'CumplimientoController').every((r) => r.verbo === 'GET')).toBe(true);
+  });
+
+  it('el director NO carga ni decide documentos', () => {
+    expect(rolesDe('DocumentosController.cargar')).not.toContain(Rol.DIRECTOR);
+    expect(rolesDe('DocumentosController.decidir')).not.toContain(Rol.DIRECTOR);
+  });
+
+  it('gobierno: periodos (crear, habilitar) y usuarios solo administrador + director; coordinación fuera', () => {
+    const gobierno = RUTAS.filter((r) => r.controlador === 'UsuariosController' || (r.controlador === 'PeriodosController' && ESCRITURA.includes(r.verbo)));
+    expect(gobierno.length).toBeGreaterThan(0);
+    for (const r of gobierno) expect([...(r.roles ?? [])].sort()).toEqual([Rol.ADMINISTRADOR, Rol.DIRECTOR].sort());
+  });
+
+  it('prácticas: escrituras para coordinación operativa, nunca para el director', () => {
+    for (const r of RUTAS.filter((x) => x.controlador === 'PracticasController' && ESCRITURA.includes(x.verbo))) {
+      expect(r.roles).not.toContain(Rol.DIRECTOR);
+    }
   });
 });

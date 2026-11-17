@@ -13,6 +13,7 @@ import {
 import {
   GestionarDocumentoUseCase,
 } from '../../application/use-cases/documentos/gestionar-documento.use-case';
+import { CargueEstudianteService } from '../../application/use-cases/documentos/cargue-estudiante.service';
 import {
   PipelineValidacionUseCase,
 } from '../../application/use-cases/documentos/pipeline-validacion.use-case';
@@ -397,6 +398,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     PipelineValidacionUseCase,
     ProcesarTrabajoUseCase,
     GestionarDocumentoUseCase,
+    CargueEstudianteService,
     GestionarEmpresaUseCase,
     TableroCumplimientoUseCase,
     GestionarVacanteUseCase,

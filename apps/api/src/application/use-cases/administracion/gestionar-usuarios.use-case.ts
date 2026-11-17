@@ -7,7 +7,7 @@ import { DatosUsuario, Usuario } from '../../../domain/entities/usuario.entity';
 import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, USUARIO_REPOSITORY, UsuarioRepositoryPort,
 } from '../../../domain/ports/out/repositorios.port';
-import { ROLES_ADMINISTRATIVOS, Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, puedeGestionarUsuarios, rolesGestionablesPor, ROLES_ADMINISTRATIVOS } from '../../../domain/value-objects/rol.vo';
 import { ActualizarUsuarioDto, CrearUsuarioDto, ETIQUETA_ROL, UsuarioAdministrativoDto } from '../../dtos/usuario.dto';
 import { Actor } from '../practicas/gestionar-practica.use-case';
 
@@ -54,9 +54,7 @@ export class GestionarUsuariosUseCase {
     if (!ROLES_ADMINISTRATIVOS.includes(dto.rol)) {
       throw new BadRequestException('El rol no corresponde a un usuario administrativo');
     }
-    if (dto.rol === Rol.ADMINISTRADOR && actor.rol !== Rol.ADMINISTRADOR) {
-      throw new ForbiddenException('Solo un administrador crea administradores');
-    }
+    this.exigirRolGestionable(dto.rol, actor, 'crea');
     if (await this.usuarios.buscarPorCorreo(correo)) throw new ConflictException('Ya existe un usuario con ese correo');
     if (await this.usuarios.buscarPorDocumento(dto.documento.trim())) {
       throw new ConflictException('Ya existe un usuario con ese documento');
@@ -68,7 +66,8 @@ export class GestionarUsuariosUseCase {
       documento: dto.documento.trim(),
       rol: dto.rol,
       permiso: dto.permiso,
-      escuelas: dto.escuelas ?? [],
+      // El director es institucional: no se le asignan escuelas.
+      escuelas: dto.rol === Rol.DIRECTOR ? [] : dto.escuelas ?? [],
       empresaId: null,
       programaId: null,
       activo: dto.activo ?? true,
@@ -83,9 +82,7 @@ export class GestionarUsuariosUseCase {
   async actualizar(id: string, dto: ActualizarUsuarioDto, actor: Actor): Promise<UsuarioAdministrativoDto> {
     this.exigirGestor(actor);
     const usuario = await this.exigirAdministrativo(id);
-    if (usuario.rol === Rol.ADMINISTRADOR && actor.rol !== Rol.ADMINISTRADOR) {
-      throw new ForbiddenException('Solo un administrador modifica a otro administrador');
-    }
+    this.exigirRolGestionable(usuario.rol, actor, 'modifica');
     if (dto.documento && dto.documento !== usuario.instantanea().documento) {
       const otro = await this.usuarios.buscarPorDocumento(dto.documento.trim());
       if (otro && otro.id !== id) throw new ConflictException('Ya existe un usuario con ese documento');
@@ -97,7 +94,7 @@ export class GestionarUsuariosUseCase {
       nombre: dto.nombre?.trim(),
       documento: dto.documento?.trim(),
       permiso: dto.permiso,
-      escuelas: dto.escuelas,
+      escuelas: usuario.rol === Rol.DIRECTOR ? undefined : dto.escuelas,
       activo: dto.activo,
     });
     const guardado = await this.usuarios.guardar(usuario.instantanea());
@@ -115,9 +112,16 @@ export class GestionarUsuariosUseCase {
   // ── internos ─────────────────────────────────────────────────────────────
 
   private exigirGestor(actor: Actor): void {
-    if (actor.rol === Rol.ADMINISTRADOR) return;
-    if (actor.rol === Rol.COORDINADOR && actor.escuelas.length === 0) return;
-    throw new ForbiddenException('La gestión de usuarios corresponde a la coordinación del Área de Prácticas o a administración');
+    if (puedeGestionarUsuarios(actor)) return;
+    throw new ForbiddenException('La gestión de usuarios corresponde a administración, a la dirección o a la coordinación del Área de Prácticas');
+  }
+
+  /** Solo el administrador crea o modifica administradores y directores (G1). */
+  private exigirRolGestionable(rol: Rol, actor: Actor, verbo: 'crea' | 'modifica'): void {
+    if (rolesGestionablesPor(actor).includes(rol)) return;
+    throw new ForbiddenException(
+      rol === Rol.ADMINISTRADOR ? `Solo un administrador ${verbo} administradores` : `Solo un administrador ${verbo} directores`,
+    );
   }
 
   private async exigirAdministrativo(id: string): Promise<Usuario> {

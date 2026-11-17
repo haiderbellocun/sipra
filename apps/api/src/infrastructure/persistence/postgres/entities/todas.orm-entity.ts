@@ -228,6 +228,8 @@ export class PeriodoOrm {
   @Column({ default: true }) sincronizacion_docentes!: boolean;
   @Column({ type: 'text', array: true, default: () => "'{}'" }) modalidades_habilitadas!: string[];
   @Index() @Column({ default: true }) activo!: boolean;
+  /** G2: cargue del estudiante habilitado, independiente de `activo` (migración 23). */
+  @Column({ default: true }) cargue_estudiante_habilitado!: boolean;
   @CreateDateColumn({ type: 'timestamptz' }) creado_en!: Date;
   @UpdateDateColumn({ type: 'timestamptz' }) actualizado_en!: Date;
 }

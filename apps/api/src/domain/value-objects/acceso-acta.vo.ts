@@ -1,4 +1,4 @@
-import { Rol } from './rol.vo';
+import { Rol, esCoordinacionOperativa } from './rol.vo';
 
 /**
  * Autorización de la Mesa de Actas de Iniciación (independiente de la de EPS).
@@ -9,18 +9,18 @@ import { Rol } from './rol.vo';
  *    hay un acta cargada: coordinación y administración, con justificación y auditoría.
  *  · Estudiante: solo el estado de su propia acta. Docente, empresa y extensión: ninguna operación.
  */
-const OPERAN_MESA_ACTAS: readonly Rol[] = [Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR];
+const OPERAN_MESA_ACTAS: readonly Rol[] = [Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR];
 
 export function puedeOperarMesaActas(rol: Rol): boolean {
   return OPERAN_MESA_ACTAS.includes(rol);
 }
 
 export function esSupervisorMesaActas(rol: Rol): boolean {
-  return rol === Rol.COORDINADOR || rol === Rol.ADMINISTRADOR;
+  return esCoordinacionOperativa(rol) || rol === Rol.ADMINISTRADOR;
 }
 
 export function puedeCorregirDatosConActa(rol: Rol): boolean {
-  return rol === Rol.COORDINADOR || rol === Rol.ADMINISTRADOR;
+  return esCoordinacionOperativa(rol) || rol === Rol.ADMINISTRADOR;
 }
 
 export function puedeVerEstadoActaPropio(rol: Rol): boolean {

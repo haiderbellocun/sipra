@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -170,7 +171,7 @@ const FILTROS_INICIALES = {
       </div>
       @if (estudiante) {
         <a routerLink="/registro" class="accion primaria">Registrar mi práctica</a>
-      } @else if (['coordinador', 'administrador'].includes(sesion.rol() ?? '')) {
+      } @else if (esCoordinacionOAdmin()) {
         <a routerLink="/registro" class="accion">Registro FUR administrativo</a>
       }
     </header>
@@ -315,8 +316,9 @@ const FILTROS_INICIALES = {
 export class PracticasComponent implements OnInit {
   readonly sesion = inject(SesionService);
   /** El avance documental y el docente solo se muestran a quien los recibe del servidor. */
-  readonly veAvance = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly veDocente = computed(() => !['empresa', 'extension'].includes(this.sesion.rol() ?? ''));
+  readonly veAvance = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'director', 'administrador'], this.sesion.rol()));
+  readonly esCoordinacionOAdmin = computed(() => tieneRol(['coordinador', 'analista', 'administrador'], this.sesion.rol()));
+  readonly veDocente = computed(() => !tieneRol(['empresa', 'extension'], this.sesion.rol()));
   private readonly api = inject(ApiService);
 
   readonly practicas = signal<Practica[]>([]);

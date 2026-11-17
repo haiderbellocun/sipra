@@ -442,8 +442,12 @@ export class Practica {
       case Rol.TUTOR:
         return actor.id === this.datos.tutorId || actor.escuelas.includes(this.datos.escuelaId);
       case Rol.COORDINADOR:
-        // Sin escuelas asignadas es la coordinación del Área de Prácticas.
+      case Rol.ANALISTA:
+        // Sin escuelas asignadas es el Área de Prácticas: alcance institucional.
         return actor.escuelas.length === 0 || actor.escuelas.includes(this.datos.escuelaId);
+      case Rol.DIRECTOR:
+        // Gobierno operativo: alcance institucional, sin importar escuelas guardadas.
+        return true;
       case Rol.ADMINISTRADOR:
       case Rol.EXTENSION:
       case Rol.AUXILIAR:

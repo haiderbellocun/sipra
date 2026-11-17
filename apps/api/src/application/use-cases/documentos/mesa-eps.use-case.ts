@@ -29,7 +29,7 @@ import { normalizarDocumento } from '../../../domain/services/normalizacion-iden
 import {
   esSupervisorEps, puedeDecidirDocumento, puedeOperarValidacionEps,
 } from '../../../domain/value-objects/acceso-eps.vo';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import { DocumentoRespuestaDto } from '../../dtos/documento.dto';
 import {
   CampoCertificadoDto, DecisionMesaDto, DetalleMesaDto, EventoHistorialDto, EvidenciaMesaDto, FilaMesaDto, KpisMesaDto, ListadoMesaDto,
@@ -167,7 +167,7 @@ export class MesaEpsUseCase {
 
   /** Coordinación con escuelas asignadas ve solo las suyas; el resto del personal operativo, todas. */
   private alcance(actor: Actor): string[] | null {
-    return actor.rol === Rol.COORDINADOR && actor.escuelas.length > 0 ? [...actor.escuelas] : null;
+    return escuelasDeCoordinacion(actor);
   }
 
   private get frescuraDias(): number | null {

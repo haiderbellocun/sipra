@@ -21,12 +21,12 @@ const base = {
 describe('Mesa de Actas · roles (no se amplían permisos por accidente)', () => {
   it('operan auxiliar, coordinación y administración; el resto no', () => {
     for (const rol of Object.values(Rol)) {
-      expect(puedeOperarMesaActas(rol)).toBe([Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(rol));
+      expect(puedeOperarMesaActas(rol)).toBe([Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR].includes(rol));
     }
   });
   it('supervisan y corrigen datos de la práctica solo coordinación y administración', () => {
     for (const rol of Object.values(Rol)) {
-      const esperado = [Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(rol);
+      const esperado = [Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR].includes(rol);
       expect(esSupervisorMesaActas(rol)).toBe(esperado);
       expect(puedeCorregirDatosConActa(rol)).toBe(esperado);
     }

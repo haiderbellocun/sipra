@@ -159,9 +159,10 @@ describe('Migración 21 · motivos de devolución de la Cámara (sin ejecutar)',
     }
   }
 
-  it('está registrada al final, después de la decisión humana del RUT', () => {
-    expect(MIGRACIONES[MIGRACIONES.length - 1]).toBe(MotivosDecisionCamara1756000021000);
-    expect(MIGRACIONES[MIGRACIONES.length - 2].name).toBe('DecisionHumanaDocumentoEmpresarial1756000020000');
+  it('está registrada después de la decisión humana del RUT', () => {
+    const i = MIGRACIONES.indexOf(MotivosDecisionCamara1756000021000);
+    expect(i).toBeGreaterThan(0);
+    expect(MIGRACIONES[i - 1].name).toBe('DecisionHumanaDocumentoEmpresarial1756000020000');
   });
 
   it('solo reemplaza el CHECK del motivo: no crea tablas ni columnas, no toca datos y conserva los motivos del RUT', async () => {

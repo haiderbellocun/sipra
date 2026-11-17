@@ -35,7 +35,7 @@ export class ValidacionesEpsController {
   ) {}
 
   @Get('documento/:documentoId')
-  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Resultado de la validación del certificado de EPS',
     description:
@@ -51,7 +51,7 @@ export class ValidacionesEpsController {
   }
 
   @Get(':id/evidencias')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Evidencias registradas de una validación (uso interno)' })
   @ApiResponse({ status: 200, type: [EvidenciaEpsDto] })
   evidencias(
@@ -62,7 +62,7 @@ export class ValidacionesEpsController {
   }
 
   @Post(':id/reserva')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Tomar el caso (reserva)',
@@ -78,7 +78,7 @@ export class ValidacionesEpsController {
   }
 
   @Post(':id/verificar')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Reintentar la verificación oficial del certificado',
@@ -97,7 +97,7 @@ export class ValidacionesEpsController {
   // Una PERSONA consulta el portal oficial y resuelve el CAPTCHA; SIPRA nunca llama a ADRES.
 
   @Get('adres/bandeja')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Casos de EPS con la afiliación pendiente de contrastar con ADRES',
     description: 'Vista mínima de operación: estudiante reducido, método, afiliación, estado ADRES y responsable.',
@@ -108,7 +108,7 @@ export class ValidacionesEpsController {
   }
 
   @Post(':id/adres/preparar')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Preparar la consulta ADRES (qué tipo y número de documento consultar)',
@@ -127,7 +127,7 @@ export class ValidacionesEpsController {
   }
 
   @Post(':id/adres/resultado')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -168,7 +168,7 @@ export class ValidacionesEpsController {
   }
 
   @Post(':id/adres/procesar')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({ summary: 'Reintentar el procesamiento del resultado ADRES ya cargado (idempotente)' })
   @ApiResponse({ status: 200, type: ResultadoAdresDto })
@@ -180,7 +180,7 @@ export class ValidacionesEpsController {
   }
 
   @Delete(':id/reserva')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Liberar el caso; coordinación y administración pueden liberar el de otro' })
   @ApiResponse({ status: 200, type: ValidacionEpsOperacionDto })
   liberar(

@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
@@ -54,7 +55,7 @@ export class EpsMesaEstado {
   readonly cargandoSupervision = signal(false);
 
   readonly filas = computed(() => this.listado()?.filas ?? []);
-  readonly esSupervisor = computed(() => ['coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly esSupervisor = computed(() => tieneRol(['coordinador', 'analista', 'administrador'], this.sesion.rol()));
   readonly reservaVencidaEnPantalla = computed(() => {
     const d = this.detalle();
     return d !== null && reservaVencidaAhora(d.acceso.reserva, this.ahora());

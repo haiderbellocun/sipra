@@ -10,7 +10,7 @@ import { Roles } from '../auth/roles.decorator';
 @ApiTags('Gestión de usuarios')
 @ApiBearerAuth()
 @Controller('usuarios')
-@Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+@Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR)
 export class UsuariosController {
   constructor(private readonly usuarios: GestionarUsuariosUseCase) {}
 

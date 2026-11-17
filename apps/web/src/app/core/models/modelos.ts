@@ -1,6 +1,6 @@
 /** Contratos compartidos con la API. Reflejan los DTO del backend. */
 
-export type Rol = 'estudiante' | 'tutor' | 'coordinador' | 'administrador' | 'empresa' | 'extension' | 'auxiliar';
+export type Rol = 'estudiante' | 'tutor' | 'coordinador' | 'analista' | 'director' | 'administrador' | 'empresa' | 'extension' | 'auxiliar';
 
 export type Permiso = 'consulta' | 'escritura';
 
@@ -115,6 +115,8 @@ export interface Practica {
   nota: number | null;
   registradaPor: 'estudiante' | 'coordinacion';
   avance: AvanceDocumental;
+  /** G2 · solo en el detalle: estado del cargue del estudiante calculado por el servidor. */
+  cargueEstudiante?: CargueEstudiante;
   fechaInicio: string | null;
   fechaFin: string | null;
   horasRegistradas: number | null;
@@ -146,6 +148,28 @@ export type VacanteEditable = Partial<Pick<RegistroFur,
 
 // ── Periodos y catálogo ──────────────────────────────────────────────────
 export type TipoVentana = 'registro_fur' | 'solicitud_arl' | 'cargue_estudiante' | 'cargue_docente' | 'carta_presentacion';
+
+/** G2 · estado efectivo del cargue del estudiante (lo calcula el backend; la interfaz no lo recalcula). */
+export type EstadoCargueEstudiante =
+  'abierto' | 'aun_no_abre' | 'cerrado_por_fecha' | 'inhabilitado' | 'periodo_inactivo' | 'sin_ventana' | 'sin_periodo';
+
+export interface SubsanacionCargue { tipo: string; vence: string; origen: 'devolucion' | 'bitacora' }
+
+export interface CargueEstudiante {
+  permitido: boolean;
+  estado: EstadoCargueEstudiante;
+  desde: string | null;
+  hasta: string | null;
+  mensaje: string;
+  subsanaciones: SubsanacionCargue[];
+}
+
+export interface CargueEstudiantePeriodo {
+  habilitado: boolean;
+  estado: EstadoCargueEstudiante;
+  desde: string | null;
+  hasta: string | null;
+}
 export type CalendarioPeriodo = 'presencial' | 'virtual' | '335';
 
 /** Fechas clave del proceso en el periodo (documento «Periodos académicos y cronograma»). */
@@ -168,6 +192,7 @@ export interface Periodo {
   modalidadesHabilitadas: string[];
   modalidadesOfertadas: string[];
   activo: boolean; vigente: boolean; actualizadoEn: string;
+  cargueEstudiante: CargueEstudiantePeriodo;
 }
 
 export interface ModalidadCatalogo {

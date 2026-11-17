@@ -303,6 +303,7 @@ export class InicioComponent implements OnInit {
   readonly etiquetaRol = computed(() => {
     const etiquetas: Record<string, string> = {
       estudiante: 'Practicante', tutor: 'Docente facilitador', coordinador: 'Coordinación de prácticas',
+      analista: 'Analista de prácticas', director: 'Director',
       administrador: 'Administrador institucional', empresa: 'Empresa habilitada',
       extension: 'Dirección de Extensión', auxiliar: 'Auxiliar de prácticas',
     };

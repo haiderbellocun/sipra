@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -79,7 +80,7 @@ export class VistasComponent implements OnInit {
   readonly filas = signal<FilaMatriculaSinu[]>([]);
   readonly resumen = signal<ResumenSincronizacion | null>(null);
   readonly guardando = signal(false);
-  readonly puedeSincronizar = computed(() => ['coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly puedeSincronizar = computed(() => tieneRol(['coordinador', 'analista', 'administrador'], this.sesion.rol()));
 
   async ngOnInit(): Promise<void> {
     try { const p = await firstValueFrom(this.api.listarPeriodos()); this.periodos.set(p); this.periodo.set(p.find((x) => x.vigente && x.activo)?.codigo ?? ''); } catch { /* sin periodos */ }

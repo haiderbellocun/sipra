@@ -38,7 +38,7 @@ export class FiltroResumenCostosDto {
 @ApiTags('Costos de IA')
 @ApiBearerAuth()
 @Controller('costos-ia')
-@Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+@Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA)
 export class CostosIaController {
   constructor(private readonly costos: CostosIaUseCase) {}
 

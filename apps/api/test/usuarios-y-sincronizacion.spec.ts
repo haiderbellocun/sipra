@@ -35,6 +35,7 @@ const usuario = (sobrescribir: Partial<DatosUsuario>): DatosUsuario => ({
 const admin = { id: 'adm-1', correo: 'admin@cun.edu.co', rol: Rol.ADMINISTRADOR, permiso: 'escritura' as const, escuelas: [], empresaId: null };
 const coordinacion = { id: 'coo-1', correo: 'coordinacion@cun.edu.co', rol: Rol.COORDINADOR, permiso: 'escritura' as const, escuelas: [], empresaId: null };
 const coordinacionEscuela = { ...coordinacion, id: 'coo-2', escuelas: ['ESC-NEG'] };
+const direccion = { id: 'dir-1', correo: 'direccion@cun.edu.co', rol: Rol.DIRECTOR, permiso: 'escritura' as const, escuelas: [], empresaId: null };
 const docente = { id: 'doc-1', correo: 'docente@cun.edu.co', rol: Rol.TUTOR, permiso: 'escritura' as const, escuelas: ['ESC-NEG'], empresaId: null };
 
 describe('Gestión de usuarios administrativos', () => {
@@ -46,27 +47,28 @@ describe('Gestión de usuarios administrativos', () => {
   }
   const nuevo = { correo: 'Ana.Lopez@cun.edu.co', nombre: 'Ana López', documento: '52123456', rol: Rol.AUXILIAR, permiso: 'consulta' as const };
 
-  it('solo administración o la coordinación del área gestionan usuarios', async () => {
+  it('solo administración o la dirección gestionan usuarios (0.39.1: la coordinación ya no)', async () => {
     const { caso } = armar();
     await expect(caso.crear(nuevo, docente)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(caso.crear(nuevo, coordinacionEscuela)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(caso.crear(nuevo, coordinacion)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('crea con correo institucional normalizado, actor y permiso; audita', async () => {
     const { caso, auditoria } = armar();
-    const u = await caso.crear(nuevo, coordinacion, HOY);
+    const u = await caso.crear(nuevo, direccion, HOY);
     expect(u).toMatchObject({ correo: 'ana.lopez@cun.edu.co', rol: Rol.AUXILIAR, rolEtiqueta: 'Auxiliar', permiso: 'consulta', activo: true });
     expect(auditoria).toEqual(['usuario_creado']);
-    await expect(caso.crear({ ...nuevo, correo: 'ana@gmail.com' }, coordinacion)).rejects.toBeInstanceOf(BadRequestException);
-    await expect(caso.crear(nuevo, coordinacion)).rejects.toBeInstanceOf(ConflictException);
-    await expect(caso.crear({ ...nuevo, correo: 'otra@cun.edu.co' }, coordinacion)).rejects.toThrow(/documento/);
+    await expect(caso.crear({ ...nuevo, correo: 'ana@gmail.com' }, direccion)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(caso.crear(nuevo, direccion)).rejects.toBeInstanceOf(ConflictException);
+    await expect(caso.crear({ ...nuevo, correo: 'otra@cun.edu.co' }, direccion)).rejects.toThrow(/documento/);
   });
 
-  it('coordinación no crea administradores ni los modifica', async () => {
+  it('la dirección no crea administradores ni los modifica', async () => {
     const { caso } = armar();
-    await expect(caso.crear({ ...nuevo, rol: Rol.ADMINISTRADOR }, coordinacion)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(caso.crear({ ...nuevo, rol: Rol.ADMINISTRADOR }, direccion)).rejects.toBeInstanceOf(ForbiddenException);
     const a = await caso.crear({ ...nuevo, rol: Rol.ADMINISTRADOR }, admin, HOY);
-    await expect(caso.actualizar(a.id, { activo: false }, coordinacion)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(caso.actualizar(a.id, { activo: false }, direccion)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('edita, filtra por nombre, perfil y estado; «eliminar» inhabilita', async () => {

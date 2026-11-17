@@ -16,7 +16,7 @@ import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, OBLIGACION_REPOSITORY, ObligacionRepositoryPort,
   PRACTICA_REPOSITORY, PracticaRepositoryPort, USUARIO_REPOSITORY, UsuarioRepositoryPort,
 } from '../../../domain/ports/out/repositorios.port';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, esCoordinacionInstitucional } from '../../../domain/value-objects/rol.vo';
 import {
   ConsentimientoRespuestaDto, PoliticaVigenteDto, PublicarPoliticaDto, RegistrarConsentimientoDto,
   ResultadoConsentimientoDto,
@@ -160,7 +160,7 @@ export class ConsentimientoUseCase {
 
   /** Historial de UNA persona, para quien gestiona el Área. No es un buscador masivo. */
   async consultarDeUsuario(usuarioId: string, actor: Actor): Promise<ConsentimientoRespuestaDto[]> {
-    const gestiona = actor.rol === Rol.ADMINISTRADOR || (actor.rol === Rol.COORDINADOR && actor.escuelas.length === 0);
+    const gestiona = actor.rol === Rol.ADMINISTRADOR || esCoordinacionInstitucional(actor);
     if (!gestiona) {
       throw new ForbiddenException('La consulta de consentimientos de otra persona corresponde a administración o al Área de Prácticas');
     }

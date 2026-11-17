@@ -65,7 +65,7 @@ export class ConsentimientosController {
   }
 
   @Get('usuarios/:usuarioId')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA)
   @ApiOperation({
     summary: 'Historial de consentimientos de una persona',
     description: 'Consulta puntual para administración y el Área de Prácticas; no existe búsqueda masiva.',

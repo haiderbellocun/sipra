@@ -23,7 +23,7 @@ import { Publico, Roles } from '../auth/roles.decorator';
 
 /** Roles que consultan documentos; el auxiliar, solo los tipos de su proceso (dominio). */
 const ROLES_DOCUMENTALES: readonly Rol[] = [
-  Rol.ESTUDIANTE, Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR,
+  Rol.ESTUDIANTE, Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ADMINISTRADOR,
 ];
 
 @ApiTags('Documentos')
@@ -52,7 +52,7 @@ export class DocumentosController {
   }
 
   @Post('practica/:practicaId')
-  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Cargar un documento',
@@ -81,6 +81,11 @@ export class DocumentosController {
     @ActorActual() actor: Actor,
   ): Promise<DocumentoRespuestaDto> {
     const maximoBytes = (this.config.get<number>('DOC_TAMANO_MAXIMO_MB') ?? 10) * 1_048_576;
+
+    // G2: rechazar ANTES de leer el multipart. Perfil, práctica visible y, para el estudiante, periodo,
+    // habilitación y ventana (o una subsanación vigente). Así no se reciben megas que se van a descartar.
+    // La regla por tipo de documento se vuelve a exigir en el caso de uso, antes de procesar o guardar bytes.
+    await this.gestionar.prevalidarCargue(practicaId, actor);
 
     let tipo: TipoDocumento | null = null;
     let calidad: MetricasCalidadCaptura | null = null;
@@ -130,7 +135,7 @@ export class DocumentosController {
   }
 
   @Patch(':id/decision')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR, Rol.AUXILIAR)
   @ApiOperation({
     summary: 'Decidir sobre un documento',
     description:

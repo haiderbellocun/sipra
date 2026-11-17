@@ -75,7 +75,7 @@ export class RegistrarPracticaUseCase {
 
   async registrar(dto: RegistrarPracticaDto, actor: Actor, ahora: Date = new Date()): Promise<PracticaRespuestaDto> {
     // ── Quién registra y para quién ──────────────────────────────────────
-    const administrativo = [Rol.ADMINISTRADOR, Rol.COORDINADOR].includes(actor.rol);
+    const administrativo = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA].includes(actor.rol);
     if (actor.rol !== Rol.ESTUDIANTE && !administrativo) {
       throw new ForbiddenException('Solo el estudiante o coordinación registran una práctica');
     }

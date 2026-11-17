@@ -20,7 +20,7 @@ import {
 import { ALMACENAMIENTO, AlmacenamientoPort } from '../../../domain/ports/out/servicios-externos.port';
 import { EventoNotificable } from '../../../domain/services/plantillas-notificacion.domain-service';
 import { ValidacionArlDomainService } from '../../../domain/services/validacion-arl.domain-service';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import { NotificacionesService } from '../../../infrastructure/modules/notificaciones.service';
 import {
   ConsolidadoArl, DecidirSolicitudArlDto, FilaConsolidadoArl, RadicarSolicitudArlDto, SolicitudArlRespuestaDto,
@@ -28,8 +28,8 @@ import {
 import { ParametrosUseCase } from '../administracion/parametros.use-case';
 import { Actor, GestionarPracticaUseCase } from './gestionar-practica.use-case';
 
-const ROLES_VALIDAN: readonly Rol[] = [Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR];
-const ROLES_ENVIAN_CERTIFICADO: readonly Rol[] = [Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR];
+const ROLES_VALIDAN: readonly Rol[] = [Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR];
+const ROLES_ENVIAN_CERTIFICADO: readonly Rol[] = [Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR];
 const FECHA_LARGA = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 /**
@@ -170,7 +170,7 @@ export class SolicitudArlUseCase {
     if (actor.rol === Rol.ESTUDIANTE) seguro = { ...filtro, estudianteId: actor.id };
     else if (!ROLES_VALIDAN.includes(actor.rol)) throw new ForbiddenException('Su perfil no consulta solicitudes de ARL');
     const lista = await this.solicitudes.listar(seguro);
-    const visibles = actor.rol === Rol.TUTOR || (actor.rol === Rol.COORDINADOR && actor.escuelas.length > 0)
+    const visibles = actor.rol === Rol.TUTOR || escuelasDeCoordinacion(actor) !== null
       ? await this.filtrarPorAlcance(lista, actor)
       : lista;
     return Promise.all(visibles.map((s) => this.presentar(s)));
@@ -325,7 +325,7 @@ export class SolicitudArlUseCase {
       ...consolidado.rechazadas.map((f) => `RECHAZADA n.º ${f.consecutivo ?? '—'} · ${f.estudianteNombre} · ${f.motivos.join('; ')}`),
       ...consolidado.certificadosEnviados.map((f) => `CERTIFICADO n.º ${f.consecutivo ?? '—'} · ${f.estudianteNombre}`),
     ];
-    const destinatarios = (await this.usuarios.listar({ roles: [Rol.COORDINADOR, Rol.AUXILIAR], activo: true }))
+    const destinatarios = (await this.usuarios.listar({ roles: [Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR], activo: true }))
       .filter((u) => u.rol === Rol.AUXILIAR || u.escuelas.length === 0);
     for (const u of destinatarios) {
       await this.notificaciones.notificar(

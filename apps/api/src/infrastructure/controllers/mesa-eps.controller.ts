@@ -28,7 +28,7 @@ export class MesaEpsController {
   constructor(private readonly mesa: MesaEpsUseCase) {}
 
   @Get()
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Bandeja de la Mesa de EPS con KPIs, filtros y prioridad',
     description:
@@ -48,7 +48,7 @@ export class MesaEpsController {
   }
 
   @Get('supervision')
-  @Roles(Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Carga por funcionario, reservas y tiempos (coordinación y administración)' })
   @ApiResponse({ status: 200, type: SupervisionMesaDto })
   supervision(@ActorActual() actor: Actor): Promise<SupervisionMesaDto> {
@@ -56,7 +56,7 @@ export class MesaEpsController {
   }
 
   @Post('siguiente')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Tomar el siguiente caso disponible',
@@ -70,7 +70,7 @@ export class MesaEpsController {
   }
 
   @Get(':id')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Detalle del caso: certificado, autenticidad, afiliación, comparación triple, discrepancias, recomendación e historial',
     description: 'Los datos personales solo se devuelven a quien tiene el caso tomado, a coordinación/administración o a quien lo decidió.',
@@ -81,7 +81,7 @@ export class MesaEpsController {
   }
 
   @Get(':id/certificado')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Contenido del certificado para el visor',
     description:
@@ -103,7 +103,7 @@ export class MesaEpsController {
   }
 
   @Post(':id/decision')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Aprobar, devolver o rechazar el certificado desde la Mesa',

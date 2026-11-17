@@ -30,7 +30,7 @@ export class MesaCamaraController {
   constructor(private readonly mesa: MesaCamaraUseCase, private readonly estudiante: CamaraEstudianteUseCase) {}
 
   @Get()
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Bandeja de certificados de Cámara en revisión (versión vigente) con KPIs, filtros y prioridad',
     description: 'Prioridad explicable (documento incorrecto, discrepancia, matrícula cancelada, persona distinta, representante distinto, lectura dudosa, reenvío, antigüedad); sin IA. Solo supervisión puede pedir otros estados con `estado=`.',
@@ -52,7 +52,7 @@ export class MesaCamaraController {
   }
 
   @Get('supervision')
-  @Roles(Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Casos libres, tomados, por vencer y vencidos; carga por funcionario; por estado' })
   @ApiResponse({ status: 200, description: 'Resumen de supervisión' })
   supervision(@ActorActual() actor: Actor): Promise<SupervisionCamaraDto> {
@@ -60,7 +60,7 @@ export class MesaCamaraController {
   }
 
   @Post('tomar-siguiente')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Tomar el siguiente caso disponible',
@@ -72,7 +72,7 @@ export class MesaCamaraController {
   }
 
   @Get('motivos-devolucion')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Motivos de devolución permitidos para un certificado de Cámara, con lo que leerá el estudiante',
     description: 'Fuente única del catálogo: código, título, mensaje al estudiante, si exige detalle y a qué certificado aplica.',
@@ -94,7 +94,7 @@ export class MesaCamaraController {
   }
 
   @Get(':id')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Detalle: tabla CAMPO | SIPRA | CÁMARA | RESULTADO, lectura, verificación, versiones e historial',
     description:
@@ -107,7 +107,7 @@ export class MesaCamaraController {
   }
 
   @Get(':id/archivo')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Contenido del certificado de Cámara para el visor',
     description: 'Se sirve por la sesión autenticada (cabecera Authorization): sin enlace firmado ni credencial en la URL. La apertura queda auditada.',
@@ -123,7 +123,7 @@ export class MesaCamaraController {
   }
 
   @Post(':id/tomar')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({ summary: 'Reservar el caso (15 minutos). Si otra persona ya lo tiene: 409.' })
   @ApiResponse({ status: 200, description: 'Reserva vigente' })
@@ -132,7 +132,7 @@ export class MesaCamaraController {
   }
 
   @Post(':id/liberar')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({ summary: 'Liberar la reserva propia; coordinación y administración pueden liberar la de otra persona.' })
   @ApiResponse({ status: 200, description: 'Caso libre' })
@@ -141,7 +141,7 @@ export class MesaCamaraController {
   }
 
   @Post(':id/decision')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Aprobar, devolver o rechazar el certificado de Cámara desde la Mesa',

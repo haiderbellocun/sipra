@@ -30,7 +30,7 @@ export class MesaRutController {
   constructor(private readonly mesa: MesaRutUseCase, private readonly estudiante: RutEstudianteUseCase) {}
 
   @Get()
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Bandeja de RUT en revisión (versión vigente) con KPIs, filtros y prioridad',
     description: 'Prioridad explicable (documento incorrecto, discrepancia, persona distinta, lectura dudosa, reenvío, antigüedad); sin IA. Solo supervisión puede pedir otros estados con `estado=`.',
@@ -52,7 +52,7 @@ export class MesaRutController {
   }
 
   @Get('supervision')
-  @Roles(Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Casos libres, tomados, por vencer y vencidos; carga por funcionario; por estado' })
   @ApiResponse({ status: 200, description: 'Resumen de supervisión' })
   supervision(@ActorActual() actor: Actor): Promise<SupervisionRutDto> {
@@ -60,7 +60,7 @@ export class MesaRutController {
   }
 
   @Post('tomar-siguiente')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Tomar el siguiente caso disponible',
@@ -72,7 +72,7 @@ export class MesaRutController {
   }
 
   @Get('motivos-devolucion')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Motivos de devolución permitidos para un RUT, con lo que leerá el estudiante',
     description: 'Fuente única del catálogo: código, título, mensaje al estudiante, si exige detalle y a qué RUT aplica.',
@@ -94,7 +94,7 @@ export class MesaRutController {
   }
 
   @Get(':id')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Detalle: tabla SIPRA | RUT | RESULTADO, lectura, QR, versiones e historial',
     description:
@@ -107,7 +107,7 @@ export class MesaRutController {
   }
 
   @Get(':id/archivo')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Contenido del RUT para el visor',
     description: 'Se sirve por la sesión autenticada (cabecera Authorization): sin enlace firmado ni credencial en la URL. La apertura queda auditada.',
@@ -123,7 +123,7 @@ export class MesaRutController {
   }
 
   @Post(':id/tomar')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({ summary: 'Reservar el caso (15 minutos). Si otra persona ya lo tiene: 409.' })
   @ApiResponse({ status: 200, description: 'Reserva vigente' })
@@ -132,7 +132,7 @@ export class MesaRutController {
   }
 
   @Post(':id/liberar')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({ summary: 'Liberar la reserva propia; coordinación y administración pueden liberar la de otra persona.' })
   @ApiResponse({ status: 200, description: 'Caso libre' })
@@ -141,7 +141,7 @@ export class MesaRutController {
   }
 
   @Post(':id/decision')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Aprobar, devolver o rechazar el RUT desde la Mesa',

@@ -22,7 +22,7 @@ export class ValidacionDocumentalController {
   constructor(private readonly expedientes: ExpedienteDocumentalUseCase) {}
 
   @Get()
-  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Cola por expediente (estudiante + práctica) con progreso, indicadores y quién trabaja cada documento',
     description:
@@ -46,7 +46,7 @@ export class ValidacionDocumentalController {
   }
 
   @Get('supervision')
-  @Roles(Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Vista agregada: expedientes abiertos, documentos por revisar, aprobados hoy, devueltos, reservas y carga por funcionario' })
   @ApiResponse({ status: 200, description: 'Resumen de supervisión' })
   supervision(@ActorActual() actor: Actor): Promise<SupervisionDocumentalDto> {
@@ -54,7 +54,7 @@ export class ValidacionDocumentalController {
   }
 
   @Get(':practicaId')
-  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Expediente: encabezado, progreso y los metadatos de todos los documentos (sin PDF ni resultados pesados)',
     description: 'Cada documento trae su motor, su estado humano común, su reserva por documento y `validacionId` para usar el endpoint del motor.',
@@ -65,7 +65,7 @@ export class ValidacionDocumentalController {
   }
 
   @Get(':practicaId/documentos')
-  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Lista de documentos del expediente (contrato normalizado)' })
   @ApiResponse({ status: 200, description: 'Documentos' })
   async documentos(@Param('practicaId', ParseUUIDPipe) practicaId: string, @ActorActual() actor: Actor): Promise<DocumentoDeExpediente[]> {
@@ -73,7 +73,7 @@ export class ValidacionDocumentalController {
   }
 
   @Get(':practicaId/documentos/:tipo/versiones')
-  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Versiones anteriores de un documento (históricas), bajo demanda' })
   @ApiResponse({ status: 200, description: 'Versiones, la vigente primero' })
   versiones(

@@ -14,7 +14,7 @@ import { Roles } from '../auth/roles.decorator';
 
 /** Quién genera y consulta cartas (DT §5). Empresa y extensión no intervienen. */
 const ROLES_CARTAS: readonly Rol[] = [
-  Rol.ESTUDIANTE, Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR,
+  Rol.ESTUDIANTE, Rol.TUTOR, Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR,
 ];
 
 export class SolicitarCartaDto {

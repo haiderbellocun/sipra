@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, esCoordinacionOperativa } from '../../../domain/value-objects/rol.vo';
 import { PerfilDisponibleDto, UsuarioDePerfilDto } from '../../dtos/auth.dto';
 import { Usuario } from '../../../domain/entities/usuario.entity';
 import {
@@ -16,6 +16,8 @@ const DESCRIPCIONES: Record<Rol, string> = {
   [Rol.EMPRESA]: 'Consulta sus practicantes, publica vacantes y revisa postulantes',
   [Rol.EXTENSION]: 'Opera la bolsa de empleo y sus reportes al Servicio Público de Empleo',
   [Rol.AUXILIAR]: 'Auxiliar de prácticas: valida las solicitudes de ARL de las modalidades articuladas y revisa documentos',
+  [Rol.DIRECTOR]: 'Gobierno operativo institucional: supervisa las prácticas de toda la institución y gestiona usuarios operativos',
+  [Rol.ANALISTA]: 'Analista del Área de Prácticas: consulta y opera los expedientes de su alcance',
 };
 
 /** Alimenta el selector de perfil del ambiente de pruebas. */
@@ -47,7 +49,8 @@ export class ListarPerfilesDisponiblesUseCase {
   /** Lo que distingue a cada persona dentro del perfil, para elegir con criterio. */
   private presentar(u: Usuario): UsuarioDePerfilDto {
     const partes: string[] = [];
-    if (u.rol === Rol.COORDINADOR) partes.push(u.escuelas.length === 0 ? 'Área de Prácticas (todas las escuelas)' : `Escuelas: ${u.escuelas.join(', ')}`);
+    if (u.rol === Rol.DIRECTOR) partes.push('Institucional');
+    else if (esCoordinacionOperativa(u.rol)) partes.push(u.escuelas.length === 0 ? 'Área de Prácticas (todas las escuelas)' : `Escuelas: ${u.escuelas.join(', ')}`);
     else if (u.rol === Rol.TUTOR && u.escuelas.length > 0) partes.push(`Escuelas: ${u.escuelas.join(', ')}`);
     else if (u.rol === Rol.ESTUDIANTE && u.instantanea().programaId) partes.push(`Programa ${u.instantanea().programaId}`);
     if (u.permiso === 'consulta') partes.push('solo consulta');

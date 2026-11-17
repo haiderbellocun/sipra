@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength,
 } from 'class-validator';
-import { Permiso, ROLES_ADMINISTRATIVOS, Rol } from '../../domain/value-objects/rol.vo';
+import { Rol, Permiso, ROLES_ADMINISTRATIVOS } from '../../domain/value-objects/rol.vo';
 
 export class CrearUsuarioDto {
   @ApiProperty({ example: 'ana.lopez@cun.edu.co', description: 'Correo institucional' })
@@ -12,7 +12,7 @@ export class CrearUsuarioDto {
   @IsString() @Matches(/^[A-Za-z0-9]{4,30}$/) documento!: string;
   @ApiProperty({ enum: ROLES_ADMINISTRATIVOS }) @IsIn([...ROLES_ADMINISTRATIVOS]) rol!: Rol;
   @ApiProperty({ enum: ['consulta', 'escritura'] }) @IsIn(['consulta', 'escritura']) permiso!: Permiso;
-  @ApiPropertyOptional({ type: [String], description: 'Escuelas a cargo; vacío = institucional' })
+  @ApiPropertyOptional({ type: [String], description: 'Escuelas a cargo; vacío = institucional. El director siempre es institucional (se ignoran)' })
   @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) escuelas?: string[];
   @ApiPropertyOptional({ default: true }) @IsOptional() @IsBoolean() activo?: boolean;
 }
@@ -42,7 +42,9 @@ export class UsuarioAdministrativoDto {
 /** Nombres de actor del SGP (manual de coordinación, §3). */
 export const ETIQUETA_ROL: Readonly<Record<Rol, string>> = {
   [Rol.ADMINISTRADOR]: 'Administrador',
+  [Rol.DIRECTOR]: 'Director',
   [Rol.COORDINADOR]: 'Coordinador de prácticas',
+  [Rol.ANALISTA]: 'Analista de prácticas',
   [Rol.AUXILIAR]: 'Auxiliar',
   [Rol.TUTOR]: 'Docente facilitador',
   [Rol.ESTUDIANTE]: 'Practicante',

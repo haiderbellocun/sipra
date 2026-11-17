@@ -30,7 +30,7 @@ export class CumplimientoController {
   }
 
   @Get('tablero')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION, Rol.TUTOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EXTENSION, Rol.TUTOR)
   @ApiOperation({
     summary: 'Tablero de obligaciones próximas a vencer',
     description:

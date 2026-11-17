@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     await db.query(
       `INSERT INTO practicas (id, estudiante_id, programa_id, escuela_id, ciclo, periodo_academico, modalidad, estado, tutor_id, empresa_id, cargo,
          jefe_inmediato_nombre, fecha_inicio, fecha_fin, arl_verificada, ultima_actividad, tipo_remuneracion, responsable_arl, funciones_relevantes)
-       VALUES ($1,$2,'ADM-PRO','ESC-NEG','profesional','2026-2','cunbre_consolidado','documentacion',$3,$4,'Emprendedor','Camila Restrepo Duarte',
+       VALUES ($1,$2,'ADM-PRO','ESC-NEG','profesional','2026D','cunbre_consolidado','documentacion',$3,$4,'Emprendedor','Camila Restrepo Duarte',
          '2026-11-02','2027-02-02',false,now(),'no_remunerada','empresa','Apoyo en gestion documental y atencion de solicitudes internas')
        ON CONFLICT (id) DO NOTHING`,
       [PRACTICA_ID, ESTUDIANTE_ID, TUTOR_ID, EMPRESA_ID],

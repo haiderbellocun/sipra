@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -223,8 +224,8 @@ export class ArlComponent implements OnInit {
   readonly r: RadicarArl = { tipoIdentificacion: 'CC', numeroIdentificacion: '', epsNombre: '', epsRegimen: 'convencional', fechaExpedicionEps: '', fechaExpedicionRut: '', fechaExpedicionCamara: '' };
 
   readonly esEstudiante = computed(() => this.sesion.rol() === 'estudiante');
-  readonly puedeDecidir = computed(() => ['auxiliar', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly puedeEnviarCertificado = computed(() => ['auxiliar', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly puedeDecidir = computed(() => tieneRol(['auxiliar', 'tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
+  readonly puedeEnviarCertificado = computed(() => tieneRol(['auxiliar', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
   readonly vigente = computed(() => this.lista().find((s) => ['radicada', 'aprobada'].includes(s.estado)) ?? null);
   readonly periodoPractica = computed(() => this.periodos().find((p) => p.codigo === this.practica()?.periodoAcademico) ?? null);
   readonly esCunbre = computed(() => ['cunbre_naciente', 'cunbre_consolidado'].includes(this.practica()?.modalidad ?? ''));

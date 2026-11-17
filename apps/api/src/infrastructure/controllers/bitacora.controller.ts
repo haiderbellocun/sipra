@@ -16,7 +16,7 @@ export class BitacoraController {
   constructor(private readonly bitacora: BitacoraUseCase) {}
 
   @Get('bitacora')
-  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Bitácora de la práctica',
     description: 'Conversación entre el estudiante y el docente facilitador, más las anotaciones de la plataforma.',
@@ -29,7 +29,7 @@ export class BitacoraController {
   }
 
   @Post('bitacora')
-  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({
     summary: 'Escribir en la bitácora',
     description:
@@ -47,7 +47,7 @@ export class BitacoraController {
   }
 
   @Get('cierre')
-  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Condiciones de cierre: documentos, «Evalúa tu proceso» y calificación' })
   @ApiResponse({ status: 200, type: EstadoCierreDto })
   estadoCierre(
@@ -57,7 +57,7 @@ export class BitacoraController {
   }
 
   @Post('cierre')
-  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Cerrar el proceso cuando las tres condiciones ya se cumplen' })
   cerrar(
     @Param('practicaId', ParseUUIDPipe) practicaId: string, @ActorActual() actor: Actor,

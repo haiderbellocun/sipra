@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { SesionService } from '@core/auth/sesion.service';
@@ -19,7 +20,7 @@ export const ROTULO_DATASET = 'Dataset v4';
 import { PestanaReportes, ReportesEstado } from './reportes.estado';
 
 /** Perfiles que consultan la analítica (los mismos del servidor). Extensión solo ve las exportaciones regulatorias. */
-export const ROLES_ANALITICA = ['administrador', 'coordinador', 'auxiliar', 'tutor'];
+export const ROLES_ANALITICA = ['administrador', 'director', 'coordinador', 'analista', 'auxiliar', 'tutor'];
 
 export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
   { id: 'general', texto: 'General' },
@@ -262,7 +263,7 @@ export class ReportesComponent implements OnInit {
   private readonly sesion = inject(SesionService);
 
   protected readonly panel = signal(false);
-  protected readonly analitica = computed(() => ROLES_ANALITICA.includes(this.sesion.rol() ?? ''));
+  protected readonly analitica = computed(() => tieneRol(ROLES_ANALITICA, this.sesion.rol()));
   protected readonly pestanas = computed(() => (this.analitica() ? PESTANAS : PESTANAS.filter((p) => p.id === 'exportaciones')));
   protected readonly conDatos = computed(() => hayDatos(this.estado.datos()));
   protected readonly otrosActivos = computed(() => { const f = this.estado.filtros(); return [f.escuela, f.programa, f.ciclo, f.semestre, f.modalidad, f.estado, f.empresa, f.tipoReceptor, f.sector, f.ciudad].filter(Boolean).length; });

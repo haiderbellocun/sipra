@@ -26,7 +26,7 @@ import {
   catalogoMotivosDevolucionRut, esMotivoDevolucionRut, evaluarApartamientoRut, mensajeDevolucionRut, motivoAplicaA, recomendacionRut,
 } from '../../../domain/services/mesa-rut.domain-service';
 import { esSupervisorRevisionRut, puedeOperarRevisionRut } from '../../../domain/value-objects/acceso-rut.vo';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import { DocumentoRespuestaDto } from '../../dtos/documento.dto';
 import {
   CampoComparadoRutDto, DecisionRutDto, DetalleRutDto, ItemBandejaRutDto, ListadoBandejaRutDto, ReservaRutDto,
@@ -105,7 +105,7 @@ export class MesaRutUseCase {
    */
   private alcance(actor: Actor): string[] | null {
     if (actor.rol === Rol.TUTOR) return [...actor.escuelas];
-    return actor.rol === Rol.COORDINADOR && actor.escuelas.length > 0 ? [...actor.escuelas] : null;
+    return escuelasDeCoordinacion(actor);
   }
 
   /** Datos personales completos: solo a quien tiene el caso tomado (reserva vigente), a supervisión o a quien lo decidió. */

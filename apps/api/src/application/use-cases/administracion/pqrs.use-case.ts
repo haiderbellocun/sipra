@@ -48,7 +48,7 @@ export interface PqrsRespuesta {
 }
 
 /** Perfiles que atienden la bandeja de PQRS: Área de Prácticas, auxiliares y administración. */
-const ROLES_ATIENDEN: readonly Rol[] = [Rol.COORDINADOR, Rol.AUXILIAR, Rol.ADMINISTRADOR];
+const ROLES_ATIENDEN: readonly Rol[] = [Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.ADMINISTRADOR];
 
 /**
  * Centro de ayuda y PQRS de Desarrollo Profesional. La ayuda es un catálogo del

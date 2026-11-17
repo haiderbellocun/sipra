@@ -46,7 +46,7 @@ export interface ResumenSincronizacion {
   sinDocenteEnSinu: { practicaId: string; estudianteDocumento: string | null }[];
 }
 
-const ROLES_VISTAS: readonly Rol[] = [Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.TUTOR];
+const ROLES_VISTAS: readonly Rol[] = [Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR, Rol.AUXILIAR, Rol.TUTOR];
 
 /**
  * Apartado «Vistas» del SGP: consulta de correspondencia con SINU y
@@ -132,7 +132,7 @@ export class VistasSinuUseCase {
    * SGP. Solo mientras el periodo tenga la sincronización habilitada.
    */
   async sincronizarDocentes(periodoAcademico: string, actor: Actor | null, ahora: Date = new Date()): Promise<ResumenSincronizacion> {
-    if (actor && ![Rol.COORDINADOR, Rol.ADMINISTRADOR].includes(actor.rol)) {
+    if (actor && ![Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR].includes(actor.rol)) {
       throw new ForbiddenException('La sincronización la ejecuta coordinación o administración');
     }
     const periodo = await this.periodos.buscarPorCodigo(periodoAcademico);

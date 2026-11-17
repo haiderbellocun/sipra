@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
@@ -43,7 +44,7 @@ export class ValidacionDocumentalEstado {
 
   readonly supervision = signal<SupervisionDocumental | null>(null);
   readonly cargandoSupervision = signal(false);
-  readonly esSupervisor = computed(() => ['coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly esSupervisor = computed(() => tieneRol(['coordinador', 'analista', 'administrador'], this.sesion.rol()));
 
   readonly documentos = computed(() => this.expediente()?.documentos ?? []);
   readonly documentoActivo = computed<DocumentoDeExpediente | null>(() => this.documentos().find((d) => d.tipoDocumento === this.tipoActivo()) ?? null);

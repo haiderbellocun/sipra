@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Injector, OnInit, afterNextRender, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +18,7 @@ import { SenalEstadoComponent } from '@shared/components/senal-estado.component'
 import { MetricaV3, TiraMetricasComponent } from '@shared/components/tira-metricas.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
+import { bannerCargue, estudiantePuedeCargarTipo, fechaLarga, motivoBloqueo, subsanacionDe } from '@shared/utils/cargue-estudiante';
 import { decisionGeneralPermitida } from '@shared/utils/motores-documentales';
 import { formatearEntero, formatearUsd } from '@shared/utils/moneda';
 import { ActaEstudianteComponent } from '../actas/acta-estudiante.component';
@@ -82,6 +84,14 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
     .pestanas button.activa { color: var(--text-primary); } .pestanas button.activa::after { transform: scaleX(1); }
     .pestanas button:focus-visible { outline: 2px solid var(--signal-active); outline-offset: -2px; }
     .pestanas ~ * { animation: entra 200ms var(--eo) both; }
+    /* G2 · cargue del estudiante: una línea compacta, el estado no depende solo del color (título + punto con forma). */
+    .cargue-banner { display:flex; gap:10px; align-items:flex-start; padding:10px 0 12px; margin-bottom:8px; border-bottom:1px solid var(--borde); font-size:var(--fs-sm); }
+    .cargue-banner .punto { width:9px; height:9px; border-radius:50%; margin-top:6px; flex:none; background:var(--texto-tenue); }
+    .cargue-banner[data-tono="ok"] .punto { background:var(--ok); }
+    .cargue-banner[data-tono="pendiente"] .punto { background:var(--aviso); }
+    .cargue-banner[data-tono="pausa"] .punto { background:transparent; border:2px solid var(--aviso); }
+    .cargue-banner strong { display:block; } .cargue-banner span.det { color:var(--texto-tenue); }
+    .subsana { margin:6px 0; font-size:var(--fs-sm); } .subsana .rotulo { font-weight:600; }
     .columnas { display: grid; gap: 20px; grid-template-columns: 1fr; } @media (width >= 1000px) { .columnas { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); align-items: start; } }
     .superficie { min-width: 0; padding: 16px 20px; background: color-mix(in srgb, var(--sf) 64%, transparent); border: 1px solid var(--border-subtle); border-radius: 8px; }
     .superficie h2 { margin: 0 0 12px; font: 600 16px/22px var(--fuente); color: var(--text-primary); }
@@ -119,6 +129,9 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
     .zona { display: grid; gap: 4px; width: 100%; font: inherit; color: inherit; border: 1.5px dashed var(--border-strong); border-radius: 8px; padding: 18px; background: color-mix(in srgb, var(--sf) 40%, transparent); text-align: center; cursor: pointer; transition: border-color 160ms var(--eo), background 160ms var(--eo); }
     .zona:hover, .zona.encima { border-color: var(--signal-active); background: color-mix(in srgb, var(--sa) 8%, transparent); }
     .zona:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 2px; }
+    /* G2 · cargue cerrado: la zona se ve y se anuncia deshabilitada (el motivo va asociado por aria-describedby). */
+    .zona:disabled { cursor: not-allowed; opacity: .5; border-style: dotted; background: transparent; }
+    .zona:disabled:hover { border-color: var(--border-strong); background: transparent; }
     @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     @media (prefers-reduced-motion: reduce) {
       .cabecera, .progreso, .pestanas ~ * { animation: none; }
@@ -214,6 +227,12 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
       @if (pestana() === 'documentos') {
         <div class="columnas">
           <div class="superficie">
+            @if (esEstudiante()) {
+              <div class="cargue-banner" id="cargue-estado" role="status" [attr.data-tono]="banner().tono">
+                <span class="punto" aria-hidden="true"></span>
+                <div><strong>{{ banner().titulo }}</strong><span class="det">{{ banner().detalle }}</span></div>
+              </div>
+            }
             @for (m of p.avance.momentos; track m.momento) {
               <section class="momento">
                 <h3>{{ m.etiqueta }} <span class="avance-m">{{ m.aprobados }}/{{ m.exigidos }} aprobados</span>
@@ -221,15 +240,15 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                 @for (d of m.documentos; track d.tipo) {
                   @if (esEstudiante() && d.tipo === 'acta_inicio') {
                     <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
-                      <sipra-acta-estudiante [practicaId]="id()" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir('acta_inicio')" />
+                      <sipra-acta-estudiante [practicaId]="id()" [documentos]="documentos()" [puedeCargar]="puedeCargarTipo('acta_inicio')" (cargar)="corregir('acta_inicio')" />
                     </div>
                   } @else if (esEstudiante() && (d.tipo === 'rut_natural' || d.tipo === 'rut_juridico')) {
                     <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
-                      <sipra-rut-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir(d.tipo)" />
+                      <sipra-rut-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargarTipo(d.tipo)" (cargar)="corregir(d.tipo)" />
                     </div>
                   } @else if (esEstudiante() && d.tipo === 'camara_comercio') {
                     <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
-                      <sipra-camara-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargar()" (cargar)="corregir(d.tipo)" />
+                      <sipra-camara-estudiante [practicaId]="id()" [tipo]="d.tipo" [documentos]="documentos()" [puedeCargar]="puedeCargarTipo(d.tipo)" (cargar)="corregir(d.tipo)" />
                     </div>
                   } @else {
                   <div class="doc" [id]="'doc-' + d.tipo" tabindex="-1" [class.resaltado]="resaltado() === d.tipo" [class.hecho]="d.aprobado">
@@ -238,7 +257,7 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                       @if (esEstudiante()) {
                         @if (d.version && d.version > 1) { <span class="ver">versión {{ d.version }}</span> }
                         <sipra-senal-estado [tono]="guia(d.tipo, d.estado).tono" [texto]="guia(d.tipo, d.estado).estado" />
-                        @if (puedeCargar() && !d.estado) { <button type="button" class="boton compacto" (click)="tipoSeleccionado.set(d.tipo)">Cargar</button> }
+                        @if (puedeCargar() && !d.estado) { <button type="button" class="boton compacto" [disabled]="!puedeCargarTipo(d.tipo)" [attr.title]="puedeCargarTipo(d.tipo) ? null : bloqueo()" [attr.aria-describedby]="puedeCargarTipo(d.tipo) ? null : 'cargue-estado'" (click)="tipoSeleccionado.set(d.tipo)">Cargar</button> }
                       } @else {
                         @if (d.version) { <span class="ver">v{{ d.version }}</span> }
                         <sipra-senal-estado [valor]="d.estado ?? ''" [texto]="d.estado ? null : 'sin cargar'" />
@@ -254,7 +273,8 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
                             <h4>Tu {{ enMinuscula(d.tipo | etiqueta) }} necesita una corrección</h4>
                             @if (ult.motivoDevolucion) { <p><span class="rotulo">Motivo:</span> {{ ult.motivoDevolucion }}</p> }
                             <p><span class="rotulo">Qué debes hacer:</span> {{ guia(d.tipo, ult.estado).hacer }}</p>
-                            @if (puedeCargar()) { <button type="button" class="boton boton--primario" (click)="corregir(d.tipo)">Subir nueva versión</button> }
+                            @if (subsanacion(d.tipo); as sub) { <p class="subsana"><span class="rotulo">Corrección habilitada hasta:</span> {{ larga(sub.vence) }}</p> }
+                            @if (puedeCargar()) { <button type="button" class="boton boton--primario" [disabled]="!puedeCargarTipo(d.tipo)" [attr.title]="puedeCargarTipo(d.tipo) ? null : bloqueo()" [attr.aria-describedby]="puedeCargarTipo(d.tipo) ? null : 'cargue-estado'" (click)="corregir(d.tipo)">Subir nueva versión</button> }
                           </div>
                         }
                         @if (anteriores(d.tipo).length > 0) {
@@ -330,9 +350,10 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
             } @else {
               <div class="campo"><label for="tipo-doc">Tipo de documento</label>
                 <select id="tipo-doc" [ngModel]="tipoSeleccionado()" (ngModelChange)="tipoSeleccionado.set($event)">
-                  @for (tipo of tiposExigidos(); track tipo) { <option [value]="tipo">{{ tipo | etiqueta }}</option> }
+                  @for (tipo of tiposCargables(); track tipo) { <option [value]="tipo">{{ tipo | etiqueta }}</option> }
                 </select></div>
-              <button type="button" class="zona" [class.encima]="arrastrando()" (click)="entrada.click()"
+              @if (zonaBloqueada()) { <p class="pista" id="zona-bloqueo" role="note">{{ bloqueo() }}</p> }
+              <button type="button" class="zona" [class.encima]="arrastrando()" [disabled]="zonaBloqueada()" [attr.aria-disabled]="zonaBloqueada()" [attr.aria-describedby]="zonaBloqueada() ? 'zona-bloqueo' : null" (click)="entrada.click()"
                       (dragover)="$event.preventDefault(); arrastrando.set(true)" (dragleave)="arrastrando.set(false)" (drop)="soltar($event)">
                 <strong>Elija un archivo o arrástrelo aquí</strong><span class="pista">PDF sin contraseña · máximo 10 MB</span></button>
               <input #entrada type="file" hidden accept="application/pdf,image/jpeg,image/png" (change)="seleccionar($event)" />
@@ -528,20 +549,20 @@ export class ExpedienteComponent implements OnInit {
   readonly evalFinal = { desempeno: '', satisfaccionEmpresa: '', retroalimentacionPlanMejoramiento: '' };
   readonly vac: VacanteEditable = {};
 
-  readonly puedeAdministrar = computed(() => ['administrador', 'coordinador'].includes(this.sesion.rol() ?? ''));
-  readonly puedeMesaCamara = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly puedeAdministrar = computed(() => tieneRol(['administrador', 'coordinador', 'analista'], this.sesion.rol()));
+  readonly puedeMesaCamara = computed(() => tieneRol(['tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
   /** Los documentos con motor especializado NO se deciden por el camino general: su decisión es de la Mesa de su motor. */
   protected readonly decisionGeneralPermitida = decisionGeneralPermitida;
-  readonly puedeValidacionDocumental = computed(() => ['tutor', 'auxiliar', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly puedeMesaActas = computed(() => ['auxiliar', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly puedeDecidir = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly puedeCargar = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? '') && !this.terminal());
+  readonly puedeValidacionDocumental = computed(() => tieneRol(['tutor', 'auxiliar', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
+  readonly puedeMesaActas = computed(() => tieneRol(['auxiliar', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
+  readonly puedeDecidir = computed(() => tieneRol(['tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
+  readonly puedeCargar = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()) && !this.terminal());
   /** El avance documental y el docente solo se muestran a quien los recibe del servidor. */
-  readonly veAvance = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly veDocente = computed(() => !['empresa', 'extension'].includes(this.sesion.rol() ?? ''));
-  readonly puedeVerBitacora = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly puedeEscribir = computed(() => ['estudiante', 'tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
-  readonly puedeCalificar = computed(() => ['tutor', 'coordinador', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly veAvance = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'director', 'administrador'], this.sesion.rol()));
+  readonly veDocente = computed(() => !tieneRol(['empresa', 'extension'], this.sesion.rol()));
+  readonly puedeVerBitacora = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'director', 'administrador'], this.sesion.rol()));
+  readonly puedeEscribir = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
+  readonly puedeCalificar = computed(() => tieneRol(['tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
   readonly puedeEditarVacante = computed(() => this.puedeCargar());
   readonly terminal = computed(() => ['certificada', 'cancelada', 'anulada', 'reprobada'].includes(this.practica()?.estado ?? ''));
   readonly solicitaArl = computed(() => {
@@ -553,11 +574,33 @@ export class ExpedienteComponent implements OnInit {
     switch (this.sesion.rol()) {
       case 'estudiante': return ['mensaje_libre', 'evalua_tu_proceso'];
       case 'tutor': return ['mensaje_libre', 'seguimiento', 'evaluacion_final', 'plazo_subsanacion', 'calificacion_docente'];
-      case 'coordinador': case 'administrador': return ['mensaje_libre', 'plazo_subsanacion', 'calificacion_docente'];
+      case 'coordinador': case 'analista': case 'administrador': return ['mensaje_libre', 'plazo_subsanacion', 'calificacion_docente'];
       default: return [];
     }
   });
-  readonly puedeEnviar = computed(() => { const ev = this.evaluacion(); return this.archivo() !== null && !!this.tipoSeleccionado() && (ev === null || ev.aceptable); });
+  readonly puedeEnviar = computed(() => { const ev = this.evaluacion(); return this.archivo() !== null && !!this.tipoSeleccionado() && !this.zonaBloqueada() && (ev === null || ev.aceptable); });
+
+  // ── G2 · cargue del estudiante: lo decide el servidor (`cargueEstudiante`); aquí solo se muestra ──
+  readonly cargue = computed(() => this.practica()?.cargueEstudiante ?? null);
+  readonly banner = computed(() => bannerCargue(this.cargue()));
+  readonly bloqueo = computed(() => motivoBloqueo(this.cargue()));
+  readonly larga = fechaLarga;
+  /** Estudiante: ventana del periodo o subsanación de ESE tipo; sin proyección, cerrado. Otros perfiles: sin cambios. */
+  puedeCargarTipo(tipo: string): boolean {
+    if (!this.puedeCargar()) return false;
+    return this.esEstudiante() ? estudiantePuedeCargarTipo(this.cargue(), tipo) : true;
+  }
+  subsanacion(tipo: string): { vence: string } | null {
+    return this.esEstudiante() ? subsanacionDe(this.cargue(), tipo) : null;
+  }
+  /** Con la ventana cerrada, el estudiante solo ve en la lista los tipos con corrección habilitada. */
+  readonly tiposCargables = computed(() => {
+    const todos = this.tiposExigidos();
+    if (!this.esEstudiante() || this.cargue()?.permitido) return todos;
+    const habilitados = todos.filter((t) => estudiantePuedeCargarTipo(this.cargue(), t));
+    return habilitados.length > 0 ? habilitados : todos;
+  });
+  readonly zonaBloqueada = computed(() => this.esEstudiante() && !this.puedeCargarTipo(this.tipoSeleccionado()));
 
   async ngOnInit(): Promise<void> { await this.recargar(); }
 
@@ -643,7 +686,7 @@ export class ExpedienteComponent implements OnInit {
   }
 
   async seleccionar(evento: Event): Promise<void> { await this.tomar((evento.target as HTMLInputElement).files?.[0] ?? null); }
-  async soltar(evento: DragEvent): Promise<void> { evento.preventDefault(); this.arrastrando.set(false); await this.tomar(evento.dataTransfer?.files?.[0] ?? null); }
+  async soltar(evento: DragEvent): Promise<void> { evento.preventDefault(); this.arrastrando.set(false); if (this.zonaBloqueada()) return; await this.tomar(evento.dataTransfer?.files?.[0] ?? null); }
   private async tomar(archivo: File | null): Promise<void> { this.archivo.set(archivo); this.evaluacion.set(archivo ? await this.captura.evaluar(archivo) : null); }
 
   async enviar(): Promise<void> {

@@ -907,9 +907,12 @@ describe('Mesa EPS · la recomendación NO es la decisión', () => {
 });
 
 describe('Mesa EPS · matriz de autorización por perfil (regresión Fase 6)', () => {
-  const OPERADORES = new Set([Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR]);
-  const SUPERVISORES = new Set([Rol.COORDINADOR, Rol.ADMINISTRADOR]);
-  const actor = (rol: Rol) => actorDe(rol, { id: `${rol}-1`, correo: `${rol}@cun.edu.co`, escuelas: rol === Rol.COORDINADOR ? [ESC_A] : [] });
+  const OPERADORES = new Set([Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR]);
+  const SUPERVISORES = new Set([Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR]);
+  // Coordinador y analista restringidos a una escuela (mismo mecanismo). El director no opera la Mesa.
+  const actor = (rol: Rol) => actorDe(rol, {
+    id: `${rol}-1`, correo: `${rol}@cun.edu.co`, escuelas: rol === Rol.COORDINADOR || rol === Rol.ANALISTA ? [ESC_A] : [],
+  });
   const esProhibido = async (p: Promise<unknown>): Promise<boolean> => p.then(() => false, (e: unknown) => e instanceof ForbiddenException);
 
   it.each(Object.values(Rol))('%s: acceso a cada operación de la Mesa según su perfil', async (rol) => {

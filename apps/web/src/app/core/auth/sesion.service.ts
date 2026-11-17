@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -32,7 +33,7 @@ export class SesionService {
   readonly token = computed(() => this._sesion()?.accessToken ?? null);
   readonly esInterno = computed(() => {
     const rol = this.rol();
-    return rol !== null && ['tutor', 'coordinador', 'administrador', 'extension', 'auxiliar'].includes(rol);
+    return tieneRol(['tutor', 'coordinador', 'analista', 'director', 'administrador', 'extension', 'auxiliar'], rol);
   });
 
   async cargarModo(): Promise<ModoAutenticacion> {

@@ -25,7 +25,7 @@ const DOMINIOS_GENERICOS = [
  * Quién consulta la bandeja de empresas. Estudiantes, docentes y auxiliares
  * no: la empresa de su práctica llega dentro del expediente.
  */
-const ROLES_CONSULTAN: readonly Rol[] = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION, Rol.EMPRESA];
+const ROLES_CONSULTAN: readonly Rol[] = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EXTENSION, Rol.EMPRESA];
 
 @Injectable()
 export class GestionarEmpresaUseCase {
@@ -161,7 +161,7 @@ export class GestionarEmpresaUseCase {
 
   async listar(estado: EstadoEmpresa | undefined, actor: Actor): Promise<EmpresaRespuestaDto[]> {
     this.exigirConsulta(actor);
-    const esInterno = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION].includes(actor.rol);
+    const esInterno = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EXTENSION].includes(actor.rol);
     const empresas = await this.empresas.listar(estado);
     const visibles =
       actor.rol === Rol.EMPRESA
@@ -177,7 +177,7 @@ export class GestionarEmpresaUseCase {
     if (actor.rol === Rol.EMPRESA && actor.empresaId !== id) {
       throw new NotFoundException('Empresa no encontrada');
     }
-    const esInterno = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION].includes(actor.rol);
+    const esInterno = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EXTENSION].includes(actor.rol);
     return this.aRespuesta(empresa, esInterno, actor.rol === Rol.EMPRESA);
   }
 

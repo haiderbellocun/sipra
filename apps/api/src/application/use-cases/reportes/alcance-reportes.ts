@@ -1,9 +1,9 @@
 import { ForbiddenException } from '@nestjs/common';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { Rol, escuelasDeCoordinacion } from '../../../domain/value-objects/rol.vo';
 import { Actor } from '../practicas/gestionar-practica.use-case';
 
 /** Perfiles que generan reportes (SGP y analítica). */
-export const ROLES_REPORTES: readonly Rol[] = [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.AUXILIAR, Rol.TUTOR];
+export const ROLES_REPORTES: readonly Rol[] = [Rol.ADMINISTRADOR, Rol.DIRECTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.TUTOR];
 
 export function exigirReportes(actor: Actor): void {
   if (!ROLES_REPORTES.includes(actor.rol)) throw new ForbiddenException('Su perfil no genera reportes del SGP');
@@ -18,7 +18,9 @@ export function escuelasDeReportes(actor: Actor): readonly string[] | undefined 
     case Rol.TUTOR:
       return actor.escuelas;
     case Rol.COORDINADOR:
-      return actor.escuelas.length === 0 ? undefined : actor.escuelas;
+    case Rol.ANALISTA:
+    case Rol.DIRECTOR:
+      return escuelasDeCoordinacion(actor) ?? undefined;
     default:
       return undefined;
   }

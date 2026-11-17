@@ -2,12 +2,13 @@ import { BadRequestException, ConflictException, ForbiddenException, Inject, Inj
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import { MATRIZ_MODALIDADES, ModalidadPractica } from '../../../domain/entities/modalidad.entity';
 import {
-  CALENDARIOS, CalendarioPeriodo, DatosPeriodo, PeriodoAcademico, TipoVentana, Ventana,
+  CALENDARIOS, CalendarioPeriodo, DatosPeriodo, EstadoCargueEstudiante, PeriodoAcademico, TipoVentana, Ventana,
+  VentanaCargueInvalidaError,
 } from '../../../domain/entities/periodo.entity';
 import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, PERIODO_REPOSITORY, PeriodoRepositoryPort,
 } from '../../../domain/ports/out/repositorios.port';
-import { Rol } from '../../../domain/value-objects/rol.vo';
+import { puedeGestionarPeriodos } from '../../../domain/value-objects/rol.vo';
 import { Actor } from '../practicas/gestionar-practica.use-case';
 
 export interface VentanaDto { desde: string; hasta: string }
@@ -19,6 +20,20 @@ export interface CronogramaDto {
   jornadasInduccion: string[];
   fechaCargueDocumentos: string | null;
   cierre: string;
+}
+
+/** Cargue de documentos del estudiante en lenguaje operativo (G2). El estado lo calcula el dominio. */
+export interface CargueEstudiantePeriodo {
+  habilitado: boolean;
+  estado: EstadoCargueEstudiante;
+  desde: string | null;
+  hasta: string | null;
+}
+
+export interface CargueEstudianteEntrada {
+  habilitado: boolean;
+  desde: string;
+  hasta: string;
 }
 
 export interface PeriodoRespuesta {
@@ -37,6 +52,8 @@ export interface PeriodoRespuesta {
   modalidadesOfertadas: ModalidadPractica[];
   activo: boolean;
   vigente: boolean;
+  /** G2: habilitación manual, ventana y estado efectivo del cargue del estudiante. */
+  cargueEstudiante: CargueEstudiantePeriodo;
   actualizadoEn: string;
 }
 
@@ -52,6 +69,11 @@ export interface CrearPeriodo {
   fechaCargueDocumentos?: string;
   /** Si no se indican, la segunda semana del periodo. */
   jornadasInduccion?: string[];
+  /**
+   * Cargue de documentos del estudiante (G2). La interfaz propone fechas (inicio del periodo → dos semanas
+   * antes del cierre) y el gestor las ve y las cambia antes de crear. Sin este bloque se usa esa misma sugerencia.
+   */
+  cargueEstudiante?: CargueEstudianteEntrada;
 }
 
 export interface ActualizarPeriodo {
@@ -62,6 +84,10 @@ export interface ActualizarPeriodo {
   sincronizacionDocentes?: boolean;
   modalidadesHabilitadas?: ModalidadPractica[];
   activo?: boolean;
+  /** G2: habilita o inhabilita el cargue del estudiante sin tocar las fechas. */
+  cargueEstudianteHabilitado?: boolean;
+  /** G2: ventana de cargue del estudiante; debe quedar dentro del periodo. */
+  ventanaCargueEstudiante?: VentanaDto;
 }
 
 const dia = (iso: string): Date => {
@@ -118,10 +144,26 @@ export class GestionarPeriodosUseCase {
       ventanas: PeriodoAcademico.ventanasHabituales(inicio, fin, cierreFur, fechaCargue),
       jornadasInduccion: dto.jornadasInduccion?.length ? dto.jornadasInduccion.map(dia) : PeriodoAcademico.jornadasHabituales(inicio),
       fechaCargueDocumentos: fechaCargue,
-      sincronizacionDocentes: true, modalidadesHabilitadas: [], activo: true, creadoEn: ahora, actualizadoEn: ahora,
+      sincronizacionDocentes: true, modalidadesHabilitadas: [], activo: true,
+      cargueEstudianteHabilitado: dto.cargueEstudiante?.habilitado ?? true,
+      creadoEn: ahora, actualizadoEn: ahora,
     };
-    const guardado = await this.periodos.guardar(datos);
-    await this.registrar(actor, codigo, { creado: true });
+    const periodo = PeriodoAcademico.desde(datos);
+    if (dto.cargueEstudiante) {
+      this.conVentanaValida(() => periodo.fijarVentanaCargueEstudiante(
+        { desde: dia(dto.cargueEstudiante!.desde), hasta: dia(dto.cargueEstudiante!.hasta) }, ahora,
+      ));
+    }
+    const guardado = await this.periodos.guardar(periodo.instantanea());
+    const c = guardado.instantanea();
+    await this.registrar(actor, codigo, {
+      creado: true,
+      cambios: [
+        { campo: 'cargueEstudianteHabilitado', anterior: null, nuevo: c.cargueEstudianteHabilitado },
+        { campo: 'cargueEstudiante.desde', anterior: null, nuevo: this.f(c.ventanas[TipoVentana.CARGUE_ESTUDIANTE]?.desde ?? null) },
+        { campo: 'cargueEstudiante.hasta', anterior: null, nuevo: this.f(c.ventanas[TipoVentana.CARGUE_ESTUDIANTE]?.hasta ?? null) },
+      ],
+    });
     return this.presentar(guardado, ahora);
   }
 
@@ -129,13 +171,26 @@ export class GestionarPeriodosUseCase {
     this.exigirGestor(actor);
     const periodo = await this.periodos.buscarPorCodigo(codigo);
     if (!periodo) throw new NotFoundException(`El periodo ${codigo} no existe`);
+    const antes = this.valoresAuditables(periodo);
     const cambios: string[] = [];
     try {
       for (const [tipo, ventana] of Object.entries(dto.ventanas ?? {}) as [TipoVentana, VentanaDto | null][]) {
         if (!Object.values(TipoVentana).includes(tipo)) throw new BadRequestException(`Ventana desconocida: ${tipo}`);
         const valor: Ventana | null = ventana ? { desde: dia(ventana.desde), hasta: dia(ventana.hasta) } : null;
-        periodo.fijarVentana(tipo, valor, ahora);
+        // La ventana de cargue del estudiante tiene su regla propia (dentro del periodo, sin borrarla).
+        if (tipo === TipoVentana.CARGUE_ESTUDIANTE) {
+          if (!valor) throw new BadRequestException('La ventana de cargue del estudiante no se borra: inhabilite el cargue');
+          periodo.fijarVentanaCargueEstudiante(valor, ahora);
+        } else {
+          periodo.fijarVentana(tipo, valor, ahora);
+        }
         cambios.push(`ventana:${tipo}`);
+      }
+      if (dto.ventanaCargueEstudiante) {
+        periodo.fijarVentanaCargueEstudiante(
+          { desde: dia(dto.ventanaCargueEstudiante.desde), hasta: dia(dto.ventanaCargueEstudiante.hasta) }, ahora,
+        );
+        cambios.push(`ventana:${TipoVentana.CARGUE_ESTUDIANTE}`);
       }
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -153,6 +208,10 @@ export class GestionarPeriodosUseCase {
       cambios.push('sincronizacion');
     }
     if (dto.activo !== undefined) { periodo.activar(dto.activo, ahora); cambios.push('activo'); }
+    if (dto.cargueEstudianteHabilitado !== undefined) {
+      periodo.habilitarCargueEstudiante(dto.cargueEstudianteHabilitado, ahora);
+      cambios.push('cargueEstudianteHabilitado');
+    }
     if (dto.jornadasInduccion !== undefined || dto.fechaCargueDocumentos !== undefined) {
       try {
         periodo.fijarCronograma({
@@ -169,8 +228,46 @@ export class GestionarPeriodosUseCase {
     const datos = periodo.instantanea();
     if (dto.nombre !== undefined) { datos.nombre = dto.nombre.trim(); datos.actualizadoEn = ahora; cambios.push('nombre'); }
     const guardado = await this.periodos.guardar(datos);
-    await this.registrar(actor, codigo, { cambios });
+    const despues = this.valoresAuditables(guardado);
+    const detalle = Object.keys(despues)
+      .filter((campo) => JSON.stringify(antes[campo]) !== JSON.stringify(despues[campo]))
+      .map((campo) => ({ campo, anterior: antes[campo], nuevo: despues[campo] }));
+    await this.registrar(actor, codigo, { cambios: detalle, solicitados: cambios });
     return this.presentar(guardado, ahora);
+  }
+
+  private f(x: Date | null): string | null {
+    return x ? x.toISOString().slice(0, 10) : null;
+  }
+
+  /** Campos cuyo cambio se audita con valor anterior y nuevo (sin payloads innecesarios). */
+  private valoresAuditables(p: PeriodoAcademico): Record<string, unknown> {
+    const d = p.instantanea();
+    const v = d.ventanas[TipoVentana.CARGUE_ESTUDIANTE];
+    const ventanas = Object.fromEntries(Object.entries(d.ventanas)
+      .filter(([t]) => t !== String(TipoVentana.CARGUE_ESTUDIANTE))
+      .map(([t, x]) => [t, x ? `${this.f(x.desde)}→${this.f(x.hasta)}` : null]));
+    return {
+      nombre: d.nombre,
+      activo: d.activo,
+      cargueEstudianteHabilitado: d.cargueEstudianteHabilitado,
+      'cargueEstudiante.desde': this.f(v?.desde ?? null),
+      'cargueEstudiante.hasta': this.f(v?.hasta ?? null),
+      fechaCargueDocumentos: this.f(d.fechaCargueDocumentos),
+      sincronizacionDocentes: d.sincronizacionDocentes,
+      modalidadesHabilitadas: d.modalidadesHabilitadas,
+      jornadasInduccion: d.jornadasInduccion.map((j) => this.f(j)),
+      ventanas,
+    };
+  }
+
+  private conVentanaValida(accion: () => void): void {
+    try {
+      accion();
+    } catch (error) {
+      if (error instanceof VentanaCargueInvalidaError) throw new BadRequestException(error.message);
+      throw error;
+    }
   }
 
   private presentar(p: PeriodoAcademico, ahora: Date): PeriodoRespuesta {
@@ -197,13 +294,19 @@ export class GestionarPeriodosUseCase {
       modalidadesHabilitadas: d.modalidadesHabilitadas,
       modalidadesOfertadas: d.modalidadesHabilitadas.length === 0
         ? MATRIZ_MODALIDADES.map((m) => m.modalidad) : d.modalidadesHabilitadas,
-      activo: d.activo, vigente: p.esVigenteOFuturo(ahora), actualizadoEn: d.actualizadoEn.toISOString(),
+      activo: d.activo, vigente: p.esVigenteOFuturo(ahora),
+      cargueEstudiante: {
+        habilitado: d.cargueEstudianteHabilitado,
+        estado: p.estadoCargueEstudiante(ahora),
+        desde: f(d.ventanas[TipoVentana.CARGUE_ESTUDIANTE]?.desde ?? null),
+        hasta: f(d.ventanas[TipoVentana.CARGUE_ESTUDIANTE]?.hasta ?? null),
+      },
+      actualizadoEn: d.actualizadoEn.toISOString(),
     };
   }
 
   private exigirGestor(actor: Actor): void {
-    if (actor.rol === Rol.ADMINISTRADOR) return;
-    if (actor.rol === Rol.COORDINADOR && actor.escuelas.length === 0) return;
+    if (puedeGestionarPeriodos(actor)) return;
     throw new ForbiddenException('La gestión de periodos corresponde a la coordinación del Área de Prácticas o a administración');
   }
 

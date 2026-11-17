@@ -7,8 +7,12 @@ import { ModalidadCatalogo, Periodo, TipoVentana } from '@core/models/modelos';
 import { CronogramaComponent } from '@shared/components/cronograma.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
+import {
+  CONFIRMAR_INHABILITAR, ROTULO_ESTADO_CARGUE, avisoFechaPasada, fechaCorta, problemaVentana, sugerenciaVentana, tonoEstadoCargue,
+} from '@shared/utils/cargue-estudiante';
 
-const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudiante', 'cargue_docente', 'carta_presentacion'];
+/** El cargue del ESTUDIANTE tiene su propia sección (G2): habilitación manual + ventana dentro del periodo. */
+const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_docente', 'carta_presentacion'];
 
 /** Gestión de periodos (SGP): ventanas, modalidades ofertadas y sincronización, periodo por periodo. */
 @Component({
@@ -52,6 +56,29 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
     .crono { display:grid; gap:var(--sp-3); grid-template-columns:1fr; } @media (width >= 900px) { .crono { grid-template-columns:minmax(0,1fr) 300px; align-items:start; } }
     .crono input { font:inherit; font-size:var(--fs-xs); border:1px solid var(--borde-campo); border-radius:var(--r-sm); padding:4px 6px; background:var(--superficie); color:inherit; min-height:32px; }
     .crono .campo { margin:0; }
+    /* G2 · resumen compacto y control del cargue del estudiante (hairlines, sin tarjetas grandes). */
+    .resumen { display:grid; gap:var(--sp-1) var(--sp-4); grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); margin:0; padding:var(--sp-2) 0; border-top:1px solid var(--borde); border-bottom:1px solid var(--borde); }
+    .resumen div { display:grid; gap:2px; } .resumen dt { font-size:var(--fs-xs); color:var(--texto-tenue); } .resumen dd { margin:0; font-weight:600; font-size:var(--fs-sm); font-variant-numeric:tabular-nums; }
+    .senal-cargue { display:inline-flex; align-items:center; gap:6px; }
+    .senal-cargue i { width:8px; height:8px; border-radius:50%; background:var(--texto-tenue); flex:none; }
+    .senal-cargue[data-tono="ok"] i { background:var(--ok); }
+    .senal-cargue[data-tono="pendiente"] i { background:var(--aviso); }
+    .senal-cargue[data-tono="pausa"] i { background:transparent; border:2px solid var(--aviso); }
+    .cargue { display:grid; gap:var(--sp-2); padding:var(--sp-3) 0 var(--sp-1); border-bottom:1px solid var(--borde); }
+    .cargue h3 { margin:0; font-size:var(--fs-sm); text-transform:uppercase; letter-spacing:.06em; color:var(--texto-tenue); }
+    .cargue .fila { display:flex; flex-wrap:wrap; gap:var(--sp-2) var(--sp-4); align-items:end; }
+    .cargue .campo { margin:0; min-width:min(100%,160px); }
+    .cargue input[type="date"] { font:inherit; font-size:var(--fs-sm); border:1px solid var(--borde-campo); border-radius:var(--r-sm); padding:6px 8px; background:var(--superficie); color:inherit; min-height:40px; }
+    .interruptor { display:inline-flex; align-items:center; gap:var(--sp-2); min-height:44px; font-weight:600; font-size:var(--fs-sm); cursor:pointer; }
+    .interruptor input { appearance:none; -webkit-appearance:none; width:40px; height:22px; border-radius:11px; background:var(--borde-campo); position:relative; margin:0; cursor:pointer; transition:background .15s; flex:none; }
+    .interruptor input::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:var(--superficie); transition:transform .15s; }
+    .interruptor input:checked { background:var(--marca); } .interruptor input:checked::after { transform:translateX(18px); }
+    .interruptor input:focus-visible { outline:2px solid var(--marca); outline-offset:2px; }
+    .interruptor .estado { font-weight:400; color:var(--texto-tenue); }
+    @media (prefers-reduced-motion: reduce) { .interruptor input, .interruptor input::after { transition:none; } }
+    .nota { font-size:var(--fs-xs); margin:0; } .nota--aviso { color:var(--texto); } .nota--error { color:var(--peligro); }
+    fieldset.cargue-nuevo { border:0; border-top:1px solid var(--borde); margin:var(--sp-3) 0; padding:var(--sp-3) 0 0; display:grid; gap:var(--sp-2); }
+    fieldset.cargue-nuevo legend { font-size:var(--fs-sm); text-transform:uppercase; letter-spacing:.06em; color:var(--texto-tenue); padding:0; }
   `],
   template: `
     <details class="intro">
@@ -60,7 +87,9 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
       Habilite o deshabilite por periodo el registro FUR, el cargue de documentos del estudiante y del docente (casos especiales),
       la solicitud de ARL, la carta de presentación, la sincronización de docentes con SINU y las modalidades ofertadas. Hay tres calendarios:
       presencial (2026A–D), virtual (26V01–06) y 335 (26P01–06). Al crear un periodo, el cronograma se arma con la regla del Área de Prácticas:
-      dos meses desde el inicio para registrar y solicitar la ARL, inducción en la segunda semana y cargue de documentos dos semanas antes del cierre.
+      dos meses desde el inicio para registrar y solicitar la ARL e inducción en la segunda semana. El cargue de documentos del estudiante
+      tiene su propia sección: se habilita o inhabilita sin perder las fechas, y solo carga dentro de «desde» y «hasta».
+      Solo administración y dirección gestionan los periodos.
     </p>
     </details>
 
@@ -70,12 +99,20 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
         <div class="campo"><label for="n-cod">Código</label><input id="n-cod" [(ngModel)]="n.codigo" placeholder="2027A o 27V01" /></div>
         <div class="campo"><label for="n-nom">Nombre</label><input id="n-nom" [(ngModel)]="n.nombre" /></div>
         <div class="campo"><label for="n-cal">Calendario</label><select id="n-cal" [(ngModel)]="n.calendario"><option value="presencial">Presencial</option><option value="virtual">Virtual</option><option value="335">335</option></select></div>
-        <div class="campo"><label for="n-ini">Inicio</label><input id="n-ini" type="date" [(ngModel)]="n.fechaInicio" /></div>
-        <div class="campo"><label for="n-fin">Fin</label><input id="n-fin" type="date" [(ngModel)]="n.fechaFin" /></div>
+        <div class="campo"><label for="n-ini">Fecha de inicio</label><input id="n-ini" type="date" [(ngModel)]="n.fechaInicio" (ngModelChange)="sugerir()" /></div>
+        <div class="campo"><label for="n-fin">Fecha de finalización</label><input id="n-fin" type="date" [(ngModel)]="n.fechaFin" (ngModelChange)="sugerir()" /></div>
         <div class="campo"><label for="n-fur">Límite de registro y ARL</label><input id="n-fur" type="date" [(ngModel)]="n.cierreFur" /><span class="pista">Vacío: dos meses después del inicio.</span></div>
-        <div class="campo"><label for="n-car">Fecha de cargue de documentos</label><input id="n-car" type="date" [(ngModel)]="n.fechaCargueDocumentos" /><span class="pista">Vacío: dos semanas antes del cierre.</span></div>
       </div>
-      <button type="button" class="boton boton--primario" [class.cargando]="guardando()" [disabled]="guardando()" (click)="crear()">Crear con las ventanas habituales</button>
+      <fieldset class="cargue-nuevo">
+        <legend>Cargue de documentos del estudiante</legend>
+        <label class="interruptor"><input type="checkbox" role="switch" [(ngModel)]="n.cargueHabilitado" [attr.aria-checked]="n.cargueHabilitado" /> Habilitado</label>
+        <div class="rej">
+          <div class="campo"><label for="n-cd">Desde</label><input id="n-cd" type="date" [(ngModel)]="n.cargueDesde" (ngModelChange)="n.cargueTocado = true" /></div>
+          <div class="campo"><label for="n-ch">Hasta</label><input id="n-ch" type="date" [(ngModel)]="n.cargueHasta" (ngModelChange)="n.cargueTocado = true" /></div>
+        </div>
+        <p class="pista nota">Sugerencia: desde el inicio del periodo hasta dos semanas antes del cierre. Revísela y cámbiela antes de crear.</p>
+      </fieldset>
+      <button type="button" class="boton boton--primario" [class.cargando]="guardando()" [disabled]="guardando()" (click)="crear()">Crear periodo</button>
     </details>
 
     <div class="maestro-detalle">
@@ -92,10 +129,37 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
       @if (actual(); as p) {
         <section class="tarjeta periodo" [attr.aria-label]="'Periodo ' + p.codigo">
           <header>
-            <h2>{{ p.codigo }} <span class="pista">· {{ p.nombre }} · {{ p.calendario | etiqueta }} · {{ p.fechaInicio }} a {{ p.fechaFin }}</span></h2>
+            <h2>{{ p.codigo }} <span class="pista">· {{ p.nombre }}</span></h2>
             <label class="marca"><input type="checkbox" [checked]="p.sincronizacionDocentes" (change)="guardar(p, { sincronizacionDocentes: !p.sincronizacionDocentes })" /> Sincronización de docentes</label>
-            <label class="marca"><input type="checkbox" [checked]="p.activo" (change)="guardar(p, { activo: !p.activo })" /> Activo</label>
+            <label class="marca"><input type="checkbox" [checked]="p.activo" (change)="guardar(p, { activo: !p.activo })" /> Periodo activo</label>
           </header>
+
+          <dl class="resumen" aria-label="Resumen del periodo">
+            <div><dt>Calendario</dt><dd>{{ p.calendario | etiqueta }}</dd></div>
+            <div><dt>Fechas</dt><dd>{{ corta(p.fechaInicio) }} — {{ corta(p.fechaFin, true) }}</dd></div>
+            <div><dt>Estado del periodo</dt><dd>{{ p.activo ? 'Activo' : 'Inactivo' }}</dd></div>
+            <div><dt>Cargue estudiante</dt><dd><span class="senal-cargue" [attr.data-tono]="tono(p)"><i aria-hidden="true"></i>{{ rotulo(p) }}</span></dd></div>
+            <div><dt>Ventana</dt><dd>{{ corta(p.cargueEstudiante.desde) }} → {{ corta(p.cargueEstudiante.hasta) }}</dd></div>
+          </dl>
+
+          <section class="cargue" aria-labelledby="cargue-titulo">
+            <h3 id="cargue-titulo">Cargue de documentos del estudiante</h3>
+            <label class="interruptor">
+              <input type="checkbox" role="switch" [checked]="p.cargueEstudiante.habilitado" [attr.aria-checked]="p.cargueEstudiante.habilitado"
+                     [disabled]="guardando()" (change)="alternarCargue(p, $event)" aria-describedby="cargue-ayuda" />
+              Cargue de estudiantes <span class="estado">{{ p.cargueEstudiante.habilitado ? 'Habilitado' : 'Inhabilitado' }}</span>
+            </label>
+            <p id="cargue-ayuda" class="pista nota">Inhabilitarlo no borra las fechas: al volver a habilitarlo se conservan «desde» y «hasta».</p>
+            <div class="fila">
+              <div class="campo"><label [for]="'cd-' + p.codigo">Desde</label><input [id]="'cd-' + p.codigo" type="date" [value]="valorVentana(p, 'desde')" (change)="fechaCargue(p, 'desde', $event)" [attr.aria-describedby]="'cargue-aviso-' + p.codigo" /></div>
+              <div class="campo"><label [for]="'ch-' + p.codigo">Hasta</label><input [id]="'ch-' + p.codigo" type="date" [value]="valorVentana(p, 'hasta')" (change)="fechaCargue(p, 'hasta', $event)" [attr.aria-describedby]="'cargue-aviso-' + p.codigo" /></div>
+              <button type="button" class="boton compacto" [disabled]="guardando() || !!problema(p)" (click)="guardarVentanaCargue(p)">Guardar ventana de cargue</button>
+            </div>
+            <div [id]="'cargue-aviso-' + p.codigo" aria-live="polite">
+              @if (problema(p); as x) { <p class="nota nota--error">{{ x }}</p> }
+              @else if (avisoPasada(p); as x) { <p class="nota nota--aviso">⚠ {{ x }}</p> }
+            </div>
+          </section>
 
           <div role="tablist" class="pestanas" aria-label="Qué configurar de este periodo">
             @for (t of pestanas; track t.clave) {
@@ -124,7 +188,7 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_estudi
               <div class="rej">
                 <div class="campo"><label [for]="'j1-' + p.codigo">Jornada de inducción 1</label><input [id]="'j1-' + p.codigo" type="date" [value]="jornada(p, 0)" (change)="campoCrono(p, 'j1', $event)" /></div>
                 <div class="campo"><label [for]="'j2-' + p.codigo">Jornada de inducción 2</label><input [id]="'j2-' + p.codigo" type="date" [value]="jornada(p, 1)" (change)="campoCrono(p, 'j2', $event)" /></div>
-                <div class="campo"><label [for]="'fc-' + p.codigo">Fecha de cargue de documentos</label><input [id]="'fc-' + p.codigo" type="date" [value]="p.cronograma.fechaCargueDocumentos ?? ''" (change)="campoCrono(p, 'cargue', $event)" /></div>
+                <div class="campo"><span class="pista">Fecha de cargue de documentos: {{ p.cronograma.fechaCargueDocumentos ?? '—' }} (la fija «hasta» del cargue del estudiante)</span></div>
                 <div class="acciones" style="align-self:end"><button type="button" class="boton compacto" [disabled]="guardando()" (click)="aplicarCronograma(p)">Aplicar cronograma</button></div>
               </div>
               <sipra-cronograma [periodo]="p" />
@@ -173,7 +237,13 @@ export class PeriodosComponent implements OnInit {
   readonly modalidades = signal<ModalidadCatalogo[]>([]);
   readonly guardando = signal(false);
   readonly ventanas = VENTANAS;
-  readonly n = { codigo: '', nombre: '', calendario: 'presencial', fechaInicio: '', fechaFin: '', cierreFur: '', fechaCargueDocumentos: '' };
+  readonly n = {
+    codigo: '', nombre: '', calendario: 'presencial', fechaInicio: '', fechaFin: '', cierreFur: '',
+    cargueHabilitado: true, cargueDesde: '', cargueHasta: '', cargueTocado: false,
+  };
+  /** Borrador de la ventana de cargue del periodo elegido (señal: los avisos previos se recalculan al escribir). */
+  readonly borradorCargue = signal<{ codigo: string; desde?: string; hasta?: string } | null>(null);
+  readonly corta = fechaCorta;
   private readonly borrador = new Map<string, { desde?: string; hasta?: string }>();
   private readonly borradorCrono = new Map<string, { j1?: string; j2?: string; cargue?: string }>();
 
@@ -212,8 +282,7 @@ export class PeriodosComponent implements OnInit {
     const b = this.borradorCrono.get(p.codigo) ?? {};
     const j1 = b.j1 ?? p.cronograma.jornadasInduccion[0] ?? '';
     const j2 = b.j2 ?? p.cronograma.jornadasInduccion[1] ?? '';
-    const cargue = b.cargue ?? p.cronograma.fechaCargueDocumentos ?? '';
-    await this.guardar(p, { jornadasInduccion: [j1, j2].filter(Boolean), fechaCargueDocumentos: cargue || null });
+    await this.guardar(p, { jornadasInduccion: [j1, j2].filter(Boolean) });
     this.borradorCrono.delete(p.codigo);
   }
 
@@ -232,10 +301,59 @@ export class PeriodosComponent implements OnInit {
     finally { this.guardando.set(false); }
   }
 
+  /** Propone la ventana de cargue al escribir las fechas del periodo; si el usuario ya la tocó, no la pisa. */
+  sugerir(): void {
+    if (this.n.cargueTocado) return;
+    const s = sugerenciaVentana(this.n.fechaInicio, this.n.fechaFin);
+    if (s) { this.n.cargueDesde = s.desde; this.n.cargueHasta = s.hasta; }
+  }
+
+  rotulo(p: Periodo): string { return ROTULO_ESTADO_CARGUE[p.cargueEstudiante.estado]; }
+  tono(p: Periodo): string { return tonoEstadoCargue(p.cargueEstudiante.estado); }
+
+  valorVentana(p: Periodo, campo: 'desde' | 'hasta'): string {
+    const b = this.borradorCargue();
+    return (b?.codigo === p.codigo ? b[campo] : undefined) ?? p.cargueEstudiante[campo] ?? '';
+  }
+
+  fechaCargue(p: Periodo, campo: 'desde' | 'hasta', evento: Event): void {
+    const valor = (evento.target as HTMLInputElement).value;
+    const b = this.borradorCargue();
+    this.borradorCargue.set({ ...(b?.codigo === p.codigo ? b : { codigo: p.codigo }), [campo]: valor });
+  }
+
+  problema(p: Periodo): string | null {
+    return problemaVentana(this.valorVentana(p, 'desde'), this.valorVentana(p, 'hasta'), p.fechaInicio, p.fechaFin);
+  }
+
+  avisoPasada(p: Periodo): string | null {
+    return this.borradorCargue()?.codigo === p.codigo ? avisoFechaPasada(this.valorVentana(p, 'hasta')) : null;
+  }
+
+  async guardarVentanaCargue(p: Periodo): Promise<void> {
+    const aviso = avisoFechaPasada(this.valorVentana(p, 'hasta'));
+    if (aviso && !confirm(aviso)) return;
+    await this.guardar(p, { ventanaCargueEstudiante: { desde: this.valorVentana(p, 'desde'), hasta: this.valorVentana(p, 'hasta') } });
+    this.borradorCargue.set(null);
+  }
+
+  async alternarCargue(p: Periodo, evento: Event): Promise<void> {
+    const entrada = evento.target as HTMLInputElement;
+    const habilitar = entrada.checked;
+    if (!habilitar && !confirm(CONFIRMAR_INHABILITAR)) { entrada.checked = true; return; }
+    await this.guardar(p, { cargueEstudianteHabilitado: habilitar });
+  }
+
   async crear(): Promise<void> {
+    const problema = problemaVentana(this.n.cargueDesde, this.n.cargueHasta, this.n.fechaInicio, this.n.fechaFin);
+    if (problema) { this.avisos.error(problema); return; }
     this.guardando.set(true);
     try {
-      const p = await firstValueFrom(this.api.crearPeriodo({ ...this.n, cierreFur: this.n.cierreFur || undefined, fechaCargueDocumentos: this.n.fechaCargueDocumentos || undefined }));
+      const { codigo, nombre, calendario, fechaInicio, fechaFin, cierreFur, cargueHabilitado, cargueDesde, cargueHasta } = this.n;
+      const p = await firstValueFrom(this.api.crearPeriodo({
+        codigo, nombre, calendario, fechaInicio, fechaFin, cierreFur: cierreFur || undefined,
+        cargueEstudiante: { habilitado: cargueHabilitado, desde: cargueDesde, hasta: cargueHasta },
+      }));
       await this.cargar(); this.avisos.exito(`Periodo ${p.codigo} creado.`); }
     catch (error) { this.avisos.error(leerError(error)); }
     finally { this.guardando.set(false); }

@@ -15,7 +15,7 @@ const TIPOS_BITACORA: readonly TipoReporteBitacora[] = ['seguimiento', 'evalua_t
 @ApiTags('Reportes SGP')
 @ApiBearerAuth()
 @Controller('reportes/sgp')
-@Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.AUXILIAR, Rol.TUTOR)
+@Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.TUTOR)
 export class ReportesSgpController {
   constructor(private readonly reportes: ReportesSgpUseCase) {}
 

@@ -22,7 +22,7 @@ export class SolicitudesArlController {
   constructor(private readonly solicitudes: SolicitudArlUseCase) {}
 
   @Post()
-  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR)
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR, Rol.AUXILIAR)
   @ApiOperation({
     summary: 'Radicar la solicitud de afiliación a ARL (prácticas articuladas)',
     description:
@@ -35,7 +35,7 @@ export class SolicitudesArlController {
   }
 
   @Get()
-  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Bandeja de solicitudes (el estudiante ve las suyas)' })
   @ApiQuery({ name: 'estado', required: false, enum: EstadoSolicitudArl })
   @ApiQuery({ name: 'periodo', required: false })
@@ -49,7 +49,7 @@ export class SolicitudesArlController {
   }
 
   @Get('consolidado')
-  @Roles(Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Consolidado diario: aprobadas para Capital Social, rechazadas y certificados' })
   @ApiQuery({ name: 'fecha', required: false, description: 'AAAA-MM-DD; por defecto hoy' })
   consolidado(@ActorActual() actor: Actor, @Query('fecha') fecha?: string): Promise<ConsolidadoArl> {
@@ -59,14 +59,14 @@ export class SolicitudesArlController {
   }
 
   @Get(':id')
-  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.ESTUDIANTE, Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiResponse({ status: 200, type: SolicitudArlRespuestaDto })
   obtener(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<SolicitudArlRespuestaDto> {
     return this.solicitudes.obtener(id, actor);
   }
 
   @Patch(':id/decision')
-  @Roles(Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiOperation({ summary: 'Aprobar o rechazar la solicitud (con motivos del catálogo)' })
   decidir(
     @Param('id', ParseUUIDPipe) id: string, @Body() dto: DecidirSolicitudArlDto, @ActorActual() actor: Actor,
@@ -75,7 +75,7 @@ export class SolicitudesArlController {
   }
 
   @Post(':id/certificado')
-  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ADMINISTRADOR)
+  @Roles(Rol.AUXILIAR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Remitir el certificado de ARL',
@@ -110,7 +110,7 @@ export class SolicitudesArlController {
   }
 
   @Patch(':id/anular')
-  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR)
+  @Roles(Rol.ESTUDIANTE, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR, Rol.AUXILIAR)
   @ApiOperation({ summary: 'Anular una solicitud radicada y sin decisión' })
   anular(@Param('id', ParseUUIDPipe) id: string, @ActorActual() actor: Actor): Promise<SolicitudArlRespuestaDto> {
     return this.solicitudes.anular(id, actor);

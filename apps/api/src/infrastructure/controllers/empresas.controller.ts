@@ -62,7 +62,7 @@ export class EmpresasController {
 
   @ApiBearerAuth()
   @Get()
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION, Rol.EMPRESA)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EXTENSION, Rol.EMPRESA)
   @ApiOperation({
     summary: 'Bandeja de empresas con semáforo de pre-verificación',
     description:
@@ -81,7 +81,7 @@ export class EmpresasController {
 
   @ApiBearerAuth()
   @Get(':id')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.EXTENSION, Rol.EMPRESA)
+  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EXTENSION, Rol.EMPRESA)
   @ApiOperation({ summary: 'Detalle de una empresa' })
   obtener(
     @Param('id', ParseUUIDPipe) id: string,

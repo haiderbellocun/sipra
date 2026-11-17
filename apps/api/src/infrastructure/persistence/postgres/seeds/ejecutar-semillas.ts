@@ -34,6 +34,8 @@ const IDS = {
   auxiliar: '00000000-0000-4000-8000-000000000005',
   coordinacionArea: '00000000-0000-4000-8000-000000000006',
   coordinacionPracticas: '00000000-0000-4000-8000-000000000007',
+  director: '00000000-0000-4000-8000-000000000008',
+  analista: '00000000-0000-4000-8000-000000000009',
   estudiante1: '00000000-0000-4000-8000-000000000011',
   estudiante2: '00000000-0000-4000-8000-000000000012',
   estudiante3: '00000000-0000-4000-8000-000000000013',
@@ -46,13 +48,6 @@ const IDS = {
   practica3: '00000000-0000-4000-8000-000000000043',
   vacante1: '00000000-0000-4000-8000-000000000051',
 } as const;
-
-function fecha(diasDesdeHoy: number): Date {
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  d.setUTCDate(d.getUTCDate() + diasDesdeHoy);
-  return d;
-}
 
 async function sembrarCatalogos(ds: DataSource): Promise<void> {
   for (const c of CNO) {
@@ -201,6 +196,19 @@ async function sembrarUsuarios(ds: DataSource): Promise<void> {
       permiso: 'consulta',
     },
     {
+      // Director (G1): gobierno operativo, alcance institucional. Sintético.
+      id: IDS.director, correo: 'direccion.practicas@cun.edu.co', nombre: 'Mauricio Andrés Lozano Rincón',
+      documento: '79887766', rol: Rol.DIRECTOR, escuelas: [], empresaId: null, programaId: null,
+      permiso: 'escritura',
+    },
+    {
+      // Analista de prácticas (G1), perfil propio; restringido a una escuela para
+      // mostrar el mismo mecanismo de alcance que la coordinación. Sintético.
+      id: IDS.analista, correo: 'analista.ingenierias@cun.edu.co', nombre: 'Paola Andrea Cárdenas Vela',
+      documento: '52776655', rol: Rol.ANALISTA, escuelas: ['ESC-ING'], empresaId: null, programaId: null,
+      permiso: 'escritura',
+    },
+    {
       id: IDS.estudiante1, correo: 'laura.ramirez@estudiante.cun.edu.co', nombre: 'Laura Sofía Ramírez Ortiz',
       documento: '1032456786', rol: Rol.ESTUDIANTE, escuelas: ['ESC-NEG'], empresaId: null, programaId: 'ADM-PRO',
     },
@@ -273,7 +281,13 @@ async function sembrarPeriodos(ds: DataSource): Promise<void> {
   console.log(`  · ${periodos.length} periodos académicos en tres calendarios, con su cronograma`);
 }
 
+/**
+ * Las prácticas sintéticas usan fechas FIJAS dentro de un periodo sembrado (antes: relativas a hoy y con el
+ * periodo inexistente «2026-2», que con G2 dejaba a los estudiantes sin cargue por falla cerrada). Así la
+ * semilla es reproducible y no depende de que hoy caiga dentro de 2026.
+ */
 async function sembrarPracticas(ds: DataSource): Promise<void> {
+  const dia = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
   const practicas = [
     {
       // Caso 1: activa con ARL correcta, afiliación anterior al inicio.
@@ -281,7 +295,7 @@ async function sembrarPracticas(ds: DataSource): Promise<void> {
       ciclo: CicloAcademico.PROFESIONAL, modalidad: ModalidadPractica.PASANTIA,
       estado: EstadoPractica.ACTIVA, tutorId: IDS.tutor, empresaId: IDS.empresaHabilitada,
       cargo: 'Auxiliar de operaciones logísticas', jefe: 'Camila Restrepo Duarte',
-      inicio: fecha(-40), fin: fecha(50), arlVerificada: true, arlFecha: fecha(-45),
+      periodo: '2026C', inicio: dia('2026-08-18'), fin: dia('2026-11-27'), arlVerificada: true, arlFecha: dia('2026-08-14'),
     },
     {
       // Caso 2: detenida en validación por la compuerta ARL — sin afiliación.
@@ -289,28 +303,41 @@ async function sembrarPracticas(ds: DataSource): Promise<void> {
       ciclo: CicloAcademico.TECNOLOGO, modalidad: ModalidadPractica.PASANTIA,
       estado: EstadoPractica.EN_VALIDACION, tutorId: null, empresaId: IDS.empresaHabilitada,
       cargo: 'Practicante de desarrollo', jefe: 'Camila Restrepo Duarte',
-      inicio: fecha(6), fin: fecha(96), arlVerificada: false, arlFecha: null,
+      periodo: '2026D', inicio: dia('2026-11-23'), fin: dia('2027-02-19'), arlVerificada: false, arlFecha: null,
     },
     {
       // Caso 3: recién inscrita, sin empresa asignada.
       id: IDS.practica3, estudianteId: IDS.estudiante3, programaId: 'COM-TEC', escuelaId: 'ESC-COM',
       ciclo: CicloAcademico.TECNICO, modalidad: ModalidadPractica.SOCIAL,
       estado: EstadoPractica.INSCRITA, tutorId: IDS.tutor, empresaId: null,
-      cargo: null, jefe: null, inicio: fecha(20), fin: fecha(110),
+      cargo: null, jefe: null, periodo: '2026D', inicio: dia('2026-12-07'), fin: dia('2027-02-26'),
       arlVerificada: false, arlFecha: null,
     },
   ];
+
+  // Integridad: toda práctica sintética apunta a un periodo sembrado y cae dentro de sus fechas.
+  const filas: { codigo: string; inicio: string; fin: string }[] =
+    await ds.query('SELECT codigo, fecha_inicio::text AS inicio, fecha_fin::text AS fin FROM periodos_academicos');
+  const periodos = new Map(filas.map((p) => [p.codigo, p]));
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  for (const p of practicas) {
+    const periodo = periodos.get(p.periodo);
+    if (!periodo) throw new Error(`Semilla inválida: la práctica ${p.id} referencia el periodo inexistente «${p.periodo}»`);
+    if (iso(p.inicio) < periodo.inicio || iso(p.fin) > periodo.fin) {
+      throw new Error(`Semilla inválida: la práctica ${p.id} (${iso(p.inicio)} → ${iso(p.fin)}) no cae dentro del periodo ${p.periodo} (${periodo.inicio} → ${periodo.fin})`);
+    }
+  }
 
   for (const p of practicas) {
     await ds.query(
       `INSERT INTO practicas (id, estudiante_id, programa_id, escuela_id, ciclo, periodo_academico,
         modalidad, estado, tutor_id, empresa_id, cargo, jefe_inmediato_nombre, fecha_inicio,
         fecha_fin, arl_verificada, arl_fecha_afiliacion, ultima_actividad)
-       VALUES ($1,$2,$3,$4,$5,'2026-2',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now())
+       VALUES ($1,$2,$3,$4,$5,$16,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now())
        ON CONFLICT (id) DO NOTHING`,
       [
         p.id, p.estudianteId, p.programaId, p.escuelaId, p.ciclo, p.modalidad, p.estado,
-        p.tutorId, p.empresaId, p.cargo, p.jefe, p.inicio, p.fin, p.arlVerificada, p.arlFecha,
+        p.tutorId, p.empresaId, p.cargo, p.jefe, p.inicio, p.fin, p.arlVerificada, p.arlFecha, p.periodo,
       ],
     );
 

@@ -322,6 +322,8 @@ export class IngresoComponent implements OnInit {
     estudiante: 'Estudiante',
     tutor: 'Docente facilitador',
     coordinador: 'Coordinación de prácticas',
+    analista: 'Analista de prácticas',
+    director: 'Director',
     administrador: 'Administrador institucional',
     empresa: 'Empresa habilitada',
     extension: 'Dirección de Extensión',

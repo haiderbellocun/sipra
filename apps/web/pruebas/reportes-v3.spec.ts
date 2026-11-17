@@ -412,12 +412,12 @@ describe('Reportes V3 · plantillas', () => {
   it('pestañas ARIA; extensión solo exporta; la UI de exportaciones respeta los @Roles reales del servidor', () => {
     assert.deepEqual(PESTANAS.map((p) => p.texto), ['General', 'Estudiantes', 'Organizaciones', 'Documentos', 'Períodos', 'Exportaciones']);
     assert.match(plantilla('reportes.component.ts'), /@case \('organizaciones'\) \{ <sipra-reportes-organizaciones \/> \}/);
-    assert.deepEqual(ROLES_ANALITICA, ['administrador', 'coordinador', 'auxiliar', 'tutor']);
+    assert.deepEqual(ROLES_ANALITICA, ['administrador', 'director', 'coordinador', 'analista', 'auxiliar', 'tutor']);
     assert.ok(!ROLES_SGP.includes('extension'), 'extensión no genera bases del SGP');
     assert.deepEqual(ROLES_SPE, ['administrador', 'extension']);
-    assert.deepEqual(ROLES_CATALOGOS, ['administrador', 'extension', 'coordinador']);
+    assert.deepEqual(ROLES_CATALOGOS, ['administrador', 'extension', 'coordinador', 'analista', 'director']);
     const api = readFileSync(join(process.cwd(), '..', 'api', 'src', 'infrastructure', 'controllers', 'reportes-sgp.controller.ts'), 'utf8');
-    assert.match(api, /@Roles\(Rol\.ADMINISTRADOR, Rol\.COORDINADOR, Rol\.AUXILIAR, Rol\.TUTOR\)/);
+    assert.match(api, /@Roles\(Rol\.ADMINISTRADOR, Rol\.DIRECTOR, Rol\.COORDINADOR, Rol\.ANALISTA, Rol\.AUXILIAR, Rol\.TUTOR\)/);
     const t = plantilla('reportes-exportaciones.component.ts');
     assert.match(t, /@if \(puedeSgp\(\)\) \{\s*<h2 class="seccion">Bases del SGP en Excel/);
     assert.match(t, /@if \(generaSpe\(\)\) \{/);

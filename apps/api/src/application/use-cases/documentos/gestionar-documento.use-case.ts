@@ -40,6 +40,8 @@ import {
 } from '../../dtos/documento.dto';
 import { Actor } from '../practicas/gestionar-practica.use-case';
 import { Practica } from '../../../domain/entities/practica.entity';
+import { ConocimientoDocumentalDomainService } from '../../../domain/services/conocimiento-documental.domain-service';
+import { CargueEstudianteService } from './cargue-estudiante.service';
 import { PipelineValidacionUseCase } from './pipeline-validacion.use-case';
 import { BitacoraUseCase } from '../practicas/bitacora.use-case';
 import { ParametrosUseCase } from '../administracion/parametros.use-case';
@@ -53,7 +55,6 @@ import { ValidacionEpsUseCase } from './validacion-eps.use-case';
 import {
   puedeDecidirDocumento, puedeVerLecturaInterna,
 } from '../../../domain/value-objects/acceso-eps.vo';
-import { TipoVentana } from '../../../domain/entities/periodo.entity';
 
 /** Minimización: la imagen del documento de identidad se purga a los 30 días. */
 const DIAS_PURGA: Partial<Record<TipoDocumento, number>> = {
@@ -91,7 +92,27 @@ export class GestionarDocumentoUseCase {
     @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
     @Optional() @Inject(DECISION_ACTA) private readonly decisionActa?: DecisionActaPort,
     @Optional() @Inject(DECISION_RUT) private readonly decisionRut?: DecisionRutPort,
+    @Optional() private readonly cargueEstudianteInyectado?: CargueEstudianteService,
   ) {}
+
+  /** Sin el servicio inyectado (pruebas que construyen el caso a mano) se arma con los mismos puertos, sin bitácora. */
+  private get cargueEstudiante(): CargueEstudianteService {
+    return this.cargueEstudianteInyectado ?? new CargueEstudianteService(this.periodos, this.documentos, this.parametros, null);
+  }
+
+  /**
+   * Prevalidación ANTES de recibir el archivo (G2): perfil que carga, práctica existente y visible y,
+   * para el estudiante, que haya algo que pueda cargar (ventana abierta o una subsanación vigente).
+   * El controlador la llama antes de leer el multipart, para no recibir megas que se van a rechazar.
+   */
+  async prevalidarCargue(practicaId: string, actor: Actor): Promise<void> {
+    const practica = await this.exigirPracticaParaCargar(practicaId, actor);
+    if (actor.rol !== Rol.ESTUDIANTE) return;
+    const contexto = await this.cargueEstudiante.contexto(practica);
+    if (!this.cargueEstudiante.hayAlgoQueCargar(contexto)) {
+      throw new ForbiddenException(this.cargueEstudiante.mensaje(contexto));
+    }
+  }
 
   async cargar(
     practicaId: string,
@@ -101,18 +122,7 @@ export class GestionarDocumentoUseCase {
     tamanoMaximoBytes: number,
     actor: Actor,
   ): Promise<DocumentoRespuestaDto> {
-    if (!puedeCargarDocumentos(actor.rol)) {
-      throw new ForbiddenException('Su perfil no carga documentos en la práctica');
-    }
-    const practica = await this.practicas.buscarPorId(practicaId);
-    if (!practica) throw new NotFoundException('Expediente no encontrado');
-    if (
-      !practica.visiblePara({
-        id: actor.id, rol: actor.rol, escuelas: actor.escuelas, empresaId: actor.empresaId,
-      })
-    ) {
-      throw new NotFoundException('Expediente no encontrado');
-    }
+    const practica = await this.exigirPracticaParaCargar(practicaId, actor);
 
     // Sin efecto mientras CONSENTIMIENTO_BLOQUEA_CARGUE sea false (valor de fábrica).
     await this.consentimientos.exigirParaCargar(practica.estudianteId, practica.id);
@@ -122,7 +132,7 @@ export class GestionarDocumentoUseCase {
         `El archivo supera el máximo de ${Math.round(tamanoMaximoBytes / 1_048_576)} MB`,
       );
     }
-    if (actor.rol === Rol.ESTUDIANTE) await this.exigirPlazoDeCargue(practica);
+    if (actor.rol === Rol.ESTUDIANTE) await this.exigirCargueEstudiante(practica, tipo);
 
     // Verificación del tipo REAL por firma binaria: renombrar la extensión no sirve.
     const mimeReal = this.forense.detectarMimeReal(archivo.contenido);
@@ -312,7 +322,7 @@ export class GestionarDocumentoUseCase {
   ): Promise<DocumentoRespuestaDto> {
     // Docente, coordinación y administración deciden cualquier documento de su alcance; el
     // auxiliar entra aquí solo para el certificado de EPS (se comprueba más abajo).
-    if (![Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR, Rol.AUXILIAR].includes(actor.rol)) {
+    if (![Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR, Rol.AUXILIAR].includes(actor.rol)) {
       throw new ForbiddenException('Su perfil no puede decidir sobre documentos');
     }
     const documento = await this.exigirVisible(documentoId, actor);
@@ -358,7 +368,7 @@ export class GestionarDocumentoUseCase {
     // valoración académica y solo lo aprueba el tutor.
     if (
       documento.tipo === TipoDocumento.PLAN_MEJORAMIENTO &&
-      ![Rol.TUTOR, Rol.COORDINADOR].includes(actor.rol)
+      ![Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA].includes(actor.rol)
     ) {
       throw new ForbiddenException(
         'El plan de mejoramiento solo lo aprueba el tutor académico o el coordinador',
@@ -454,31 +464,38 @@ export class GestionarDocumentoUseCase {
 
   // ── internos ─────────────────────────────────────────────────────────────
 
+  private async exigirPracticaParaCargar(practicaId: string, actor: Actor): Promise<Practica> {
+    if (!puedeCargarDocumentos(actor.rol)) {
+      throw new ForbiddenException('Su perfil no carga documentos en la práctica');
+    }
+    const practica = await this.practicas.buscarPorId(practicaId);
+    if (!practica) throw new NotFoundException('Expediente no encontrado');
+    if (
+      !practica.visiblePara({
+        id: actor.id, rol: actor.rol, escuelas: actor.escuelas, empresaId: actor.empresaId,
+      })
+    ) {
+      throw new NotFoundException('Expediente no encontrado');
+    }
+    return practica;
+  }
+
   /**
-   * Plazo de cargue del estudiante (PQRS n.º 20 y cronograma): hasta la fecha
-   * de cargue de documentos del periodo o hasta ocho días calendario después
-   * de terminada la práctica, lo que ocurra más tarde; un documento devuelto
-   * reabre ocho días desde la devolución. El docente carga en casos
-   * especiales por la ventana de cargue docente y no tiene este límite.
+   * Cargue del ESTUDIANTE (G2): manda la ventana del periodo (activo, habilitado y `desde ≤ hoy ≤
+   * hasta`, inclusivo). Cerrada por fecha, solo puede volver a cargar el TIPO que tiene una subsanación
+   * vigente (devolución o plazo de la bitácora). El fin de la práctica ya no extiende el cargue.
+   * Los demás perfiles conservan sus flujos (el docente carga en casos especiales; el director no carga).
    */
-  private async exigirPlazoDeCargue(practica: Practica): Promise<void> {
-    const datos = practica.instantanea();
-    const dias = await this.parametros.numero('documentos.dias_subsanacion');
-    const ahora = Date.now();
-    const limites: number[] = [];
-    if (datos.fechaFin) limites.push(datos.fechaFin.getTime() + dias * 86_400_000);
-    const periodo = await this.periodos.buscarPorCodigo(datos.periodoAcademico).catch(() => null);
-    const ventana = periodo?.ventana(TipoVentana.CARGUE_ESTUDIANTE) ?? null;
-    if (ventana) limites.push(ventana.hasta.getTime() + 86_400_000 - 1);
-    const devueltos = (await this.documentos.listarPorPractica(practica.id))
-      .map((d) => d.instantanea())
-      .filter((d) => d.estado === EstadoDocumento.DEVUELTO || d.estado === EstadoDocumento.ILEGIBLE);
-    for (const d of devueltos) limites.push(d.actualizadoEn.getTime() + dias * 86_400_000);
-    if (limites.length === 0 || ahora <= Math.max(...limites)) return;
-    throw new BadRequestException(
-      'El plazo de cargue venció: la fecha de cargue del periodo y los ocho días calendario posteriores ' +
-        'al fin de la práctica ya pasaron. Solicite a su docente la habilitación por la bitácora.',
-    );
+  private async exigirCargueEstudiante(practica: Practica, tipo: TipoDocumento): Promise<void> {
+    const contexto = await this.cargueEstudiante.contexto(practica);
+    if (this.cargueEstudiante.puedeCargarTipo(contexto, tipo)) return;
+    if (contexto.subsanaciones.length > 0) {
+      const tipos = contexto.subsanaciones.map((x) => new ConocimientoDocumentalDomainService().nombreDe(x.tipo)).join(', ');
+      throw new ForbiddenException(
+        `${this.cargueEstudiante.mensaje(contexto)} La corrección habilitada aplica únicamente a: ${tipos}.`,
+      );
+    }
+    throw new ForbiddenException(this.cargueEstudiante.mensaje(contexto));
   }
 
   /** El rol debe participar en la gestión documental (empresa y extensión no). */

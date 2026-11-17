@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -156,7 +157,7 @@ export class PqrsComponent implements OnInit {
   readonly f: RadicarPqrs = { tipo: 'peticion', categoria: '', asunto: '', descripcion: '' };
 
   readonly esEstudiante = computed(() => this.sesion.rol() === 'estudiante');
-  readonly puedeAtender = computed(() => ['coordinador', 'auxiliar', 'administrador'].includes(this.sesion.rol() ?? ''));
+  readonly puedeAtender = computed(() => tieneRol(['coordinador', 'analista', 'auxiliar', 'administrador'], this.sesion.rol()));
   readonly visibles = computed(() => (this.filtroEstado() ? this.lista() : this.lista().filter((s) => s.estado !== 'cerrada' && s.estado !== 'unificada')));
 
   async ngOnInit(): Promise<void> {

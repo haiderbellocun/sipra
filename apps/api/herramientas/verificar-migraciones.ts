@@ -41,7 +41,7 @@ const ESPERADAS = MIGRACIONES.map(nombreDe);
 const PRE_EPS = MIGRACIONES.slice(0, 11); // 0–10: hasta ConsentimientoVersionado
 const EPS = MIGRACIONES.slice(11, 16); // 11–15
 const ACTA = MIGRACIONES.slice(16, 19); // 16–18: responsable de la ARL, validación del acta de iniciación y su Mesa (Bloques 3 y 4)
-const EMPRESARIAL = MIGRACIONES.slice(19); // 19–20: validación de documentos empresariales (RUT y Cámara) y su decisión humana
+const EMPRESARIAL = MIGRACIONES.slice(19); // 19–22: documentos empresariales (RUT y Cámara), su decisión humana y roles de gobierno (G1)
 
 async function admin(): Promise<DataSource> {
   return new DataSource({ type: 'postgres', url: urlDe('postgres'), ssl: false }).initialize();

@@ -1,4 +1,4 @@
-import { Rol } from './rol.vo';
+import { Rol, esCoordinacionOperativa } from './rol.vo';
 
 /**
  * Autorización de la revisión del RUT (Bloque 4). NO amplía permisos: reproduce a quien YA decide el RUT en el sistema
@@ -10,14 +10,14 @@ import { Rol } from './rol.vo';
  *  · Estudiante: solo el estado de su propio RUT y cargar/reemplazar. Auxiliar (que ve el RUT como soporte de la ARL),
  *    empresa y extensión: no deciden.
  */
-const OPERAN_REVISION_RUT: readonly Rol[] = [Rol.TUTOR, Rol.COORDINADOR, Rol.ADMINISTRADOR];
+const OPERAN_REVISION_RUT: readonly Rol[] = [Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR];
 
 export function puedeOperarRevisionRut(rol: Rol): boolean {
   return OPERAN_REVISION_RUT.includes(rol);
 }
 
 export function esSupervisorRevisionRut(rol: Rol): boolean {
-  return rol === Rol.COORDINADOR || rol === Rol.ADMINISTRADOR;
+  return esCoordinacionOperativa(rol) || rol === Rol.ADMINISTRADOR;
 }
 
 /** El estudiante consulta únicamente el estado humano de SU propio RUT. */

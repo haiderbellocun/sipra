@@ -22,7 +22,7 @@ export class ReportesController {
   ) {}
 
   @Get('catalogos')
-  @Roles(Rol.ADMINISTRADOR, Rol.EXTENSION, Rol.COORDINADOR)
+  @Roles(Rol.ADMINISTRADOR, Rol.EXTENSION, Rol.COORDINADOR, Rol.ANALISTA, Rol.DIRECTOR)
   @ApiOperation({
     summary: 'Estado de los catálogos oficiales',
     description:

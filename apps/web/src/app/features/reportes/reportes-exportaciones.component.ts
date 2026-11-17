@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
@@ -20,8 +21,8 @@ type ReporteSgp = 'practicas' | 'bitacoras' | 'cartas';
  * - Estado de catálogos (`/reportes/catalogos`): administración, extensión y coordinación.
  * - Archivos del SPE (`/reportes/spe/*`): administración y extensión.
  */
-export const ROLES_SGP = ['administrador', 'coordinador', 'auxiliar', 'tutor'];
-export const ROLES_CATALOGOS = ['administrador', 'extension', 'coordinador'];
+export const ROLES_SGP = ['administrador', 'director', 'coordinador', 'analista', 'auxiliar', 'tutor'];
+export const ROLES_CATALOGOS = ['administrador', 'extension', 'coordinador', 'analista', 'director'];
 export const ROLES_SPE = ['administrador', 'extension'];
 
 /**
@@ -182,9 +183,9 @@ export class ReportesExportacionesComponent implements OnInit {
   readonly rpModalidad = signal(''); readonly rpEstado = signal('');
   readonly rbTipo = signal('seguimiento'); readonly rbPeriodo = signal(''); readonly rbEstado = signal('');
   readonly rcPeriodo = signal(''); readonly rcDesde = signal(''); readonly rcHasta = signal('');
-  readonly puedeSgp = computed(() => ROLES_SGP.includes(this.sesion.rol() ?? ''));
-  readonly esRegulatorio = computed(() => ROLES_CATALOGOS.includes(this.sesion.rol() ?? ''));
-  readonly generaSpe = computed(() => ROLES_SPE.includes(this.sesion.rol() ?? ''));
+  readonly puedeSgp = computed(() => tieneRol(ROLES_SGP, this.sesion.rol()));
+  readonly esRegulatorio = computed(() => tieneRol(ROLES_CATALOGOS, this.sesion.rol()));
+  readonly generaSpe = computed(() => tieneRol(ROLES_SPE, this.sesion.rol()));
 
   alternarPeriodo(codigo: string): void { this.periodosSel.update((l) => (l.includes(codigo) ? l.filter((x) => x !== codigo) : [...l, codigo])); }
   celda(v: unknown): string {

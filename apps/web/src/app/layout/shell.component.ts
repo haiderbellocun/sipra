@@ -1,3 +1,4 @@
+import { tieneRol } from '@core/auth/roles';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -250,36 +251,36 @@ export class ShellComponent {
     { ruta: '/practicas', etiqueta: 'Prácticas', icono: 'sipra-documentos', roles: null },
     {
       ruta: '/arl', etiqueta: 'Solicitud de ARL', icono: 'sipra-seguridad',
-      roles: ['estudiante', 'auxiliar', 'coordinador', 'administrador', 'tutor'],
+      roles: ['estudiante', 'auxiliar', 'coordinador', 'analista', 'administrador', 'tutor'],
     },
     {
       ruta: '/registro', etiqueta: 'Registro FUR y cartas', icono: 'sipra-cargar',
-      roles: ['coordinador', 'administrador', 'tutor', 'auxiliar'],
+      roles: ['coordinador', 'analista', 'administrador', 'tutor', 'auxiliar'],
     },
     {
       ruta: '/cumplimiento', etiqueta: 'Cumplimiento', icono: 'sipra-verificado',
-      roles: ['administrador', 'coordinador', 'extension', 'tutor'],
+      roles: ['administrador', 'director', 'coordinador', 'analista', 'extension', 'tutor'],
     },
     {
       ruta: '/empresas', etiqueta: 'Empresas', icono: 'sipra-empresa',
-      roles: ['administrador', 'coordinador', 'extension', 'empresa'],
+      roles: ['administrador', 'coordinador', 'analista', 'extension', 'empresa'],
     },
     { ruta: '/bolsa', etiqueta: 'Bolsa de empleo', icono: 'sipra-oportunidades', roles: null },
     {
       ruta: '/reportes', etiqueta: 'Reportes', icono: 'sipra-indicadores',
-      roles: ['administrador', 'extension', 'coordinador', 'auxiliar', 'tutor'],
+      roles: ['administrador', 'director', 'extension', 'coordinador', 'analista', 'auxiliar', 'tutor'],
     },
-    { ruta: '/costos-ia', etiqueta: 'Costos de IA', icono: 'sipra-indicadores', roles: ['administrador', 'coordinador'] },
-    { ruta: '/vistas', etiqueta: 'Vistas SINU', icono: 'sipra-buscar', roles: ['coordinador', 'administrador', 'auxiliar', 'tutor'] },
-    { ruta: '/validacion-documental', etiqueta: 'Validación documental', icono: 'sipra-documentos', roles: ['tutor', 'auxiliar', 'coordinador', 'administrador'] },
-    { ruta: '/eps', etiqueta: 'Validación de EPS', icono: 'sipra-seguridad', roles: ['auxiliar', 'coordinador', 'administrador'] },
-    { ruta: '/actas', etiqueta: 'Actas de iniciación', icono: 'sipra-verificado', roles: ['auxiliar', 'coordinador', 'administrador'] },
-    { ruta: '/mesa-rut', etiqueta: 'RUT', icono: 'sipra-verificado', roles: ['tutor', 'coordinador', 'administrador'] },
-    { ruta: '/mesa-camara', etiqueta: 'Mesa de Cámara', icono: 'sipra-empresa', roles: ['tutor', 'coordinador', 'administrador'] },
-    { ruta: '/pqrs', etiqueta: 'PQRS', icono: 'sipra-correo', roles: ['estudiante', 'coordinador', 'administrador', 'auxiliar'] },
+    { ruta: '/costos-ia', etiqueta: 'Costos de IA', icono: 'sipra-indicadores', roles: ['administrador', 'coordinador', 'analista'] },
+    { ruta: '/vistas', etiqueta: 'Vistas SINU', icono: 'sipra-buscar', roles: ['coordinador', 'analista', 'administrador', 'auxiliar', 'tutor'] },
+    { ruta: '/validacion-documental', etiqueta: 'Validación documental', icono: 'sipra-documentos', roles: ['tutor', 'auxiliar', 'coordinador', 'analista', 'administrador'] },
+    { ruta: '/eps', etiqueta: 'Validación de EPS', icono: 'sipra-seguridad', roles: ['auxiliar', 'coordinador', 'analista', 'administrador'] },
+    { ruta: '/actas', etiqueta: 'Actas de iniciación', icono: 'sipra-verificado', roles: ['auxiliar', 'coordinador', 'analista', 'administrador'] },
+    { ruta: '/mesa-rut', etiqueta: 'RUT', icono: 'sipra-verificado', roles: ['tutor', 'coordinador', 'analista', 'administrador'] },
+    { ruta: '/mesa-camara', etiqueta: 'Mesa de Cámara', icono: 'sipra-empresa', roles: ['tutor', 'coordinador', 'analista', 'administrador'] },
+    { ruta: '/pqrs', etiqueta: 'PQRS', icono: 'sipra-correo', roles: ['estudiante', 'coordinador', 'analista', 'administrador', 'auxiliar'] },
     { ruta: '/ayuda', etiqueta: 'Ayuda', icono: 'sipra-ayuda', roles: null },
-    { ruta: '/gestion/periodos', etiqueta: 'Gestión de periodos', icono: 'sipra-calendario', roles: ['coordinador', 'administrador'] },
-    { ruta: '/gestion/usuarios', etiqueta: 'Gestión de usuarios', icono: 'sipra-configuracion', roles: ['coordinador', 'administrador'] },
+    { ruta: '/gestion/periodos', etiqueta: 'Gestión de periodos', icono: 'sipra-calendario', roles: ['administrador', 'director'] },
+    { ruta: '/gestion/usuarios', etiqueta: 'Gestión de usuarios', icono: 'sipra-configuracion', roles: ['administrador', 'director'] },
     { ruta: '/auditoria', etiqueta: 'Auditoría', icono: 'sipra-revision', roles: ['administrador'] },
   ];
 
@@ -308,7 +309,7 @@ export class ShellComponent {
   readonly menuVisible = computed(() => {
     const rol = this.sesion.rol();
     if (!rol) return [];
-    return this.menu.filter((e) => e.roles === null || e.roles.includes(rol));
+    return this.menu.filter((e) => e.roles === null || tieneRol(e.roles, rol));
   });
 
   /** En móvil caben cinco: las primeras del menú visible. */

@@ -2,6 +2,10 @@ import { SetMetadata } from '@nestjs/common';
 import { Rol } from '../../domain/value-objects/rol.vo';
 
 export const CLAVE_ROLES = 'sipra_roles';
+/**
+ * Roles autorizados: EXACTAMENTE los declarados, sin expansión de grupos (0.39.1).
+ * Si una ruta corresponde a coordinador y analista, se declaran los dos.
+ */
 export const Roles = (...roles: Rol[]) => SetMetadata(CLAVE_ROLES, roles);
 
 export const CLAVE_PUBLICO = 'sipra_publico';

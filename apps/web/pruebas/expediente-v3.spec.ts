@@ -19,10 +19,10 @@ describe('Expediente V3 (capa A)', () => {
     assert.ok(senal.includes('<button type="button" (click)="ir.emit(d.tipo)" [attr.aria-label]='));
     assert.ok(senal.includes('<span class="est">{{ g.estado }}</span>'));
   });
-  it('conserva las vistas de dominio con sus mismas entradas y salidas', () => {
-    assert.match(plantilla, /<sipra-acta-estudiante \[practicaId\]="id\(\)" \[documentos\]="documentos\(\)" \[puedeCargar\]="puedeCargar\(\)" \(cargar\)="corregir\('acta_inicio'\)" \/>/);
-    assert.match(plantilla, /<sipra-rut-estudiante \[practicaId\]="id\(\)" \[tipo\]="d\.tipo" \[documentos\]="documentos\(\)" \[puedeCargar\]="puedeCargar\(\)" \(cargar\)="corregir\(d\.tipo\)" \/>/);
-    assert.match(plantilla, /<sipra-camara-estudiante \[practicaId\]="id\(\)" \[tipo\]="d\.tipo" \[documentos\]="documentos\(\)" \[puedeCargar\]="puedeCargar\(\)" \(cargar\)="corregir\(d\.tipo\)" \/>/);
+  it('conserva las vistas de dominio con sus mismas entradas y salidas (G2: el permiso de carga es por tipo)', () => {
+    assert.match(plantilla, /<sipra-acta-estudiante \[practicaId\]="id\(\)" \[documentos\]="documentos\(\)" \[puedeCargar\]="puedeCargarTipo\('acta_inicio'\)" \(cargar\)="corregir\('acta_inicio'\)" \/>/);
+    assert.match(plantilla, /<sipra-rut-estudiante \[practicaId\]="id\(\)" \[tipo\]="d\.tipo" \[documentos\]="documentos\(\)" \[puedeCargar\]="puedeCargarTipo\(d\.tipo\)" \(cargar\)="corregir\(d\.tipo\)" \/>/);
+    assert.match(plantilla, /<sipra-camara-estudiante \[practicaId\]="id\(\)" \[tipo\]="d\.tipo" \[documentos\]="documentos\(\)" \[puedeCargar\]="puedeCargarTipo\(d\.tipo\)" \(cargar\)="corregir\(d\.tipo\)" \/>/);
   });
   it('mantiene carga, decisión y llamadas (presentación únicamente)', () => {
     assert.match(plantilla, /accept="application\/pdf,image\/jpeg,image\/png"/);
