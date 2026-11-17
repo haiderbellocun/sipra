@@ -268,6 +268,11 @@ export class ApiService {
     return this.http.get<ModalidadCatalogo[]>(`${this.base}/catalogo/modalidades`);
   }
 
+  /** G4 · escuelas del catálogo institucional (código y nombre) para elegir el alcance de un usuario. */
+  catalogoEscuelas(): Observable<{ codigo: string; nombre: string }[]> {
+    return this.http.get<{ codigo: string; nombre: string }[]>(`${this.base}/catalogo/escuelas`);
+  }
+
   catalogoProceso(): Observable<CatalogoProceso> {
     return this.http.get<CatalogoProceso>(`${this.base}/catalogo/proceso`);
   }

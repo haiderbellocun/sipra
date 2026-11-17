@@ -690,10 +690,10 @@
     "semantic_hash": "dac851f58b0ebeabe14c90fa2104eb4e"
   },
   "apps/api/src/domain/ports/out/repositorios.port.ts": {
-    "mtime": 1793036952.439304,
-    "seen": 1794319155.1082392,
-    "ast_hash": "cde57cfc8b011537d870707116de436b",
-    "semantic_hash": "cde57cfc8b011537d870707116de436b"
+    "mtime": 1794938277.5070472,
+    "seen": 1794939633.56608,
+    "ast_hash": "79a2a3390c6b09f992dd8b5e6d6bd782",
+    "semantic_hash": ""
   },
   "apps/api/src/domain/ports/out/servicios-externos.port.ts": {
     "mtime": 1793890509.084483,
@@ -1332,10 +1332,10 @@
     "semantic_hash": "e1167497f2093117b834a3458be5ca41"
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/reportes.adapter.ts": {
-    "mtime": 1792078635.0774028,
-    "seen": 1794319155.1083348,
-    "ast_hash": "aa1bbafc1a30011cd113ca9a0c3d65d1",
-    "semantic_hash": "aa1bbafc1a30011cd113ca9a0c3d65d1"
+    "mtime": 1794938301.2951615,
+    "seen": 1794939633.6772127,
+    "ast_hash": "835ad56483feba99c940cef439bec8a1",
+    "semantic_hash": ""
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/repositorios.adapter.ts": {
     "mtime": 1793036964.8706524,
@@ -1470,10 +1470,10 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/catalogo.controller.ts": {
-    "mtime": 1793027655.7434556,
-    "seen": 1794319155.108356,
-    "ast_hash": "10f8de05ea1078bd5db145b9a53cb515",
-    "semantic_hash": "10f8de05ea1078bd5db145b9a53cb515"
+    "mtime": 1794938277.510687,
+    "seen": 1794939633.701923,
+    "ast_hash": "356558f3aecf2d600b9655e99371c0b8",
+    "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/consentimientos.controller.ts": {
     "mtime": 1794931374.7222912,
@@ -2394,10 +2394,10 @@
     "semantic_hash": "1833d0c0e99166b2145f66f0145f46c9"
   },
   "apps/api/test/reporte-bloqueado.spec.ts": {
-    "mtime": 1792078635.62938,
-    "seen": 1794319155.1084917,
-    "ast_hash": "14fa3e84c5a0a4f226f7b7d43cb68ff2",
-    "semantic_hash": "14fa3e84c5a0a4f226f7b7d43cb68ff2"
+    "mtime": 1794938277.512689,
+    "seen": 1794939633.8908887,
+    "ast_hash": "3ac28e7ee7794eb8cbac1b0a8af4aefe",
+    "semantic_hash": ""
   },
   "apps/api/test/reportes-sgp.spec.ts": {
     "mtime": 1793372731.4936929,
@@ -2892,9 +2892,9 @@
     "semantic_hash": "65181eb1348fe3c7e12c77c6740ea07d"
   },
   "apps/web/src/app/core/services/api.service.ts": {
-    "mtime": 1794933335.0422254,
-    "seen": 1794936263.1734173,
-    "ast_hash": "3593b99de48719d4522da8fd8b218a50",
+    "mtime": 1794938415.8556848,
+    "seen": 1794939633.981832,
+    "ast_hash": "38bc78e672bdc03b796b4ca697eff189",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/services/captura-guiada.service.ts": {
@@ -3120,9 +3120,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/gestion/usuarios.component.ts": {
-    "mtime": 1794931725.3367865,
-    "seen": 1794932082.3122637,
-    "ast_hash": "ff9f2a708d098f5408eebf616ef725fd",
+    "mtime": 1794939200.3561606,
+    "seen": 1794939634.019492,
+    "ast_hash": "287983f52a365d38730d040d51bc5908",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/ingreso/callback.component.ts": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1794937715.05005,
-    "seen": 1794937756.347336,
-    "ast_hash": "5b07110717c648134b3bd15e56c33d96",
+    "mtime": 1794939354.6161897,
+    "seen": 1794939634.1358867,
+    "ast_hash": "53e7c5d3d11bceb646670f7b230031dc",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -4377,6 +4377,54 @@
     "mtime": 1794937564.1642873,
     "seen": 1794937756.4093266,
     "ast_hash": "d51bd2089e3ab8aef9dc4b70f21a8118",
+    "semantic_hash": ""
+  },
+  "apps/api/test/catalogo-escuelas.spec.ts": {
+    "mtime": 1794938789.9584491,
+    "seen": 1794939633.8168342,
+    "ast_hash": "750c737bbb06c5942c3a0f56c7a0cb1d",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/usuarios-g4.spec.ts": {
+    "mtime": 1794938698.6160567,
+    "seen": 1794939633.9731922,
+    "ast_hash": "7a1a066248c6c251a863da3139dd1872",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/gestion/usuarios.util.ts": {
+    "mtime": 1794938408.8123643,
+    "seen": 1794939634.019496,
+    "ast_hash": "fb531955265ceaf462f87cab57ca4532",
+    "semantic_hash": ""
+  },
+  "docs/assets/g4/g4-usuario-editar.webp": {
+    "mtime": 1794939287.9881866,
+    "seen": 1794939634.1738787,
+    "ast_hash": "454cefd85c4917fe3a56f291afc96c65",
+    "semantic_hash": ""
+  },
+  "docs/assets/g4/g4-usuario-nuevo.webp": {
+    "mtime": 1794939286.8661535,
+    "seen": 1794939634.1738846,
+    "ast_hash": "eb860c179a0cd84b8e226136c9583771",
+    "semantic_hash": ""
+  },
+  "docs/assets/g4/g4-usuarios-lista-dark.webp": {
+    "mtime": 1794939285.702118,
+    "seen": 1794939634.1738894,
+    "ast_hash": "419789fb829cc7195f125e8603e3dd9c",
+    "semantic_hash": ""
+  },
+  "docs/assets/g4/g4-usuarios-lista-light.webp": {
+    "mtime": 1794939290.8581283,
+    "seen": 1794939634.173893,
+    "ast_hash": "7d26654a9050c5be66a2237186ba7124",
+    "semantic_hash": ""
+  },
+  "docs/assets/g4/g4-usuarios-mobile.webp": {
+    "mtime": 1794939294.0307508,
+    "seen": 1794939634.173896,
+    "ast_hash": "55d44205f7c0f97b5eddc254fe2f6424",
     "semantic_hash": ""
   },
   "package-lock.json": {

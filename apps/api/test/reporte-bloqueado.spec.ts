@@ -20,7 +20,7 @@ const CATALOGO_COMPLETO: EstadoCatalogo = {
 };
 
 function catalogos(estados: EstadoCatalogo[]): CatalogoRepositoryPort {
-  return { estados: () => Promise.resolve(estados) };
+  return { estados: () => Promise.resolve(estados), escuelas: () => Promise.resolve([]) };
 }
 
 const reportesVacios: ReporteRepositoryPort = {

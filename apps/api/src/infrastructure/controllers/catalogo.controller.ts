@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PqrsUseCase } from '../../application/use-cases/administracion/pqrs.use-case';
 import { PREGUNTAS_EVALUA_TU_PROCESO } from '../../domain/entities/bitacora.entity';
@@ -10,6 +10,7 @@ import {
 import { EQUIVALENCIA_SGP, EstadoPractica } from '../../domain/entities/practica.entity';
 import { CategoriaAyuda, PreguntaFrecuente } from '../../domain/entities/preguntas-frecuentes';
 import { CATEGORIAS_PQRS } from '../../domain/entities/pqrs.entity';
+import { CATALOGO_REPOSITORY, CatalogoRepositoryPort, EscuelaCatalogo } from '../../domain/ports/out/repositorios.port';
 import { Autenticado } from '../auth/roles.decorator';
 import {
   ETIQUETA_MOTIVO_RECHAZO, MotivoRechazoArl, aplicaSolicitudArl, documentosExigidosArl,
@@ -40,7 +41,17 @@ export interface ModalidadCatalogo {
 @Autenticado()
 @Controller('catalogo')
 export class CatalogoController {
-  constructor(private readonly ayuda: PqrsUseCase) {}
+  constructor(
+    private readonly ayuda: PqrsUseCase,
+    @Inject(CATALOGO_REPOSITORY) private readonly catalogos: CatalogoRepositoryPort,
+  ) {}
+
+  /** G4 · escuelas del catálogo institucional, para elegir el alcance de un usuario sin escribir códigos. */
+  @Get('escuelas')
+  @ApiOperation({ summary: 'Escuelas del catálogo institucional (código y nombre)' })
+  escuelas(): Promise<EscuelaCatalogo[]> {
+    return this.catalogos.escuelas();
+  }
 
   @Get('modalidades')
   @ApiOperation({ summary: 'Matriz de modalidades con documentos por momento y condiciones' })

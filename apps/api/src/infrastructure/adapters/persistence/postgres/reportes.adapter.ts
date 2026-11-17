@@ -2,13 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import {
-  CatalogoRepositoryPort, CostosIaRepositoryPort, EstadoCatalogo, FilaGastoIa, FilaReportePlaza,
+  CatalogoRepositoryPort, CostosIaRepositoryPort, EscuelaCatalogo, EstadoCatalogo, FilaGastoIa, FilaReportePlaza,
   FilaReporteVacante, FiltroGastoIa, ReporteRepositoryPort,
 } from '../../../../domain/ports/out/repositorios.port';
 
 @Injectable()
 export class CatalogoRepositoryAdapter implements CatalogoRepositoryPort {
   constructor(@InjectDataSource() private readonly datos: DataSource) {}
+
+  async escuelas(): Promise<EscuelaCatalogo[]> {
+    const filas: { codigo: string; nombre: string }[] = await this.datos.query('SELECT codigo, nombre FROM cat_escuela ORDER BY nombre');
+    return filas.map((f) => ({ codigo: f.codigo, nombre: f.nombre }));
+  }
 
   async estados(): Promise<EstadoCatalogo[]> {
     interface Fila {

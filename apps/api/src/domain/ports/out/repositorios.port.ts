@@ -180,8 +180,16 @@ export interface EstadoCatalogo {
   justificacion: string | null;
 }
 
+/** Escuela del catálogo institucional (`cat_escuela`). */
+export interface EscuelaCatalogo {
+  codigo: string;
+  nombre: string;
+}
+
 export interface CatalogoRepositoryPort {
   estados(): Promise<EstadoCatalogo[]>;
+  /** G4 · escuelas para elegir el alcance de un usuario (solo lectura). */
+  escuelas(): Promise<EscuelaCatalogo[]>;
 }
 export const CATALOGO_REPOSITORY = Symbol('CATALOGO_REPOSITORY');
 

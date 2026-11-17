@@ -3553,6 +3553,34 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.42.0 — 17 de noviembre de 2026
+
+**Gobierno operativo · G4: Gestión de usuarios V3.** Rediseño del módulo existente (`/gestion/usuarios`, solo administración y dirección). G4 **consume** la autorización de G1 y no la cambia: roles, matriz, capacidades y alcance siguen iguales, y el backend sigue respondiendo 403 a lo no permitido.
+- **Estructura.** Cabecera breve («Administra los perfiles operativos y sus alcances dentro de SIPRA.») con «+ Nuevo usuario»; franja de cifras (usuarios activos, docentes facilitadores, analistas e inhabilitados, sobre todos los usuarios cargados); filtros compactos; tabla; e inspector lateral para crear y editar. Ya no hay formulario permanente.
+- **Filtros.** Búsqueda por nombre (sin tildes), correo o documento; perfil; estado; escuela; y «Limpiar filtros». Se aplican en el cliente sobre el listado administrativo completo, sin recargar.
+- **Tabla.** Usuario (con el documento), correo, perfil, alcance legible, permiso, estado (texto más señal), último acceso y un menú «⋯» accesible por teclado (`aria-haspopup`, `role="menu"`, flechas y Esc).
+  - **Alcance legible:** «Institucional», el nombre corto de la escuela o «N escuelas»; para el docente, «Sus estudiantes asignados» o «Asignados + …».
+  - **Acciones por fila:** solo las que el actor puede hacer (no se ofrece nada que termine en 403). Sin acciones permitidas, la fila no tiene menú.
+- **Perfiles por actor (espejo de `rolesGestionablesPor`).** El administrador gestiona los siete perfiles administrativos; el director solo los operativos (coordinador, analista, auxiliar, docente facilitador y extensión). Rótulos: «Director», «Coordinador de prácticas», «Analista de prácticas» (perfil propio) y «Docente facilitador» (internamente sigue siendo `tutor`). Estudiantes (matrícula SINU) y empresas no se gestionan en este módulo.
+- **Alcance (semántica del dominio, sin cambios).**
+  - Administrador, director, auxiliar y extensión: siempre «Institucional», sin selector.
+  - Coordinador y analista: «Institucional» o «Escuelas específicas».
+  - Docente facilitador: «Sus estudiantes asignados» o «Asignados y escuelas específicas».
+  - Las escuelas se eligen con casillas del catálogo institucional (antes se escribían códigos separados por comas). Solo se envían para los perfiles que las usan; en los demás no se tocan.
+- **Inspector.** Es un `<dialog>` nativo lateral (460 px; ancho completo en móvil) con foco inicial en el nombre, Esc y retorno del foco.
+  - **Al editar:** el correo es de solo lectura y el perfil no cambia, porque el backend no lo admite. Se muestran estado, escuelas, fecha de creación y último acceso.
+  - **Permiso «Consulta / Escritura»:** con su explicación. El permiso nunca amplía el perfil.
+  - **Validación:** con mensajes para quien llena el formulario (correo `@cun.edu.co`, documento y escuelas).
+- **Inhabilitar y reactivar.** «Inhabilitar» abre una confirmación accesible («Inhabilitar a [nombre]»: el usuario deja de acceder y su historial se conserva), con el foco en «Cancelar». «Reactivar usuario» usa la actualización existente (`activo = true`), sin crear otro usuario. La protección propia se explica en el menú («No puedes inhabilitar tu propio usuario.»).
+- **Backend (mínimo).** `GET /catalogo/escuelas` (solo lectura, cualquier sesión) mediante `CatalogoRepositoryPort.escuelas()` sobre `cat_escuela`. No hay migración ni cambios en usuarios, roles ni DTO.
+- **Pendiente para G6.** La carga de estudiantes por docente facilitador no está disponible de forma limpia (requiere una consulta agregada nueva); no se implementó. El inspector queda preparado para mostrarla.
+- **Pruebas.**
+  - Web: `pruebas/usuarios-g4.spec.ts`; la suite web queda en 492/492.
+  - API: `test/catalogo-escuelas.spec.ts`; las de usuarios, roles y rutas sin cambios.
+  - Navegador real (administrador y director, datos sintéticos): 33 comprobaciones, entre ellas perfiles por actor, filtros, inspector, validación, crear, editar, inhabilitar, reactivar, protección propia, menú con teclado, móvil sin desplazamiento horizontal (390 a 1440 px) y que el director no tenga acciones sobre administradores ni directores. En la API directa, el director recibe 403 al modificar, inhabilitar o crear administradores y directores.
+  - En `sipra_dev` se crearon por la propia interfaz el director sintético de las semillas (`direccion.practicas@cun.edu.co`) y un «Docente QA G4 Sintético» (`docente.qa.g4@cun.edu.co`), que quedó activo y con permiso de consulta.
+- **Capturas:** `docs/assets/g4/`.
+
 ### 0.41.0 — 17 de noviembre de 2026
 
 **Gobierno operativo · G3: aviso institucional sobre la afiliación a ARL.** Solo interfaz: no cambia el backend, el dominio, la compuerta ARL (`ck_practicas_compuerta_arl`), la sugerencia por modalidad, `responsableArlPractica` ni las solicitudes de ARL. Tampoco cambia nada de G2.
