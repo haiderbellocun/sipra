@@ -19,6 +19,20 @@ export const rutas: Routes = [
       import('./features/ingreso/callback.component').then((m) => m.IngresoCallbackComponent),
   },
   {
+    // Pública (sin sesión): la empresa consulta y descarga la carta VIGENTE con la identificación del estudiante.
+    path: 'consultar-carta',
+    title: 'Consultar carta de presentación · SIPRA PRÁCTICAS',
+    loadComponent: () =>
+      import('./features/verificacion/consultar-carta.component').then((m) => m.ConsultarCartaComponent),
+  },
+  {
+    // Pública (sin sesión): a esta ruta apunta el QR de cada carta de presentación.
+    path: 'verificar-carta/:referencia',
+    title: 'Verificación de carta · SIPRA PRÁCTICAS',
+    loadComponent: () =>
+      import('./features/verificacion/verificar-carta.component').then((m) => m.VerificarCartaComponent),
+  },
+  {
     path: '',
     canActivate: [sesionGuard],
     loadComponent: () => import('./layout/shell.component').then((m) => m.ShellComponent),

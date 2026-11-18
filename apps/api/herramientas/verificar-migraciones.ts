@@ -241,6 +241,20 @@ async function main(): Promise<void> {
       // Si el esquema exige otras columnas, se informa en vez de adivinar.
       comprobar('se pudo sembrar una evidencia OCR sintética', false, e.message.slice(0, 200));
     });
+    // Carta de presentación digital (24, la última): down limpio (columnas, restricciones, índice y disparador) y re-up.
+    {
+      const colsCarta = async () => (await ds.query(`SELECT column_name FROM information_schema.columns WHERE table_name='cartas_presentacion' AND column_name IN ('referencia','estado','snapshot','pdf_sha256','ruta_archivo')`)).length;
+      const disparador = async () => (await ds.query(`SELECT 1 FROM pg_trigger WHERE tgname='tr_cartas_presentacion_inmutable'`)).length;
+      comprobar('carta digital (24): columnas y disparador de inmutabilidad presentes', (await colsCarta()) === 5 && (await disparador()) === 1);
+      await ds.undoLastMigration({ transaction: 'each' });
+      comprobar('down de CartaPresentacionDigital: sin columnas, disparador ni índice de referencia',
+        (await colsCarta()) === 0 && (await disparador()) === 0 && (await ds.query(`SELECT 1 FROM pg_indexes WHERE indexname='ux_cartas_referencia'`)).length === 0);
+      await ds.runMigrations({ transaction: 'each' });
+      comprobar('re-up de CartaPresentacionDigital: restituida', (await colsCarta()) === 5 && (await disparador()) === 1);
+    }
+    // DEUDA conocida (desde G1): esta secuencia de reversión se escribió cuando la última migración era la 20; la 22
+    // (roles de gobierno) se niega por diseño a revertirse con usuarios director/analista sembrados. Revertir por debajo
+    // de la 21 exige antes adaptar esta herramienta (no se relaja la protección de la 22).
     // Bloque 3 (16–17) primero. Sin datos del acta el down es limpio y no toca el resto de lo que ya existía.
     const practicasAntes = await huella(ds, 'practicas', true);
     // La 20 (decisión humana del RUT) y luego la 19 (documentos empresariales): sin decisiones ni evidencias su down es limpio.

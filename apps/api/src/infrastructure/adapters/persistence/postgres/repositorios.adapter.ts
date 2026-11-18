@@ -507,6 +507,41 @@ export class CartaRepositoryAdapter implements CartaRepositoryPort {
     const guardada = await this.repo.save(CartaMapper.aOrm(datos));
     return CartaMapper.aDominio(guardada);
   }
+
+  async buscarPorReferencia(referencia: string): Promise<CartaPresentacion | null> {
+    const orm = await this.repo.findOne({ where: { referencia } });
+    return orm ? CartaMapper.aDominio(orm) : null;
+  }
+
+  /** Inserta la carta y reemplaza las vigentes equivalentes en una sola transacción (serializada por estudiante). */
+  async emitir(datos: DatosCarta): Promise<{ carta: CartaPresentacion; reemplazadas: string[] }> {
+    return this.repo.manager.transaction(async (m) => {
+      // Dos emisiones simultáneas del mismo estudiante no dejan dos cartas vigentes equivalentes.
+      await m.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`carta:${datos.estudianteId}`]);
+      const previas: { id: string }[] = await m.query(
+        `SELECT id FROM cartas_presentacion
+          WHERE estudiante_id = $1 AND periodo_academico = $2 AND modalidad_carta = $3 AND estado = 'vigente'
+            AND referencia IS NOT NULL AND practica_id IS NOT DISTINCT FROM $4::uuid`,
+        [datos.estudianteId, datos.periodoAcademico, datos.modalidadCarta, datos.practicaId],
+      );
+      await m.getRepository(CartaOrm).insert(CartaMapper.aOrm(datos) as QueryDeepPartialEntity<CartaOrm>);
+      const ids = previas.map((p) => p.id);
+      if (ids.length > 0) {
+        await m.query(
+          `UPDATE cartas_presentacion SET estado = 'reemplazada', reemplazada_por = $1 WHERE id = ANY($2::uuid[]) AND estado = 'vigente'`,
+          [datos.id, ids],
+        );
+      }
+      return { carta: CartaPresentacion.desde(datos), reemplazadas: ids };
+    });
+  }
+
+  async anular(id: string, motivo: string, ahora: Date): Promise<boolean> {
+    const r = await this.repo.createQueryBuilder().update(CartaOrm)
+      .set({ estado: 'anulada', anulada_en: ahora, motivo_anulacion: motivo })
+      .where('id = :id AND estado = :vigente', { id, vigente: 'vigente' }).execute();
+    return (r.affected ?? 0) === 1;
+  }
 }
 
 @Injectable()

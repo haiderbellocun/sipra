@@ -1,3 +1,4 @@
+import type { DocumentoCarta } from '../../services/carta-presentacion.plantilla';
 import { Bandera } from '../../entities/documento.entity';
 import type { ResumenLecturaLocal } from './lector-documento-local.port';
 import { TipoDocumento } from '../../entities/documento.entity';
@@ -265,6 +266,15 @@ export interface GeneradorPdfPort {
   generar(documento: DocumentoPdf): Promise<Buffer>;
 }
 export const GENERADOR_PDF = Symbol('GENERADOR_PDF');
+
+/**
+ * Carta de presentación digital: maqueta el texto ya redactado por el dominio en el PDF institucional (membrete CUN,
+ * firma institucional configurada, referencia y QR de verificación al pie) en UNA página A4.
+ */
+export interface GeneradorCartaPdfPort {
+  generar(documento: DocumentoCarta, urlVerificacion: string): Promise<Buffer>;
+}
+export const GENERADOR_CARTA_PDF = Symbol('GENERADOR_CARTA_PDF');
 
 /**
  * Libros de hoja de cálculo (reportes del SGP en Excel). El dominio arma las

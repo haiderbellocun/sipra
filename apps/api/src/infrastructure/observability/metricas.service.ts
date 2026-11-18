@@ -28,6 +28,14 @@ export class MetricasService implements OnModuleInit {
   });
 
   // ── Métricas de negocio ────────────────────────────────────────────────
+  /** Consulta y descarga PÚBLICAS de cartas. Sin PII: solo operación y resultado (nunca documentos ni ids). */
+  readonly cartasPublicas = new Counter({
+    name: 'sipra_cartas_publicas_total',
+    help: 'Consultas por identificación y descargas públicas de cartas de presentación, por resultado',
+    labelNames: ['operacion', 'resultado'] as const,
+    registers: [this.registro],
+  });
+
   readonly documentosProcesados = new Counter({
     name: 'sipra_documentos_procesados_total',
     help: 'Documentos que completaron el pipeline de validación',

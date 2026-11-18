@@ -1,4 +1,3 @@
-import { CartaPresentacionDomainService, fechaLarga } from '../src/domain/entities/carta-presentacion.entity';
 import { EstadoDocumento, TipoDocumento } from '../src/domain/entities/documento.entity';
 import { ModalidadPractica, MomentoExpediente } from '../src/domain/entities/modalidad.entity';
 import { CicloAcademico, EstadoPractica, Practica } from '../src/domain/entities/practica.entity';
@@ -78,33 +77,4 @@ describe('Edición posterior al registro', () => {
   });
 });
 
-describe('Carta de presentación', () => {
-  const composicion = new CartaPresentacionDomainService();
-  const base = {
-    estudianteNombre: 'Laura Sofía Ramírez Ortiz', estudianteDocumento: '1032456786',
-    programa: 'Administración de Empresas', ciclo: 'profesional', periodoAcademico: '2026C',
-    asignatura: 'Práctica Profesional I', fecha: dia('2026-08-03'), consecutivo: 'CP-2026C-ABCD1234',
-    numeroFur: 12,
-  };
-
-  it('la carta abierta va a quien corresponda y habilita al estudiante para buscar escenario', () => {
-    const c = composicion.componer({ ...base, modalidad: null, empresaRazonSocial: null, fechaInicio: null, fechaFin: null });
-    expect(c.parrafos[0]).toBe('A quien corresponda');
-    expect(c.parrafos.join(' ')).toMatch(/habilitado\(a\) para adelantar su práctica/);
-    expect(c.fechaLugar).toBe('Bogotá D. C., 3 de agosto de 2026');
-    expect(c.pie[0]).toContain('FUR n.º 12');
-  });
-
-  it('con registro, va dirigida a la empresa con modalidad y fechas', () => {
-    const c = composicion.componer({
-      ...base, modalidad: 'Pasantía', empresaRazonSocial: 'Soluciones Logísticas Andinas S.A.S.',
-      fechaInicio: dia('2026-08-10'), fechaFin: dia('2026-11-27'),
-    });
-    expect(c.parrafos[0]).toBe('Señores\nSoluciones Logísticas Andinas S.A.S.');
-    expect(c.parrafos.join(' ')).toMatch(/modalidad Pasantía .* entre el 10 de agosto de 2026 y el 27 de noviembre de 2026/);
-  });
-
-  it('las fechas se escriben en español', () => {
-    expect(fechaLarga(dia('2026-12-04'))).toBe('4 de diciembre de 2026');
-  });
-});
+// La carta de presentación digital (redacción, PDF, referencia, verificación) se prueba en carta-presentacion-digital.spec.ts.

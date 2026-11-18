@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -6,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
 import { ApiService } from '@core/services/api.service';
 import { AvisosService } from '@core/ui/avisos.service';
-import { Carta, ModalidadCatalogo, Periodo, RegistroFur } from '@core/models/modelos';
+import { ModalidadCatalogo, Periodo, RegistroFur } from '@core/models/modelos';
 import { CronogramaComponent } from '@shared/components/cronograma.component';
 import { EtiquetaPipe } from '@shared/pipes/etiquetas.pipe';
 import { leerError } from '@shared/utils/errores';
@@ -14,6 +13,7 @@ import {
   ResponsableArl, ResponsableArlFormulario, ERROR_ARL_SIN_ELEGIR, ayudaArl, sugerenciaArl,
 } from './arl-registro';
 import { AperturaAvisoArl } from './aviso-arl';
+import { CartaPresentacionComponent } from './carta-presentacion.component';
 import { AvisoArlComponent } from './aviso-arl.component';
 
 /**
@@ -24,7 +24,7 @@ import { AvisoArlComponent } from './aviso-arl.component';
 @Component({
   selector: 'sipra-registro',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink, EtiquetaPipe, CronogramaComponent, AvisoArlComponent],
+  imports: [FormsModule, RouterLink, EtiquetaPipe, CronogramaComponent, AvisoArlComponent, CartaPresentacionComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     .pasos { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; align-items: start; }
@@ -43,9 +43,6 @@ import { AvisoArlComponent } from './aviso-arl.component';
     .info-arl { display:inline-flex; align-items:center; gap:6px; margin:2px 0 var(--sp-2); padding:4px 2px; min-height:32px; font:inherit; font-size:var(--fs-xs); font-weight:600; color:var(--marca); background:none; border:0; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
     .info-arl svg { width:16px; height:16px; flex:none; } .info-arl:focus-visible { outline:2px solid var(--marca); outline-offset:2px; border-radius:4px; }
     .terminos input { width: 18px; height: 18px; margin-top: 3px; }
-    .carta { display: flex; gap: var(--sp-3); align-items: center; padding: var(--sp-2) 0; border-bottom: 1px solid var(--borde); font-size: var(--fs-sm); }
-    .carta:last-child { border-bottom: none; }
-    .carta .q { flex: 1; min-width: 0; }
     .ventana { font-size: var(--fs-xs); }
     .grupo { border: 0; padding: 0; margin: 0 0 var(--sp-4); min-width: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
     .grupo legend { padding: 0; margin-bottom: var(--sp-2); font-size: var(--fs-sm); font-weight: 700; color: var(--texto); }
@@ -64,44 +61,10 @@ import { AvisoArlComponent } from './aviso-arl.component';
       <section class="tarjeta">
         <h2><span class="paso-n">1</span>Carta de presentación</h2>
         <p class="pista">
-          Presenta al estudiante ante la organización antes del registro. Disponible desde un mes antes del
-          periodo hasta el cierre del registro FUR; el docente y coordinación la generan en cualquier momento.
+          Presenta al estudiante ante la organización con un PDF institucional verificable (referencia y QR). El estudiante la
+          genera dentro de la ventana del periodo; el docente, el auxiliar y coordinación, en cualquier momento.
         </p>
-        @if (!esEstudiante()) {
-          <div class="campo">
-            <label for="c-doc">Documento del estudiante</label>
-            <input id="c-doc" [(ngModel)]="cartaDocumento" placeholder="Número de identificación" />
-          </div>
-        }
-        <div class="campo">
-          <label for="c-periodo">Periodo académico</label>
-          <select id="c-periodo" [(ngModel)]="cartaPeriodo">
-            @for (p of periodos(); track p.codigo) {
-              <option [value]="p.codigo">{{ p.codigo }} · {{ p.nombre }}{{ p.abiertas.carta_presentacion ? '' : ' (ventana cerrada)' }}</option>
-            }
-          </select>
-        </div>
-        <div class="campo">
-          <label for="c-empresa">Organización (opcional)</label>
-          <input id="c-empresa" [(ngModel)]="cartaEmpresa" placeholder="En blanco: «A quien corresponda»" />
-        </div>
-        <button type="button" class="boton boton--primario" [class.cargando]="guardando()" [disabled]="guardando() || !cartaPeriodo()" (click)="generarCarta()">
-          Generar carta
-        </button>
-
-        @if (cartas().length > 0) {
-          <h3 style="margin-top:var(--sp-5)">Cartas generadas</h3>
-          @for (c of cartas(); track c.id) {
-            <div class="carta">
-              <div class="q">
-                <strong>{{ c.estudianteNombre }}</strong>
-                <div class="pista">{{ c.periodoAcademico }} · {{ c.modalidadCarta === 'abierta' ? 'A quien corresponda' : c.empresaRazonSocial }}
-                  · {{ c.generadaEn | date: 'd MMM y, HH:mm' }}{{ c.numeroFur ? ' · FUR ' + c.numeroFur : '' }}</div>
-              </div>
-              <a class="boton compacto" [href]="api.urlCartaPdf(c.id)" target="_blank" rel="noopener" (click)="abrirPdf($event, c)">PDF</a>
-            </div>
-          }
-        }
+        <sipra-carta-presentacion [periodos]="periodos()" />
       </section>
 
       <!-- ── Paso 2 · Formulario Único de Registro ──────────────────────── -->
@@ -248,13 +211,9 @@ export class RegistroComponent implements OnInit, AfterViewInit {
 
   readonly periodos = signal<Periodo[]>([]);
   readonly modalidades = signal<ModalidadCatalogo[]>([]);
-  readonly cartas = signal<Carta[]>([]);
   readonly guardando = signal(false);
   readonly registrada = signal<string | null>(null);
 
-  readonly cartaPeriodo = signal('');
-  readonly cartaEmpresa = signal('');
-  readonly cartaDocumento = signal('');
 
   readonly esEstudiante = computed(() => this.sesion.rol() === 'estudiante');
 
@@ -340,21 +299,7 @@ export class RegistroComponent implements OnInit, AfterViewInit {
     if (abierto) {
       this.fur.periodoAcademico = abierto.codigo;
       this.periodoSeleccionado.set(abierto.codigo);
-      this.cartaPeriodo.set((this.periodos().find((p) => p.abiertas.carta_presentacion) ?? abierto).codigo);
     }
-    await this.cargarCartas();
-  }
-
-  async generarCarta(): Promise<void> {
-    await this.ejecutar(async () => {
-      await firstValueFrom(this.api.generarCarta({
-        periodoAcademico: this.cartaPeriodo(),
-        empresaRazonSocial: this.cartaEmpresa().trim() || undefined,
-        estudianteDocumento: this.esEstudiante() ? undefined : this.cartaDocumento().trim() || undefined,
-      }));
-      await this.cargarCartas();
-      return 'Carta generada. Puede descargarla en PDF cuantas veces necesite: siempre sale idéntica.';
-    });
   }
 
   /** Etiquetas de los campos del formulario que todavía no están completos: dice qué falta en lugar de dejar el botón apagado sin explicación. */
@@ -382,18 +327,6 @@ export class RegistroComponent implements OnInit, AfterViewInit {
       if (this.esEstudiante()) setTimeout(() => void this.router.navigate(['/practicas', practica.id]), 1500);
       return `Registro creado con el FUR n.º ${practica.numeroFur ?? '—'}. Le enviamos al correo la lista de documentos por momento.`;
     });
-  }
-
-  async abrirPdf(evento: Event, carta: Carta): Promise<void> {
-    evento.preventDefault();
-    const blob = await firstValueFrom(this.api.descargarCartaPdf(carta.id));
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank', 'noopener');
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  }
-
-  private async cargarCartas(): Promise<void> {
-    try { this.cartas.set(await firstValueFrom(this.api.listarCartas())); } catch { this.cartas.set([]); }
   }
 
   private async ejecutar(accion: () => Promise<string>): Promise<void> {

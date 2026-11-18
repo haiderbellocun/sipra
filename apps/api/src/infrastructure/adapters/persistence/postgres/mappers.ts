@@ -1,3 +1,4 @@
+import { SnapshotCarta } from '../../../../domain/services/carta-presentacion.plantilla';
 import {
   Bandera, DatosDocumento, Documento, EstadoDocumento, MetricasCalidadCaptura, TipoDocumento,
   BandaPuntaje,
@@ -13,9 +14,8 @@ import {
   ResponsableArlPractica, TipoRemuneracion,
 } from '../../../../domain/entities/practica.entity';
 import {
-  CartaPresentacion, DatosCarta, ModalidadCarta,
+  CartaPresentacion, DatosCarta, EstadoCarta, ModalidadCarta,
 } from '../../../../domain/entities/carta-presentacion.entity';
-import { DocumentoPdf } from '../../../../domain/ports/out/servicios-externos.port';
 import {
   AutorBitacora, DatosEntradaBitacora, DetalleEntrada, EntradaBitacora, TipoEntradaBitacora,
 } from '../../../../domain/entities/bitacora.entity';
@@ -417,10 +417,19 @@ export const CartaMapper = {
       periodoAcademico: orm.periodo_academico,
       modalidadCarta: orm.modalidad_carta as ModalidadCarta,
       empresaRazonSocial: orm.empresa_razon_social,
-      contenido: orm.contenido as unknown as DocumentoPdf,
+      contenido: orm.contenido,
       hashSha256: orm.hash_sha256,
       generadaPor: orm.generada_por,
       generadaEn: orm.generada_en,
+      referencia: orm.referencia ?? null,
+      estado: (orm.estado ?? 'vigente') as EstadoCarta,
+      reemplazadaPor: orm.reemplazada_por ?? null,
+      rutaArchivo: orm.ruta_archivo ?? null,
+      pdfSha256: orm.pdf_sha256 ?? null,
+      snapshot: (orm.snapshot ?? null) as unknown as SnapshotCarta | null,
+      modalidad: orm.modalidad ?? null,
+      anuladaEn: orm.anulada_en ?? null,
+      motivoAnulacion: orm.motivo_anulacion ?? null,
     });
   },
   aOrm(d: DatosCarta): CartaOrm {
@@ -436,6 +445,15 @@ export const CartaMapper = {
     orm.hash_sha256 = d.hashSha256;
     orm.generada_por = d.generadaPor;
     orm.generada_en = d.generadaEn;
+    orm.referencia = d.referencia;
+    orm.estado = d.estado;
+    orm.reemplazada_por = d.reemplazadaPor;
+    orm.ruta_archivo = d.rutaArchivo;
+    orm.pdf_sha256 = d.pdfSha256;
+    orm.snapshot = d.snapshot as unknown as Record<string, unknown> | null;
+    orm.modalidad = d.modalidad;
+    orm.anulada_en = d.anuladaEn;
+    orm.motivo_anulacion = d.motivoAnulacion;
     return orm;
   },
 };

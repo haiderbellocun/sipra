@@ -38,6 +38,15 @@ export class VariablesEntorno {
   @IsString() API_VERSION = '1';
   @IsString() CORS_ORIGENES = 'http://localhost:4200';
 
+  // Carta de presentación digital. URL pública de la web (el QR de cada carta apunta a <URL>/verificar-carta/<REF>);
+  // sin valor, se usa el primer origen de CORS_ORIGENES. El firmante es configuración institucional: cambiarlo no
+  // exige tocar código. La firma manuscrita solo se imprime si se declara la ruta de una imagen APROBADA.
+  @IsOptional() @IsString() URL_PUBLICA_WEB?: string;
+  @IsString() CARTA_FIRMANTE_NOMBRE = '';
+  @IsString() CARTA_FIRMANTE_CARGO = 'Coordinador de Desarrollo Profesional';
+  @IsString() CARTA_FIRMANTE_DEPENDENCIA = 'Dirección de Operaciones';
+  @IsOptional() @IsString() CARTA_FIRMA_IMAGEN?: string;
+
   // La conexión se declara de una de dos formas: por campos sueltos —lo que
   // usan Cloud SQL y el entorno local— o por una sola cadena, que es como la
   // entregan los Postgres gestionados. `validarEntorno` exige una u otra.
@@ -277,6 +286,14 @@ export function ingresoAbiertoPermitido(config: {
 function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
   const errores: string[] = [];
   const ambientesCerrados: Ambiente[] = [Ambiente.PRE, Ambiente.PROD];
+
+  if (config.URL_PUBLICA_WEB?.trim()) {
+    const url = config.URL_PUBLICA_WEB.trim();
+    if (!/^https?:\/\/[^\s/]+/.test(url)) errores.push('URL_PUBLICA_WEB debe ser una URL http(s) (p. ej. https://sipra.cun.edu.co)');
+    else if (ambientesCerrados.includes(config.SIPRA_AMBIENTE) && !url.startsWith('https://')) {
+      errores.push(`URL_PUBLICA_WEB debe ser https en el ambiente "${config.SIPRA_AMBIENTE}": el QR de las cartas apunta allí.`);
+    }
+  }
 
   if (config.EPS_AUTOAPROBACION_HABILITADA) {
     errores.push(

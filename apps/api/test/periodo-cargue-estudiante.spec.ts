@@ -214,9 +214,11 @@ describe('G2 · migración 23 (sin ejecutar)', () => {
     return emitido;
   }
 
-  it('está registrada al final, justo después de la 22 (roles)', () => {
-    expect(MIGRACIONES[MIGRACIONES.length - 1]).toBe(CargueEstudiantePeriodo1756000023000);
-    expect(MIGRACIONES[MIGRACIONES.length - 2].name).toBe('RolesGobiernoOperativo1756000022000');
+  it('está registrada justo después de la 22 (roles) y antes de la 24 (carta digital)', () => {
+    const i = MIGRACIONES.indexOf(CargueEstudiantePeriodo1756000023000);
+    expect(i).toBeGreaterThan(0);
+    expect(MIGRACIONES[i - 1].name).toBe('RolesGobiernoOperativo1756000022000');
+    expect(MIGRACIONES[i + 1]?.name).toBe('CartaPresentacionDigital1756000024000');
   });
 
   it('up: solo agrega la columna NOT NULL DEFAULT true en periodos_academicos (los periodos existentes quedan habilitados); no toca filas', async () => {

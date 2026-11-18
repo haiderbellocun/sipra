@@ -132,9 +132,9 @@
     "semantic_hash": "120d33e2939a2b7f09108d1fcd57d25c"
   },
   "apps/api/herramientas/verificar-migraciones.ts": {
-    "mtime": 1794929941.8413804,
-    "seen": 1794930871.1061254,
-    "ast_hash": "e575372102095ebf14850ab9570f435d",
+    "mtime": 1795019626.1706214,
+    "seen": 1795021262.4704316,
+    "ast_hash": "470a8bd4faa5b16889d8a24e316b8685",
     "semantic_hash": ""
   },
   "apps/api/herramientas/verificar-rut-pg.ts": {
@@ -144,15 +144,15 @@
     "semantic_hash": "44263565533e33c79bb04d4ff5eaf7ee"
   },
   "apps/api/nest-cli.json": {
-    "mtime": 1793040293.13394,
-    "seen": 1794319155.108154,
-    "ast_hash": "aaaebea29835b99353741d3735620f7e",
-    "semantic_hash": "aaaebea29835b99353741d3735620f7e"
+    "mtime": 1795017608.7117147,
+    "seen": 1795021262.4778495,
+    "ast_hash": "25667cb9cb6bbdccedc71e494eba601a",
+    "semantic_hash": ""
   },
   "apps/api/package.json": {
-    "mtime": 1795009911.9252088,
-    "seen": 1795011818.7833502,
-    "ast_hash": "256545524494e8f4e1be7b397a05f09c",
+    "mtime": 1795019073.5803487,
+    "seen": 1795021262.4778564,
+    "ast_hash": "dc2918b1e836123778681ac899b90778",
     "semantic_hash": ""
   },
   "apps/api/src/application/dtos/acta-iniciacion.dto.ts": {
@@ -432,10 +432,10 @@
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/practicas/carta-presentacion.use-case.ts": {
-    "mtime": 1792078634.7448947,
-    "seen": 1794319155.1081965,
-    "ast_hash": "99cc9bf91eb71c7af755df39e118dd64",
-    "semantic_hash": "99cc9bf91eb71c7af755df39e118dd64"
+    "mtime": 1795022013.955845,
+    "seen": 1795024103.192147,
+    "ast_hash": "c56266f526daec72d53572b20e1d54ba",
+    "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/practicas/gestionar-practica.use-case.ts": {
     "mtime": 1795009393.17387,
@@ -498,9 +498,9 @@
     "semantic_hash": "fc2b57d1fb41ae0584911ece6b17d1a2"
   },
   "apps/api/src/domain/entities/auditoria.entity.ts": {
-    "mtime": 1795009285.9176514,
-    "seen": 1795011818.9270961,
-    "ast_hash": "116a0d201fe25b0d53a623a435889e92",
+    "mtime": 1795021975.231158,
+    "seen": 1795024103.202803,
+    "ast_hash": "60f6910fe9c44bc4fc116493a4be08a3",
     "semantic_hash": ""
   },
   "apps/api/src/domain/entities/bitacora.entity.ts": {
@@ -516,10 +516,10 @@
     "semantic_hash": "e96d0283404a3e5f4fd12cfbde715ebf"
   },
   "apps/api/src/domain/entities/carta-presentacion.entity.ts": {
-    "mtime": 1792078634.808288,
-    "seen": 1794319155.1082127,
-    "ast_hash": "bcfc2dd3455e7ef7f16dd7bd22309654",
-    "semantic_hash": "bcfc2dd3455e7ef7f16dd7bd22309654"
+    "mtime": 1795017270.0510728,
+    "seen": 1795021262.6000526,
+    "ast_hash": "add12261418b68973dea406b2b237019",
+    "semantic_hash": ""
   },
   "apps/api/src/domain/entities/consentimiento.entity.ts": {
     "mtime": 1793030866.8249538,
@@ -690,16 +690,16 @@
     "semantic_hash": "dac851f58b0ebeabe14c90fa2104eb4e"
   },
   "apps/api/src/domain/ports/out/repositorios.port.ts": {
-    "mtime": 1794938277.5070472,
-    "seen": 1794939633.56608,
-    "ast_hash": "79a2a3390c6b09f992dd8b5e6d6bd782",
+    "mtime": 1795017330.5041754,
+    "seen": 1795021262.6442761,
+    "ast_hash": "797b3c111b9a689cee0c5dcfd0434cac",
     "semantic_hash": ""
   },
   "apps/api/src/domain/ports/out/servicios-externos.port.ts": {
-    "mtime": 1793890509.084483,
-    "seen": 1794319155.1082401,
-    "ast_hash": "df90c6e7d3d6c041ca92e679e3d5f9ec",
-    "semantic_hash": "df90c6e7d3d6c041ca92e679e3d5f9ec"
+    "mtime": 1795017438.7901287,
+    "seen": 1795021262.644282,
+    "ast_hash": "bbb36a2ba9941106a68f2a58a4981ca2",
+    "semantic_hash": ""
   },
   "apps/api/src/domain/ports/out/validacion-acta.port.ts": {
     "mtime": 1793377593.8924758,
@@ -1320,9 +1320,9 @@
     "semantic_hash": "e7f2ea735de289307f9e0eda80e3cf81"
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/mappers.ts": {
-    "mtime": 1794932737.0335073,
-    "seen": 1794936262.9404118,
-    "ast_hash": "72d9957d746e563a22e53c4a465e30b1",
+    "mtime": 1795018834.103521,
+    "seen": 1795021262.806655,
+    "ast_hash": "9c4cd82a0e321b7bf7c735cf0ecd8a03",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/parametros.adapter.ts": {
@@ -1338,10 +1338,10 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/repositorios.adapter.ts": {
-    "mtime": 1793036964.8706524,
-    "seen": 1794319155.108336,
-    "ast_hash": "85eabe02a604a3441baf830c3731969c",
-    "semantic_hash": "85eabe02a604a3441baf830c3731969c"
+    "mtime": 1795017330.5185165,
+    "seen": 1795021262.813835,
+    "ast_hash": "dfe903e4e1e6568c5bb9b8391a09eda6",
+    "semantic_hash": ""
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/validacion-acta.adapter.ts": {
     "mtime": 1793379638.3872108,
@@ -1428,9 +1428,9 @@
     "semantic_hash": "57c35be7af933a41a7ec3349849a47a5"
   },
   "apps/api/src/infrastructure/config/configuracion.ts": {
-    "mtime": 1794417089.097738,
-    "seen": 1794417690.126667,
-    "ast_hash": "b6b37d0e16bd92422ea7fe9b80bf17f6",
+    "mtime": 1795017661.3857038,
+    "seen": 1795021262.836319,
+    "ast_hash": "6316fabb2895cefa4fb2fa2005770c3a",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/actas-iniciacion.controller.ts": {
@@ -1464,9 +1464,9 @@
     "semantic_hash": "c550216632447345a93601b27077ebbd"
   },
   "apps/api/src/infrastructure/controllers/cartas.controller.ts": {
-    "mtime": 1794931374.720285,
-    "seen": 1794932082.142239,
-    "ast_hash": "b84d60e4bd75fdc7af2ad021e4c59bbc",
+    "mtime": 1795022096.8694804,
+    "seen": 1795024103.3609776,
+    "ast_hash": "2b25e20a39b314098cf67a6dd7fa533c",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/catalogo.controller.ts": {
@@ -1596,9 +1596,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/modules/app.module.ts": {
-    "mtime": 1795009377.7190921,
-    "seen": 1795011819.3365858,
-    "ast_hash": "a08f3ebf43466301acce1e2ccaa583a1",
+    "mtime": 1795022096.8727527,
+    "seen": 1795024103.3814147,
+    "ast_hash": "7af482975993caa3fc92256073d3e7b0",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/modules/auditoria.service.ts": {
@@ -1632,10 +1632,10 @@
     "semantic_hash": "0e45f94083857bf1488574ff258c4296"
   },
   "apps/api/src/infrastructure/observability/metricas.service.ts": {
-    "mtime": 1793115697.1643553,
-    "seen": 1794319155.1083794,
-    "ast_hash": "3b9c4c1ec8f1b3a234e3afe77c5cf8c8",
-    "semantic_hash": "3b9c4c1ec8f1b3a234e3afe77c5cf8c8"
+    "mtime": 1795021975.224646,
+    "seen": 1795024103.3884387,
+    "ast_hash": "ca6a17ec5d97171debe40d2031d3c2c9",
+    "semantic_hash": ""
   },
   "apps/api/src/infrastructure/observability/redaccion-logs.ts": {
     "mtime": 1793027918.1468413,
@@ -1674,9 +1674,9 @@
     "semantic_hash": "1823bdc41f42ddf8a5eac0d8fde3a6d0"
   },
   "apps/api/src/infrastructure/persistence/postgres/entities/todas.orm-entity.ts": {
-    "mtime": 1794932737.030767,
-    "seen": 1794936262.9910166,
-    "ast_hash": "02922ab4bae6052f6369165e7abb609f",
+    "mtime": 1795017330.5108943,
+    "seen": 1795021262.897988,
+    "ast_hash": "cb0df9cbdde9ce3ca937bbf70157f99f",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/entities/validacion-acta.orm-entity.ts": {
@@ -1830,9 +1830,9 @@
     "semantic_hash": "0a7379467232b88d2a04be11cbc3ef2a"
   },
   "apps/api/src/infrastructure/persistence/postgres/migrations/todas.migracion.ts": {
-    "mtime": 1794932737.028746,
-    "seen": 1794936263.0105317,
-    "ast_hash": "9d67258afeccafd77a81a08212612ed9",
+    "mtime": 1795017370.24418,
+    "seen": 1795021262.9364595,
+    "ast_hash": "b70e0924d77c8bdefdd7247c0ea76b7c",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/opciones-datasource.ts": {
@@ -1968,16 +1968,16 @@
     "semantic_hash": "43dcda75b98773611c87c323bb64d8b8"
   },
   "apps/api/test/autorizacion-rutas.spec.ts": {
-    "mtime": 1795009542.147324,
-    "seen": 1795011819.4593399,
-    "ast_hash": "e7d2cb75c3cd7fb5f52998e2db29a993",
+    "mtime": 1795022096.8727527,
+    "seen": 1795024103.469109,
+    "ast_hash": "4cadee168015a0eb27c22c62613543bf",
     "semantic_hash": ""
   },
   "apps/api/test/avance-y-carta.spec.ts": {
-    "mtime": 1793372730.5193987,
-    "seen": 1794319155.1084287,
-    "ast_hash": "171afa4f0f2bc981c2e62ac76ca2fc1b",
-    "semantic_hash": "171afa4f0f2bc981c2e62ac76ca2fc1b"
+    "mtime": 1795017984.0530548,
+    "seen": 1795021262.967159,
+    "ast_hash": "228eecf9ad3b07bae73507b2142c1621",
+    "semantic_hash": ""
   },
   "apps/api/test/ayuda-y-pqrs.spec.ts": {
     "mtime": 1792078635.4975195,
@@ -2400,10 +2400,10 @@
     "semantic_hash": ""
   },
   "apps/api/test/reportes-sgp.spec.ts": {
-    "mtime": 1793372731.4936929,
-    "seen": 1794319155.1084926,
-    "ast_hash": "8e7b72a3abfe61220b07ea01e11b950f",
-    "semantic_hash": "8e7b72a3abfe61220b07ea01e11b950f"
+    "mtime": 1795017984.048673,
+    "seen": 1795021263.076135,
+    "ast_hash": "1af64b19d710325afe01e353523bb885",
+    "semantic_hash": ""
   },
   "apps/api/test/reportes-spe.spec.ts": {
     "mtime": 1792078635.650513,
@@ -2856,9 +2856,9 @@
     "semantic_hash": "87c293e1d3b6fd7870f55889d0a0fd7d"
   },
   "apps/web/src/app/app.routes.ts": {
-    "mtime": 1794931725.319977,
-    "seen": 1794932082.2858782,
-    "ast_hash": "da1559b8f671e5243e585eedeb203e2e",
+    "mtime": 1795022364.159975,
+    "seen": 1795024103.6734397,
+    "ast_hash": "e73addb3d9dbff1c3343d7d89b4616bb",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/auth/sesion.service.ts": {
@@ -2880,9 +2880,9 @@
     "semantic_hash": "85ebb88462db6de8aca5d59fd1700cd0"
   },
   "apps/web/src/app/core/models/modelos.ts": {
-    "mtime": 1795010031.8259878,
-    "seen": 1795011819.7321155,
-    "ast_hash": "2a3dfb52adf0e5caa9669486daeb5cd5",
+    "mtime": 1795022364.169107,
+    "seen": 1795024103.6775765,
+    "ast_hash": "a5c7b6a1ba38e0e1c166a2d48bca52ef",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/validacion-documental.model.ts": {
@@ -2892,9 +2892,9 @@
     "semantic_hash": "65181eb1348fe3c7e12c77c6740ea07d"
   },
   "apps/web/src/app/core/services/api.service.ts": {
-    "mtime": 1795010040.852585,
-    "seen": 1795011819.7339213,
-    "ast_hash": "befbb032990b04c71b313b6be25e0021",
+    "mtime": 1795022364.1655438,
+    "seen": 1795024103.6786222,
+    "ast_hash": "68f51d42c8f585d0c797f577790f4267",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/services/captura-guiada.service.ts": {
@@ -3204,9 +3204,9 @@
     "semantic_hash": "779b34bb1d7a900605a1d983fa32d638"
   },
   "apps/web/src/app/features/registro/registro.component.ts": {
-    "mtime": 1794937404.110317,
-    "seen": 1794937756.2304454,
-    "ast_hash": "645c9f6d907d921c1f0dcee55df18439",
+    "mtime": 1795018549.0873952,
+    "seen": 1795021263.369627,
+    "ast_hash": "5f4241a14f7a304dca940d0681c651cb",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes.component.ts": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1795015225.9203837,
-    "seen": 1795015339.883927,
-    "ast_hash": "2e6c3c7e2cde5d5c9cd74d70da16a592",
+    "mtime": 1795023825.0674634,
+    "seen": 1795024103.8247454,
+    "ast_hash": "876c569ec197c74513cd6bce2f4902d7",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -4290,9 +4290,9 @@
     "semantic_hash": ""
   },
   "apps/api/test/periodo-cargue-estudiante.spec.ts": {
-    "mtime": 1794935772.056671,
-    "seen": 1794936263.093495,
-    "ast_hash": "e1b7322782472cd809344aec0236d278",
+    "mtime": 1795017424.4522567,
+    "seen": 1795021263.0489562,
+    "ast_hash": "7bbcce2d9aa21400ec9ef85cc8a12cf3",
     "semantic_hash": ""
   },
   "apps/web/pruebas/cargue-estudiante-g2.spec.ts": {
@@ -4695,6 +4695,162 @@
     "mtime": 1795014911.243949,
     "seen": 1795015340.113539,
     "ast_hash": "b74b9cc8d263a687fb72471e8e2abda0",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/verificar-carta-pg.ts": {
+    "mtime": 1795019008.0856771,
+    "seen": 1795021262.4556646,
+    "ast_hash": "ed89eaf9a3a65c369d191f03331e9e05",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/services/carta-presentacion.plantilla.ts": {
+    "mtime": 1795017704.9017487,
+    "seen": 1795021262.6588848,
+    "ast_hash": "7b1e0f7ff3b307e5b89c7d680ad2dbc0",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/pdf/carta-pdf.adapter.ts": {
+    "mtime": 1795017608.5686955,
+    "seen": 1795021262.797408,
+    "ast_hash": "aef224fba842f989a8d9d9100e949405",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000024000-CartaPresentacionDigital.ts": {
+    "mtime": 1795019329.7364557,
+    "seen": 1795021262.9364507,
+    "ast_hash": "f76df1166ca5d5feb3ee41c532e320ff",
+    "semantic_hash": ""
+  },
+  "apps/api/test/carta-presentacion-digital.spec.ts": {
+    "mtime": 1795023687.8154728,
+    "seen": 1795024103.4775176,
+    "ast_hash": "95b1a700d5f68e21844d5e08d31d1ec0",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/carta-presentacion.spec.ts": {
+    "mtime": 1795018658.0206938,
+    "seen": 1795021263.1787584,
+    "ast_hash": "897a267ea7af7d510b78122e143dd071",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/registro/carta-presentacion.component.ts": {
+    "mtime": 1795018524.4177792,
+    "seen": 1795021263.3696146,
+    "ast_hash": "be633d481ab1475822cfaa3e2a89e11f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/registro/carta-presentacion.util.ts": {
+    "mtime": 1795019431.6122544,
+    "seen": 1795021263.369621,
+    "ast_hash": "84fd416310deb3c757b7c8df961784ec",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/verificacion/verificar-carta.component.ts": {
+    "mtime": 1795022364.1553109,
+    "seen": 1795024103.793686,
+    "ast_hash": "e281df0052cc954cfd7624357d3813f5",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/carta-contrato-aprendizaje.pdf": {
+    "mtime": 1795020218.44294,
+    "seen": 1795021263.5173802,
+    "ast_hash": "c41607c24c475bc977fb3e86884ce543",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/carta-monitoria.pdf": {
+    "mtime": 1795020218.5990758,
+    "seen": 1795021263.5173864,
+    "ast_hash": "84aff75ac72ba0168b69d27f55a029bb",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/carta-pasantia.pdf": {
+    "mtime": 1795020236.3064847,
+    "seen": 1795021263.51739,
+    "ast_hash": "a331016f99324bf2a93eb319020f2ce7",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/pdf/recursos/logo-cun.jpg": {
+    "mtime": 1795017608.1019135,
+    "seen": 1795021263.5173936,
+    "ast_hash": "85bac8c4eaa87c68e256314dd13e4b53",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/pdf/recursos/membrete-cun.jpg": {
+    "mtime": 1795017426.5640862,
+    "seen": 1795021263.5173974,
+    "ast_hash": "55e121c9f62a75d6ff870d1df4e41188",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/carta-ui-dark.webp": {
+    "mtime": 1795020192.0712285,
+    "seen": 1795021263.5473728,
+    "ast_hash": "c5ed9a246748795a8bf941f43465e088",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/carta-ui-light.webp": {
+    "mtime": 1795020206.7013762,
+    "seen": 1795021263.5473785,
+    "ast_hash": "01f9ce9bc7b605511c2b97778abfab1c",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/carta-ui-mobile.webp": {
+    "mtime": 1795020214.2840776,
+    "seen": 1795021263.547383,
+    "ast_hash": "c47dac2479c47ed592efd0907aea7f30",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/verificacion-carta.webp": {
+    "mtime": 1795020198.9465818,
+    "seen": 1795021263.547387,
+    "ast_hash": "8fbb911785f05d4b4abfa8482b12dc6e",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/services/token-carta-publica.ts": {
+    "mtime": 1795021956.4452477,
+    "seen": 1795024103.1668265,
+    "ast_hash": "1fd8bd3bcd143b77f12e67483e1a4a81",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/seguridad/limitador-publico.service.ts": {
+    "mtime": 1795021975.224646,
+    "seen": 1795024103.4446046,
+    "ast_hash": "ae3b76d75d8e275d38ddde2a7b3fadcd",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/consulta-carta-publica.spec.ts": {
+    "mtime": 1795022440.856416,
+    "seen": 1795024103.6210918,
+    "ast_hash": "2c8e182e7822990f53612b87f0db0f72",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/verificacion/consulta-carta.util.ts": {
+    "mtime": 1795022358.9096327,
+    "seen": 1795024103.79368,
+    "ast_hash": "426bd45db3bd65f9771ba804095fc2d0",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/verificacion/consultar-carta.component.ts": {
+    "mtime": 1795022364.1508067,
+    "seen": 1795024103.793683,
+    "ast_hash": "565127f5813e5e67a597def4fe02f85a",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/consulta-publica-light.webp": {
+    "mtime": 1795022907.7699966,
+    "seen": 1795024103.8459625,
+    "ast_hash": "c73bd7de195cecbbd41cbf0abc144329",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/consulta-publica-movil.webp": {
+    "mtime": 1795022899.1097887,
+    "seen": 1795024103.8459659,
+    "ast_hash": "d36ab3ab844130fda6ad631531102c50",
+    "semantic_hash": ""
+  },
+  "docs/assets/carta-presentacion/verificacion-qr-lan-movil.webp": {
+    "mtime": 1795022894.9479475,
+    "seen": 1795024103.8466587,
+    "ast_hash": "8d673158db6199ccb1af1cd4cdbd0a21",
     "semantic_hash": ""
   },
   "package-lock.json": {

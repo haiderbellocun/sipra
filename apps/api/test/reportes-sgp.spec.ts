@@ -60,6 +60,8 @@ const carta: DatosCarta = {
   id: 'c1', numeroFur: 12, practicaId: 'p1', estudianteId: 'est-1', periodoAcademico: '2026C', modalidadCarta: 'con_empresa',
   empresaRazonSocial: 'Andina S.A.S.', contenido: { titulo: 't', encabezado: [], fechaLugar: '', parrafos: [], firma: [], pie: [] },
   hashSha256: 'h', generadaPor: 'est-1', generadaEn: new Date('2026-08-03T14:30:00.000Z'),
+  referencia: null, estado: 'vigente', reemplazadaPor: null, rutaArchivo: null, pdfSha256: null, snapshot: null,
+  modalidad: null, anuladaEn: null, motivoAnulacion: null,
 };
 
 const coordinacion = { id: 'coo-1', correo: 'coordinacion@cun.edu.co', rol: Rol.COORDINADOR, permiso: 'consulta' as const, escuelas: [], empresaId: null };

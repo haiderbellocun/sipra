@@ -20,6 +20,10 @@
       {
         "include": "infrastructure/adapters/lectura-local/*.worker.js",
         "outDir": "dist"
+      },
+      {
+        "include": "infrastructure/adapters/pdf/recursos/*.jpg",
+        "outDir": "dist"
       }
     ],
     "watchAssets": true

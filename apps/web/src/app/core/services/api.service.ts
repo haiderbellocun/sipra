@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { entorno } from '../../../environments/environment';
 import {
-  Carta, CatalogoProceso, ConsolidadoArl, Documento, Empresa, EntradaBitacora, EscribirBitacora, EstadoCierre,
+  Carta, CartaPublica, SolicitudCarta, VistaPreviaCarta, VerificacionCarta, CatalogoProceso, ConsolidadoArl, Documento, Empresa, EntradaBitacora, EscribirBitacora, EstadoCierre,
   EstadoPractica, FilaMatriculaSinu, FiltroPracticas, ModalidadCatalogo, Periodo, Practica, RadicarArl, RegistroFur,
   ReporteTabla, ResultadoAntidiscriminacion, ResumenSincronizacion, SolicitudArl, TableroCumplimiento,
   UsuarioAdministrativo, Vacante, VistaEstudianteSinu, VistaPreviaDistribucion, ResultadoDistribucion,
@@ -329,8 +329,28 @@ export class ApiService {
     return this.http.get<Carta[]>(`${this.base}/cartas-presentacion`, { params: aParams({ periodo }) });
   }
 
-  generarCarta(dto: { periodoAcademico: string; practicaId?: string; empresaRazonSocial?: string; estudianteDocumento?: string }): Observable<Carta> {
+  /** Vista previa (no emite): datos de SIPRA/SINU, texto, bloqueos y advertencias. */
+  previsualizarCarta(dto: SolicitudCarta): Observable<VistaPreviaCarta> {
+    return this.http.post<VistaPreviaCarta>(`${this.base}/cartas-presentacion/vista-previa`, dto);
+  }
+
+  generarCarta(dto: SolicitudCarta): Observable<Carta> {
     return this.http.post<Carta>(`${this.base}/cartas-presentacion`, dto);
+  }
+
+  /** Consulta PÚBLICA por identificación (POST: la cédula no va en la URL). Solo cartas vigentes y un token por carta. */
+  consultarCartaPublica(documento: string): Observable<{ cartas: CartaPublica[]; mensaje: string | null }> {
+    return this.http.post<{ cartas: CartaPublica[]; mensaje: string | null }>(`${this.base}/cartas-presentacion/publica/consultar`, { documento });
+  }
+
+  /** Descarga PÚBLICA con el token temporal de la consulta. */
+  descargarCartaPublica(token: string): Observable<Blob> {
+    return this.http.get(`${this.base}/cartas-presentacion/publica/descargar`, { params: { token }, responseType: 'blob' });
+  }
+
+  /** Verificación pública de una carta por su referencia (sin sesión). */
+  verificarCarta(referencia: string): Observable<VerificacionCarta> {
+    return this.http.get<VerificacionCarta>(`${this.base}/verificacion-cartas/${encodeURIComponent(referencia)}`);
   }
 
   urlCartaPdf(id: string): string {

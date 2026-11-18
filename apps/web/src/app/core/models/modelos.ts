@@ -236,11 +236,40 @@ export interface CatalogoProceso {
 }
 
 // ── Carta de presentación ────────────────────────────────────────────────
+export type EstadoCarta = 'vigente' | 'reemplazada' | 'anulada';
 export interface Carta {
   id: string; numeroFur: number | null; practicaId: string | null; estudianteId: string; estudianteNombre: string;
   estudianteDocumento: string | null; periodoAcademico: string; modalidadCarta: 'abierta' | 'con_empresa';
   empresaRazonSocial: string | null; generadaEn: string; generadaPor: string;
+  /** Carta digital (con referencia verificable); las históricas tienen referencia nula. */
+  referencia: string | null; estado: EstadoCarta; modalidad: string | null; modalidadEtiqueta: string | null;
+  destinatario: string; urlVerificacion: string | null; digital: boolean;
 }
+
+export type ResponsableArlCarta = 'empresa' | 'cun' | null;
+export interface SolicitudCarta {
+  periodoAcademico: string; practicaId?: string; destinatario?: 'generica' | 'empresa'; modalidad?: string; estudianteDocumento?: string;
+}
+export interface DocumentoCarta {
+  encabezado: string[]; fechaLugar: string; destinatario: string[]; saludo: string; parrafos: string[];
+  notaVerificacion: string; despedida: string; firmante: string[]; referencia: string;
+}
+export interface VistaPreviaCarta {
+  periodoAcademico: string; ventanaAbierta: boolean;
+  estudiante: { nombre: string; tipoDocumento: string | null; documento: string; programa: string; nivel: string } | null;
+  practicas: { id: string; modalidad: string; modalidadEtiqueta: string; empresa: string | null; responsableArl: ResponsableArlCarta }[];
+  modalidadesOfertadas: { modalidad: string; etiqueta: string }[];
+  datos: { destinatario: string; tipoDestinatario: 'generica' | 'empresa'; modalidadEtiqueta: string; responsableArl: ResponsableArlCarta; practicaId: string | null } | null;
+  documento: DocumentoCarta | null; bloqueos: string[]; advertencias: string[]; puedeGenerar: boolean;
+}
+/** Carta VIGENTE en la consulta pública por identificación: lo mínimo y un token temporal de descarga. */
+export interface CartaPublica {
+  referencia: string; estado: 'vigente'; estudiante: string; programa: string; nivel: string; modalidad: string;
+  fechaExpedicion: string; destinatario: string; tokenDescarga: string;
+}
+export type VerificacionCarta =
+  | { encontrada: false }
+  | { encontrada: true; referencia: string; estado: EstadoCarta; estudiante: string; documento: string; programa: string; nivel: string; modalidad: string; fechaExpedicion: string };
 
 // ── Bitácora y cierre ────────────────────────────────────────────────────
 export type TipoEntradaBitacora =

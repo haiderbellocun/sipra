@@ -355,7 +355,7 @@ al SPE. El resto es operación interna.
 | Ver expedientes de su escuela | — | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | Ver expedientes de sus practicantes | — | — | — | — | — | ✓ | — |
 | Registrar la práctica (FUR) | ✓ | — | ✓ (administrativo) | — | ✓ | — | — |
-| Generar carta de presentación | ✓ (en ventana) | ✓ | ✓ | ✓ | ✓ | — | — |
+| Emitir carta de presentación digital (PDF con referencia y QR) | ✓ (la suya, en ventana) | ✓ (su alcance) | ✓ (coordinador y analista, su alcance) | ✓ | consulta | — | — |
 | Modificar la práctica registrada (vacante, remuneración, responsable ARL, modalidad; G5) | — | — | ✓ (coordinador y analista) | — | — | — | — |
 | Cargar documentos | ✓ | ✓ | ✓ | — | ✓ | — | — |
 | Decidir sobre documentos | — | ✓ | ✓ | solo `certificado_eps` | ✓ | — | — |
@@ -3554,6 +3554,150 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.46.1 — 18 de noviembre de 2026
+
+**Carta de presentación · consulta PÚBLICA por identificación y QR funcional.** No hay migración; no cambian la generación, las plantillas, el PDF, el snapshot, el hash, el disparador ni el versionado.
+
+- **Causa del fallo del QR.** Dos causas, ambas de configuración:
+  - **URL del QR:** `URL_PUBLICA_WEB` no estaba definida, así que el QR usaba el primer origen de `CORS_ORIGENES` (`http://localhost:…`); en un celular, «localhost» es el propio teléfono.
+  - **Escucha local:** el servidor web de desarrollo (`ng serve`, y el servidor estático de QA) escucha solo en `127.0.0.1`.
+  - **Solución:**
+    - **Siempre:** la URL sale **solo** de configuración (`URL_PUBLICA_WEB`); nada de localhost, IP ni dominio en el código. Es https obligatorio en pre/prod y queda documentada en `.env.example`.
+    - **En producción:** `https://<dominio-sipra>`.
+    - **En QA local desde un teléfono:** `URL_PUBLICA_WEB=http://<IP-del-PC>:4200` y `ng serve --host 0.0.0.0`. La web llama a la API por la ruta relativa `/api/v1` (proxy), así que no hay más cambios.
+  - Las cartas ya emitidas no cambian: su QR conserva la URL con que se emitieron (inmutables).
+- **Funciones distintas.**
+  - **El QR verifica** una carta que ya se tiene (`/verificar-carta/<REF>`: estado, estudiante, identificación enmascarada, programa, nivel, modalidad y fecha; no descarga).
+  - **La identificación busca y descarga** (`/consultar-carta`). Las dos páginas se enlazan entre sí.
+- **Consulta pública por identificación** (requerimiento funcional: la empresa no necesita cuenta).
+  - **Página:** `/consultar-carta`, pública y fuera del armazón. Pide un solo dato: el número de identificación.
+  - **API:** `POST /api/v1/cartas-presentacion/publica/consultar` con `{ documento }`. La cédula va en el cuerpo, nunca en la URL ni en el historial del navegador.
+  - **Normalización:** quita espacios y puntos y exige 4–20 letras o dígitos, por lo que lo demás se rechaza con 400 y un mensaje neutro. La coincidencia es **exacta** (`usuarios.documento`, consulta parametrizada); `12345` no encuentra `123456789`.
+  - **Resultado:** solo cartas **vigentes**, que pueden ser varias (genérica, a empresa, por periodo), de la más reciente a la más antigua. De cada una: estado, estudiante, programa, nivel, modalidad, fecha de expedición, destinatario, referencia y un token de descarga.
+  - **Nada interno:** nunca reemplazadas ni anuladas, hash, autor, historial, expediente ni correo.
+  - **Sin resultado** —estudiante inexistente, sin carta, o solo con cartas anuladas o reemplazadas— la respuesta es siempre la misma: «No encontramos una carta de presentación vigente asociada a este número de identificación.».
+- **Descarga pública:** `GET /api/v1/cartas-presentacion/publica/descargar?token=…`.
+  - **Token** (`application/services/token-carta-publica.ts`): HMAC-SHA256 con clave derivada exclusiva (`sipra:cartas-publicas:v1`), el mismo patrón de los enlaces firmados de documentos. Contiene solo el id interno de la carta (UUID aleatorio) y el vencimiento, en 10 minutos y formato opaco. Cambiar el id o el vencimiento invalida la firma.
+  - **Validación al descargar:** firma, vencimiento y que la carta **siga vigente**; si se anuló o reemplazó entre la consulta y la descarga, responde 410 «La carta consultada ya no se encuentra vigente.».
+  - **Archivo:** entrega el PDF **histórico** con su SHA-256 verificado, nunca uno regenerado.
+  - La descarga interna (`/cartas-presentacion/:id/pdf`) sigue exigiendo sesión; el UUID de una carta no sirve como token.
+- **Límite de solicitudes** (`infrastructure/seguridad/limitador-publico.service.ts`). SIPRA no tenía throttling; este es el único mecanismo, aplicado por IP (`trustProxy`):
+  - consulta: 10 por minuto y 60 por hora;
+  - **pausa adaptativa:** 8 consultas sin resultado o inválidas en 15 minutos dejan la IP en pausa 15 minutos, sin CAPTCHA (SIPRA no tiene uno y no se agregó un proveedor externo);
+  - descarga: 30 por minuto; verificación por referencia: 60 por minuto;
+  - respuesta 429: «Demasiadas consultas desde esta conexión…».
+- **Auditoría y métricas (minimización).**
+  - **`carta_consultada_publicamente`**, solo si se encontró carta: referencias mostradas, id interno del estudiante e IP. **Nunca** la identificación consultada.
+  - **`carta_descargada_publicamente`:** referencia e IP.
+  - **Consultas sin resultado:** no se auditan; solo cuentan en la métrica `sipra_cartas_publicas_total{operacion, resultado}`, sin PII.
+- **Pruebas.**
+  - **API:** `carta-presentacion-digital.spec.ts`, ahora 56 pruebas.
+    - **Consulta:** vigente; exacta y no parcial; sin carta, inexistente, solo anulada o solo reemplazada con el mismo mensaje; genérica y a empresa descargables; inyección y entradas inválidas rechazadas; auditoría sin cédula.
+    - **Token:** válido, vencido, alterado (id o vencimiento), otro secreto, UUID directo, carta anulada o reemplazada tras emitirlo, PDF alterado.
+    - **Limitador:** 10 por minuto, pausa tras 8 fallidas, descarga y verificación.
+    - **Robustez:** el calentamiento del lector pdf.js y ZXing pasó a `beforeAll`, porque con el equipo cargado el primer test agotaba sus 60 s.
+    - **Rutas:** las dos rutas públicas nuevas quedaron en la lista blanca de `autorizacion-rutas.spec.ts`.
+  - **Web:** `pruebas/consulta-carta-publica.spec.ts`; suite 581/581.
+  - **Navegador real, sin sesión y con perfil limpio (equivalente a incógnito):**
+    - Se emitió una carta sintética **nueva** con `URL_PUBLICA_WEB` apuntando a la IP LAN del PC. El QR **leído del PDF** codifica `http://<IP>:4203/verificar-carta/<REF>`.
+    - Esa URL, abierta por la IP LAN con agente y táctil de móvil a 390 px, muestra «Carta válida · vigente».
+    - **`/consultar-carta` a 390 px:** cédula parcial → mensaje genérico; cédula con puntos y espacios → solo la vigente, sin datos internos y sin desborde; **descarga real del PDF, idéntico por SHA-256**.
+    - **Carta anulada después de la consulta** → «ya no se encuentra vigente».
+    - **Por la API:** inexistente con el mismo mensaje, inyección 400, UUID como token 403, descarga interna sin sesión 401, cédula por GET 404 y ráfaga → 429.
+    - **Arctic Light** en escritorio.
+- **Riesgos.**
+  - **Enumeración:** la cédula es el único dato, por requerimiento. La mitigan el límite por IP, la pausa adaptativa, las respuestas indistinguibles y la exposición mínima, pero no la eliminan.
+  - **Límite por instancia:** está en memoria, así que con varias instancias de Cloud Run el cupo se multiplica. En pre/prod debe complementarse con una regla de **Cloud Armor** sobre `/api/v1/cartas-presentacion/publica/*` y `/api/v1/verificacion-cartas/*`, o moverse a un almacén compartido.
+  - **Sin CAPTCHA.**
+  - **Celular físico:** el escaneo con un teléfono real queda **pendiente de configuración** en cada ambiente (`URL_PUBLICA_WEB`, `ng serve --host 0.0.0.0` y firewall en local; dominio https en pre/prod).
+- **Capturas:** `docs/assets/carta-presentacion/`: `consulta-publica-movil.webp`, `consulta-publica-light.webp` y `verificacion-qr-lan-movil.webp`.
+
+### 0.46.0 — 18 de noviembre de 2026
+
+**Carta de presentación digital del estudiante.** SIPRA genera la carta institucional en PDF: no la redacta el estudiante, se puede verificar y no se edita. Se integra en el Paso 1 de «Registro FUR y cartas» (sin módulo nuevo) y **reutiliza** la carta existente (tabla `cartas_presentacion`, ventana `CARTA_PRESENTACION`, auditoría, pdfkit y almacenamiento), extendiéndola.
+
+- **Fuentes.** Tres cartas institucionales vigentes aportadas por el usuario: Monitoría y Pasantía (PDF A4) y Contrato de aprendizaje (plantilla DOCX), firmadas por la Coordinación de Desarrollo Profesional (Dirección de Operaciones).
+  - Se usaron solo para la estructura, la redacción y el diseño. Sus datos personales **no** entraron al repositorio: pruebas y capturas usan datos sintéticos.
+  - Del DOCX se tomaron dos recursos institucionales: el **membrete** CUN (curvas y pie, reducido a 34 KB) y el **logo** CUN.
+  - La **firma manuscrita** personal **no** se incorporó.
+- **Redacción** (`domain/services/carta-presentacion.plantilla.ts`, única fuente; sin `if/else` de párrafos en Angular).
+  - **Estructura de las cartas:** encabezado institucional, fecha, «SEÑORES:» + destinatario, saludo, presentación con modalidad y vigencia, programa y nivel, salud y seguro estudiantil, ARL, extensión, verificación por `practicas@cun.edu.co`, despedida y firmante.
+  - **Destinatario genérico único:** «A QUIEN CORRESPONDA» (las cartas alternaban con «A QUIEN INTERESE»).
+  - **Vigencia por modalidad:**
+    - Monitoría: «duración mínima de un mes y máxima de dos meses…».
+    - Pasantía: «…de un mes y máxima de tres meses…».
+    - Contrato de aprendizaje: «a partir de la firma del contrato».
+    - Las demás modalidades del catálogo derivan la vigencia de su duración mínima y máxima, o «la duración establecida para la modalidad», sin inventar plazos.
+  - **Programa y nivel** salen de SINU (`programaNombre` y ciclo → TÉCNICO, TECNOLÓGICO o PROFESIONAL). El tipo de documento sale de SINU cuando lo entrega; si no, «documento de identidad».
+  - **Correcciones** respecto de las fuentes: «esta carta», «de acuerdo con el Decreto…», singular del estudiante.
+- **ARL dinámica** (ya no es un párrafo fijo).
+  - **Empresa:** «La empresa deberá afiliar al estudiante ante la Administradora de Riesgos Laborales (ARL), de acuerdo con el Decreto 055 de 2015.».
+  - **CUN:** «La afiliación… estará a cargo de la Corporación Unificada Nacional de Educación Superior – CUN…»; nunca dice que la empresa afilia.
+  - **Carta genérica sin práctica:** «…se definirá al formalizar el registro de la práctica…»; no se infiere el responsable desde la modalidad.
+  - **Práctica sin responsable de ARL:** bloqueo «Falta definir quién asume la afiliación a ARL.».
+  - Los textos para CUN y para la carta genérica no estaban en las fuentes: quedan **pendientes de ratificación institucional**.
+- **Flujo** (`sipra-carta-presentacion`).
+  - El usuario elige el periodo (y el personal, el documento del estudiante) y luego para qué carta: la genérica con una modalidad ofertada en el periodo, o una ligada a su práctica (a la organización vinculada o «A QUIEN CORRESPONDA»).
+  - La vista previa del servidor muestra destinatario, estudiante, documento, programa, nivel, modalidad, responsable de ARL, el texto principal, los bloqueos y las advertencias. Después vienen la confirmación («Se generará una carta institucional con estos datos…»), el resultado (fecha, referencia, destinatario, Descargar PDF y Verificar) y el historial compacto.
+  - **Nada se digita:** nombre, documento, programa y nivel vienen de SIPRA/SINU. La organización es la **vinculada** a la práctica: la relación con la empresa habilitada o el nombre del FUR. Se retiró el campo libre de «organización».
+- **Generación del PDF** (`CartaPdfAdapter`, pdfkit en el servidor; sin capturas del navegador ni servicios externos).
+  - Una página A4 con membrete, logo y encabezado. El tamaño del cuerpo se ajusta (11 → 9 pt) para caber.
+  - El pie integra «REF: XXXXX-XXXXX», un QR discreto, «Verifica esta carta en SIPRA» y el correo. Ya no queda la referencia sola en una segunda página, como en las cartas fuente.
+  - El PDF institucional no cambia con el tema de la aplicación.
+- **Firmante.** Es configuración institucional, no código ni CMS:
+  - `CARTA_FIRMANTE_NOMBRE`, `CARTA_FIRMANTE_CARGO` (por defecto «Coordinador de Desarrollo Profesional») y `CARTA_FIRMANTE_DEPENDENCIA` (por defecto «Dirección de Operaciones»).
+  - `CARTA_FIRMA_IMAGEN`: ruta de una firma **aprobada**, opcional.
+  - Sin nombre configurado, la carta sale con el cargo y el personal ve un aviso. Ningún nombre ni firma personal está en el repositorio.
+- **Referencia y QR.**
+  - **Referencia:** se genera en el backend con `crypto.randomInt`. Son 10 símbolos sin ambiguos (≈ 8·10¹⁴ combinaciones), es única por índice y nunca se reutiliza; el identificador interno sigue siendo el UUID.
+  - **QR:** se genera con ZXing (escritor WASM local, ya en el proyecto) y apunta **solo** a `URL_PUBLICA_WEB/verificar-carta/<REF>` (https obligatorio en pre/prod; si falta, el primer origen de CORS).
+- **Verificación pública.**
+  - **API:** `GET /api/v1/verificacion-cartas/:referencia` (`@Publico`, registrada en la lista blanca de rutas públicas).
+  - **Web:** `/verificar-carta/:referencia`, fuera del armazón y sin sesión.
+  - Muestra solo estado, estudiante, identificación enmascarada (cuatro últimos dígitos), programa, nivel, modalidad y fecha de expedición, siempre desde el snapshot. Una referencia inexistente o inválida da «Carta no encontrada».
+- **Snapshot, inmutabilidad y versionado** (migración `1756000024000-CartaPresentacionDigital`).
+  - **Columnas nuevas:** `referencia` (única), `estado` (vigente, reemplazada o anulada), `reemplazada_por`, `ruta_archivo`, `pdf_sha256`, `snapshot`, `modalidad`, `anulada_en` y `motivo_anulacion`.
+  - **Restricciones:** estados coherentes, y una carta digital completa o ninguna de esas columnas. Tras la QA se corrigió que `pdf_sha256` nulo no pasara el CHECK.
+  - **Disparador en el motor:** una carta emitida no cambia su referencia, snapshot, archivo, hash, contenido, estudiante ni fecha, y no se borra. Su estado solo pasa de vigente a reemplazada o anulada.
+  - **Archivo:** el PDF emitido se guarda en el almacenamiento existente (`cartas-presentacion/<estudiante>/<uuid>.pdf`) con su SHA-256. La descarga entrega **ese** archivo y se bloquea si el hash no coincide.
+  - **Versionado:** una carta nueva del mismo estudiante, periodo, destinatario y práctica **reemplaza** a la vigente en una transacción (con un bloqueo por estudiante). La anterior conserva su PDF y su snapshot.
+  - **Anulación:** coordinación y analista anulan con motivo.
+  - **Cartas históricas** (sin referencia): siguen consultables y se reimprimen desde su contenido.
+- **Permisos** (G1 respetado).
+  - **Emiten:** el estudiante (la suya, en la ventana del periodo), y docente facilitador, auxiliar, coordinación y analista (en su alcance por escuela o asignación, sin depender de la ventana, que es la regla existente).
+  - **Administración:** solo consulta.
+  - **Dirección:** no entra a cartas (matriz G1).
+  - El backend valida actor, estudiante, práctica, alcance, ventana y datos.
+- **Auditoría.**
+  - `carta_presentacion_generada` registra: actor, estudiante, práctica, referencia, modalidad, destinatario, responsable de ARL, fecha, `pdfSha256` y cartas reemplazadas.
+  - `carta_descargada` registra cada descarga, y `carta_anulada` va con su motivo.
+- **Configuración nueva:** `URL_PUBLICA_WEB`, `CARTA_FIRMANTE_*` y `CARTA_FIRMA_IMAGEN` (en `.env.example`). Los recursos del PDF se copian al build (`nest-cli.json`).
+- **Pruebas.**
+  - **API:**
+    - `test/carta-presentacion-digital.spec.ts` (43): las tres modalidades con textos distintos, el resto del catálogo, destinatario genérico o de empresa, ARL (empresa, CUN o sin definir; nunca CUN con «la empresa deberá afiliar»), fecha colombiana, referencia, enmascarado y nombre de archivo seguro.
+    - Además, el PDF real: una página, textos, tres imágenes y el **QR leído del PDF rasterizado**. Y el flujo completo: vista previa sin escrituras, bloqueos, ventana, SINU, organización por relación, inmutabilidad, integridad del archivo, versionado con snapshot y PDF intactos, verificación, anulación, permisos, alcance y auditoría.
+    - Se actualizaron `avance-y-carta`, `reportes-sgp`, `periodo-cargue-estudiante` (orden de migraciones) y `autorizacion-rutas` (ruta pública nueva).
+    - Suite completa: 117 suites, 3.210/3.210. Aislamiento: 10/10.
+  - **PostgreSQL desechable:** `npm run test:pg:carta` (16/16): emisión con reemplazo, inmutabilidad, no borrado, unicidad, restricciones, doble anulación y seis emisiones simultáneas con una sola vigente.
+  - **`verificar:migraciones`:** la 24 baja y vuelve a subir limpia.
+    - **Deuda previa (desde G1):** la fase de reversión de la herramienta asume que la 20 es la última. La 22 se niega por diseño a revertirse con director o analista sembrados, por lo que dos comprobaciones heredadas fallan. No se relajó la protección.
+  - **Web:** `pruebas/carta-presentacion.spec.ts`; suite 572/572. Lint con 0 advertencias, build de API y web, y `verificar:secretos` limpio.
+  - **Navegador** (sipra_dev, datos sintéticos): todas las comprobaciones en verde.
+    - **Estudiante, Signal Dark:** monitoría genérica, vista previa, confirmación, emisión, historial y descarga idéntica.
+    - **Verificación pública:** válida, inexistente, reemplazada y anulada.
+    - **Estudiante con empresa, Arctic Light:** destinatario y ARL «la empresa»; ventana cerrada, bloqueada también en la API.
+    - **Móvil 390:** contrato de aprendizaje sin desbordes.
+    - **Coordinación:** emite por documento, reemplaza y anula.
+    - **Permisos:** administración consulta y no emite; dirección 403; un estudiante no ve la carta de otro.
+  - **QA visual:** los tres PDF rasterizados y revisados.
+- **Migración aplicada en `sipra_dev`.** Se emitieron cartas sintéticas para tres estudiantes de prueba.
+- **Evidencia:** `docs/assets/carta-presentacion/` (capturas de interfaz y verificación, y los PDF de monitoría, pasantía y contrato de aprendizaje).
+- **Riesgos y pendientes.**
+  - **Ratificación institucional pendiente:** la redacción de ARL «CUN» y «por definir», y el uso del membrete.
+  - **Firmante sin nombre** hasta configurarlo, y firma aprobada no cargada.
+  - **Sin límite de peticiones** en la verificación pública; el espacio de referencias hace inviable enumerarlas.
+  - **Tipo de documento:** sale de SINU; si no viene, «documento de identidad».
 
 ### 0.45.0 — 18 de noviembre de 2026
 

@@ -275,8 +275,17 @@ export interface FiltroCartas {
 
 export interface CartaRepositoryPort {
   buscarPorId(id: string): Promise<CartaPresentacion | null>;
+  /** Verificación pública por la referencia impresa en la carta. */
+  buscarPorReferencia(referencia: string): Promise<CartaPresentacion | null>;
   listar(filtro: FiltroCartas): Promise<CartaPresentacion[]>;
   guardar(datos: DatosCarta): Promise<CartaPresentacion>;
+  /**
+   * Emite una carta digital en UNA transacción: la inserta y marca REEMPLAZADAS las cartas vigentes del mismo
+   * estudiante, periodo, destinatario y práctica (con `reemplazada_por` = la nueva). Devuelve los ids reemplazados.
+   */
+  emitir(datos: DatosCarta): Promise<{ carta: CartaPresentacion; reemplazadas: string[] }>;
+  /** Anula una carta vigente; `false` si ya no estaba vigente. */
+  anular(id: string, motivo: string, ahora: Date): Promise<boolean>;
 }
 export const CARTA_REPOSITORY = Symbol('CARTA_REPOSITORY');
 

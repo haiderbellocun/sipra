@@ -27,6 +27,7 @@
     "piloto:evaluar": "ts-node --transpile-only herramientas/evaluar-piloto-eps.ts",
     "smoke:arranque": "node herramientas/smoke-arranque.js",
     "test:pg": "ts-node --transpile-only herramientas/verificar-concurrencia-pg.ts",
+    "test:pg:carta": "ts-node --transpile-only herramientas/verificar-carta-pg.ts",
     "test:pg:distribucion": "ts-node --transpile-only herramientas/verificar-distribucion-pg.ts",
     "test:pg:empresarial": "ts-node --transpile-only herramientas/verificar-documento-empresarial-pg.ts",
     "regresion:rut": "ts-node --transpile-only herramientas/regresion-rut-real.ts",

@@ -104,7 +104,13 @@ describe('Política de acceso · cobertura de rutas', () => {
       'POST /empresas/nit/verificar',
       'POST /empresas/solicitudes',
       'POST /trabajos/procesar',
-    ]);
+      // Carta de presentación digital: verificación pública por referencia (datos mínimos; el QR apunta aquí).
+      'GET /verificacion-cartas/:referencia',
+      // Consulta y descarga PÚBLICAS de la carta vigente por identificación (requerimiento funcional; con límite por IP
+      // y token firmado de 10 minutos para descargar).
+      'POST /cartas-presentacion/publica/consultar',
+      'GET /cartas-presentacion/publica/descargar',
+    ].sort());
   });
 });
 

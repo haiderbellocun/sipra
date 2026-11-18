@@ -40,7 +40,7 @@ import {
 } from '../../application/use-cases/administracion/parametros.use-case';
 
 import {
-  GENERADOR_PDF, GENERADOR_HOJA_CALCULO,
+  GENERADOR_PDF, GENERADOR_CARTA_PDF, GENERADOR_HOJA_CALCULO,
   ALMACENAMIENTO, COHERENCIA_CRUZADA, COLA, EXTRACCION_IA, EXTRACCION_LOCAL, LECTOR_CODIGO_BARRAS,
   NOTIFICACION, RUES, SINU,
 } from '../../domain/ports/out/servicios-externos.port';
@@ -108,7 +108,8 @@ import { SaludController } from '../controllers/salud.controller';
 import { ReportesController } from '../controllers/reportes.controller';
 import { AdministracionController } from '../controllers/administracion.controller';
 import { TrabajosController } from '../controllers/trabajos.controller';
-import { CartasController } from '../controllers/cartas.controller';
+import { CartasController, CartasPublicasController, VerificacionCartasController } from '../controllers/cartas.controller';
+import { LimitadorPublicoService } from '../seguridad/limitador-publico.service';
 import { BitacoraController } from '../controllers/bitacora.controller';
 import { SolicitudesArlController } from '../controllers/solicitudes-arl.controller';
 import { UsuariosController } from '../controllers/usuarios.controller';
@@ -184,6 +185,7 @@ import { BitacoraUseCase } from '../../application/use-cases/practicas/bitacora.
 import { RegistrarPracticaUseCase } from '../../application/use-cases/practicas/registrar-practica.use-case';
 import { CartaPresentacionUseCase } from '../../application/use-cases/practicas/carta-presentacion.use-case';
 import { PdfKitAdapter } from '../adapters/pdf/pdfkit.adapter';
+import { CartaPdfAdapter } from '../adapters/pdf/carta-pdf.adapter';
 import { MetricasInterceptor } from '../observability/metricas.interceptor';
 import { MetricasService } from '../observability/metricas.service';
 import { ENTIDADES_ORM } from '../persistence/postgres/entities/todas.orm-entity';
@@ -244,7 +246,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
   controllers: [
     AuthController, PracticasController, DocumentosController,
     EmpresasController, CumplimientoController, BolsaController, SaludController,
-    TrabajosController, ReportesController, AdministracionController, CartasController,
+    TrabajosController, ReportesController, AdministracionController, CartasController, VerificacionCartasController, CartasPublicasController,
     BitacoraController, SolicitudesArlController, UsuariosController, VistasController, ReportesSgpController,
     PeriodosController, CatalogoController, PqrsController, CostosIaController, ConsentimientosController, ValidacionesEpsController, MesaEpsController, ActasIniciacionController, MesaRutController, MesaCamaraController, ValidacionDocumentalController,
     ReportesAnaliticaController,
@@ -287,6 +289,8 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: DECISION_RUT, useClass: DecisionRutPgAdapter },
     { provide: EXPEDIENTE_DOCUMENTAL_LECTURA, useClass: ExpedienteDocumentalLecturaAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },
+    { provide: GENERADOR_CARTA_PDF, useClass: CartaPdfAdapter },
+    LimitadorPublicoService,
     { provide: GENERADOR_HOJA_CALCULO, useClass: ExcelJsAdapter },
 
     AlmacenamientoLocalAdapter,

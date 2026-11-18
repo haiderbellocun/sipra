@@ -249,6 +249,16 @@ export class CartaOrm {
   @Column({ type: 'varchar', length: 64 }) hash_sha256!: string;
   @Column('uuid') generada_por!: string;
   @Index() @Column({ type: 'timestamptz' }) generada_en!: Date;
+  // ── Carta digital (migración 1756000024000) ──
+  @Column({ type: 'varchar', length: 16, nullable: true }) referencia!: string | null;
+  @Column({ type: 'varchar', length: 12, default: 'vigente' }) estado!: string;
+  @Column({ type: 'uuid', nullable: true }) reemplazada_por!: string | null;
+  @Column({ type: 'varchar', length: 300, nullable: true }) ruta_archivo!: string | null;
+  @Column({ type: 'varchar', length: 64, nullable: true }) pdf_sha256!: string | null;
+  @Column({ type: 'jsonb', nullable: true }) snapshot!: Record<string, unknown> | null;
+  @Column({ type: 'varchar', length: 40, nullable: true }) modalidad!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) anulada_en!: Date | null;
+  @Column({ type: 'text', nullable: true }) motivo_anulacion!: string | null;
 }
 
 /**
