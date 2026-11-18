@@ -3555,6 +3555,26 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.44.1 — 18 de noviembre de 2026
+
+**Gestión de periodos · filtro por año** (ajuste solo de frontend; sin backend, sin endpoints nuevos ni consultas extra).
+- **Ubicación.** Columna izquierda, debajo de «+ Crear periodo» y sobre la lista: etiqueta «Año» y un select compacto. La estructura maestro/detalle no cambia; el filtro y la lista comparten la columna fija en escritorio.
+- **Opciones.**
+  - Se construyen a partir de los periodos ya cargados: «Todos los años» y luego los años, del más reciente al más antiguo. No hay años fijos.
+  - El año sale de `fechaInicio` (año UTC de la fecha ISO, que es el día calendario que entrega la API), **nunca del código**. Así, «2026D» (19 oct 2026 – 26 feb 2027) es de 2026 y «27V01» (1 ene 2027) es de 2027, sin corrimiento por la zona horaria de Bogotá.
+- **Valor inicial.** El año actual si tiene periodos; si no, el más reciente.
+- **Filtrado.** Solo afecta a la lista. El detalle nunca muestra un periodo oculto por el filtro:
+  - Al cambiar de año se conserva la selección si sigue visible; si no, se elige el periodo de inicio más reciente del año.
+  - Si un año no tiene periodos: «No hay períodos registrados para este año.», y «+ Crear periodo» sigue disponible.
+- **Crear.** Si el periodo nuevo es de otro año, el filtro pasa a ese año y el periodo queda seleccionado.
+- **Sin cambios** en permisos (administración y dirección), edición, ventanas, modalidades, cargue ni sincronización.
+- **Accesibilidad y diseño.** Label asociado, teclado y foco visible; solo tokens actuales. En móvil, el select ocupa el ancho disponible sin desbordes.
+- **Pruebas.**
+  - Web: `pruebas/periodos-anio.spec.ts` cubre los 10 casos pedidos más fecha simple y zona horaria; suite 537/537. Lint con 0 advertencias, build web y `verificar:secretos` limpio.
+  - Navegador (sipra_dev), todas las comprobaciones en verde: opciones dinámicas, 2026 por defecto, 2026D en 2026, 2027, «Todos», cambio de selección, foco, crear «25QA1» (periodo sintético de 2025 creado desde la interfaz, que lleva el filtro a 2025), director en claro y 390 px.
+  - El estado vacío no se puede alcanzar con datos reales (los años salen de periodos existentes); está cubierto por las pruebas unitarias.
+- **Capturas:** `docs/assets/periodos-anio/`.
+
 ### 0.44.0 — 18 de noviembre de 2026
 
 **Gobierno operativo · G6: Distribución homogénea de estudiantes por docente facilitador.** Requerimiento institucional: «Los estudiantes deben distribuirse homogéneamente entre los docentes facilitadores». La distribución la hacen solo **coordinación y analista**. Administración, dirección, docente, auxiliar y estudiante reciben 403 y no ven la acción. Siempre es sobre **un periodo**, se previsualiza antes de aplicar, es determinística, auditable y segura frente a concurrencia, y **nunca mueve asignaciones existentes**. En la interfaz se dice «Docente facilitador»; internamente sigue siendo `tutor`.

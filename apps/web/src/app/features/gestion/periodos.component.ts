@@ -15,6 +15,8 @@ import {
 const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_docente', 'carta_presentacion'];
 
 /** Gestión de periodos (SGP): ventanas, modalidades ofertadas y sincronización, periodo por periodo. */
+import { FiltroAnio, anioInicial, aniosDisponibles, filtrarPorAnio, filtroTrasCrear, masReciente, seleccionTrasFiltro } from './periodos-anio';
+
 @Component({
   selector: 'sipra-periodos',
   standalone: true,
@@ -27,7 +29,14 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_docent
     details.crear:not([open]) { padding:0; border:0; background:none; box-shadow:none; }
     details.crear summary::-webkit-details-marker { display:none; }
     .maestro-detalle { display:grid; gap:var(--sp-3); grid-template-columns:minmax(0,1fr); align-items:start; }
-    @media (width >= 1000px) { .maestro-detalle { grid-template-columns:260px minmax(0,1fr); } .maestro { position:sticky; top:calc(var(--alto-cinta, 0px) + 62px + 12px); max-height:calc(100dvh - 140px); overflow:auto; } }
+    @media (width >= 1000px) { .maestro-detalle { grid-template-columns:260px minmax(0,1fr); } .columna { position:sticky; top:calc(var(--alto-cinta, 0px) + 62px + 12px); max-height:calc(100dvh - 140px); overflow:auto; } }
+    /* Filtro por año (solo navegación): etiqueta pequeña y select compacto, sobre la lista. */
+    .columna { display:grid; gap:var(--sp-2); align-content:start; min-width:0; }
+    .filtro-anio { display:flex; align-items:center; gap:var(--sp-2); margin:0; }
+    .filtro-anio label { font-size:var(--fs-xs); font-weight:600; color:var(--texto-tenue); text-transform:uppercase; letter-spacing:.06em; }
+    .filtro-anio select { flex:1; min-width:0; font:inherit; font-size:var(--fs-sm); min-height:36px; padding:4px 8px; border:1px solid var(--borde-campo); border-radius:var(--r-sm); background:var(--superficie); color:var(--texto); }
+    .filtro-anio select:focus-visible { outline:2px solid var(--marca); outline-offset:2px; }
+    .maestro .vacio-anio { font-size:var(--fs-sm); color:var(--texto-tenue); padding:var(--sp-2) 0; margin:0; }
     .maestro { display:flex; flex-wrap:wrap; gap:var(--sp-1); }
     @media (width >= 1000px) { .maestro { flex-direction:column; flex-wrap:nowrap; } }
     .maestro .item { display:flex; gap:var(--sp-2); align-items:center; text-align:left; font:inherit; color:inherit; background:var(--superficie); border:1px solid var(--borde); border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-3); min-height:44px; cursor:pointer; }
@@ -116,15 +125,26 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_docent
     </details>
 
     <div class="maestro-detalle">
+      <div class="columna">
+      <div class="filtro-anio">
+        <label for="filtro-anio">Año</label>
+        <select id="filtro-anio" [ngModel]="anio()" (ngModelChange)="cambiarAnio($event)">
+          <option [ngValue]="'todos'">Todos los años</option>
+          @for (a of anios(); track a) { <option [ngValue]="a">{{ a }}</option> }
+        </select>
+      </div>
       <nav class="maestro" aria-label="Periodos académicos">
-        @for (p of periodos(); track p.codigo) {
-          <button type="button" class="item" [class.sel]="actual().codigo === p.codigo" [attr.aria-current]="actual().codigo === p.codigo ? 'true' : null" (click)="elegir(p.codigo)">
+        @for (p of visibles(); track p.codigo) {
+          <button type="button" class="item" [class.sel]="actual()?.codigo === p.codigo" [attr.aria-current]="actual()?.codigo === p.codigo ? 'true' : null" (click)="elegir(p.codigo)">
             <span class="cod">{{ p.codigo }}</span>
             <span class="nom">{{ p.nombre }}</span>
             <span class="etiqueta" [class.etiqueta--ok]="p.vigente && p.activo" [class.etiqueta--neutra]="!(p.vigente && p.activo)">{{ !p.activo ? 'inactivo' : p.vigente ? 'vigente' : 'cerrado' }}</span>
           </button>
+        } @empty {
+          @if (periodos().length > 0) { <p class="vacio-anio">No hay períodos registrados para este año.</p> }
         }
       </nav>
+      </div>
 
       @if (actual(); as p) {
         <section class="tarjeta periodo" [attr.aria-label]="'Periodo ' + p.codigo">
@@ -206,7 +226,8 @@ const VENTANAS: TipoVentana[] = ['registro_fur', 'solicitud_arl', 'cargue_docent
           }
         </section>
       } @else {
-        <div class="vacio"><strong>Aún no hay periodos</strong><br />Cree el primero con el botón «Crear periodo».</div>
+        @if (periodos().length === 0) { <div class="vacio"><strong>Aún no hay periodos</strong><br />Cree el primero con el botón «Crear periodo».</div> }
+        @else { <div class="vacio">No hay períodos registrados para este año. Elija otro año o cree uno con «Crear periodo».</div> }
       }
     </div>
   `,
@@ -217,10 +238,20 @@ export class PeriodosComponent implements OnInit {
   readonly periodos = signal<Periodo[]>([]);
   /** Periodo elegido en la lista (por defecto, el vigente y activo, o el primero) y la pestaña de su configuración. */
   readonly seleccion = signal<string | null>(null);
+  /** Filtro por año de la lista (solo navegación; el año sale de `fechaInicio`). null hasta cargar los periodos. */
+  readonly anio = signal<FiltroAnio | null>(null);
+  readonly anios = computed(() => aniosDisponibles(this.periodos()));
+  readonly visibles = computed(() => filtrarPorAnio(this.periodos(), this.anio() ?? 'todos'));
+  /** Nunca queda en el detalle un periodo oculto por el filtro. */
   readonly actual = computed(() => {
-    const lista = this.periodos();
-    return lista.find((x) => x.codigo === this.seleccion()) ?? lista.find((x) => x.vigente && x.activo) ?? lista[0] ?? null;
+    const lista = this.visibles();
+    return lista.find((x) => x.codigo === this.seleccion()) ?? lista.find((x) => x.vigente && x.activo) ?? masReciente(lista);
   });
+  cambiarAnio(anio: FiltroAnio): void {
+    const previa = this.actual()?.codigo ?? null; // la que se veía ANTES de filtrar
+    this.anio.set(anio);
+    this.seleccion.set(seleccionTrasFiltro(this.visibles(), previa));
+  }
   readonly pestanas = [
     { clave: 'ventanas', texto: 'Ventanas habilitadas' }, { clave: 'cronograma', texto: 'Cronograma' }, { clave: 'modalidades', texto: 'Modalidades ofertadas' },
   ] as const;
@@ -253,7 +284,10 @@ export class PeriodosComponent implements OnInit {
   }
 
   async cargar(): Promise<void> {
-    try { this.periodos.set(await firstValueFrom(this.api.listarPeriodos())); } catch (error) { this.avisos.error(leerError(error)); }
+    try {
+      this.periodos.set(await firstValueFrom(this.api.listarPeriodos()));
+      if (this.anio() === null) this.anio.set(anioInicial(this.periodos()));
+    } catch (error) { this.avisos.error(leerError(error)); }
   }
 
   fecha(p: Periodo, v: TipoVentana, campo: 'desde' | 'hasta', evento: Event): void {
@@ -354,7 +388,11 @@ export class PeriodosComponent implements OnInit {
         codigo, nombre, calendario, fechaInicio, fechaFin, cierreFur: cierreFur || undefined,
         cargueEstudiante: { habilitado: cargueHabilitado, desde: cargueDesde, hasta: cargueHasta },
       }));
-      await this.cargar(); this.avisos.exito(`Periodo ${p.codigo} creado.`); }
+      await this.cargar();
+      // Si el nuevo periodo es de otro año, el filtro pasa a su año y queda seleccionado.
+      this.anio.set(filtroTrasCrear(this.anio() ?? 'todos', p));
+      this.seleccion.set(p.codigo);
+      this.avisos.exito(`Periodo ${p.codigo} creado.`); }
     catch (error) { this.avisos.error(leerError(error)); }
     finally { this.guardando.set(false); }
   }
