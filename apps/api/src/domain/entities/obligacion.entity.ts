@@ -118,6 +118,18 @@ export class Obligacion {
     this.datos.actualizadaEn = ahora;
   }
 
+  /**
+   * G5 · Deja de aplicar (p. ej., la modalidad cambió). Solo una obligación abierta (pendiente o vencida): las
+   * cumplidas se conservan tal cual. El registro no se borra: queda con su observación como trazabilidad.
+   */
+  marcarNoAplica(observacion: string, ahora: Date = new Date()): boolean {
+    if (this.datos.estado !== EstadoObligacion.PENDIENTE && this.datos.estado !== EstadoObligacion.VENCIDA) return false;
+    this.datos.estado = EstadoObligacion.NO_APLICA;
+    this.datos.observacion = observacion;
+    this.datos.actualizadaEn = ahora;
+    return true;
+  }
+
   /** Ejecutado por el proceso programado del motor de obligaciones. */
   evaluarVencimiento(ahora: Date = new Date()): boolean {
     if (this.datos.estado !== EstadoObligacion.PENDIENTE) return false;

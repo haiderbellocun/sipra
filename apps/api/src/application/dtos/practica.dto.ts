@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  Equals, IsBoolean, IsDateString, IsEmail, IsEnum, IsInt, IsNumber, IsOptional, IsString, IsUUID,
+  Equals, IsBoolean, IsDateString, IsEmail, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID,
   Matches, MaxLength, Min, MinLength,
 } from 'class-validator';
 import {
-  CicloAcademico, EstadoPractica, ModalidadPractica, OrigenRegistro, SenalAcompanamiento,
+  CicloAcademico, ESTADOS_OPERATIVOS, EstadoOperativo, EstadoPractica, ModalidadPractica, OrigenRegistro, SenalAcompanamiento,
   RESPONSABLES_ARL_PRACTICA, ResponsableArlPractica, TipoRemuneracion,
 } from '../../domain/entities/practica.entity';
 import { AvanceDocumental } from '../../domain/services/avance-documental.domain-service';
@@ -98,6 +98,57 @@ export class ActualizarVacanteDto {
   @ApiPropertyOptional() @IsOptional() @IsString() funcionesRelevantes?: string;
 }
 
+/**
+ * G5 · Modificación controlada de una práctica registrada (solo coordinación y analista). Lista CERRADA de campos:
+ * no hay estado técnico, fechas, periodo, empresa, nota, horas ni ARL verificada. La justificación es obligatoria
+ * y `actualizadaEn` (la versión que se editó) evita sobrescribir en silencio un cambio de otra persona.
+ */
+export class ModificarPracticaDto {
+  @ApiPropertyOptional({ enum: ModalidadPractica }) @IsOptional() @IsEnum(ModalidadPractica) modalidad?: ModalidadPractica;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) area?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(150) cargo?: string;
+  @ApiPropertyOptional({ enum: ['remunerada', 'no_remunerada'] })
+  @IsOptional() @IsEnum(['remunerada', 'no_remunerada'] as never) tipoRemuneracion?: TipoRemuneracion;
+  @ApiPropertyOptional({ nullable: true }) @IsOptional() @IsNumber() @Min(0) salario?: number | null;
+  @ApiPropertyOptional({ enum: RESPONSABLES_ARL_PRACTICA }) @IsOptional() @IsEnum(RESPONSABLES_ARL_PRACTICA) responsableArl?: ResponsableArlPractica;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) horario?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(150) jefeInmediatoNombre?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) jefeInmediatoCargo?: string;
+  @ApiPropertyOptional() @IsOptional() @IsEmail() @MaxLength(180) jefeInmediatoCorreo?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40) jefeInmediatoTelefono?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) ciudad?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(4000) funcionesRelevantes?: string;
+  @ApiProperty({ description: 'Motivo del cambio; queda en la auditoría (mínimo 10 caracteres).' })
+  @IsString() @MinLength(10) @MaxLength(1000) justificacion!: string;
+  @ApiPropertyOptional({ description: 'Versión que se editó (`gobierno.actualizadaEn`); si la práctica cambió después, 409.' })
+  @IsOptional() @IsString() actualizadaEn?: string;
+}
+
+/** G5 · Cambio manual de estado OPERATIVO (Inscrito, En práctica, Anulado, Reprobado, Cerrado). */
+export class CambiarEstadoOperativoDto {
+  @ApiProperty({ enum: ESTADOS_OPERATIVOS }) @IsIn([...ESTADOS_OPERATIVOS]) destino!: EstadoOperativo;
+  @ApiProperty({ description: 'Motivo del cambio; queda en la auditoría (mínimo 10 caracteres).' })
+  @IsString() @MinLength(10) @MaxLength(1000) justificacion!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() actualizadaEn?: string;
+}
+
+export class DestinoOperativoDto {
+  @ApiProperty({ enum: ESTADOS_OPERATIVOS }) estado!: EstadoOperativo;
+  @ApiProperty() etiqueta!: string;
+  @ApiProperty() disponible!: boolean;
+  @ApiPropertyOptional({ nullable: true, description: 'Por qué no está disponible, en lenguaje operativo' }) motivo!: string | null;
+}
+
+/** G5 · Gobierno de la práctica en el detalle: estado operativo para todos; acciones solo para quien modifica. */
+export class GobiernoPracticaDto {
+  @ApiProperty({ enum: ESTADOS_OPERATIVOS }) estadoOperativo!: EstadoOperativo;
+  @ApiProperty() etiquetaEstadoOperativo!: string;
+  @ApiProperty({ description: 'Versión para el control optimista de las modificaciones' }) actualizadaEn!: string;
+  @ApiProperty({ description: 'Solo coordinación y analista modifican la práctica' }) puedeModificar!: boolean;
+  @ApiProperty({ type: [DestinoOperativoDto] }) destinos!: DestinoOperativoDto[];
+  @ApiProperty({ type: [String], description: 'Asuntos para revisar (p. ej., responsable de la ARL frente a la modalidad)' }) pendientes!: string[];
+}
+
 export class TransicionPracticaDto {
   @ApiProperty({ enum: EstadoPractica }) @IsEnum(EstadoPractica) destino!: EstadoPractica;
   @ApiProperty({ description: 'Justificación registrada en auditoría. Obligatoria.' })
@@ -160,6 +211,8 @@ export class PracticaRespuestaDto {
     description: 'G2 · solo en el detalle: estado del cargue del estudiante según la ventana del periodo, calculado en el servidor',
   })
   cargueEstudiante?: CargueEstudianteDto;
+  @ApiPropertyOptional({ type: () => GobiernoPracticaDto, description: 'G5 · solo en el detalle' })
+  gobierno?: GobiernoPracticaDto;
   @ApiProperty({ nullable: true }) fechaInicio!: string | null;
   @ApiProperty({ nullable: true }) fechaFin!: string | null;
   @ApiProperty({ nullable: true }) horasRegistradas!: number | null;

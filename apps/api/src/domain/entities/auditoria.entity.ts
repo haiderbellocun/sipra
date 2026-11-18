@@ -22,6 +22,10 @@ export enum AccionAuditada {
   PARAMETRO_CAMBIADO = 'parametro_cambiado',
   REGISTRO_FUR = 'registro_fur',
   VACANTE_PRACTICA_ACTUALIZADA = 'vacante_practica_actualizada',
+  /** G5 · modificación controlada (coordinación/analista): un solo evento con `cambios: { campo: { de, a } }`. */
+  PRACTICA_MODIFICADA = 'practica_modificada',
+  /** G5 · cambio manual de estado operativo (Inscrito, En práctica, Anulado, Reprobado, Cerrado). */
+  ESTADO_OPERATIVO_CAMBIADO = 'estado_operativo_cambiado',
   CARTA_PRESENTACION_GENERADA = 'carta_presentacion_generada',
   BITACORA_REGISTRADA = 'bitacora_registrada',
   CALIFICACION_REGISTRADA = 'calificacion_registrada',

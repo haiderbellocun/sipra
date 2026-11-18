@@ -58,10 +58,10 @@ describe('G4 · perfiles según quién gestiona (espejo de G1)', () => {
   });
 
   it('etiquetas: Analista de prácticas (independiente), Docente facilitador (internamente `tutor`), Director', () => {
-    assert.equal(ETIQUETA_PERFIL.analista, 'Analista de prácticas');
-    assert.equal(ETIQUETA_PERFIL.coordinador, 'Coordinador de prácticas');
-    assert.equal(ETIQUETA_PERFIL.tutor, 'Docente facilitador');
-    assert.equal(ETIQUETA_PERFIL.director, 'Director');
+    assert.equal(ETIQUETA_PERFIL['analista'], 'Analista de prácticas');
+    assert.equal(ETIQUETA_PERFIL['coordinador'], 'Coordinador de prácticas');
+    assert.equal(ETIQUETA_PERFIL['tutor'], 'Docente facilitador');
+    assert.equal(ETIQUETA_PERFIL['director'], 'Director');
     assert.doesNotMatch(comp, /\(y analista\)/);
   });
 });
@@ -97,8 +97,8 @@ describe('G4 · alcance', () => {
 
   it('se envían escuelas solo para los perfiles que las usan; institucional = []', () => {
     const coord = { ...formularioVacio(), nombre: 'Ana Pérez', correo: 'ana@cun.edu.co', documento: '1234', rol: 'coordinador' as Rol };
-    assert.deepEqual(cuerpoCreacion({ ...coord, alcance: 'institucional' }).escuelas, []);
-    assert.deepEqual(cuerpoCreacion({ ...coord, alcance: 'especificas', escuelas: ['ESC-ING'] }).escuelas, ['ESC-ING']);
+    assert.deepEqual(cuerpoCreacion({ ...coord, alcance: 'institucional' })['escuelas'], []);
+    assert.deepEqual(cuerpoCreacion({ ...coord, alcance: 'especificas', escuelas: ['ESC-ING'] })['escuelas'], ['ESC-ING']);
     assert.equal('escuelas' in cuerpoCreacion({ ...coord, rol: 'auxiliar' }), false);
     assert.equal('escuelas' in cuerpoEdicion({ ...coord, rol: 'director' }), false);
   });

@@ -382,3 +382,17 @@ describe('Matriz G1 (0.39.1) · gobierno separado de la operación, sobre las ru
     }
   });
 });
+
+describe('G5 · gobierno de la práctica sobre las rutas reales', () => {
+  const ruta = (clave: string) => RUTAS.find((r) => r.clave === clave);
+  it('modificar, cambiar estado operativo y transición técnica: exactamente coordinación y analista (sin administración ni dirección)', () => {
+    for (const clave of ['PracticasController.modificar', 'PracticasController.cambiarEstadoOperativo', 'PracticasController.transicionar']) {
+      expect([...(ruta(clave)?.roles ?? [])].sort()).toEqual([Rol.ANALISTA, Rol.COORDINADOR].sort());
+    }
+  });
+  it('ya no existen rutas superpuestas de edición (vacante, datos gobernantes)', () => {
+    expect(ruta('PracticasController.actualizarVacante')).toBeUndefined();
+    expect(ruta('PracticasController.corregirDatosGobernantes')).toBeUndefined();
+    expect(RUTAS.filter((r) => r.controlador === 'PracticasController' && /\/(vacante|datos-gobernantes)$/.test(r.ruta))).toEqual([]);
+  });
+});

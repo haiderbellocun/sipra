@@ -26,7 +26,8 @@ describe('Expediente V3 (capa A)', () => {
   });
   it('mantiene carga, decisión y llamadas (presentación únicamente)', () => {
     assert.match(plantilla, /accept="application\/pdf,image\/jpeg,image\/png"/);
-    for (const llamada of ['cargarDocumento', 'decidirDocumento', 'escribirBitacora', 'cerrarPractica', 'actualizarVacante', 'registrarArl', 'transicionarPractica', 'obtenerPractica', 'listarDocumentos', 'listarBitacora', 'estadoCierre']) {
+    // G5: la edición de la vacante y el cambio técnico de estado salen del expediente; los hace <sipra-practica-gobierno>.
+    for (const llamada of ['cargarDocumento', 'decidirDocumento', 'escribirBitacora', 'cerrarPractica', 'registrarArl', 'obtenerPractica', 'listarDocumentos', 'listarBitacora', 'estadoCierre']) {
       assert.match(exp, new RegExp(`this\\.api\\.${llamada}\\(`), llamada);
     }
     assert.match(plantilla, /class="zona"/); // «corregir()» lleva el foco a la zona de carga por esta clase

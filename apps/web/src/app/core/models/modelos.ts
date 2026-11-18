@@ -117,6 +117,8 @@ export interface Practica {
   avance: AvanceDocumental;
   /** G2 · solo en el detalle: estado del cargue del estudiante calculado por el servidor. */
   cargueEstudiante?: CargueEstudiante;
+  /** G5 · solo en el detalle: estado operativo y, para coordinación/analista, destinos posibles. */
+  gobierno?: GobiernoPractica;
   fechaInicio: string | null;
   fechaFin: string | null;
   horasRegistradas: number | null;
@@ -162,6 +164,18 @@ export interface CargueEstudiante {
   hasta: string | null;
   mensaje: string;
   subsanaciones: SubsanacionCargue[];
+}
+
+/** G5 · estados operativos (los técnicos siguen existiendo en `estado`). */
+export type EstadoOperativo = 'inscrito' | 'en_practica' | 'anulado' | 'reprobado' | 'cerrado';
+export interface DestinoOperativo { estado: EstadoOperativo; etiqueta: string; disponible: boolean; motivo: string | null }
+export interface GobiernoPractica {
+  estadoOperativo: EstadoOperativo;
+  etiquetaEstadoOperativo: string;
+  actualizadaEn: string;
+  puedeModificar: boolean;
+  destinos: DestinoOperativo[];
+  pendientes: string[];
 }
 
 export interface CargueEstudiantePeriodo {

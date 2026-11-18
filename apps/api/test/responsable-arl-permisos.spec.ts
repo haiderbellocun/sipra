@@ -46,7 +46,13 @@ describe('Responsable de la ARL de la práctica · quién lo cambia después del
     await expect(caso.actualizarVacante('practica-1', { responsableArl: 'cun' }, actorDe(rol, { empresaId: 'empresa-a' }))).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it.each([Rol.COORDINADOR, Rol.ADMINISTRADOR])('%s SÍ puede cambiarlo, y queda en auditoría con el valor anterior y el nuevo', async (rol) => {
+  it.each([Rol.ADMINISTRADOR, Rol.DIRECTOR])('G5 · %s NO modifica la práctica (no es bypass de negocio): 403', async (rol) => {
+    const { caso, guardados } = montar({ responsableArlPractica: 'empresa' });
+    await expect(caso.actualizarVacante('practica-1', { responsableArl: 'cun' }, actorDe(rol))).rejects.toBeInstanceOf(ForbiddenException);
+    expect(guardados()).toBe(0);
+  });
+
+  it.each([Rol.COORDINADOR, Rol.ANALISTA])('%s SÍ puede cambiarlo, y queda en auditoría con el valor anterior y el nuevo', async (rol) => {
     const { caso, estado, auditorias } = montar({ responsableArlPractica: 'empresa' });
     const r = await caso.actualizarVacante('practica-1', { responsableArl: 'cun' }, actorDe(rol));
     expect(estado().responsableArlPractica).toBe('cun');
@@ -70,9 +76,10 @@ describe('Responsable de la ARL de la práctica · quién lo cambia después del
     expect(auditorias.filter((a) => a.accion === 'responsable_arl_practica_actualizado')).toHaveLength(0);
   });
 
-  it('el estudiante sigue editando los demás datos de la vacante, y eso NO toca el responsable de la ARL', async () => {
+  it('G5 · después del registro el estudiante ya no edita la vacante; coordinación sí, sin tocar el responsable de la ARL', async () => {
     const { caso, estado } = montar({ responsableArlPractica: 'cun' });
-    await caso.actualizarVacante('practica-1', { cargo: 'Analista junior', ciudad: 'Medellín' }, estudiante);
+    await expect(caso.actualizarVacante('practica-1', { cargo: 'Analista junior' }, estudiante)).rejects.toBeInstanceOf(ForbiddenException);
+    await caso.actualizarVacante('practica-1', { cargo: 'Analista junior', ciudad: 'Medellín' }, actorDe(Rol.COORDINADOR));
     expect(estado()).toMatchObject({ cargo: 'Analista junior', ciudad: 'Medellín', responsableArlPractica: 'cun' });
   });
 

@@ -9,8 +9,8 @@ import { ApiService } from '@core/services/api.service';
 import { AvisosService } from '@core/ui/avisos.service';
 import { CapturaGuiadaService, EvaluacionCaptura } from '@core/services/captura-guiada.service';
 import {
-  CampoLectura, Documento, EntradaBitacora, EscribirBitacora, EstadoCierre, EstadoPractica, Practica,
-  TipoEntradaBitacora, VacanteEditable,
+  CampoLectura, Documento, EntradaBitacora, EscribirBitacora, EstadoCierre, Practica,
+  TipoEntradaBitacora,
 } from '@core/models/modelos';
 import { CargaSenalComponent } from '@shared/components/carga-senal.component';
 import { EstadoVacioComponent } from '@shared/components/estado-vacio.component';
@@ -27,6 +27,7 @@ import { RutEstudianteComponent } from '../rut/rut-estudiante.component';
 import { guiaDocumento, lineaVersionAnterior } from './guia-documento';
 import { textoBandera } from './banderas';
 import { ExpedienteSenalComponent } from './expediente-senal.component';
+import { PracticaGobiernoComponent } from './practica-gobierno.component';
 
 type Pestana = 'documentos' | 'bitacora' | 'datos';
 
@@ -39,10 +40,11 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
 @Component({
   selector: 'sipra-expediente',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, EtiquetaPipe, ActaEstudianteComponent, RutEstudianteComponent, CamaraEstudianteComponent,
+  imports: [FormsModule, DatePipe, DecimalPipe, RouterLink, EtiquetaPipe, PracticaGobiernoComponent, ActaEstudianteComponent, RutEstudianteComponent, CamaraEstudianteComponent,
     SenalEstadoComponent, TiraMetricasComponent, CargaSenalComponent, EstadoVacioComponent, ExpedienteSenalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
+    .separado { margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--borde); }
     :host { display:block; --rg: var(--vd-regla, var(--border-subtle)); --sr: var(--status-review); --sa: var(--signal-active); --sf: var(--surface-raised); --eo: var(--ease-out); --enlace: var(--signal-default); --aviso-x: var(--status-review); --peligro-x: var(--status-critical); --ok-x: var(--status-success); }
     :host-context([data-theme="dark"]) { --text-muted: #94aeac; }
     :host-context([data-theme="light"]) { --enlace: #03587a; --aviso-x: #7a4a00; --peligro-x: #b8231f; --ok-x: #06695d; }
@@ -470,23 +472,6 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
             </div>
             @if (p.funcionesRelevantes) { <p style="margin-top:var(--sp-3)" class="pista"><strong>Funciones:</strong> {{ p.funcionesRelevantes }}</p> }
 
-            @if (puedeEditarVacante()) {
-              <details style="margin-top:var(--sp-4)"><summary class="boton compacto" style="display:inline-flex">Editar datos de la vacante</summary>
-                <p class="pista" style="margin-top:var(--sp-3)">La modalidad y las fechas no se modifican; para corregirlas coordinación anula el registro y se hace uno nuevo.</p>
-                <div class="rej">
-                  <div class="campo"><label for="v-area">Área</label><input id="v-area" [(ngModel)]="vac.area" /></div>
-                  <div class="campo"><label for="v-cargo">Cargo</label><input id="v-cargo" [(ngModel)]="vac.cargo" /></div>
-                  <div class="campo"><label for="v-hor">Horario</label><input id="v-hor" [(ngModel)]="vac.horario" /></div>
-                  <div class="campo"><label for="v-ciu">Ciudad</label><input id="v-ciu" [(ngModel)]="vac.ciudad" /></div>
-                  <div class="campo"><label for="v-jn">Jefe inmediato</label><input id="v-jn" [(ngModel)]="vac.jefeInmediatoNombre" /></div>
-                  <div class="campo"><label for="v-jc">Cargo del jefe</label><input id="v-jc" [(ngModel)]="vac.jefeInmediatoCargo" /></div>
-                  <div class="campo"><label for="v-je">Correo del jefe</label><input id="v-je" type="email" [(ngModel)]="vac.jefeInmediatoCorreo" /></div>
-                  <div class="campo"><label for="v-jt">Teléfono del jefe</label><input id="v-jt" [(ngModel)]="vac.jefeInmediatoTelefono" /></div>
-                  <div class="campo ancho"><label for="v-fun">Funciones relevantes</label><textarea id="v-fun" [(ngModel)]="vac.funcionesRelevantes"></textarea></div>
-                </div>
-                <button type="button" class="boton boton--primario" [class.cargando]="guardando()" [disabled]="guardando()" (click)="guardarVacante()">Guardar cambios</button>
-              </details>
-            }
           </div>
 
           <div class="superficie">
@@ -496,18 +481,10 @@ type Pestana = 'documentos' | 'bitacora' | 'datos';
               <div class="campo" style="max-width:220px;margin-top:var(--sp-3)"><label for="arl">Fecha de afiliación</label><input id="arl" type="date" [(ngModel)]="fechaArl" /></div>
               <button type="button" class="boton" [disabled]="!fechaArl() || guardando()" (click)="registrarArl()">Registrar afiliación</button>
             }
-            @if (puedeAdministrar() && p.transicionesPosibles.length > 0) {
-              <div style="margin-top:var(--sp-4);padding-top:var(--sp-3);border-top:1px solid var(--borde)">
-                <div class="campo"><label for="just">Justificación del cambio de estado</label><input id="just" type="text" [(ngModel)]="justificacion" placeholder="Queda en la auditoría inmutable (mínimo 10 caracteres)" /></div>
-                <div class="acciones">
-                  @for (destino of p.transicionesPosibles; track destino) {
-                    <button type="button" class="boton compacto" [class.boton--peligro]="destino === 'anulada' || destino === 'reprobada'" [disabled]="justificacion().length < 10 || guardando()" (click)="transicionar(destino)">Pasar a {{ destino | etiqueta }}</button>
-                  }
-                </div>
-                <p class="pista" style="margin-top:var(--sp-2)">«Anulado» habilita un registro nuevo cuando el actual tiene inconsistencias; el cierre y «Reprueba» salen de la calificación.</p>
-              </div>
-            }
-            @if (!puedeAdministrar()) { <div class="vacio">Los cambios de estado los hace coordinación. El cierre ocurre solo cuando concurren las tres condiciones.</div> }
+            <div [class.separado]="puedeAdministrar() && !p.arlVerificada">
+              @if (p.gobierno) { <sipra-practica-gobierno [practica]="p" (actualizada)="recargar()" /> }
+              @else { <div class="vacio">Los cambios de datos y de estado de la práctica los hacen coordinación y analista. El cierre ocurre solo cuando concurren las tres condiciones.</div> }
+            </div>
           </div>
         </div>
       }
@@ -531,7 +508,6 @@ export class ExpedienteComponent implements OnInit {
   readonly guardando = signal(false);
   readonly pestana = signal<Pestana>('documentos');
 
-  readonly justificacion = signal('');
   readonly fechaArl = signal('');
   readonly tipoSeleccionado = signal('');
   readonly archivo = signal<File | null>(null);
@@ -547,7 +523,6 @@ export class ExpedienteComponent implements OnInit {
   readonly respuestas: (number | null)[] = [null, null, null, null];
   readonly seg = { fechaVisita: '', modalidadVisita: 'presencial' as 'presencial' | 'virtual' | 'telefonica', contactoNombre: '', contactoCargo: '', contactoArea: '', sugerenciasPlanMejoramiento: '', evaluacionJefeInmediato: '' };
   readonly evalFinal = { desempeno: '', satisfaccionEmpresa: '', retroalimentacionPlanMejoramiento: '' };
-  readonly vac: VacanteEditable = {};
 
   readonly puedeAdministrar = computed(() => tieneRol(['administrador', 'coordinador', 'analista'], this.sesion.rol()));
   readonly puedeMesaCamara = computed(() => tieneRol(['tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
@@ -563,7 +538,6 @@ export class ExpedienteComponent implements OnInit {
   readonly puedeVerBitacora = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'director', 'administrador'], this.sesion.rol()));
   readonly puedeEscribir = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
   readonly puedeCalificar = computed(() => tieneRol(['tutor', 'coordinador', 'analista', 'administrador'], this.sesion.rol()));
-  readonly puedeEditarVacante = computed(() => this.puedeCargar());
   readonly terminal = computed(() => ['certificada', 'cancelada', 'anulada', 'reprobada'].includes(this.practica()?.estado ?? ''));
   readonly solicitaArl = computed(() => {
     const m = this.practica()?.modalidad ?? '';
@@ -733,18 +707,8 @@ export class ExpedienteComponent implements OnInit {
     await this.ejecutar(async () => { const r = await firstValueFrom(this.api.cerrarPractica(this.id())); return r.cerrada ? `Proceso cerrado: ${r.estado === 'certificada' ? 'aprobado' : 'reprueba'}.` : 'No fue posible cerrar.'; });
   }
 
-  async guardarVacante(): Promise<void> {
-    const cambios: VacanteEditable = {};
-    for (const [k, v] of Object.entries(this.vac)) if (v !== undefined && v !== '') (cambios as Record<string, unknown>)[k] = v;
-    await this.ejecutar(async () => { await firstValueFrom(this.api.actualizarVacante(this.id(), cambios)); return 'Datos de la vacante actualizados.'; });
-  }
-
   async registrarArl(): Promise<void> {
     await this.ejecutar(async () => { await firstValueFrom(this.api.registrarArl(this.id(), this.fechaArl())); return 'Afiliación a ARL registrada y obligación cumplida.'; });
-  }
-
-  async transicionar(destino: EstadoPractica): Promise<void> {
-    await this.ejecutar(async () => { await firstValueFrom(this.api.transicionarPractica(this.id(), destino, this.justificacion())); this.justificacion.set(''); return 'Estado actualizado.'; });
   }
 
   private async ejecutar(accion: () => Promise<string>): Promise<void> {
@@ -764,7 +728,7 @@ export class ExpedienteComponent implements OnInit {
     }
   }
 
-  private async recargar(): Promise<void> {
+  async recargar(): Promise<void> {
     try {
       const [practica, documentos, bitacora, cierre] = await Promise.all([
         firstValueFrom(this.api.obtenerPractica(this.id())),
@@ -776,12 +740,6 @@ export class ExpedienteComponent implements OnInit {
       ]);
       this.practica.set(practica); this.documentos.set(documentos); this.bitacora.set(bitacora); this.cierre.set(cierre);
       if (!this.tipoSeleccionado()) this.tipoSeleccionado.set(practica.avance.pendientes[0] ?? this.tiposExigidos()[0] ?? '');
-      Object.assign(this.vac, {
-        area: practica.area ?? '', cargo: practica.cargo ?? '', horario: practica.horario ?? '', ciudad: practica.ciudad ?? '',
-        jefeInmediatoNombre: practica.jefeInmediatoNombre ?? '', jefeInmediatoCargo: practica.jefeInmediatoCargo ?? '',
-        jefeInmediatoCorreo: practica.jefeInmediatoCorreo ?? '', jefeInmediatoTelefono: practica.jefeInmediatoTelefono ?? '',
-        funcionesRelevantes: practica.funcionesRelevantes ?? '',
-      });
     } catch { this.practica.set(null); }
     finally { this.cargando.set(false); }
   }

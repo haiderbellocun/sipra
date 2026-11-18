@@ -41,6 +41,35 @@ export const EQUIVALENCIA_SGP: Readonly<Record<EstadoPractica, string>> = {
   [EstadoPractica.REPROBADA]: 'Reprueba',
 };
 
+/**
+ * G5 · Estados OPERATIVOS: los cinco con los que trabaja coordinación. Proyectan los técnicos (que siguen
+ * existiendo para documentos, ARL, validación y cierre) con la misma agrupación de `EQUIVALENCIA_SGP`.
+ */
+export type EstadoOperativo = 'inscrito' | 'en_practica' | 'anulado' | 'reprobado' | 'cerrado';
+export const ESTADOS_OPERATIVOS: readonly EstadoOperativo[] = ['inscrito', 'en_practica', 'anulado', 'reprobado', 'cerrado'];
+export const ESTADO_OPERATIVO: Readonly<Record<EstadoPractica, EstadoOperativo>> = {
+  [EstadoPractica.INSCRITA]: 'inscrito',
+  [EstadoPractica.DOCUMENTACION]: 'inscrito',
+  [EstadoPractica.EN_VALIDACION]: 'inscrito',
+  [EstadoPractica.ACTIVA]: 'en_practica',
+  [EstadoPractica.FINALIZADA]: 'en_practica',
+  [EstadoPractica.SUSPENDIDA]: 'en_practica',
+  [EstadoPractica.CANCELADA]: 'anulado',
+  [EstadoPractica.ANULADA]: 'anulado',
+  [EstadoPractica.REPROBADA]: 'reprobado',
+  [EstadoPractica.CERTIFICADA]: 'cerrado',
+};
+export const ETIQUETA_ESTADO_OPERATIVO: Readonly<Record<EstadoOperativo, string>> = {
+  inscrito: 'Inscrito', en_practica: 'En práctica', anulado: 'Anulado', reprobado: 'Reprobado', cerrado: 'Cerrado',
+};
+
+export class CambioModalidadError extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'CambioModalidadError';
+  }
+}
+
 export const ESTADOS_TERMINALES_PRACTICA: readonly EstadoPractica[] = [
   EstadoPractica.CERTIFICADA, EstadoPractica.CANCELADA,
   EstadoPractica.ANULADA, EstadoPractica.REPROBADA,
@@ -351,6 +380,57 @@ export class Practica {
   registrarHoras(horas: number, ahora: Date = new Date()): void {
     if (horas < 0) throw new Error('Las horas registradas no pueden ser negativas');
     this.datos.horasRegistradas = horas;
+    this.datos.actualizadaEn = ahora;
+    this.datos.ultimaActividad = ahora;
+  }
+
+  get estadoOperativo(): EstadoOperativo { return ESTADO_OPERATIVO[this.datos.estado]; }
+
+  /**
+   * G5 · Pasos TÉCNICOS (legítimos en la máquina de estados) para llevar la práctica a un estado operativo.
+   * No hay atajos: cada paso se aplica con `transicionarA`, que exige el responsable de la ARL y la compuerta ARL.
+   *  · «En práctica»: desde Inscrito recorre documentación → validación → activa; desde suspendida, reanuda.
+   *  · «Anulado»: anulada (o cancelada desde suspendida, el único cierre administrativo que admite ese estado).
+   *  · «Reprobado»: reprobada, donde la máquina lo admite.
+   *  · «Inscrito»: no hay retroceso (devolver una práctica avanzada a Inscrito destruiría proceso).
+   *  · «Cerrado»: no se resuelve aquí; usa el flujo de cierre (nota y condiciones), nunca escribe certificada.
+   * `null` = no hay camino.
+   */
+  rutaHaciaEstadoOperativo(destino: EstadoOperativo): EstadoPractica[] | null {
+    const e = this.datos.estado;
+    if (ESTADO_OPERATIVO[e] === destino) return null;
+    switch (destino) {
+      case 'en_practica':
+        if (e === EstadoPractica.INSCRITA) return [EstadoPractica.DOCUMENTACION, EstadoPractica.EN_VALIDACION, EstadoPractica.ACTIVA];
+        if (e === EstadoPractica.DOCUMENTACION) return [EstadoPractica.EN_VALIDACION, EstadoPractica.ACTIVA];
+        if (e === EstadoPractica.EN_VALIDACION || e === EstadoPractica.SUSPENDIDA) return [EstadoPractica.ACTIVA];
+        return null;
+      case 'anulado':
+        if (this.puedeTransicionarA(EstadoPractica.ANULADA)) return [EstadoPractica.ANULADA];
+        if (this.puedeTransicionarA(EstadoPractica.CANCELADA)) return [EstadoPractica.CANCELADA];
+        return null;
+      case 'reprobado':
+        return this.puedeTransicionarA(EstadoPractica.REPROBADA) ? [EstadoPractica.REPROBADA] : null;
+      case 'inscrito':
+      case 'cerrado':
+        return null;
+    }
+  }
+
+  /** Aplica la ruta paso a paso; si un paso falla (ARL, responsable, transición), lanza y nada queda a medias en memoria del llamador. */
+  aplicarRuta(pasos: readonly EstadoPractica[], ahora: Date = new Date()): void {
+    for (const paso of pasos) this.transicionarA(paso, ahora);
+  }
+
+  /**
+   * G5 · Cambio de modalidad (solo coordinación y analista, con justificación; lo decide el caso de uso).
+   * Solo con la práctica abierta. No toca el responsable de la ARL (no se infiere: lo revisa una persona),
+   * ni documentos ni decisiones; las obligaciones las recalcula el caso de uso.
+   */
+  cambiarModalidad(nueva: ModalidadPractica, ahora: Date = new Date()): void {
+    if (this.esTerminal) throw new CambioModalidadError('La práctica ya cerró: su modalidad no se modifica');
+    definicionModalidad(nueva);
+    this.datos.modalidad = nueva;
     this.datos.actualizadaEn = ahora;
     this.datos.ultimaActividad = ahora;
   }

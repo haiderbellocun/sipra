@@ -510,29 +510,32 @@ describe('Datos de la práctica que gobiernan la comparación (remuneración y r
     const m = montarMesaActas();
     await caso(m, 'c1');
     await expect(m.gestionarPractica.actualizarVacante('pra-c1', { responsableArl: 'cun' }, coord())).rejects.toBeInstanceOf(BadRequestException);
-    await expect(m.gestionarPractica.actualizarVacante('pra-c1', { tipoRemuneracion: 'remunerada' }, admin())).rejects.toBeInstanceOf(BadRequestException);
-    // Los demás datos de la vacante siguen editándose.
-    await expect(m.gestionarPractica.actualizarVacante('pra-c1', { cargo: 'Analista' }, estudiante('pra-c1'))).resolves.toBeDefined();
+    // G5: administración ya no modifica prácticas (403) y el estudiante ya no edita tras el registro.
+    await expect(m.gestionarPractica.actualizarVacante('pra-c1', { tipoRemuneracion: 'remunerada' }, admin())).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(m.gestionarPractica.actualizarVacante('pra-c1', { cargo: 'Analista' }, estudiante('pra-c1'))).rejects.toBeInstanceOf(ForbiddenException);
+    // Los demás datos de la vacante los sigue editando coordinación.
+    await expect(m.gestionarPractica.actualizarVacante('pra-c1', { cargo: 'Analista' }, coord())).resolves.toBeDefined();
   });
 
-  it('antes de existir un acta se conservan las reglas actuales (el estudiante edita la remuneración)', async () => {
+  it('antes de existir un acta, coordinación edita la remuneración (G5: el estudiante ya no, tras el registro)', async () => {
     const m = montarMesaActas();
     m.usuarios.set('est-pra-x', (await (async () => { await m.crear({ id: 'x', practicaId: 'pra-x', sinProcesar: true }); return m.usuarios.get('est-pra-x')!; })()));
     m.documentos.filas.clear();
-    await expect(m.gestionarPractica.actualizarVacante('pra-x', { tipoRemuneracion: 'remunerada' }, estudiante('pra-x'))).resolves.toBeDefined();
+    await expect(m.gestionarPractica.actualizarVacante('pra-x', { tipoRemuneracion: 'remunerada' }, estudiante('pra-x'))).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(m.gestionarPractica.actualizarVacante('pra-x', { tipoRemuneracion: 'remunerada' }, coord())).resolves.toBeDefined();
     expect(m.practicas.get('pra-x')!.instantanea().tipoRemuneracion).toBe('remunerada');
   });
 
-  it('25 · coordinación y administración corrigen con justificación; sin ella (o los demás perfiles) no', async () => {
+  it('25 · coordinación y analista corrigen con justificación; sin ella (o los demás perfiles, incluida administración) no', async () => {
     const m = montarMesaActas();
     await caso(m, 'c1', DISCREPANTE);
     await expect(m.gestionarPractica.corregirDatosGobernantes('pra-c1', { responsableArl: 'empresa', justificacion: 'corto' }, coord())).rejects.toBeInstanceOf(BadRequestException);
-    for (const actor of [estudiante('pra-c1'), aux(), actorDe(Rol.TUTOR), actorDe(Rol.EMPRESA)]) {
+    for (const actor of [estudiante('pra-c1'), aux(), actorDe(Rol.TUTOR), actorDe(Rol.EMPRESA), admin(), actorDe(Rol.DIRECTOR)]) {
       await expect(m.gestionarPractica.corregirDatosGobernantes('pra-c1', { responsableArl: 'empresa', justificacion: 'Corrección acordada con la empresa.' }, actor)).rejects.toBeInstanceOf(ForbiddenException);
     }
     const r = await m.gestionarPractica.corregirDatosGobernantes('pra-c1', { responsableArl: 'empresa', justificacion: 'Corrección acordada con la empresa.' }, coord());
     expect(r).toMatchObject({ responsableArl: 'empresa', tipoRemuneracion: 'no_remunerada' });
-    const r2 = await m.gestionarPractica.corregirDatosGobernantes('pra-c1', { tipoRemuneracion: 'remunerada', justificacion: 'Se pactó apoyo de sostenimiento.' }, admin());
+    const r2 = await m.gestionarPractica.corregirDatosGobernantes('pra-c1', { tipoRemuneracion: 'remunerada', justificacion: 'Se pactó apoyo de sostenimiento.' }, actorDe(Rol.ANALISTA));
     expect(r2.tipoRemuneracion).toBe('remunerada');
     // Sin cambios reales: no se audita ni se recalcula nada.
     const r3 = await m.gestionarPractica.corregirDatosGobernantes('pra-c1', { responsableArl: 'empresa', justificacion: 'Se confirma el mismo valor.' }, coord());

@@ -6,7 +6,7 @@ import {
   Carta, CatalogoProceso, ConsolidadoArl, Documento, Empresa, EntradaBitacora, EscribirBitacora, EstadoCierre,
   EstadoPractica, FilaMatriculaSinu, FiltroPracticas, ModalidadCatalogo, Periodo, Practica, RadicarArl, RegistroFur,
   ReporteTabla, ResultadoAntidiscriminacion, ResumenSincronizacion, SolicitudArl, TableroCumplimiento,
-  UsuarioAdministrativo, VacanteEditable, Vacante, VistaEstudianteSinu,
+  UsuarioAdministrativo, Vacante, VistaEstudianteSinu,
   CategoriaAyuda, PreguntaFrecuente, Pqrs, RadicarPqrs,
   ComparativaModeloIa, ConfiguracionIa, EstimacionIa, ResumenGastoIa, TarifaIa,
   ConsultaAdresPreparada, FilaBandejaAdres, ResultadoAdres,
@@ -244,8 +244,14 @@ export class ApiService {
     return this.http.post<Practica>(`${this.base}/practicas/registro`, dto);
   }
 
-  actualizarVacante(id: string, cambios: VacanteEditable): Observable<Practica> {
-    return this.http.patch<Practica>(`${this.base}/practicas/${id}/vacante`, cambios);
+  /** G5 · modificación controlada (coordinación y analista; justificación y versión obligatorias). */
+  modificarPractica(id: string, cambios: Record<string, unknown>): Observable<Practica> {
+    return this.http.patch<Practica>(`${this.base}/practicas/${id}/datos`, cambios);
+  }
+
+  /** G5 · cambio manual de estado operativo. */
+  cambiarEstadoOperativo(id: string, cuerpo: { destino: string; justificacion: string; actualizadaEn?: string }): Observable<Practica> {
+    return this.http.patch<Practica>(`${this.base}/practicas/${id}/estado-operativo`, cuerpo);
   }
 
   // ── Periodos y catálogo ────────────────────────────────────────────────

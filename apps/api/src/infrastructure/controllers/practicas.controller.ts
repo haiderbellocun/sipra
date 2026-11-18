@@ -4,9 +4,8 @@ import {
 import {
   ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags,
 } from '@nestjs/swagger';
-import { CorregirDatosPracticaDto, CorreccionDatosPracticaRespuestaDto } from '../../application/dtos/acta-iniciacion.dto';
 import {
-  ActualizarVacanteDto, AsignarTutorDto, CrearPracticaDto, PracticaRespuestaDto, RegistrarArlDto,
+  AsignarTutorDto, CambiarEstadoOperativoDto, CrearPracticaDto, ModificarPracticaDto, PracticaRespuestaDto, RegistrarArlDto,
   RegistrarHorasDto, RegistrarPracticaDto, TransicionPracticaDto,
 } from '../../application/dtos/practica.dto';
 import {
@@ -106,39 +105,43 @@ export class PracticasController {
     return this.registrar.registrar(dto, actor);
   }
 
-  @Patch(':id/vacante')
-  @Roles(Rol.ESTUDIANTE, Rol.TUTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR, Rol.AUXILIAR)
+  @Patch(':id/datos')
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA)
   @ApiOperation({
-    summary: 'Actualizar los datos de la vacante',
-    description: 'Solo los campos habilitados por el SGP: área, cargo, salario, horario, jefe inmediato, ' +
-      'ciudad y funciones. La modalidad y las fechas no se tocan por aquí.',
+    summary: 'G5 · Modificar una práctica registrada (coordinación y analista)',
+    description:
+      'Única edición posterior al registro. Lista cerrada de campos (vacante, remuneración, responsable de la ARL y modalidad), ' +
+      'justificación obligatoria y control optimista con `actualizadaEn` (409 si la práctica cambió). Un solo evento de ' +
+      'auditoría con los cambios (de → a). El cambio de modalidad reconcilia las obligaciones sin borrar nada y no infiere el ' +
+      'responsable de la ARL. Con un acta de iniciación cargada, la comparación se recalcula o queda constancia. ' +
+      'Administración y dirección NO modifican prácticas.',
   })
   @ApiResponse({ status: 200, type: PracticaRespuestaDto })
-  actualizarVacante(
+  @ApiResponse({ status: 409, description: 'La práctica cambió mientras se editaba' })
+  modificar(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ActualizarVacanteDto,
+    @Body() dto: ModificarPracticaDto,
     @ActorActual() actor: Actor,
   ): Promise<PracticaRespuestaDto> {
-    return this.gestionar.actualizarVacante(id, dto, actor);
+    return this.gestionar.modificarPractica(id, dto, actor);
   }
 
-  @Patch(':id/datos-gobernantes')
-  @Roles(Rol.COORDINADOR, Rol.ANALISTA, Rol.ADMINISTRADOR)
+  @Patch(':id/estado-operativo')
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA)
   @ApiOperation({
-    summary: 'Corregir la remuneración y/o quién asume la ARL (con acta de iniciación cargada o no)',
+    summary: 'G5 · Cambiar el estado operativo (Inscrito, En práctica, Anulado, Reprobado, Cerrado)',
     description:
-      'Solo coordinación y administración, con justificación y auditoría (valor anterior, nuevo, actor y motivo). No modifica el ' +
-      'acta ni una decisión ya tomada: si la validación está sin decidir, su comparación se recalcula en una ronda nueva; si ya ' +
-      'estaba decidida, solo queda constancia de que los datos cambiaron después. Con un acta cargada, la edición común de la ' +
-      'vacante ya no admite estos dos campos.',
+      'Solo coordinación y analista, con justificación. Sin atajos: usa la máquina de estados (responsable y compuerta ARL, ' +
+      'obligaciones) y, para «Cerrado», el flujo de cierre (condiciones y nota aprobatoria). «Inscrito» no admite retroceso.',
   })
-  @ApiResponse({ status: 200, description: 'Datos vigentes y qué pasó con la comparación del acta' })
-  corregirDatosGobernantes(
+  @ApiResponse({ status: 200, type: PracticaRespuestaDto })
+  @ApiResponse({ status: 400, description: 'Destino bloqueado, con el motivo en lenguaje operativo' })
+  cambiarEstadoOperativo(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: CorregirDatosPracticaDto,
+    @Body() dto: CambiarEstadoOperativoDto,
     @ActorActual() actor: Actor,
-  ): Promise<CorreccionDatosPracticaRespuestaDto> {
-    return this.gestionar.corregirDatosGobernantes(id, dto, actor);
+  ): Promise<PracticaRespuestaDto> {
+    return this.gestionar.cambiarEstadoOperativo(id, dto, actor);
   }
 
   @Get(':id')
@@ -165,7 +168,7 @@ export class PracticasController {
   }
 
   @Patch(':id/estado')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.TUTOR)
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA)
   @ApiOperation({
     summary: 'Cambiar el estado de la práctica',
     description:

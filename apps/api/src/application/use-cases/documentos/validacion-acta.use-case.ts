@@ -168,7 +168,8 @@ export class ValidacionActaUseCase {
    * El archivo no cambió: no hay versión documental nueva. Nunca se borra historial.
    */
   async alCambiarDatosDeLaPractica(
-    practicaId: string, cambios: { remuneracion?: { de: string | null; a: string }; responsableArl?: { de: string | null; a: string } },
+    practicaId: string,
+    cambios: { remuneracion?: { de: string | null; a: string }; responsableArl?: { de: string | null; a: string }; modalidad?: { de: string | null; a: string } },
     actor: Actor, justificacion: string, ahora: Date = new Date(),
   ): Promise<'sin_acta' | 'sin_calculo' | 'recalculada' | 'marcada_posterior_a_decision'> {
     const actas = (await this.documentos.listarPorPractica(practicaId)).filter((d) => d.tipo === TipoDocumento.ACTA_INICIO);

@@ -47,6 +47,21 @@ export class ObligacionesDomainService {
     return plantillas;
   }
 
+  /**
+   * G5 · Tras un cambio de modalidad: qué obligaciones abiertas dejan de aplicar y cuáles faltan. Las cumplidas
+   * se conservan; las que ya no aplican no se borran (pasan a «no aplica»); las nuevas se crean pendientes.
+   */
+  reconciliar(practica: Practica, existentes: readonly Obligacion[], ahora: Date = new Date()): { dejanDeAplicar: Obligacion[]; nuevas: PlantillaObligacion[] } {
+    const plantillas = this.plantillasPara(practica, ahora);
+    const tipos = new Set(plantillas.map((p) => p.tipo));
+    const vivas = existentes.filter((o) => o.estado !== EstadoObligacion.NO_APLICA);
+    const dejanDeAplicar = vivas.filter((o) => !tipos.has(o.tipo)
+      && (o.estado === EstadoObligacion.PENDIENTE || o.estado === EstadoObligacion.VENCIDA));
+    const presentes = new Set(vivas.map((o) => o.tipo));
+    const nuevas = plantillas.filter((p) => !presentes.has(p.tipo));
+    return { dejanDeAplicar, nuevas };
+  }
+
   /** Barrido del proceso programado: marca vencidas las que pasaron su límite. */
   evaluarVencimientos(obligaciones: Obligacion[], ahora: Date = new Date()): Obligacion[] {
     return obligaciones.filter((o) => o.evaluarVencimiento(ahora));

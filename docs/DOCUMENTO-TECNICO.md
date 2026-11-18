@@ -356,7 +356,7 @@ al SPE. El resto es operación interna.
 | Ver expedientes de sus practicantes | — | — | — | — | — | ✓ | — |
 | Registrar la práctica (FUR) | ✓ | — | ✓ (administrativo) | — | ✓ | — | — |
 | Generar carta de presentación | ✓ (en ventana) | ✓ | ✓ | ✓ | ✓ | — | — |
-| Editar la vacante (no modalidad ni fechas) | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
+| Modificar la práctica registrada (vacante, remuneración, responsable ARL, modalidad; G5) | — | — | ✓ (coordinador y analista) | — | — | — | — |
 | Cargar documentos | ✓ | ✓ | ✓ | — | ✓ | — | — |
 | Decidir sobre documentos | — | ✓ | ✓ | solo `certificado_eps` | ✓ | — | — |
 | Operar la validación de EPS (evidencia, reserva, consulta ADRES asistida) | resultado reducido | — | ✓ | ✓ | ✓ | — | — |
@@ -367,7 +367,7 @@ al SPE. El resto es operación interna.
 | Decidir solicitud de ARL | — | ✓ | ✓ | ✓ | ✓ | — | — |
 | Remitir certificado de ARL | — | — | ✓ | ✓ | ✓ | — | — |
 | Ver puntaje y banderas internas | — | ✓ | ✓ | — | ✓ | — | — |
-| Cambiar el estado de la práctica | — | ✓ | ✓ | — | ✓ | — | — |
+| Cambiar el estado de la práctica (estado operativo; G5) | — | — | ✓ (coordinador y analista) | — | — | — | — |
 | Registrar afiliación a ARL | — | — | ✓ | ✓ | ✓ | — | — |
 | Asignar tutor / sincronizar docentes | — | — | ✓ (área) | — | ✓ | — | — |
 | Gestión de usuarios y de periodos | — | — | — (0.39.1: administrador y director) | — | ✓ | — | — |
@@ -386,7 +386,7 @@ y no hereda las escrituras operativas.
 | Gestionar periodos (crear, habilitar/deshabilitar) | ✓ | ✓ | — | — |
 | Gestionar usuarios administrativos | ✓ todos | ✓ solo operativos¹ | — | — |
 | Ver la institución (prácticas, expedientes, documentos, bitácora, reportes, cumplimiento) | ✓ | ✓ lectura | según `escuelas`² | según `escuelas`² |
-| Modificar la práctica — capacidad de G5, aún sin consumir | — | — | ✓ | ✓ |
+| Modificar la práctica y cambiar su estado operativo (G5, 0.43.0) | — | — | ✓ | ✓ |
 | Decidir documentos | ✓ | — | ✓ | ✓ |
 | Operar y supervisar Mesas (EPS, RUT, Cámara, Actas, Validación Documental) | ✓ | — | ✓ | ✓ |
 | Operar ARL (radicar, decidir, remitir certificado, registrar afiliación) | ✓ | — | ✓ | ✓ |
@@ -1477,7 +1477,7 @@ Validación local del acta de iniciación (`TipoDocumento.ACTA_INICIO`). El acta
 
 - **Roles.** Operan (bandeja, tomar, revisar, decidir, liberar lo propio): auxiliar, coordinación y administración. Supervisan y corrigen datos de la práctica: coordinación y administración. El estudiante solo ve el estado humano de SU acta. Docente, empresa y extensión no entran. El acta **solo se decide desde la Mesa**: la decisión general de documentos responde 403 para `acta_inicio` si no viene de la Mesa (se cerró el camino por el que un docente podía aprobarla). Alcance por escuela como en EPS.
 - **Reserva operativa** (`validaciones_acta_iniciacion.asignado_a / reservado_en / reserva_hasta`, migración 18): 15 minutos, atómica (`UPDATE … WHERE estado='revision' AND (libre OR vencida OR propia)`): de dos personas a la vez, una recibe 200 y la otra 409. Solo un caso en `revision` se reserva; decidido, no queda reservado (`CHECK`). «Tomar siguiente» elige por prioridad y prueba reservar uno a uno: nunca dos personas con el mismo caso.
-- **Endpoints** (`/actas-iniciacion`): `GET /` (bandeja), `GET /supervision`, `POST /tomar-siguiente`, `GET /practica/:practicaId/estado` (estudiante), `GET /:id` (detalle), `GET /:id/archivo` (visor, por la sesión autenticada, sin URL permanente; la apertura se audita), `POST /:id/tomar`, `POST /:id/liberar`, `POST /:id/decision`; y `PATCH /practicas/:id/datos-gobernantes` (corrección controlada).
+- **Endpoints** (`/actas-iniciacion`): `GET /` (bandeja), `GET /supervision`, `POST /tomar-siguiente`, `GET /practica/:practicaId/estado` (estudiante), `GET /:id` (detalle), `GET /:id/archivo` (visor, por la sesión autenticada, sin URL permanente; la apertura se audita), `POST /:id/tomar`, `POST /:id/liberar`, `POST /:id/decision`; y la corrección controlada de remuneración y responsable de la ARL, que desde 0.43.0 (G5) se hace con `PATCH /practicas/:id/datos` (solo coordinación y analista; la ruta `datos-gobernantes` se retiró).
 - **Bandeja.** Solo la versión **vigente** de cada acta, en `revision`. Filtros: remuneración y responsable de la ARL del acta, discrepancias, documento incorrecto, firmas (faltantes / no determinables / completas), reenvío, antigüedad, reserva (libres / mías / otras / vencidas), prioridad mínima y nombre. Prioridad **simple y explicable, sin IA**: documento incorrecto 40, discrepancia crítica 30, firma faltante 15 (no determinable 5), reenvío 10, 2 por día en bandeja (tope 10 días), inicio ya pasado 25 / en una semana 20 / en dos 10. No es una fórmula institucional.
 - **Detalle.** Estudiante (documento enmascarado salvo para quien tiene el caso tomado, supervisión o quien decidió), práctica, resumen SIPRA ↔ Acta (remuneración, responsable de la ARL, firmas, clasificación), comparación campo a campo con los valores de SIPRA recalculados **hoy** (la comparación persistida no guarda valores de SIPRA) y la sugerencia de la modalidad **aparte** (no es el dato de la práctica), versiones y historial **de esa versión** (evidencias: códigos y resultados, nunca el texto).
 - **Decisión.** Siempre humana. Exige: caso reservado por quien decide (se revalida en el servidor), versión vigente y validación en `revision` (409 si está pendiente, procesando, en error, ya decidida o hay una versión más nueva; **no se crea una validación artificial**). Aprobar contra la recomendación (discrepancia crítica, documento incorrecto, firma faltante o indeterminable) exige al menos **40** caracteres (la misma regla de EPS); rechazar exige justificación (40 si el sistema ve el acta consistente); devolver exige un motivo del catálogo (con «otro», texto). Una sola decisión aplica: el compare-and-set del documento deja pasar a una y las demás reciben 409; una decisión, una evidencia, una auditoría (`decision_acta` + `decision_documento`).
@@ -3552,6 +3552,84 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.43.0 — 18 de noviembre de 2026
+
+**Gobierno operativo · G5: Gobierno y modificación controlada de prácticas.** Una práctica registrada solo la modifican **coordinación y analista** (`puedeModificarPractica`), con justificación y auditoría. **Administración y dirección NO modifican prácticas**: ven el expediente, pero no tienen botones y la API les responde 403. Tampoco modifican docente facilitador, auxiliar, extensión, empresa ni estudiante. El estudiante ya no edita la vacante después del registro.
+- **Rutas (API).**
+  - `PATCH /practicas/:id/datos`: edición única posterior al registro.
+  - `PATCH /practicas/:id/estado-operativo`: cambio de estado operativo.
+  - Ambas tienen `@Roles(COORDINADOR, ANALISTA)` y una validación de alcance (`exigirVisible`).
+  - Se retiraron `PATCH :id/vacante` y `PATCH :id/datos-gobernantes`.
+  - El `PATCH :id/estado` técnico se conserva solo para coordinación y analista; la interfaz ya no lo usa.
+  - `GET /practicas/:id` proyecta `gobierno` con: estado operativo y su etiqueta, versión (`actualizadaEn`), `puedeModificar`, destinos con disponibilidad y motivo, y pendientes.
+- **Campos modificables (lista cerrada).** Modalidad, área, cargo, remuneración, salario, responsable de la ARL, horario, ciudad, datos del jefe inmediato y funciones.
+  - **No se editan:** fechas, periodo, empresa, estado, nota ni horas. Las fechas y el periodo dependen de la oferta del periodo; la empresa altera la comparación RUT/Cámara/acta.
+  - Pasar a «no remunerada» limpia el salario.
+  - Sin cambios efectivos no se guarda ni se audita nada.
+- **Cambio de modalidad.** Se valida que la modalidad se oferte en el periodo y, cuando aplica, que las fechas queden dentro del periodo (`ModalidadNoOfertadaError` → 400). Se rechaza en estados finales (`CambioModalidadError`).
+  - **Documentos:** se conservan con su historial; no se borra nada.
+  - **Obligaciones:** se concilian con `ObligacionesDomainService.reconciliar`. Las cumplidas se conservan; las abiertas que ya no aplican pasan a `no_aplica` con su observación (el registro se mantiene); las que faltan se crean.
+  - **Responsable de la ARL:** nunca se infiere de la modalidad. Si no coincide con el sugerido, o falta, queda como pendiente visible («Revisar quién asume la ARL…»).
+  - **Acta de iniciación:** si hay una cargada, `alCambiarDatosDeLaPractica` recalcula la comparación (modalidad incluida) o deja constancia del cambio posterior a la decisión.
+- **Estados operativos (capa sobre la máquina técnica, que se conserva).**
+
+  | Operativo | Técnicos |
+  |---|---|
+  | Inscrito | inscrita, documentacion, en_validacion |
+  | En práctica | activa, suspendida, finalizada |
+  | Anulado | anulada, cancelada |
+  | Reprobado | reprobada |
+  | Cerrado | certificada |
+
+  Coincide con `EQUIVALENCIA_SGP`.
+  - **«Inscrito»:** no admite retroceso; si el registro tiene errores, se anula.
+  - **«En práctica»:** recorre la cadena técnica con todas las invariantes del dominio: responsable de la ARL, compuerta ARL y bloqueos de la obligación de afiliación (Decreto 055 de 2015). Antes se hace un ensayo en seco sobre una copia, de modo que **no hay bypass de la ARL**.
+  - **«Anulado»:** usa `anulada` cuando está permitido; desde `suspendida`, `cancelada`.
+  - **«Reprobado»:** solo cuando la transición técnica lo permite.
+  - **«Cerrado»:** usa el flujo de cierre existente (`BitacoraUseCase.cerrar`). Exige 100 % de documentos, «Evalúa tu proceso» y una calificación aprobatoria, y solo se aplica desde «En práctica». **No hay bypass del cierre.**
+  - Cada destino bloqueado muestra su motivo en lenguaje operativo.
+- **Auditoría e historial.**
+  - Un evento `practica_modificada` registra `{ cambios: { campo: { de, a } }, obligaciones?, pendientes?, actaIniciacion? }`, y un evento `estado_operativo_cambiado` registra `{ de, a, tecnico: { de, a } }`, ambos con la justificación (mínimo 10 caracteres).
+  - En la bitácora queda una nota de sistema, por ejemplo «Nombre cambió Modalidad: Pasantía → Contrato de aprendizaje.» o «Nombre cambió el estado operativo: Inscrito → Anulado. Motivo: …».
+  - **Concurrencia optimista:** `actualizadaEn` distinta devuelve 409.
+  - No se requirió migración: `AccionAuditada` es un enumerado de código.
+- **Frontend.** El componente `sipra-practica-gobierno` (OnPush) está en «Gestión del expediente» (pestaña «Datos de la práctica»). Muestra el estado operativo, los pendientes y los botones «Editar práctica» y «Cambiar estado», solo con `gobierno.puedeModificar`; para otros perfiles muestra un aviso y no renderiza diálogos.
+  - **Editor:** panel lateral `<dialog>` (520 px; ancho completo en móvil) con las secciones Práctica, Vacante, ARL y Justificación.
+    - Incluye un resumen «de → a», «Guardar» deshabilitado sin cambios o con errores, y errores ligados a su campo.
+    - Al cambiar la modalidad, un aviso indica que los documentos se conservan y que la ARL no cambia sola.
+    - Solo envía los campos cambiados y la versión.
+  - **Diálogo de estado:** muestra el estado actual, los destinos operativos (los bloqueados deshabilitados y con su motivo) y la justificación obligatoria. Anulado y Reprobado usan el botón de peligro.
+  - **Foco:** foco inicial, Esc y retorno del foco.
+  - **Retirado del expediente:** el editor de vacante y los botones «Pasar a …».
+  - **Se mantiene:** el registro de la afiliación a ARL.
+- **Pruebas.**
+  - **API:**
+    - `test/gobierno-practica-g5.spec.ts` (32).
+    - Rutas: nuevo bloque G5 en `autorizacion-rutas.spec.ts`.
+    - `mesa-actas.spec.ts` y `responsable-arl-permisos.spec.ts` se actualizaron a las reglas de G5: administración y dirección 403; el estudiante ya no edita después del registro.
+    - Suite completa: 115 suites, 3.117/3.117. Aislamiento: 10/10.
+  - **Web:**
+    - `pruebas/gobierno-practica-g5.spec.ts`; `expediente-v3.spec.ts` se ajustó.
+    - En `usuarios-g4.spec.ts` se corrigió el acceso por índice que rompía `typecheck:pruebas` (venía de 0.42.0; la lógica probada no cambia).
+    - Suite: 505/505.
+  - **Lint, build y secretos:** lint con 0 advertencias, build de API y web, y `verificar:secretos` limpio.
+  - **Navegador real** (API 3101 → `sipra_dev`, web 4203, datos sintéticos): todas las comprobaciones pasaron.
+    - **Coordinador:** editor, foco, Guardar deshabilitado, resumen, error de justificación, aviso de modalidad, guardado con el responsable de la ARL intacto, nota en la bitácora y 409 por versión vieja.
+    - **Diálogo de estado:** bloqueos con su motivo.
+    - **Analista:** anula.
+    - **Director y administrador:** sin botones y 403 en `/datos`, `/estado-operativo` y `/estado`.
+    - **Estudiante:** sin botones ni diálogos, y 403.
+    - **Móvil 390 px:** sin desplazamiento horizontal y panel a ancho completo.
+    - **Temas:** oscuro y claro.
+  - **Datos modificados en `sipra_dev`:**
+    - Se creó por la API de administración «Analista QA G5 Sintético» (`analista.qa.g5@cun.edu.co`, institucional, escritura), porque la base no tenía analista.
+    - Las prácticas sintéticas `…00a3` y `…0042` quedaron modificadas y anuladas por la QA.
+- **Capturas:** `docs/assets/g5/`.
+- **Riesgos y pendientes.**
+  - **Edición de fechas, periodo y empresa:** fuera de G5; requiere definir la regla con el Área de Prácticas.
+  - **«En práctica → Anulado»:** la máquina técnica no lo permite desde `activa` (se ofrece Reprobado o cierre); cambiarlo es una decisión de negocio.
+  - **Completitud documental para «En práctica»:** no la exige el dominio; se conserva el comportamiento previo.
 
 ### 0.42.0 — 17 de noviembre de 2026
 

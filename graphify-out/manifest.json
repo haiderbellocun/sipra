@@ -210,9 +210,9 @@
     "semantic_hash": "2b0f296d27231fb2d4db7c06f41e60c4"
   },
   "apps/api/src/application/dtos/practica.dto.ts": {
-    "mtime": 1794932870.577642,
-    "seen": 1794936262.734842,
-    "ast_hash": "421954d27276aee45cfb41fb998db412",
+    "mtime": 1794940520.5867863,
+    "seen": 1795007956.9796607,
+    "ast_hash": "b4925aeed19cebae4b9981e490230927",
     "semantic_hash": ""
   },
   "apps/api/src/application/dtos/rut-mesa.dto.ts": {
@@ -384,10 +384,10 @@
     "semantic_hash": "c4125184b9e3a34b9299282da4502210"
   },
   "apps/api/src/application/use-cases/documentos/validacion-acta.use-case.ts": {
-    "mtime": 1793378036.189946,
-    "seen": 1794319155.1081896,
-    "ast_hash": "f40dc7be57096c6393b2c5ca6c868a62",
-    "semantic_hash": "f40dc7be57096c6393b2c5ca6c868a62"
+    "mtime": 1794940599.2734656,
+    "seen": 1795007957.1180153,
+    "ast_hash": "bccd23ce3ead3e8d6d2a3fbad77d3961",
+    "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/documentos/validacion-camara.use-case.ts": {
     "mtime": 1793977049.3859437,
@@ -426,9 +426,9 @@
     "semantic_hash": "5260856c0c7a3a412fbcd09178978771"
   },
   "apps/api/src/application/use-cases/practicas/bitacora.use-case.ts": {
-    "mtime": 1794931325.2945592,
-    "seen": 1794932082.040903,
-    "ast_hash": "d1096a8c5f35231993579876fd9d7dbd",
+    "mtime": 1794940599.2658997,
+    "seen": 1795007957.146923,
+    "ast_hash": "99ec1d8644a8436e6863598fbc8cc19d",
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/practicas/carta-presentacion.use-case.ts": {
@@ -438,9 +438,9 @@
     "semantic_hash": "99cc9bf91eb71c7af755df39e118dd64"
   },
   "apps/api/src/application/use-cases/practicas/gestionar-practica.use-case.ts": {
-    "mtime": 1794932838.5046382,
-    "seen": 1794936262.7621348,
-    "ast_hash": "7a8c3501cafe292c9ad47909b4adc05b",
+    "mtime": 1794940599.2705784,
+    "seen": 1795007957.1491444,
+    "ast_hash": "126fae5de9eb4aa3f6a2c41d56d63640",
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/practicas/proyeccion-practica.ts": {
@@ -498,10 +498,10 @@
     "semantic_hash": "fc2b57d1fb41ae0584911ece6b17d1a2"
   },
   "apps/api/src/domain/entities/auditoria.entity.ts": {
-    "mtime": 1794235610.1502633,
-    "seen": 1794319155.1082063,
-    "ast_hash": "bb5aee78c14b7ee72980b1864fd1dcbe",
-    "semantic_hash": "bb5aee78c14b7ee72980b1864fd1dcbe"
+    "mtime": 1794940599.263071,
+    "seen": 1795007957.2000692,
+    "ast_hash": "4c7abcd6350cae1aa0c4adb69abdaf87",
+    "semantic_hash": ""
   },
   "apps/api/src/domain/entities/bitacora.entity.ts": {
     "mtime": 1792078634.800881,
@@ -564,10 +564,10 @@
     "semantic_hash": "79361b03f4b4c2e7e0bcced28f7c5059"
   },
   "apps/api/src/domain/entities/obligacion.entity.ts": {
-    "mtime": 1792078634.826303,
-    "seen": 1794319155.1082199,
-    "ast_hash": "2ce7830ee581c40a0aef9b3fae240d80",
-    "semantic_hash": "2ce7830ee581c40a0aef9b3fae240d80"
+    "mtime": 1794940474.6919808,
+    "seen": 1795007957.2346675,
+    "ast_hash": "f9eb0d74c22b30b39225f91a9aeece98",
+    "semantic_hash": ""
   },
   "apps/api/src/domain/entities/parametro.entity.ts": {
     "mtime": 1792078634.829304,
@@ -588,9 +588,9 @@
     "semantic_hash": "0157f06ab6cbc0433dfbb5ed1e0de872"
   },
   "apps/api/src/domain/entities/practica.entity.ts": {
-    "mtime": 1794929807.3174872,
-    "seen": 1794930871.1373227,
-    "ast_hash": "18ecded251d1b3a2dfe601dad0aaa42f",
+    "mtime": 1794940453.4842823,
+    "seen": 1795007957.2474363,
+    "ast_hash": "64e770950a3d1f65964a908d8cb8b69c",
     "semantic_hash": ""
   },
   "apps/api/src/domain/entities/preguntas-frecuentes.ts": {
@@ -1026,10 +1026,10 @@
     "semantic_hash": "9533b745a8629bae9ee37059f1b9521c"
   },
   "apps/api/src/domain/services/obligaciones.domain-service.ts": {
-    "mtime": 1792078634.9249797,
-    "seen": 1794319155.108291,
-    "ast_hash": "6060d6001ddf2ae952afe8fc562e6b6c",
-    "semantic_hash": "6060d6001ddf2ae952afe8fc562e6b6c"
+    "mtime": 1794940474.6919808,
+    "seen": 1795007957.5809808,
+    "ast_hash": "f2d391b7818c2ab790edc8becc1d1a03",
+    "semantic_hash": ""
   },
   "apps/api/src/domain/services/pdf417.domain-service.ts": {
     "mtime": 1792078634.9290347,
@@ -1536,9 +1536,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/practicas.controller.ts": {
-    "mtime": 1794931374.7435539,
-    "seen": 1794932082.1427088,
-    "ast_hash": "b9739a79fe4fd728e9a669fadd8a65fb",
+    "mtime": 1794940690.2179353,
+    "seen": 1795007958.4120355,
+    "ast_hash": "16b7ebecb2dc165e9b4ea53fc2f05545",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/reportes-sgp.controller.ts": {
@@ -1968,9 +1968,9 @@
     "semantic_hash": "43dcda75b98773611c87c323bb64d8b8"
   },
   "apps/api/test/autorizacion-rutas.spec.ts": {
-    "mtime": 1794931537.0236793,
-    "seen": 1794932082.182676,
-    "ast_hash": "e887e81d1ba0bee4065c5af98ca9de60",
+    "mtime": 1794941055.6779082,
+    "seen": 1795007959.146624,
+    "ast_hash": "3f42b56e815127ff25a169b18fe42fa8",
     "semantic_hash": ""
   },
   "apps/api/test/avance-y-carta.spec.ts": {
@@ -2184,10 +2184,10 @@
     "semantic_hash": ""
   },
   "apps/api/test/mesa-actas.spec.ts": {
-    "mtime": 1793381484.0802956,
-    "seen": 1794319155.1084611,
-    "ast_hash": "3fbb4303eccd36417747f279b4bc546b",
-    "semantic_hash": "3fbb4303eccd36417747f279b4bc546b"
+    "mtime": 1794940884.1560433,
+    "seen": 1795007959.3097608,
+    "ast_hash": "26966f1c0091dca1a1c29b1adacc0f46",
+    "semantic_hash": ""
   },
   "apps/api/test/mesa-camara-dominio.spec.ts": {
     "mtime": 1794929941.8403568,
@@ -2418,10 +2418,10 @@
     "semantic_hash": "961a62668a5f0ebb9bc07b6dcb34204e"
   },
   "apps/api/test/responsable-arl-permisos.spec.ts": {
-    "mtime": 1793373833.0485215,
-    "seen": 1794319155.108495,
-    "ast_hash": "e2090a5dcc13bbb35e52fc0524d5b7fd",
-    "semantic_hash": "e2090a5dcc13bbb35e52fc0524d5b7fd"
+    "mtime": 1794940884.1508133,
+    "seen": 1795007959.5334716,
+    "ast_hash": "fada169e1bea1f3eed5aeb8f8613d4df",
+    "semantic_hash": ""
   },
   "apps/api/test/rut-comparacion.spec.ts": {
     "mtime": 1793739934.2001257,
@@ -2880,9 +2880,9 @@
     "semantic_hash": "85ebb88462db6de8aca5d59fd1700cd0"
   },
   "apps/web/src/app/core/models/modelos.ts": {
-    "mtime": 1794933335.03822,
-    "seen": 1794936263.171366,
-    "ast_hash": "a28b24f935457524340103f08f2df0df",
+    "mtime": 1794946893.43428,
+    "seen": 1795007959.9840894,
+    "ast_hash": "ee801ed21d24731a5502210327e275a4",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/validacion-documental.model.ts": {
@@ -2892,9 +2892,9 @@
     "semantic_hash": "65181eb1348fe3c7e12c77c6740ea07d"
   },
   "apps/web/src/app/core/services/api.service.ts": {
-    "mtime": 1794938415.8556848,
-    "seen": 1794939633.981832,
-    "ast_hash": "38bc78e672bdc03b796b4ca697eff189",
+    "mtime": 1794948655.4021943,
+    "seen": 1795007959.9980934,
+    "ast_hash": "288302d3bbfe881cac8bcac7f51a2474",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/services/captura-guiada.service.ts": {
@@ -3180,9 +3180,9 @@
     "semantic_hash": "c4bdb131f69fd51ff9117613982e7c84"
   },
   "apps/web/src/app/features/practicas/expediente.component.ts": {
-    "mtime": 1794934045.9988,
-    "seen": 1794936263.222237,
-    "ast_hash": "857ea7074107fe013b00d705aa09f2ad",
+    "mtime": 1794948655.0235384,
+    "seen": 1795007960.450521,
+    "ast_hash": "0e4e5593c31c4ec6b2f1975b49422181",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/practicas/guia-documento.ts": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1794939354.6161897,
-    "seen": 1794939634.1358867,
-    "ast_hash": "53e7c5d3d11bceb646670f7b230031dc",
+    "mtime": 1795007747.0995293,
+    "seen": 1795007961.3477812,
+    "ast_hash": "6dc4c3292c9a96cd25998caca172dd8a",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -3666,9 +3666,9 @@
     "semantic_hash": "346c3d6ea61d2ddae0cece6175ce1c76"
   },
   "apps/web/pruebas/expediente-v3.spec.ts": {
-    "mtime": 1794933585.1661828,
-    "seen": 1794936263.150995,
-    "ast_hash": "e97de53c80fa13c8d3185c1201d77fc2",
+    "mtime": 1794948678.9932272,
+    "seen": 1795007959.8618438,
+    "ast_hash": "c3e3f2f8050dbf7327b4563508ac83e1",
     "semantic_hash": ""
   },
   "apps/web/pruebas/inicio-v3.spec.ts": {
@@ -4386,9 +4386,9 @@
     "semantic_hash": ""
   },
   "apps/web/pruebas/usuarios-g4.spec.ts": {
-    "mtime": 1794938698.6160567,
-    "seen": 1794939633.9731922,
-    "ast_hash": "7a1a066248c6c251a863da3139dd1872",
+    "mtime": 1794948747.7675993,
+    "seen": 1795007959.9340074,
+    "ast_hash": "3405ee9beb605ca0c18f1c4203ccb9a7",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/gestion/usuarios.util.ts": {
@@ -4425,6 +4425,72 @@
     "mtime": 1794939294.0307508,
     "seen": 1794939634.173896,
     "ast_hash": "55d44205f7c0f97b5eddc254fe2f6424",
+    "semantic_hash": ""
+  },
+  "apps/api/test/gobierno-practica-g5.spec.ts": {
+    "mtime": 1794941004.159021,
+    "seen": 1795007959.2839987,
+    "ast_hash": "4511ad579fbf82819f294a78102c18d3",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/gobierno-practica-g5.spec.ts": {
+    "mtime": 1794949445.2701154,
+    "seen": 1795007959.8618612,
+    "ast_hash": "17b6626b021df014025fd3e92f38f126",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/practicas/gobierno-practica.ts": {
+    "mtime": 1794948747.8838172,
+    "seen": 1795007960.45053,
+    "ast_hash": "a69ccb6f8208201405ef235090f3ed67",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/practicas/practica-gobierno.component.ts": {
+    "mtime": 1794949604.3997338,
+    "seen": 1795007960.5195298,
+    "ast_hash": "1ac2bc26b6adcf522b1a2f007b00b3ed",
+    "semantic_hash": ""
+  },
+  "docs/assets/g5/g5-editor-coordinador-dark.webp": {
+    "mtime": 1795007302.185957,
+    "seen": 1795007961.4686756,
+    "ast_hash": "bca9f7df52c129cb72c9b6951906f0f5",
+    "semantic_hash": ""
+  },
+  "docs/assets/g5/g5-editor-movil.webp": {
+    "mtime": 1795007327.6403353,
+    "seen": 1795007961.468687,
+    "ast_hash": "e2f74d63d9208333b253062a2ce10bcd",
+    "semantic_hash": ""
+  },
+  "docs/assets/g5/g5-estado-analista-light.webp": {
+    "mtime": 1795007312.578477,
+    "seen": 1795007961.4686947,
+    "ast_hash": "7bb5a39e1bfc1a81dc689720d84b4b3a",
+    "semantic_hash": ""
+  },
+  "docs/assets/g5/g5-estado-coordinador-dark.webp": {
+    "mtime": 1795007306.2443225,
+    "seen": 1795007961.4687023,
+    "ast_hash": "3f46871e5dc49bb3023b85d688eabcdf",
+    "semantic_hash": ""
+  },
+  "docs/assets/g5/g5-gestion-administrador-dark.webp": {
+    "mtime": 1795007323.171407,
+    "seen": 1795007961.4687083,
+    "ast_hash": "541a26d3ea8c5f85cc616051688c774b",
+    "semantic_hash": ""
+  },
+  "docs/assets/g5/g5-gestion-analista-light.webp": {
+    "mtime": 1795007311.6264484,
+    "seen": 1795007961.468714,
+    "ast_hash": "0dafbd69533cfffeac39a58ceca17d01",
+    "semantic_hash": ""
+  },
+  "docs/assets/g5/g5-gestion-coordinador-dark.webp": {
+    "mtime": 1795007300.178782,
+    "seen": 1795007961.468719,
+    "ast_hash": "50d93b1c8c43f6eaceb82dc66493b53f",
     "semantic_hash": ""
   },
   "package-lock.json": {

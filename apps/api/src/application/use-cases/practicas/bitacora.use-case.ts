@@ -208,6 +208,15 @@ export class BitacoraUseCase {
     }
   }
 
+  /** G5 · Anotación automática de un cambio de gobierno (modalidad, datos, estado). No la escribe nadie a mano. */
+  async anotarCambioDeGobierno(practicaId: string, mensaje: string, ahora: Date = new Date()): Promise<void> {
+    const entrada = this.construir({
+      practicaId, tipo: TipoEntradaBitacora.SISTEMA, autor: 'sistema', autorId: null,
+      mensaje, detalle: null, venceEl: null, creadaEn: ahora,
+    });
+    await this.bitacora.agregar(entrada.instantanea());
+  }
+
   // ── internos ─────────────────────────────────────────────────────────────
 
   private async calificar(
