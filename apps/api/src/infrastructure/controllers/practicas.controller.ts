@@ -15,6 +15,10 @@ import {
   RegistrarPracticaUseCase,
 } from '../../application/use-cases/practicas/registrar-practica.use-case';
 import { EstadoPractica } from '../../domain/entities/practica.entity';
+import {
+  AplicarDistribucionDto, ResultadoDistribucionDto, VistaPreviaDistribucionDto,
+} from '../../application/dtos/distribucion-docentes.dto';
+import { DistribucionDocentesUseCase } from '../../application/use-cases/practicas/distribucion-docentes.use-case';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
 import { Autenticado, Roles } from '../auth/roles.decorator';
@@ -28,6 +32,7 @@ export class PracticasController {
     private readonly gestionar: GestionarPracticaUseCase,
     private readonly registrar: RegistrarPracticaUseCase,
     private readonly auditoria: AuditoriaService,
+    private readonly distribucion: DistribucionDocentesUseCase,
   ) {}
 
   @Get()
@@ -88,6 +93,43 @@ export class PracticasController {
       },
       actor,
     );
+  }
+
+  @Get('distribucion-docentes')
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA)
+  @ApiOperation({
+    summary: 'G6 · Vista previa de la distribución de estudiantes por docente facilitador (sin escrituras)',
+    description:
+      'Siempre sobre un periodo. Reparte solo prácticas no terminales SIN docente, entre docentes activos con permiso de ' +
+      'escritura y alcance en la escuela de cada práctica, «menos cargado primero» contando la carga que ya tienen en el ' +
+      'periodo. Determinística. Devuelve carga actual, nuevos y final por docente, no asignables y la huella para aplicar.',
+  })
+  @ApiQuery({ name: 'periodo', required: true })
+  @ApiQuery({ name: 'escuela', required: false, description: 'Una escuela; ausente = todas las del alcance' })
+  @ApiResponse({ status: 200, type: VistaPreviaDistribucionDto })
+  previsualizarDistribucion(
+    @ActorActual() actor: Actor,
+    @Query('periodo') periodo: string,
+    @Query('escuela') escuela?: string,
+  ): Promise<VistaPreviaDistribucionDto> {
+    return this.distribucion.previsualizar(periodo, escuela || undefined, actor);
+  }
+
+  @Post('distribucion-docentes')
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA)
+  @ApiOperation({
+    summary: 'G6 · Aplicar la distribución (transaccional; 409 si cambió desde la vista previa)',
+    description:
+      'Recalcula con datos frescos y exige la huella de la vista previa. Asigna en una transacción, solo donde `tutor_id` ' +
+      'sigue vacío; las asignaciones existentes no se modifican. Auditoría de lote y por práctica, y nota en la bitácora.',
+  })
+  @ApiResponse({ status: 201, type: ResultadoDistribucionDto })
+  @ApiResponse({ status: 409, description: 'Las asignaciones cambiaron desde la vista previa' })
+  aplicarDistribucion(
+    @Body() dto: AplicarDistribucionDto,
+    @ActorActual() actor: Actor,
+  ): Promise<ResultadoDistribucionDto> {
+    return this.distribucion.aplicar(dto, actor);
   }
 
   @Post('registro')
@@ -216,13 +258,18 @@ export class PracticasController {
   }
 
   @Patch(':id/tutor')
-  @Roles(Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA)
-  @ApiOperation({ summary: 'Asignar tutor académico' })
+  @Roles(Rol.COORDINADOR, Rol.ANALISTA)
+  @ApiOperation({
+    summary: 'G6 · Asignar docente facilitador (manual)',
+    description:
+      'Solo coordinación y analista. El docente debe existir, ser docente facilitador, estar activo, tener permiso de escritura ' +
+      'y la escuela de la práctica en su alcance. Reemplazar un docente ya asignado exige justificación. Auditado.',
+  })
   asignarTutor(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AsignarTutorDto,
     @ActorActual() actor: Actor,
   ): Promise<PracticaRespuestaDto> {
-    return this.gestionar.asignarTutor(id, dto.tutorId, actor);
+    return this.gestionar.asignarTutor(id, dto.tutorId, actor, dto.justificacion);
   }
 }

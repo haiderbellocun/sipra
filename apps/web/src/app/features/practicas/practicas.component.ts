@@ -1,6 +1,6 @@
 import { tieneRol } from '@core/auth/roles';
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -28,10 +28,13 @@ const FILTROS_INICIALES = {
  * filtros en divulgación progresiva y una lista estructurada (tabla) que en móvil se apila por fila.
  * Clases propias: evitan los nombres globales de estilos.css (.tabla, .fila, .campo, .pista, .boton…).
  */
+import { DistribucionDocentesComponent } from './distribucion-docentes.component';
+import { puedeDistribuir } from './distribucion-docentes.util';
+
 @Component({
   selector: 'sipra-practicas',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe, EtiquetaPipe, SenalEstadoComponent, TiraMetricasComponent, CargaSenalComponent, EstadoVacioComponent],
+  imports: [RouterLink, FormsModule, DatePipe, EtiquetaPipe, SenalEstadoComponent, TiraMetricasComponent, CargaSenalComponent, EstadoVacioComponent, DistribucionDocentesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host { display: block; --enlace: var(--signal-default); --peligro: var(--status-critical); }
@@ -50,6 +53,8 @@ const FILTROS_INICIALES = {
       color: var(--text-primary); text-decoration: none; border: 1px solid var(--border-strong); border-radius: 6px;
       background: color-mix(in srgb, var(--text-primary) 5%, transparent); transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out);
     }
+    .acciones-cab { display: flex; gap: 8px; flex-wrap: wrap; }
+    button.accion { cursor: pointer; }
     .accion:hover { text-decoration: none; border-color: color-mix(in srgb, var(--signal-active) 60%, var(--border-strong)); }
     .accion.primaria { color: var(--text-inverse); background: var(--signal-active); border-color: transparent; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
 
@@ -172,9 +177,17 @@ const FILTROS_INICIALES = {
       @if (estudiante) {
         <a routerLink="/registro" class="accion primaria">Registrar mi práctica</a>
       } @else if (esCoordinacionOAdmin()) {
-        <a routerLink="/registro" class="accion">Registro FUR administrativo</a>
+        <div class="acciones-cab">
+          @if (puedeDistribuir()) {
+            <button #botonDistribuir type="button" class="accion" (click)="abrirDistribucion(botonDistribuir)">Distribuir estudiantes</button>
+          }
+          <a routerLink="/registro" class="accion">Registro FUR administrativo</a>
+        </div>
       }
     </header>
+    @if (puedeDistribuir()) {
+      <sipra-distribucion-docentes [periodos]="periodos()" [periodoFiltro]="f.periodo" (aplicada)="consultar()" />
+    }
 
     @if (interno) {
       @if (!cargando()) { <sipra-tira-metricas class="tira compacta" [metricas]="metricas()" etiqueta="Cifras del listado" /> }
@@ -318,6 +331,10 @@ export class PracticasComponent implements OnInit {
   /** El avance documental y el docente solo se muestran a quien los recibe del servidor. */
   readonly veAvance = computed(() => tieneRol(['estudiante', 'tutor', 'coordinador', 'analista', 'director', 'administrador'], this.sesion.rol()));
   readonly esCoordinacionOAdmin = computed(() => tieneRol(['coordinador', 'analista', 'administrador'], this.sesion.rol()));
+  /** G6 · distribuir estudiantes entre docentes facilitadores: solo coordinación y analista. */
+  readonly puedeDistribuir = computed(() => puedeDistribuir(this.sesion.rol()));
+  private readonly distribucion = viewChild(DistribucionDocentesComponent);
+  abrirDistribucion(origen: HTMLElement): void { void this.distribucion()?.abrir(origen); }
   readonly veDocente = computed(() => !tieneRol(['empresa', 'extension'], this.sesion.rol()));
   private readonly api = inject(ApiService);
 

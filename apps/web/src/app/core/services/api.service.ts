@@ -6,7 +6,7 @@ import {
   Carta, CatalogoProceso, ConsolidadoArl, Documento, Empresa, EntradaBitacora, EscribirBitacora, EstadoCierre,
   EstadoPractica, FilaMatriculaSinu, FiltroPracticas, ModalidadCatalogo, Periodo, Practica, RadicarArl, RegistroFur,
   ReporteTabla, ResultadoAntidiscriminacion, ResumenSincronizacion, SolicitudArl, TableroCumplimiento,
-  UsuarioAdministrativo, Vacante, VistaEstudianteSinu,
+  UsuarioAdministrativo, Vacante, VistaEstudianteSinu, VistaPreviaDistribucion, ResultadoDistribucion,
   CategoriaAyuda, PreguntaFrecuente, Pqrs, RadicarPqrs,
   ComparativaModeloIa, ConfiguracionIa, EstimacionIa, ResumenGastoIa, TarifaIa,
   ConsultaAdresPreparada, FilaBandejaAdres, ResultadoAdres,
@@ -277,6 +277,18 @@ export class ApiService {
   /** G4 · escuelas del catálogo institucional (código y nombre) para elegir el alcance de un usuario. */
   catalogoEscuelas(): Observable<{ codigo: string; nombre: string }[]> {
     return this.http.get<{ codigo: string; nombre: string }[]>(`${this.base}/catalogo/escuelas`);
+  }
+
+  /** G6 · vista previa de la distribución (sin escrituras). */
+  previsualizarDistribucion(periodo: string, escuela?: string): Observable<VistaPreviaDistribucion> {
+    const params: Record<string, string> = { periodo };
+    if (escuela) params['escuela'] = escuela;
+    return this.http.get<VistaPreviaDistribucion>(`${this.base}/practicas/distribucion-docentes`, { params });
+  }
+
+  /** G6 · aplica la distribución de la vista previa (409 si los datos cambiaron). */
+  aplicarDistribucion(cuerpo: { periodoAcademico: string; escuelaId?: string; huella: string }): Observable<ResultadoDistribucion> {
+    return this.http.post<ResultadoDistribucion>(`${this.base}/practicas/distribucion-docentes`, cuerpo);
   }
 
   catalogoProceso(): Observable<CatalogoProceso> {

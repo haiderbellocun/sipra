@@ -612,13 +612,44 @@ export class GestionarPracticaUseCase {
     return this.presentar(guardada, actor);
   }
 
-  async asignarTutor(id: string, tutorId: string, actor: Actor): Promise<PracticaRespuestaDto> {
-    if (![Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.ANALISTA].includes(actor.rol)) {
-      throw new ForbiddenException('Solo coordinación o administración asignan tutor');
+  /**
+   * G6 · Asignación MANUAL de docente facilitador. Solo coordinación y analista. El docente debe existir, ser
+   * docente facilitador, estar activo, tener permiso de escritura y la escuela de la práctica en su alcance (alcance
+   * vacío NO es institucional para el docente). Reemplazar un docente ya asignado exige justificación. Auditado.
+   */
+  async asignarTutor(id: string, tutorId: string, actor: Actor, justificacion?: string, ahora: Date = new Date()): Promise<PracticaRespuestaDto> {
+    if (!puedeModificarPractica(actor)) {
+      throw new ForbiddenException('La asignación de docente facilitador la hacen coordinación y analista.');
     }
     const practica = await this.exigirVisible(id, actor);
-    practica.asignarTutor(tutorId);
+    if (practica.esTerminal) throw new BadRequestException('La práctica está en un estado final: no se le asigna docente.');
+    const docente = await this.usuarios.buscarPorId(tutorId);
+    const d = docente?.instantanea();
+    if (!d || d.rol !== Rol.TUTOR) throw new BadRequestException('El usuario indicado no es un docente facilitador.');
+    if (!d.activo) throw new BadRequestException('El docente facilitador está inhabilitado: no recibe asignaciones.');
+    if (d.permiso !== 'escritura') throw new BadRequestException('El docente facilitador tiene permiso de solo consulta.');
+    if (!d.escuelas.includes(practica.escuelaId)) {
+      throw new BadRequestException('La escuela de la práctica no está en el alcance de ese docente facilitador.');
+    }
+    const anterior = practica.tutorId;
+    if (anterior === tutorId) return this.obtener(id, actor);
+    const motivo = (justificacion ?? '').trim();
+    if (anterior && motivo.length < JUSTIFICACION_MINIMA) {
+      throw new BadRequestException(`Reemplazar el docente asignado exige justificación (mínimo ${JUSTIFICACION_MINIMA} caracteres).`);
+    }
+    practica.asignarTutor(tutorId, ahora);
     const guardada = await this.practicas.guardar(practica.instantanea());
+    const anteriorNombre = anterior ? (await this.usuarios.buscarPorId(anterior))?.nombre ?? null : null;
+    await this.auditoria.registrar({
+      actorId: actor.id, actorCorreo: actor.correo, actorRol: actor.rol, accion: AccionAuditada.TUTOR_ASIGNADO,
+      entidad: 'practica', entidadId: id, justificacion: motivo || null,
+      metadatos: { tutorId, tutorNombre: d.nombre, anteriorTutorId: anterior, metodo: 'manual', periodoAcademico: practica.periodoAcademico },
+      ip: actor.ip ?? null, agenteUsuario: actor.agenteUsuario ?? null, ocurridoEn: ahora,
+    });
+    const quien = await this.nombreDe(actor);
+    await this.anotar(id, actor, anterior
+      ? `Docente facilitador cambiado: ${anteriorNombre ?? 'anterior'} → ${d.nombre}, por ${quien}. Motivo: ${motivo}`
+      : `Docente facilitador asignado: ${d.nombre}. Asignación manual, por ${quien}.`, ahora);
     return this.presentar(guardada, actor);
   }
 

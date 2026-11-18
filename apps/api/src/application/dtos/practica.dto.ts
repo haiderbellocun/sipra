@@ -167,6 +167,8 @@ export class RegistrarHorasDto {
 
 export class AsignarTutorDto {
   @ApiProperty() @IsUUID() tutorId!: string;
+  @ApiPropertyOptional({ description: 'Obligatoria (mínimo 10) al reemplazar un docente ya asignado.' })
+  @IsOptional() @IsString() @MaxLength(1000) justificacion?: string;
 }
 
 export class PracticaRespuestaDto {

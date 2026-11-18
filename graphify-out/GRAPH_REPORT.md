@@ -1,52 +1,52 @@
 # Graph Report - sipra-practicas-main  (2026-11-18)
 
 ## Corpus Check
-- 665 files · ~796,305 words
+- 675 files · ~809,291 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 20 file(s) not represented in the graph (top: (none) 7, .csv 6, .woff2 2)
 
 ## Summary
-- 9844 nodes · 27890 edges · 354 communities (218 shown, 136 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 1379 edges (avg confidence: 0.85)
+- 9917 nodes · 28274 edges · 279 communities (212 shown, 67 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 1394 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `01507b75`
+- Built from commit: `e8a0dfa3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- repositorios.port.ts
+- gestionar-practica.use-case.ts
 - @angular/core
-- @nestjs/common
+- app.module.ts
 - camara.util.ts
 - rut.util.ts
 - usuarios.component.ts
 - actas.util.ts
-- todas.migracion.ts
+- typeorm
 - eps.util.ts
 - soporte-mesa-camara.ts
 - ApiService
 - ActorActual
 - ValidacionEpsUseCase
-- periodo.entity.ts
+- cargue-estudiante.service.ts
 - Auditoría inmutable
 - reportes-graficos.util.ts
-- EvidenciaEps
+- rut-mesa-estado.spec.ts
 - reportes-analitica.use-case.ts
 - ref_node_fs
 - Entidad ValidacionEps
 - mesa-eps.use-case.ts
-- app.module.ts
+- documento.entity.ts
 - costos-ia.use-case.ts
-- lector-documento-local.port.ts
+- imagen-local.ts
 - Prototipo HTML
 - CartaPresentacion
-- interpretacion-camara.domain-service.ts
-- MesaCamaraUseCase
-- CostosIaController
-- mesa-rut-dominio.spec.ts
-- camara-mesa-estado.spec.ts
+- mesa-acta.domain-service.ts
+- MesaCamaraController
+- distribucion-docentes.component.ts
+- mesa-rut.use-case.ts
+- Vacante
 - CrearUsuarioDto
 - Acciones auditadas
 - camara-lector.spec.ts
@@ -54,7 +54,7 @@
 - openai.adapter.ts
 - repositorios.adapter.ts
 - verificacion-eps.use-case.ts
-- reportes-organizaciones.component.ts
+- reportes-general.component.ts
 - LimitesLecturaLocal
 - validacion-eps.entity.ts
 - ExpedienteComponent
@@ -62,62 +62,63 @@
 - MotivoRechazoArl
 - lector-documento-local.port.ts
 - decodificador.adapter.ts
-- comparacion-camara.domain-service.ts
-- reportes-periodos.component.ts
+- clasificacion-acta.domain-service.ts
+- reportes-v3.spec.ts
 - seed-reportes-1000.generador.ts
-- leerError
+- ReportesExportacionesComponent
 - traducirErrorEps
 - regresion-camara-real.ts
 - Documento
 - reportes-pack.component.ts
-- Actor
+- MesaRutController
 - PeriodoAcademico
 - web/package.json
-- Practica
+- SolicitudPqrs
 - ref_node_fs
 - Iconografía e ilustraciones
 - comparacion-rut.domain-service.ts
-- documento-empresarial.ts
+- validacion-documento-empresarial.entity.ts
 - reportes-sgp.use-case.ts
 - .buscarPorId
 - lectura-local-eps.domain-service.ts
 - GestionarEmpresaUseCase
 - Compuerta ARL (doc)
 - EscribirBitacoraDto
-- repositorios.port.ts
+- reporte-bloqueado.spec.ts
 - Signal Field ingreso
-- Dependencias API
+- expediente-documental.spec.ts
 - Infra Docker local
-- GestionarPracticaUseCase
+- PqrsUseCase
 - Mesas documentales (doc)
 - Lectura local empresarial (doc)
-- Dev-dependencias API
+- api/package.json
 - conocimiento-documental.domain-service.ts
 - vd.senal.ts
-- Obligacion
+- ejecutar-semillas.ts
+- Practica
 - ValidacionActa
-- mesa-camara.domain-service.ts
+- Pdf417DomainService
 - interpretacion-rut.domain-service.ts
 - expediente-documental.use-case.ts
 - .buscarPorId
-- ReportesEstado
-- .desde
+- vd-cola.component.ts
+- cola.adapter.ts
 - .publicarPolitica
 - practica-gobierno.component.ts
 - Scripts npm API
 - reportes-analitica.adapter.ts
 - Auditoría inmutable
 - reportes-treemap.component.ts
-- .desde
+- rol.vo.ts
 - cargar-catalogos.ts
 - gestionar-vacante.use-case.ts
 - soporte-mesa-actas.ts
 - vd.util.ts
-- Documento
+- DocumentoRepositoryAdapter
 - package.json raíz
 - comparacion-acta.domain-service.ts
 - Reportes SGP controlador
-- reportes-v3.spec.ts
+- reportes-analitica.util.ts
 - tsconfig web
 - .leer
 - Plantillas de notificación
@@ -125,18 +126,18 @@
 - acta-validacion-persistencia.spec.ts
 - Diseño y modo abierto (doc)
 - Backlog y decisiones (doc)
-- migracion-validacion-eps.spec.ts
-- mesa-actas.use-case.ts
+- senales-motores-documentales.domain-service.ts
+- MesaActasUseCase
 - tema.spec.ts
 - tsconfig API
-- tarifas-ia.ts
+- costos-ia.spec.ts
 - Contraste y certificados prueba
 - TareasProgramadasService
 - enlaces-descarga.spec.ts
-- ValidacionesEnMemoria
-- MotivoDevolucionCamara
+- adres-caso-uso.spec.ts
+- mesa-camara.use-case.ts
 - dependencies
-- ValidacionActaUseCase
+- .vacantes
 - reportes-analitica.spec.ts
 - Navegador
 - TipoDocumento
@@ -144,26 +145,26 @@
 - E2E Mesa Cámara
 - E2E Mesa RUT
 - ItemBarra
-- .desde
+- paginaEscaneada
 - SobrescrituraParametro
-- pdfjs.worker.js
+- estilos-globales.spec.ts
 - externos.adapter.ts
 - validacion-documental.component.ts
 - openai-adaptador.spec.ts
-- .listar
+- MetricasService
 - verificar-concurrencia-pg.ts
-- validacion-documental.model.ts
+- soporte-certificado.ts
 - Empresa
-- ValidacionDocumentoEmpresarialRepositoryAdapter
-- validacion-acta.use-case.ts
+- verificar-decision-camara-pg.ts
+- saneamiento-pdf.domain-service.ts
 - cdp.mjs
 - .detalle
 - E2E Validación documental
-- PracticaRespuestaDto
-- EpsComponent
+- CatalogoController
+- antidiscriminacion.domain-service.ts
 - .analitica
 - aviso-arl-g3.spec.ts
-- MotivoDevolucionActa
+- mesa-actas.use-case.ts
 - Contraste VD
 - Reglas EPS (CLAUDE.md)
 - Prometheus scrape
@@ -176,14 +177,14 @@
 - Pipeline de validación documental
 - verificar-migraciones.ts
 - ReportesAnaliticaUseCase
-- evaluar-lectura.ts
+- TipoDocumento
 - Periodo
 - PqrsUseCase
-- AuthController
+- Usuario
 - GestionarPeriodosUseCase
 - Documentos empresariales: RUT y Cámara de Comercio
 - Componente VD
-- worker-y-metricas.spec.ts
+- AyudaComponent
 - Configuración Jest
 - .tableroCumplimiento
 - extraccion-acta.domain-service.ts
@@ -193,19 +194,19 @@
 - Visor Cámara
 - Visor RUT
 - VdSignalRailComponent
-- oidc-service.spec.ts
+- crear-aplicacion.ts
 - ValidacionDocumentalEstado
 - TipoConsentimiento
 - VariablesEntorno
-- Publico
-- 1756000022000-RolesGobiernoOperativo.ts
+- ReportesGruposComponent
+- VistasComponent
 - modelos.ts
 - Reglas de alertas
 - Imagen en nube
-- GenerarReporteSpeUseCase
+- reportes-spe.domain-service.ts
 - Proceso base del SGP (paridad)
 - ExpedienteDocumentalUseCase
-- acompanamiento.domain-service.ts
+- CapturaGuiadaService
 - montar
 - Visor Actas
 - Visor EPS
@@ -214,22 +215,18 @@
 - Arranque y aprovisionamiento
 - Manual Estándares, Arquitectura y Stack Tecnológico v2.0 (Fábrica de Software CUN)
 - nest-cli
-- validacion-documental.controller.ts
-- RadicarPqrsDto
+- TrabajadorOcr
+- pqrs.use-case.ts
 - PeriodosController
 - Build producción web
 - Schematics Angular
 - Consentimiento
 - Auditoría inmutable
-- .estimarDocumento
-- lectura-local-acta.domain-service.ts
 - armar
 - Ctx2
 - ReportesApiladasComponent
-- SolicitudEmpresaDto
 - Mesa operativa de validación de EPS (Fase 5)
-- consulta-adres.use-case.ts
-- acceso-validacion-documental.vo.ts
+- interruptores-eps.spec.ts
 - Assets web
 - IngresoComponent
 - .armar
@@ -244,7 +241,7 @@
 - Marca PNG
 - TipoConsentimiento
 - VerificacionEpsUseCase (verificación oficial, Fase 3)
-- Pdf417DomainService
+- pdfjs.worker.js
 - CambiarParametroDto
 - Script permisos
 - soporte-acta-pdf.ts
@@ -257,19 +254,16 @@
 - DTO sincronizar docentes
 - tsconfig build
 - Auditoría web
-- ReportesEstudiantesComponent
+- reportes-estudiantes.component.ts
 - index.html (documento raíz Angular)
-- usuarios-prueba.ts
-- kit-v3-controles.spec.ts
+- ControlCuentaComponent
 - ValidacionDocumentalController
 - Fuentes DejaVu
 - Almacenamiento (doc)
 - Empresas (doc)
-- ReportesComposicionComponent
-- registro-fur.spec.ts
+- test/distribucion-docentes-g6.spec.ts
 - clasificacion-documental-eps.domain-service.ts
 - Tareas programadas
-- AvisosFalsos
 - Entorno producción
 - Carta (doc)
 - api.service (doc)
@@ -281,49 +275,36 @@
 - Tabla usuarios
 - ConsentimientoUseCase
 - ReportesRadarComponent
-- TipoConsentimiento
 - EmpresasComponent
 - IngresoCallbackComponent
 - ReportesLineasComponent
-- CanvasContext
 - DecisionActaPgAdapter
-- EsquemaInicial1756000000000
-- RolAplicacionMinimoPrivilegio1756000001000
 - ColaEnProcesoAdapter
-- CatalogosYEstado1756000002000
-- FormularioUnicoRegistro1756000006000
 - AUTH_MODO=abierto (ingreso sin contraseña solo dev)
-- BitacoraYCierre1756000007000
-- ReportesComponent
 - api/eslint.config.mjs
 - ContadorDeConsultas
-- SolicitudesArl1756000008000
-- ResponsableArlPractica1756000016000
-- ValidacionActaIniciacion1756000017000
 - exports
-- MesaActas1756000018000
 - BolsaComponent
-- ValidacionDocumentoEmpresarial1756000019000
-- ReportesProporcionComponent
+- reportes-documentos.component.ts
 - EfectoObligacion
 - red-privada.sh
-- ResponsableObligacion
+- test/gobierno-practica-g5.spec.ts
 - CumplimientoComponent
 - InicioComponent
 - ShellComponent
-- practica.dto.ts
+- practica.entity.ts
 
 ## God Nodes (most connected - your core abstractions)
-1. `Actor` - 389 edges
+1. `Actor` - 395 edges
 2. `TipoDocumento` - 207 edges
-3. `ApiService` - 151 edges
-4. `@nestjs/common` - 149 edges
-5. `ActorActual` - 142 edges
-6. `Roles()` - 141 edges
-7. `Rol` - 136 edges
-8. `AccionAuditada` - 130 edges
+3. `ApiService` - 154 edges
+4. `@nestjs/common` - 153 edges
+5. `ActorActual` - 144 edges
+6. `Roles()` - 143 edges
+7. `Rol` - 139 edges
+8. `AccionAuditada` - 135 edges
 9. `Documento` - 119 edges
-10. `@angular/core` - 118 edges
+10. `@angular/core` - 119 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `AvisosService` --implements--> `Avisos flotantes (AvisosService)`  [EXTRACTED]
@@ -332,8 +313,8 @@
   apps/web/src/index.html → README.md
 - `Ambiente de pruebas permanente en Google Cloud (Cloud Run dev)` --conceptually_related_to--> `AUTH_MODO=abierto (ingreso sin contraseña solo dev)`  [AMBIGUOUS]
   README.md → CLAUDE.md
-- `FuentesSipraActa` --references--> `DatosPractica`  [EXTRACTED]
-  apps/api/src/domain/services/validacion-acta.domain-service.ts → apps/api/src/domain/entities/practica.entity.ts
+- `parametrosDeFabrica()` --calls--> `ParametrosUseCase`  [EXTRACTED]
+  apps/api/test/costos-ia.spec.ts → apps/api/src/application/use-cases/administracion/parametros.use-case.ts
 - `Montaje` --references--> `GestionarDocumentoUseCase`  [EXTRACTED]
   apps/api/test/acceso-documentos.spec.ts → apps/api/src/application/use-cases/documentos/gestionar-documento.use-case.ts
 
@@ -362,27 +343,27 @@
 - **Símbolo SIPRA en sus variantes (favicon, oscuro, verde)** — apps_web_src_assets_favicon, apps_web_src_assets_marca_simbolo_oscuro, apps_web_src_assets_marca_simbolo_verde [INFERRED 0.95]
 - **Same SIPRA brand mark rendered at 16/32/192/512 px** — apps_web_src_assets_marca_favicon_16, apps_web_src_assets_marca_favicon_32, apps_web_src_assets_marca_icono_app_192, apps_web_src_assets_marca_icono_app_512, concept_sipra_brand_mark [INFERRED 0.95]
 
-## Communities (354 total, 136 thin omitted)
+## Communities (279 total, 67 thin omitted)
 
-### Community 0 - "repositorios.port.ts"
-Cohesion: 0.03
-Nodes (71): EstadoCamaraEstudianteDto, ListadoBandejaCamaraDto, ResultadoTomarSiguienteCamaraDto, SupervisionCamaraDto, CampoComparadoRutDto, DetalleRutDto, EstadoRutEstudianteDto, ItemBandejaRutDto (+63 more)
+### Community 0 - "gestionar-practica.use-case.ts"
+Cohesion: 0.04
+Nodes (79): FilaConsolidadoArl, CorrespondenciaCampo, ROLES_VISTAS, CargueEstudianteService, TAMANO_MAXIMO_ADRES_MB, ArchivoCargado, DIAS_PURGA, DECISION_POR_ACCION (+71 more)
 
 ### Community 1 - "@angular/core"
-Cohesion: 0.04
-Nodes (77): AplicacionComponent, configuracionAplicacion, rutas, tieneRol(), SesionService, rolGuard(), sesionGuard(), sesionInterceptor() (+69 more)
+Cohesion: 0.03
+Nodes (98): exp, cuenta, ingreso, shell, tema, globales, practicas, AplicacionComponent (+90 more)
 
-### Community 2 - "@nestjs/common"
-Cohesion: 0.02
-Nodes (102): EstadoActaEstudianteDto, IngresoAbiertoDto, InicioOidcDto, OidcCallbackDto, PerfilDisponibleDto, UsuarioDePerfilDto, ETIQUETA_ROL, DOMINIOS_INSTITUCIONALES (+94 more)
+### Community 2 - "app.module.ts"
+Cohesion: 0.04
+Nodes (66): HallazgoLecturaDto, LecturaAsistidaDto, MetricasCapturaDto, ResumenSincronizacion, TableroCumplimiento, TableroCumplimientoUseCase, CartaPresentacionUseCase, CartaRespuesta (+58 more)
 
 ### Community 3 - "camara.util.ts"
-Cohesion: 0.04
-Nodes (49): MOTIVOS, CampoComparadoCamara, DetalleCamara, FiltrosCamara, ItemBandejaCamara, MotivoDevolucionCamara, CamaraComponent, KPIS (+41 more)
+Cohesion: 0.03
+Nodes (58): ApiFalsa, AvisosFalsos, crear(), libre, listado(), MOTIVOS, CampoComparadoCamara, DecisionCamara (+50 more)
 
 ### Community 4 - "rut.util.ts"
-Cohesion: 0.03
-Nodes (58): ApiFalsa, AvisosFalsos, crear(), libre, listado(), MOTIVOS, CampoComparadoRut, DecisionRut (+50 more)
+Cohesion: 0.04
+Nodes (51): MOTIVOS, CampoComparadoRut, DetalleRut, ItemBandejaRut, MotivoDevolucionRut, KPIS, RutComponent, BOTON (+43 more)
 
 ### Community 5 - "usuarios.component.ts"
 Cohesion: 0.06
@@ -390,51 +371,51 @@ Nodes (34): CATALOGO, comp, Permiso, UsuarioAdministrativo, UsuariosComponent, a
 
 ### Community 6 - "actas.util.ts"
 Cohesion: 0.03
-Nodes (58): ApiFalsa, AvisosFalsos, crear(), libre, listado(), CampoComparadoActa, CorreccionDatosPractica, DecisionActa (+50 more)
+Nodes (57): ApiFalsa, AvisosFalsos, crear(), libre, listado(), CampoComparadoActa, CorreccionDatosPractica, DecisionActa (+49 more)
 
-### Community 7 - "todas.migracion.ts"
-Cohesion: 0.10
-Nodes (9): ParametrosOperativos1756000003000, ModalidadesRealesYEtapas1756000004000, ProcesoBaseSgp1756000005000, CronogramaYPqrs1756000009000, ConsentimientoVersionado1756000010000, DecisionHumanaDocumentoEmpresarial1756000020000, MIGRACIONES, sqlDe() (+1 more)
+### Community 7 - "typeorm"
+Cohesion: 0.03
+Nodes (39): ENTIDADES_ORM, EsquemaInicial1756000000000, RolAplicacionMinimoPrivilegio1756000001000, CatalogosYEstado1756000002000, ParametrosOperativos1756000003000, ModalidadesRealesYEtapas1756000004000, ProcesoBaseSgp1756000005000, FormularioUnicoRegistro1756000006000 (+31 more)
 
 ### Community 8 - "eps.util.ts"
 Cohesion: 0.02
-Nodes (62): ApiFalsa, AvisosFalsos, crear(), libre, exp, globales, practicas, ROLES_OPERACION_PRACTICAS (+54 more)
+Nodes (57): ApiFalsa, AvisosFalsos, crear(), libre, ComparacionTriple, DecisionMesa, DetalleMesa, EstadoAdres (+49 more)
 
 ### Community 9 - "soporte-mesa-camara.ts"
-Cohesion: 0.04
-Nodes (82): FiltroMesaRut, ResumenSupervisionRut, TIPOS_DEL_AUXILIAR, dueno(), Montaje, montar(), NO_OPERATIVOS, TODOS_LOS_TIPOS (+74 more)
+Cohesion: 0.03
+Nodes (87): RutEstudianteUseCase, autenticidadPorDefecto(), EstadoValidacionDocumentoEmpresarial, APROBADO_MANUAL, DEVUELTO, ERROR, PENDIENTE, PROCESANDO (+79 more)
 
 ### Community 10 - "ApiService"
 Cohesion: 0.03
-Nodes (16): Carta, EntradaBitacora, EstadoPractica, FiltroPracticas, Pqrs, Practica, RadicarPqrs, RegistroFur (+8 more)
+Nodes (16): Carta, EntradaBitacora, EstadoPractica, FiltroPracticas, Pqrs, Practica, ReservaActa, ReservaCamara (+8 more)
 
 ### Community 11 - "ActorActual"
-Cohesion: 0.06
-Nodes (7): ActorActual, Roles(), ActasIniciacionController, MesaEpsController, ValidacionesEpsController, Ejemplo, RutasG1
+Cohesion: 0.07
+Nodes (7): ActorActual, Roles(), ActasIniciacionController, MesaEpsController, PracticasController, Ejemplo, RutasG1
 
 ### Community 12 - "ValidacionEpsUseCase"
-Cohesion: 0.05
-Nodes (42): ComparacionTripleDto, ConsultaAdresPreparadaDto, DiscrepanciaEpsDto, EvidenciaEpsDto, FilaBandejaAdresDto, PrepararConsultaAdresDto, ValidacionEpsEstudianteDto, ValidacionEpsOperacionDto (+34 more)
+Cohesion: 0.06
+Nodes (16): ConsultaAdresPreparadaDto, DiscrepanciaEpsDto, EvidenciaEpsDto, FilaBandejaAdresDto, PrepararConsultaAdresDto, ResultadoAdresDto, ValidacionEpsEstudianteDto, ValidacionEpsOperacionDto (+8 more)
 
-### Community 13 - "periodo.entity.ts"
-Cohesion: 0.03
-Nodes (98): CargueEstudianteDto, SubsanacionCargueDto, CriterioEvaluadoDto, FilaConsolidadoArl, ActualizarPeriodo, CargueEstudianteEntrada, CargueEstudiantePeriodo, CrearPeriodo (+90 more)
+### Community 13 - "cargue-estudiante.service.ts"
+Cohesion: 0.07
+Nodes (36): CargueEstudianteDto, SubsanacionCargueDto, CargueEstudiantePeriodo, ContextoCargue, iso(), DetalleSubsanacion, EstadoCargueEstudiante, ABIERTO (+28 more)
 
 ### Community 14 - "Auditoría inmutable"
 Cohesion: 0.09
 Nodes (22): acceso-documental.vo.ts (acceso por función), CONSENTIMIENTO_BLOQUEA_CARGUE, Consentimiento de tratamiento de datos versionado, desplegar.yml (despliegue manual), Detección de uso anómalo, Enlaces firmados de descarga vía API, Google Workspace, Google Workspace / API de Gmail (delegación de dominio) (+14 more)
 
 ### Community 15 - "reportes-graficos.util.ts"
-Cohesion: 0.17
-Nodes (23): Celda, apilar(), FilaApilada, FilaComposicion, MAX_PARTES_DONA, ESTILOS_REPORTES, CATEGORICOS, Escala (+15 more)
+Cohesion: 0.15
+Nodes (26): Celda, apilar(), FilaApilada, FilaComposicion, MAX_PARTES_DONA, ESTILOS_REPORTES, CATEGORICOS, Escala (+18 more)
 
-### Community 16 - "EvidenciaEps"
-Cohesion: 0.17
-Nodes (5): ResultadoAdresDto, ConsultaAdresUseCase, VerificacionEpsUseCase, esTipoDocumentoAdres(), copiarAdres()
+### Community 16 - "rut-mesa-estado.spec.ts"
+Cohesion: 0.07
+Nodes (10): ApiFalsa, AvisosFalsos, crear(), libre, listado(), DecisionRut, FiltrosRut, ListadoBandejaRut (+2 more)
 
 ### Community 17 - "reportes-analitica.use-case.ts"
 Cohesion: 0.11
-Nodes (25): Celda, Cobertura, DetalleAnalitica, ESTADO_OBLIGACION, EstadoObligacion, ESTADOS_OBLIGACION, Expediente, Faceta (+17 more)
+Nodes (24): Celda, Cobertura, DetalleAnalitica, ESTADO_OBLIGACION, EstadoObligacion, ESTADOS_OBLIGACION, Expediente, Faceta (+16 more)
 
 ### Community 18 - "ref_node_fs"
 Cohesion: 0.07
@@ -442,163 +423,151 @@ Nodes (50): main(), mb(), ocrConc, renderConc, main(), mb(), medir(), Campo (+42
 
 ### Community 19 - "Entidad ValidacionEps"
 Cohesion: 0.05
-Nodes (21): adresInicial(), OrigenTipoDocumento, ConsultaAdresInvalidaError, DecisionEpsInvalidaError, evaluarCandidatoAutoaprobacion(), ReservaAjenaError, ValidacionEps, AHORA (+13 more)
+Nodes (20): adresInicial(), ConsultaAdresInvalidaError, DecisionEpsInvalidaError, evaluarCandidatoAutoaprobacion(), ReservaAjenaError, ValidacionEps, AHORA, CERTIFICADO (+12 more)
 
 ### Community 20 - "mesa-eps.use-case.ts"
 Cohesion: 0.04
-Nodes (56): CampoCertificadoDto, CondicionRecomendacionDto, DecisionMesaDto, DetalleMesaDto, DiscrepanciaLegibleDto, EventoHistorialDto, EvidenciaMesaDto, FilaMesaDto (+48 more)
+Nodes (67): CampoCertificadoDto, CondicionRecomendacionDto, DecisionMesaDto, DetalleMesaDto, DiscrepanciaLegibleDto, EventoHistorialDto, EvidenciaMesaDto, FilaMesaDto (+59 more)
 
-### Community 21 - "app.module.ts"
-Cohesion: 0.03
-Nodes (110): LecturaAsistidaDto, CambioParametro, ArchivoCargado, DIAS_PURGA, ProcesamientoEnCursoError, TIPOS_EMITIDOS_POR_SISTEMA, VIGENCIA_RECLAMO_PIPELINE_MS, CAMPOS_POR_TIPO (+102 more)
+### Community 21 - "documento.entity.ts"
+Cohesion: 0.02
+Nodes (114): argumentos, coincide(), construirExtractor(), corpus(), evaluarCaso(), hace(), HOY, iso() (+106 more)
 
 ### Community 22 - "costos-ia.use-case.ts"
 Cohesion: 0.07
-Nodes (32): ConfiguracionIa, CostosIaUseCase, GastoPorClave, GastoPorEstudiante, redondear(), ResumenGastoIa, suma(), MATRIZ_MODALIDADES (+24 more)
+Nodes (22): ConfiguracionIa, CostosIaUseCase, GastoPorClave, GastoPorEstudiante, redondear(), ResumenGastoIa, suma(), TarifaModelo (+14 more)
 
-### Community 23 - "lector-documento-local.port.ts"
-Cohesion: 0.06
-Nodes (33): CajaTexto, MedicionZona, RectRelativo, DocumentoLocalIlegibleError, LimiteLecturaLocalError, PaginaRenderizada, ResultadoOcrPagina, ResultadoTextoNativo (+25 more)
+### Community 23 - "imagen-local.ts"
+Cohesion: 0.11
+Nodes (11): ampliarImagen(), canvas(), CanvasContext, dimensionesDeEncabezado(), girarImagen(), maxPixelesEntrada(), mejorarParaOcr(), ModuloCanvas (+3 more)
 
 ### Community 24 - "Prototipo HTML"
 Cohesion: 0.05
 Nodes (77): sipra-prototipo.html (prototipo navegable SIPRA PRÁCTICAS), Auditoría inmutable (rechaza UPDATE y DELETE), Autenticación modo abierto (ambiente dev, selector de perfil), Alcance aplicado por el servidor, no por la interfaz, Cámara de Comercio (documento), Catálogos oficiales DANE incompletos, Certificado de ARL, Certificado de EPS (+69 more)
 
 ### Community 25 - "CartaPresentacion"
-Cohesion: 0.08
-Nodes (13): CartaPresentacionUseCase, CartaPresentacion, CartaPresentacionDomainService, CICLO_LEGIBLE, DatosCarta, DatosParaCarta, fechaLarga(), MESES (+5 more)
+Cohesion: 0.10
+Nodes (6): CartaPresentacion, fechaLarga(), DocumentoPdf, GeneradorPdfPort, PdfKitAdapter, CartaRepositoryAdapter
 
-### Community 26 - "interpretacion-camara.domain-service.ts"
-Cohesion: 0.08
-Nodes (41): TipoCertificadoCamara, buscar(), camaraExpedidora(), CampoCamara, clasesCamara, construirTexto(), CRITICOS, esCodigoVerificacion() (+33 more)
+### Community 26 - "mesa-acta.domain-service.ts"
+Cohesion: 0.06
+Nodes (41): EstadoValidacionActa, APROBADO_MANUAL, DEVUELTO, ERROR, PENDIENTE, PROCESANDO, RECHAZADO, REVISION (+33 more)
 
-### Community 27 - "MesaCamaraUseCase"
-Cohesion: 0.08
-Nodes (12): CampoComparadoCamaraDto, ReservaCamaraDto, causaHumana(), enmascarar(), esCamara(), MesaCamaraUseCase, tipoCertificadoDe(), FilaMesaRut (+4 more)
+### Community 28 - "distribucion-docentes.component.ts"
+Cohesion: 0.10
+Nodes (14): api, comp, listado, ResultadoDistribucion, VistaPreviaDistribucion, DistribucionDocentesComponent, diferenciaFinal(), escuelasElegibles() (+6 more)
 
-### Community 28 - "CostosIaController"
-Cohesion: 0.24
-Nodes (3): ajustesDe(), CostosIaController, fecha()
-
-### Community 29 - "mesa-rut-dominio.spec.ts"
+### Community 29 - "mesa-rut.use-case.ts"
 Cohesion: 0.05
-Nodes (48): EstadoValidacionDocumentoEmpresarial, APROBADO_MANUAL, DEVUELTO, ERROR, PENDIENTE, PROCESANDO, RECHAZADO, REVISION (+40 more)
+Nodes (58): CampoComparadoRutDto, DecisionRutDto, DetalleRutDto, EstadoRutEstudianteDto, ItemBandejaRutDto, ListadoBandejaRutDto, PrioridadRutDto, ResultadoTomarSiguienteRutDto (+50 more)
 
-### Community 30 - "camara-mesa-estado.spec.ts"
-Cohesion: 0.07
-Nodes (8): ApiFalsa, AvisosFalsos, crear(), libre, listado(), DecisionCamara, ListadoBandejaCamara, CamaraMesaEstado
+### Community 30 - "Vacante"
+Cohesion: 0.09
+Nodes (7): DatosVacante, ESTADOS_REPORTABLES_SPE, Vacante, VacanteDiscriminatoriaError, VacanteIncompletaError, VIGENCIA_MAXIMA_MESES, VacanteRepositoryAdapter
 
 ### Community 31 - "CrearUsuarioDto"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (5): ActualizarUsuarioDto, CrearUsuarioDto, UsuarioAdministrativoDto, GestionarUsuariosUseCase, UsuariosController
 
 ### Community 32 - "Acciones auditadas"
 Cohesion: 0.03
-Nodes (70): AccionAuditada, ACCESO_FUERA_DE_ALCANCE, ACTA_ASIGNADA, ACTA_DATOS_CAMBIARON_TRAS_DECISION, ACTA_LIBERADA, ACTA_PROCESADA, ACTA_RECALCULADA, AUTORIZACION_TRATAMIENTO (+62 more)
+Nodes (72): AccionAuditada, ACCESO_FUERA_DE_ALCANCE, ACTA_ASIGNADA, ACTA_DATOS_CAMBIARON_TRAS_DECISION, ACTA_LIBERADA, ACTA_PROCESADA, ACTA_RECALCULADA, AUTORIZACION_TRATAMIENTO (+64 more)
 
 ### Community 33 - "camara-lector.spec.ts"
-Cohesion: 0.05
-Nodes (70): HASH, url, EstadoRegistral, ACTIVO, CANCELADO, NO_DETERMINABLE, OTRO, BandaPuntaje (+62 more)
+Cohesion: 0.02
+Nodes (157): HASH, url, CampoConConfianzaRut, CAMPOS_CON_CONFIANZA_RUT, CLAVES_PROHIBIDAS_DOCUMENTO_EMPRESARIAL, CONTROLES_NIT_RUT, ControlNitRut, DatosCamaraExtraidos (+149 more)
 
 ### Community 34 - "validacion-acta.entity.ts"
 Cohesion: 0.11
-Nodes (21): CampoLeidoActa, ComparacionActaPersistida, Presencia, Remuneracion, ResponsableArlActa, TipoActaDetectada, CLAVES_PROHIBIDAS_EVIDENCIA_ACTA, DatosEvidenciaActa (+13 more)
+Nodes (35): CampoActa, CampoLeidoActa, CAMPOS_ACTA, CAMPOS_ACTA_PERSISTIBLES, ComparacionActaPersistida, LecturaActaPersistible, MAX_CARACTERES_FUNCIONES_PERSISTIDAS, Presencia (+27 more)
 
 ### Community 35 - "openai.adapter.ts"
-Cohesion: 0.12
-Nodes (13): acotar(), CODIGOS_SIN_CUOTA, ErrorProveedorIa, esperar(), ExtraccionOpenAiAdapter, LecturaModelo, MIME_IMAGEN_ADMITIDOS, OPENAI_URL_BASE_PREDETERMINADA (+5 more)
+Cohesion: 0.11
+Nodes (15): esfuerzoEfectivo(), TARIFA_RESPALDO, acotar(), CODIGOS_SIN_CUOTA, ErrorProveedorIa, esperar(), ExtraccionOpenAiAdapter, LecturaModelo (+7 more)
 
 ### Community 36 - "repositorios.adapter.ts"
-Cohesion: 0.04
-Nodes (61): url, HASH, TIPOS_CAMARA, url, HASH, url, AHORA, HASH (+53 more)
+Cohesion: 0.13
+Nodes (32): CampoPersistido, url, CICLO_LEGIBLE, DatosCarta, DatosParaCarta, MESES, ModalidadCarta, BitacoraMapper (+24 more)
 
 ### Community 37 - "verificacion-eps.use-case.ts"
-Cohesion: 0.03
-Nodes (91): CADUCIDAD_RECLAMO_VERIFICACION_MS, VENTANA_REINTENTO_VERIFICACION_MS, origenSinCredenciales(), AutenticidadEps, INVALIDA, NO_EVALUADA, NO_VERIFICABLE, VERIFICADA (+83 more)
+Cohesion: 0.04
+Nodes (62): CADUCIDAD_RECLAMO_VERIFICACION_MS, VENTANA_REINTENTO_VERIFICACION_MS, origenSinCredenciales(), ADAPTADORES_RESPUESTA_EPS, AdaptadorRespuestaEps, Base, CodigoErrorVerificacion, InterpretacionRespuestaEps (+54 more)
 
-### Community 38 - "reportes-organizaciones.component.ts"
-Cohesion: 0.14
-Nodes (10): pct1(), ReportesDonaComponent, partesReceptor(), tonoDe(), cifraKpi(), ReportesKpisComponent, insightsOrganizaciones(), INTERNACIONAL (+2 more)
+### Community 38 - "reportes-general.component.ts"
+Cohesion: 0.09
+Nodes (20): partes(), partesGrafico(), pct1(), porcentaje(), ReportesComposicionComponent, ReportesDonaComponent, ACENTOS_GENERAL, GRUPOS_GENERAL (+12 more)
 
 ### Community 39 - "LimitesLecturaLocal"
-Cohesion: 0.15
-Nodes (11): HallazgoQrCrudo, LectorDocumentoLocalPort, LimitesLecturaLocal, ResumenLecturaLocal, CamposEpsLeidos, evaluarSuficienciaEps(), LecturaLocalActaService, unir() (+3 more)
+Cohesion: 0.10
+Nodes (13): HallazgoQrCrudo, LimitesLecturaLocal, ResumenLecturaLocal, CamposEpsLeidos, evaluarSuficienciaEps(), LecturaLocalActaService, unir(), LecturaLocalAdresService (+5 more)
 
 ### Community 40 - "validacion-eps.entity.ts"
 Cohesion: 0.03
-Nodes (113): CodigoErrorAdres, ComparacionTripleCampo, DatosAdres, EstadoAdres, EN_CONSULTA, ERROR, EVIDENCIA_RECIBIDA, NO_DETERMINABLE (+105 more)
+Nodes (100): AVISO_RETENCION_EPS, CodigoErrorAdres, ComparacionTripleCampo, DatosAdres, EstadoAdres, EN_CONSULTA, ERROR, EVIDENCIA_RECIBIDA (+92 more)
 
 ### Community 41 - "ExpedienteComponent"
-Cohesion: 0.06
-Nodes (12): AvanceMomento, CampoLectura, Documento, CamaraEstudianteComponent, ExpedienteComponent, ExpedienteSenalComponent, DIAS_SUBSANACION, GuiaDocumento (+4 more)
+Cohesion: 0.03
+Nodes (24): AvanceMomento, CampoLectura, Documento, EstadoCamaraEstudiante, RecomendacionModeloIa, TarifaIa, CamaraEstudianteComponent, CostosIaComponent (+16 more)
 
 ### Community 42 - "adres-resultado.domain-service.ts"
-Cohesion: 0.07
-Nodes (53): evaluarCaso(), afiliacionDeEstadoAdres(), compararTriple(), evaluarResultadoAdres(), fechaDeActa(), compararCertificadoEps(), CONFIANZA_MINIMA_COMPARACION, construirDatosExtraidosEps() (+45 more)
+Cohesion: 0.05
+Nodes (79): clasificar(), evaluarCaso(), CoincidenciaEps, COINCIDE, DISCREPANCIA, INSUFICIENTE, NO_EVALUADA, DatosVerificadosEps (+71 more)
 
 ### Community 43 - "MotivoRechazoArl"
-Cohesion: 0.10
-Nodes (20): MotivoRechazoArl, ANTICIPACION_INSUFICIENTE, CAMARA_NO_VIGENTE, CERTIFICADO_ADRES, CERTIFICADO_FALSIFICADO, CERTIFICADO_SISBEN, CERTIFICADO_VENCIDO, DOCUMENTO_BORROSO (+12 more)
+Cohesion: 0.06
+Nodes (29): ConsolidadoArl, CriterioEvaluadoDto, DecidirSolicitudArlDto, DocumentoAportadoDto, RadicarSolicitudArlDto, MotivoRechazoArl, ANTICIPACION_INSUFICIENTE, CAMARA_NO_VIGENTE (+21 more)
 
 ### Community 44 - "lector-documento-local.port.ts"
-Cohesion: 0.08
-Nodes (18): GEOMETRIA_DOCUMENTO, GeometriaDocumentoPort, HallazgoQrRegistrado, LECTOR_DOCUMENTO_LOCAL, OrigenImagen, LecturaCamaraPort, LecturaRutPort, LecturaActaLocal (+10 more)
+Cohesion: 0.06
+Nodes (39): CajaTexto, GEOMETRIA_DOCUMENTO, GeometriaDocumentoPort, MedicionZona, RectRelativo, LECTOR_DOCUMENTO_LOCAL, LectorDocumentoLocalPort, LimiteLecturaLocalError (+31 more)
 
 ### Community 45 - "decodificador.adapter.ts"
-Cohesion: 0.06
-Nodes (16): BITS_HASH_PERCEPTUAL, HashPerceptualDomainService, ImagenGris, MINIMO_BITS_INFORMATIVOS, UMBRAL_SIMILITUD, OperacionPreproceso, PasoAplicado, PreprocesamientoDomainService (+8 more)
-
-### Community 46 - "comparacion-camara.domain-service.ts"
 Cohesion: 0.07
-Nodes (47): AHORA, carpetaMuestras, diferentes(), identificadores(), main(), resumenCriticos(), SALTO, campo() (+39 more)
+Nodes (13): BITS_HASH_PERCEPTUAL, HashPerceptualDomainService, ImagenGris, MINIMO_BITS_INFORMATIVOS, UMBRAL_SIMILITUD, OperacionPreproceso, PreprocesamientoDomainService, ResultadoPreproceso (+5 more)
 
-### Community 47 - "reportes-periodos.component.ts"
-Cohesion: 0.08
-Nodes (13): INICIAL_BUMP, M, MAX_BUMP, rankings(), ReportesBumpComponent, SerieBump, GrupoBarras, ReportesGruposComponent (+5 more)
+### Community 46 - "clasificacion-acta.domain-service.ts"
+Cohesion: 0.11
+Nodes (23): ConfianzaActa, DiscrepanciaDocumentoActa, SenalFuente, TipoDocumentoAjeno, AJENOS, ARL_CUN, ARL_EMPRESA, arlDelEncabezado() (+15 more)
+
+### Community 47 - "reportes-v3.spec.ts"
+Cohesion: 0.06
+Nodes (36): ApiFalsa, archivos, AvisosFalsos, cob(), crear(), dir, globales, leer() (+28 more)
 
 ### Community 48 - "seed-reportes-1000.generador.ts"
 Cohesion: 0.06
 Nodes (57): abortar(), borrar(), confirmarBase(), contar(), crear(), destino, estado(), afinidad() (+49 more)
 
-### Community 49 - "leerError"
-Cohesion: 0.03
-Nodes (21): EstadoCatalogo, RadicarArl, RecomendacionModeloIa, SolicitudArl, TarifaIa, ArlComponent, AyudaComponent, CostosIaComponent (+13 more)
-
 ### Community 50 - "traducirErrorEps"
 Cohesion: 0.08
-Nodes (4): ActasMesaEstado, EpsMesaEstado, traducirErrorEps(), RutMesaEstado
+Nodes (4): ActasMesaEstado, CamaraMesaEstado, EpsMesaEstado, traducirErrorEps()
 
 ### Community 51 - "regresion-camara-real.ts"
 Cohesion: 0.14
 Nodes (17): archivoVerdad, Campo, CAMPOS, carpetaMuestras, CLAVE_MOTIVO, digitos(), enmascarar(), esperadoNuevo() (+9 more)
 
 ### Community 52 - "Documento"
-Cohesion: 0.07
-Nodes (17): comprobar(), main(), minimizarLectura(), ProcesarTrabajoUseCase, ValidacionCamaraUseCase, ValidacionRutUseCase, expectativaDeTipoDocumento(), evidenciaDeClasificacion() (+9 more)
+Cohesion: 0.04
+Nodes (35): comprobar(), main(), ResultadoProcesamiento, ProcesarTrabajoUseCase, ValidacionCamaraUseCase, ValidacionRutUseCase, familiaDe(), personaDe() (+27 more)
 
 ### Community 53 - "reportes-pack.component.ts"
-Cohesion: 0.08
-Nodes (15): envolverEtiqueta(), medidorTexto(), TonoGrafico, ReportesOrganizacionesComponent, Circulo, cruzaCirculo(), empaquetar(), EtiquetaSector (+7 more)
-
-### Community 54 - "Actor"
-Cohesion: 0.09
-Nodes (10): DecisionRutDto, ReservaRutDto, TomarSiguienteRutDto, esTipoRut(), MesaRutUseCase, Actor, calcularPrioridadRut(), recomendacionRut() (+2 more)
+Cohesion: 0.07
+Nodes (17): envolverEtiqueta(), medidorTexto(), TonoGrafico, SerieLinea, ReportesOrganizacionesComponent, Circulo, cruzaCirculo(), empaquetar() (+9 more)
 
 ### Community 55 - "PeriodoAcademico"
-Cohesion: 0.09
-Nodes (4): diaUtc(), PeriodoAcademico, ContextoValidacionArl, sembrarPeriodos()
+Cohesion: 0.10
+Nodes (4): diaUtc(), PeriodoAcademico, VentanaCargueInvalidaError, ContextoValidacionArl
 
 ### Community 56 - "web/package.json"
 Cohesion: 0.11
 Nodes (24): description, devDependencies, @angular/build@^20.3.0, @angular/cli@^20.3.0, @angular/compiler-cli@^20.3.0, angular-eslint@^20.7.0, eslint@^9.39.5, @eslint/js@^9.39.5 (+16 more)
 
-### Community 57 - "Practica"
-Cohesion: 0.06
-Nodes (5): CierreNoPermitidoError, Practica, truncarDia(), FiltroPracticas, PracticaRepositoryAdapter
+### Community 57 - "SolicitudPqrs"
+Cohesion: 0.11
+Nodes (5): DatosPqrs, PqrsError, SolicitudPqrs, PqrsRepositoryAdapter, armar()
 
 ### Community 58 - "ref_node_fs"
 Cohesion: 0.04
-Nodes (30): esperadoDe(), main(), CARPETAS_EXCLUIDAS, ESTE, hallazgos, lista, PATRONES, PERMITIDOS (+22 more)
+Nodes (32): archivoVerdad, CAMPOS_COMUNES, carpetaMuestras, enmascarar(), Fila, main(), Res, Verdad (+24 more)
 
 ### Community 59 - "Iconografía e ilustraciones"
 Cohesion: 0.08
@@ -606,43 +575,47 @@ Nodes (46): Favicon SIPRA: símbolo verde sobre mosaico oscuro redondeado, Sprit
 
 ### Community 60 - "comparacion-rut.domain-service.ts"
 Cohesion: 0.06
-Nodes (56): archivoVerdad, CAMPOS_COMUNES, carpetaMuestras, enmascarar(), Fila, main(), Res, Verdad (+48 more)
+Nodes (69): DatosRutExtraidos, campo(), cerrar(), compararCamaraConSipra(), CriticidadCampoCamara, criticosDe(), estadoRegistral(), huellaSipraCamara() (+61 more)
 
-### Community 61 - "documento-empresarial.ts"
+### Community 61 - "validacion-documento-empresarial.entity.ts"
 Cohesion: 0.05
-Nodes (63): AutenticidadDocumento, autenticidadPorDefecto(), CampoConConfianzaRut, CAMPOS_CON_CONFIANZA_RUT, ClasificacionDocumentoEmpresarial, CAMARA_EXISTENCIA_REPRESENTACION, CAMARA_MATRICULA_PERSONA_NATURAL, CAMARA_MATRICULA_SOCIEDAD (+55 more)
+Nodes (46): AutenticidadDocumento, ClasificacionDocumentoEmpresarial, CAMARA_EXISTENCIA_REPRESENTACION, CAMARA_MATRICULA_PERSONA_NATURAL, CAMARA_MATRICULA_SOCIEDAD, DOCUMENTO_INCORRECTO, NO_DETERMINABLE, RUT_PERSONA_JURIDICA (+38 more)
 
 ### Community 62 - "reportes-sgp.use-case.ts"
-Cohesion: 0.02
-Nodes (145): EstadoCierreDto, RespuestaCierre, FilaTablero, FECHA_LARGA, APROBADOS, COLUMNAS_ACADEMICAS, COLUMNAS_DOCENTE, COLUMNAS_EMPRESA (+137 more)
+Cohesion: 0.03
+Nodes (70): exceljs@^4.4.0, EstadoCierreDto, RespuestaCierre, exigirReportes(), APROBADOS, COLUMNAS_ACADEMICAS, COLUMNAS_DOCENTE, COLUMNAS_EMPRESA (+62 more)
 
 ### Community 63 - ".buscarPorId"
-Cohesion: 0.09
-Nodes (7): EntradaBitacoraRespuestaDto, BitacoraUseCase, AutorBitacora, EntradaBitacora, EntradaBitacoraInvalidaError, PlazoBitacora, BitacoraController
+Cohesion: 0.07
+Nodes (9): EntradaBitacoraRespuestaDto, BitacoraUseCase, AutorBitacora, EntradaBitacora, EntradaBitacoraInvalidaError, BitacoraRepositoryPort, FiltroBitacora, BitacoraRepositoryAdapter (+1 more)
 
 ### Community 64 - "lectura-local-eps.domain-service.ts"
 Cohesion: 0.05
-Nodes (66): TextoNativoPagina, ADYACENTES, digitos(), documentoPorLineas(), estadoPorLineas(), FECHA_PATRON, fechaGeneracionPorLineas(), fechaRe() (+58 more)
+Nodes (66): HallazgoQrRegistrado, TextoNativoPagina, ADYACENTES, digitos(), documentoPorLineas(), estadoPorLineas(), FECHA_PATRON, fechaGeneracionPorLineas() (+58 more)
+
+### Community 65 - "GestionarEmpresaUseCase"
+Cohesion: 0.11
+Nodes (6): AcuseSolicitudDto, DecisionEmpresaDto, NitVerificadoDto, SolicitudEmpresaDto, VerificarNitDto, EmpresasController
 
 ### Community 66 - "Compuerta ARL (doc)"
 Cohesion: 0.09
 Nodes (25): Acta de iniciación de prácticas, Obligación Autorización de tratamiento (Ley 1581), CHECK ck_practicas_compuerta_arl, clasificacion-acta, comparacion-acta, Corrección controlada de datos gobernantes, Cronograma por periodo, Cuatro señales de oro (+17 more)
 
 ### Community 67 - "EscribirBitacoraDto"
-Cohesion: 0.09
-Nodes (11): CalificacionDto, EscribirBitacoraDto, EvaluacionFinalDto, EvaluaTuProcesoDto, RespuestaEvaluaDto, SeguimientoDto, SubsanacionDto, ActualizarPeriodoDto (+3 more)
+Cohesion: 0.15
+Nodes (7): CalificacionDto, EscribirBitacoraDto, EvaluacionFinalDto, EvaluaTuProcesoDto, RespuestaEvaluaDto, SeguimientoDto, SubsanacionDto
 
-### Community 68 - "repositorios.port.ts"
-Cohesion: 0.05
-Nodes (47): RadicarPqrs, ROLES_ATIENDEN, CATALOGOS_REQUERIDOS, ReporteBloqueadoError, CategoriaPqrs, CATEGORIAS_PQRS, DatosPqrs, EstadoPqrs (+39 more)
+### Community 68 - "reporte-bloqueado.spec.ts"
+Cohesion: 0.06
+Nodes (20): GenerarReporteSpeUseCase, ResultadoReporte, CatalogoRepositoryPort, EscuelaCatalogo, EstadoCatalogo, FilaReportePlaza, FilaReporteVacante, ReporteRepositoryPort (+12 more)
 
 ### Community 69 - "Signal Field ingreso"
 Cohesion: 0.08
 Nodes (25): ALTO_VB, ANCHO_VB, calcularReaccion(), CampoGenerado, CapaNodo, CAPAS, CONVERGENCIA, CurvaCampo (+17 more)
 
-### Community 70 - "Dependencias API"
-Cohesion: 0.05
-Nodes (40): dependencies, cache-manager@^6.4.3, class-transformer@^0.5.1, class-validator@^0.14.2, exceljs@^4.4.0, @fastify/helmet@^13.0.1, @fastify/static@^10.1.2, @google-cloud/storage@^7.16.0 (+32 more)
+### Community 70 - "expediente-documental.spec.ts"
+Cohesion: 0.18
+Nodes (18): admin(), AHORA, aux(), coord(), documento(), empresarial(), expedientePruebaCunbre(), practica() (+10 more)
 
 ### Community 71 - "Infra Docker local"
 Cohesion: 0.05
@@ -656,45 +629,53 @@ Nodes (28): Catálogo canónico de motivos de devolución, Comparación Cámara 
 Cohesion: 0.09
 Nodes (22): comparacion-camara.domain-service (compararCamaraConSipra), comparacion-documento-empresarial.domain-service, comparacion-rut.domain-service, control-nit.domain-service (DV como control), DIVIPOLA, ExtraccionLocalAdapter, geometria-rut.domain-service, GeometriaDocumentoPort (+14 more)
 
-### Community 75 - "Dev-dependencias API"
-Cohesion: 0.07
-Nodes (39): description, devDependencies, eslint@^9.36.0, @eslint/js@^9.39.5, jest@^30.2.0, @nestjs/cli@^11.0.10, @nestjs/schematics@^11.0.8, @nestjs/testing@^11.1.6 (+31 more)
+### Community 75 - "api/package.json"
+Cohesion: 0.03
+Nodes (87): dependencies, cache-manager@^6.4.3, class-transformer@^0.5.1, class-validator@^0.14.2, dotenv@^17.2.3, @fastify/helmet@^13.0.1, @fastify/multipart@^9.0.3, @fastify/static@^10.1.2 (+79 more)
 
 ### Community 76 - "conocimiento-documental.domain-service.ts"
-Cohesion: 0.21
-Nodes (5): criteriosDe(), ConocimientoDocumentalDomainService, construirPrompt(), ExtraccionAnthropicAdapter, formatoJsonLibre()
+Cohesion: 0.16
+Nodes (11): DESCRIPCION_CAMPOS, criteriosDe(), CriteriosDocumento, MENTORIA, REGLAS_GENERALES_CARGUE, ConocimientoDocumentalDomainService, CriterioEvaluable, NOMBRES_SIN_FICHA (+3 more)
 
 ### Community 77 - "vd.senal.ts"
 Cohesion: 0.11
 Nodes (33): LIBRE, ReservaDocumento, VdTonoDirective, abreviarNombre(), AccionDecision, AnimacionNodo, animacionNodo(), cambioAAprobado() (+25 more)
 
-### Community 79 - "Obligacion"
-Cohesion: 0.08
-Nodes (3): Obligacion, ObligacionesDomainService, ObligacionRepositoryAdapter
+### Community 78 - "ejecutar-semillas.ts"
+Cohesion: 0.19
+Nodes (12): CIIU, CNO, DIVIPOLA, ESCUELAS, NIVELES_EDUCATIVOS, IDS, sembrar(), sembrarCatalogos() (+4 more)
+
+### Community 79 - "Practica"
+Cohesion: 0.04
+Nodes (20): PracticaRespuestaDto, GestionarPracticaUseCase, DatosObligacion, Obligacion, Practica, SenalAcompanamiento, AL_DIA, EN_RIESGO (+12 more)
 
 ### Community 80 - "ValidacionActa"
 Cohesion: 0.07
-Nodes (12): comprobar(), main(), rechaza(), ValidacionActa, ValidacionActaYaDecididaError, ExpedienteDocumentalLecturaPort, LecturaExpedientes, ValidacionActaMapper (+4 more)
+Nodes (8): ValidacionActaUseCase, EvidenciaActaInvalidaError, ValidacionActa, ValidacionActaYaDecididaError, ValidacionActaRepositoryPort, datosSipraDePractica(), campo(), acta()
 
-### Community 81 - "mesa-camara.domain-service.ts"
-Cohesion: 0.09
-Nodes (26): AMBAS, CamaraParaEstudiante, catalogoMotivosDevolucionCamara(), DecisionRevisionCamara, DURACION_RESERVA_CAMARA_MS, EntradaRecomendacionCamara, esCamara(), EstadoCamaraParaEstudiante (+18 more)
+### Community 81 - "Pdf417DomainService"
+Cohesion: 0.17
+Nodes (7): CedulaColombiana, DISPOSICION_TRAMA, LecturaCedula, Pdf417DomainService, PREFIJOS_TRAMA, cedulaValida, pdf417
 
 ### Community 82 - "interpretacion-rut.domain-service.ts"
-Cohesion: 0.08
-Nodes (43): familiaDe(), personaDe(), clasificarCamara(), clasificarDocumentoEmpresarial(), clasificarRut(), contar(), estructuraDeCertificado(), MIN_CARACTERES_CLASIFICABLE (+35 more)
+Cohesion: 0.12
+Nodes (29): baseDe(), CampoGeometrico, CAMPOS_LEIDOS, CamposRutGeometricos, Etiqueta, FuenteCajas, leerCamposRutPorGeometria(), leerFechaGeneracionRut() (+21 more)
 
 ### Community 83 - "expediente-documental.use-case.ts"
-Cohesion: 0.11
-Nodes (41): nombreHumanoDe(), EXPEDIENTE_DOCUMENTAL_LECTURA, compararExpedientes(), estadoHumanoDe(), ESTADOS_ESPERAN_AL_ESTUDIANTE, ESTADOS_REQUIEREN_REVISION, ETIQUETA_ESTADO_HUMANO, FaseDocumento (+33 more)
+Cohesion: 0.13
+Nodes (32): EncabezadoExpedienteDto, ExpedienteDto, ItemExpedienteDto, ListadoExpedientesDto, ResumenDocumentoDto, SupervisionDocumentalDto, VersionDocumentoDto, ExpedienteArmado (+24 more)
 
 ### Community 84 - ".buscarPorId"
-Cohesion: 0.05
-Nodes (12): ConsolidadoArl, DecidirSolicitudArlDto, DocumentoAportadoDto, RadicarSolicitudArlDto, SolicitudArlRespuestaDto, SolicitudArlUseCase, SolicitudArl, SolicitudArlError (+4 more)
+Cohesion: 0.07
+Nodes (6): SolicitudArlRespuestaDto, SolicitudArlUseCase, SolicitudArl, SolicitudArlError, SolicitudArlRepositoryPort, SolicitudesArlController
 
-### Community 86 - ".desde"
-Cohesion: 0.05
-Nodes (32): DatosEvidenciaDocumentoEmpresarial, EvidenciaDocumentoEmpresarial, TipoEvidenciaDocumentoEmpresarial, CAMBIO_DATOS_SIPRA, CLASIFICACION, COMPARACION, DECISION_HUMANA, LECTURA_DOCUMENTO (+24 more)
+### Community 85 - "vd-cola.component.ts"
+Cohesion: 0.17
+Nodes (9): VdColaComponent, TipoEstadoVd, VdCargandoComponent, VdEstadoComponent, antiguedadCorta(), estadoFila(), puntosCola(), reservasFila() (+1 more)
+
+### Community 86 - "cola.adapter.ts"
+Cohesion: 0.20
+Nodes (6): @google-cloud/tasks@^7.0.0, PrioridadTrabajo, ResultadoEncolado, ColaCloudTasksAdapter, Ejecutor, @google-cloud/tasks
 
 ### Community 88 - "practica-gobierno.component.ts"
 Cohesion: 0.10
@@ -702,55 +683,55 @@ Nodes (15): api, base, comp, exp, DestinoOperativo, EstadoOperativo, CambioCampo
 
 ### Community 89 - "Scripts npm API"
 Cohesion: 0.06
-Nodes (33): scripts, build, carga:mesa, catalogos:cargar, catalogos:estado, ia:evaluar, lectura:benchmark, lectura:benchmark:concurrente (+25 more)
+Nodes (34): scripts, build, carga:mesa, catalogos:cargar, catalogos:estado, ia:evaluar, lectura:benchmark, lectura:benchmark:concurrente (+26 more)
 
 ### Community 91 - "Auditoría inmutable"
 Cohesion: 0.07
 Nodes (30): API de Anthropic, Arnés de evaluación (npm run ia:evaluar), Bandas verde/amarilla/roja, Banderas C2 de lectura asistida, C2_EXTRACCION_NO_DISPONIBLE, C2_SIN_LECTURA_AUTOMATICA, CATALOGO_PARAMETROS (parametro.entity.ts), ConocimientoDocumentalDomainService (+22 more)
 
 ### Community 92 - "reportes-treemap.component.ts"
-Cohesion: 0.05
-Nodes (19): categorico(), escucharMovil(), ReportesMatrizComponent, bandas(), BandaStream, M, MAX_BANDAS, OTRAS_BANDA (+11 more)
+Cohesion: 0.06
+Nodes (12): ReportesBumpComponent, categorico(), escucharMovil(), ReportesMatrizComponent, ReportesStreamComponent, arbol(), FilaJerarquia, NIVELES_DRILL (+4 more)
 
-### Community 93 - ".desde"
-Cohesion: 0.18
-Nodes (4): armar(), fila(), UsuariosEnMemoria, UsuariosEnMemoria
+### Community 93 - "rol.vo.ts"
+Cohesion: 0.04
+Nodes (76): ETIQUETA_ROL, DOMINIOS_INSTITUCIONALES, VistasSinuUseCase, perfilPredeterminado(), escuelasDeReportes(), ROLES_REPORTES, DatosUsuario, esSupervisorMesaActas() (+68 more)
 
 ### Community 94 - "cargar-catalogos.ts"
-Cohesion: 0.11
-Nodes (18): dotenv@^17.2.3, CARGADORES, cargarCatalogos(), CatalogoInvalidoError, Cobertura, EntradaManifiesto, leerCsv(), Manifiesto (+10 more)
+Cohesion: 0.16
+Nodes (13): reflect-metadata@^0.2.2, CARGADORES, cargarCatalogos(), CatalogoInvalidoError, Cobertura, EntradaManifiesto, leerCsv(), Manifiesto (+5 more)
 
 ### Community 95 - "gestionar-vacante.use-case.ts"
-Cohesion: 0.04
-Nodes (37): CambiarEstadoPostulacionDto, CrearVacanteDto, HallazgoDto, ResultadoAntidiscriminacionDto, VacanteRespuestaDto, ValidarTextoVacanteDto, GestionarVacanteUseCase, DatosVacante (+29 more)
+Cohesion: 0.06
+Nodes (25): CambiarEstadoPostulacionDto, CrearVacanteDto, HallazgoDto, ResultadoAntidiscriminacionDto, VacanteRespuestaDto, ValidarTextoVacanteDto, GestionarVacanteUseCase, EstadoPostulacion (+17 more)
 
 ### Community 96 - "soporte-mesa-actas.ts"
-Cohesion: 0.07
-Nodes (32): RegistroAuditoria, DecisionActa, EstadoValidacionActa, APROBADO_MANUAL, DEVUELTO, ERROR, PENDIENTE, PROCESANDO (+24 more)
+Cohesion: 0.05
+Nodes (36): DatosEvidenciaActa, DecisionActa, TipoEvidenciaActa, CAMBIO_DATOS_PRACTICA, CLASIFICACION_DOCUMENTAL, COMPARACION, DECISION_HUMANA, LECTURA_DOCUMENTO (+28 more)
 
 ### Community 97 - "vd.util.ts"
 Cohesion: 0.12
-Nodes (24): doc(), ESTADOS, porRevisar(), EstadoHumanoDocumento, ProgresoExpediente, ResumenDocumento, contadoresExpediente(), ESTADO_VISUAL (+16 more)
+Nodes (23): doc(), ESTADOS, porRevisar(), DocumentoDeExpediente, EstadoHumanoDocumento, MotorDocumental, PrioridadExpediente, ProgresoExpediente (+15 more)
 
-### Community 98 - "Documento"
-Cohesion: 0.04
-Nodes (20): etiqueta(), numero(), PipelineValidacionUseCase, redondearUsd(), ResultadoProcesamiento, Bandera, DecisionSinJustificacionError, Documento (+12 more)
+### Community 98 - "DocumentoRepositoryAdapter"
+Cohesion: 0.06
+Nodes (6): FiltroPracticas, AuditoriaRepositoryAdapter, DocumentoRepositoryAdapter, PeriodoRepositoryAdapter, PracticaRepositoryAdapter, SolicitudArlRepositoryAdapter
 
 ### Community 99 - "package.json raíz"
 Cohesion: 0.06
 Nodes (32): description, devDependencies, npm-run-all@^4.1.5, engines, node, npm, license, name (+24 more)
 
 ### Community 100 - "comparacion-acta.domain-service.ts"
-Cohesion: 0.06
-Nodes (59): CampoComparableActa, CampoComparadoActa, CamposActaLeidos, ClasificacionActa, ComparacionActa, ConfianzaActa, CriticidadActa, DatosSipraActa (+51 more)
+Cohesion: 0.09
+Nodes (35): CampoComparableActa, CampoComparadoActa, CamposActaLeidos, ClasificacionActa, ComparacionActa, CriticidadActa, DatosSipraActa, DiscrepanciaActa (+27 more)
 
 ### Community 101 - "Reportes SGP controlador"
-Cohesion: 0.13
-Nodes (4): Cache, col(), ReportesSgpUseCase, ReportesSgpController
+Cohesion: 0.15
+Nodes (5): Cache, col(), ReportesSgpUseCase, CeldaHoja, ReportesSgpController
 
-### Community 102 - "reportes-v3.spec.ts"
-Cohesion: 0.05
-Nodes (90): archivos, cob(), dir, globales, leer(), plantilla(), reporte(), Cobertura (+82 more)
+### Community 102 - "reportes-analitica.util.ts"
+Cohesion: 0.06
+Nodes (37): CruceAnalitica, DetalleAnalitica, EstadoObligacion, Faceta, FilaDetalleAnalitica, ReporteAnalitica, SituacionExpediente, TipoReceptor (+29 more)
 
 ### Community 103 - "tsconfig web"
 Cohesion: 0.07
@@ -761,12 +742,12 @@ Cohesion: 0.22
 Nodes (3): PlantillasNotificacionDomainService, estudiante, plantillas
 
 ### Community 106 - "consentimiento.use-case.ts"
-Cohesion: 0.19
-Nodes (14): ResultadoConsentimientoDto, CanalConsentimiento, ASISTIDO, WEB, DatosConsentimiento, DatosPolitica, CONSENTIMIENTO_REPOSITORY, ConsentimientoRepositoryPort (+6 more)
+Cohesion: 0.16
+Nodes (12): CanalConsentimiento, ASISTIDO, WEB, DatosConsentimiento, DatosPolitica, ConsentimientoMapper, PoliticaMapper, ADMIN (+4 more)
 
 ### Community 107 - "acta-validacion-persistencia.spec.ts"
-Cohesion: 0.08
-Nodes (40): FirmasActa, analizarActa(), extraerCamposActa(), evaluarFirmasActa(), interpretar(), MedicionesFirmas, MedicionZonaFirma, ROTULO_EMPRESA (+32 more)
+Cohesion: 0.07
+Nodes (48): documentoComoActa(), fechaComoActa(), main(), nitComoActa(), PRACTICAS, PROGRAMAS, salida, url (+40 more)
 
 ### Community 108 - "Diseño y modo abierto (doc)"
 Cohesion: 0.07
@@ -776,13 +757,13 @@ Nodes (26): AUTH_ABIERTO_CONFIRMADO, AUTH_MODO, infrastructure/config/configurac
 Cohesion: 0.08
 Nodes (24): AuthController, Backlog del proyecto (P-01 a P-78), Bolsa de empleo (M7), CAMPOS_VACANTE / CAMPOS_PLAZA, Archivos oficiales del DANE (CIIU, CNO, Divipola), Ingestor de catálogos oficiales, Decisiones abiertas que no son de código, IngresarAbiertoUseCase (+16 more)
 
-### Community 110 - "migracion-validacion-eps.spec.ts"
-Cohesion: 0.13
-Nodes (7): ValidacionEps1756000011000, EvidenciaEpsOcr1756000012000, VerificacionEps1756000013000, ConsultaAdres1756000014000, MesaEps1756000015000, sql(), sqlDe()
+### Community 110 - "senales-motores-documentales.domain-service.ts"
+Cohesion: 0.30
+Nodes (13): FaseDocumento, SenalDocumento, faseActa(), faseDelDocumento(), faseEmpresarial(), faseEps(), faseGeneral(), senal() (+5 more)
 
-### Community 111 - "mesa-actas.use-case.ts"
-Cohesion: 0.06
-Nodes (44): CampoComparadoDto, CorreccionDatosPracticaRespuestaDto, DetalleActaDto, ItemBandejaActaDto, ListadoBandejaActaDto, PrioridadActaDto, ReservaActaDto, ResultadoTomarSiguienteActaDto (+36 more)
+### Community 111 - "MesaActasUseCase"
+Cohesion: 0.15
+Nodes (5): ReservaActaDto, enmascarar(), MesaActasUseCase, calcularPrioridadActa(), recomendacionActa()
 
 ### Community 112 - "tema.spec.ts"
 Cohesion: 0.23
@@ -792,45 +773,41 @@ Nodes (7): COLOR_BARRA, TemaService, atributosTema(), CLAVE_TEMA, debeAnimarTema
 Cohesion: 0.07
 Nodes (26): compilerOptions, allowSyntheticDefaultImports, baseUrl, declaration, emitDecoratorMetadata, esModuleInterop, experimentalDecorators, forceConsistentCasingInFileNames (+18 more)
 
-### Community 114 - "tarifas-ia.ts"
-Cohesion: 0.13
-Nodes (17): ESF_5, ESF_54, ESF_LUNA, ESF_SOL, esfuerzoEfectivo(), EsfuerzoRazonamiento, ESFUERZOS_RAZONAMIENTO, FUENTE_TARIFAS (+9 more)
+### Community 114 - "costos-ia.spec.ts"
+Cohesion: 0.09
+Nodes (31): costoDe(), ESF_5, ESF_54, ESF_LUNA, ESF_SOL, EsfuerzoRazonamiento, ESFUERZOS_RAZONAMIENTO, FUENTE_TARIFAS (+23 more)
 
 ### Community 115 - "Contraste y certificados prueba"
-Cohesion: 0.14
-Nodes (23): crearCertificadoAutofirmado(), ECDSA_SHA256, entero(), fecha(), largo(), nombre(), oid(), secuencia() (+15 more)
+Cohesion: 0.16
+Nodes (13): base, claro, contraste(), css, luminancia(), Mapa, oscuro, parsear() (+5 more)
 
 ### Community 117 - "enlaces-descarga.spec.ts"
 Cohesion: 0.10
 Nodes (12): ContextoEnlaceDocumento, AlmacenamientoGcsAdapter, AlmacenamientoLocalAdapter, firmar(), firmarEnlaceDocumento(), ParametrosEnlace, verificarEnlaceDocumento(), PARAMETROS_SENSIBLES (+4 more)
 
-### Community 118 - "ValidacionesEnMemoria"
-Cohesion: 0.16
-Nodes (4): DatosEvidenciaEps, eps(), ValidacionesEnMemoria, Montaje
-
-### Community 119 - "MotivoDevolucionCamara"
+### Community 118 - "adres-caso-uso.spec.ts"
 Cohesion: 0.06
-Nodes (32): CampoInformativoCamaraDto, DecisionCamaraDto, DetalleCamaraDto, ItemBandejaCamaraDto, PrioridadCamaraDto, ResultadoCampoCamaraDto, ResumenCamaraDto, TomarSiguienteCamaraDto (+24 more)
+Nodes (24): PORTAL_ADRES_OFICIAL, portalAdresValido(), VIGENCIA_CONSULTA_ADRES_MS, DecisionEps, APROBADO_AUTOMATICO, APROBADO_MANUAL, CANDIDATO_AUTOAPROBACION, DEVUELTO (+16 more)
+
+### Community 119 - "mesa-camara.use-case.ts"
+Cohesion: 0.03
+Nodes (88): CampoComparadoCamaraDto, CampoInformativoCamaraDto, DecisionCamaraDto, DetalleCamaraDto, EstadoCamaraEstudianteDto, ItemBandejaCamaraDto, ListadoBandejaCamaraDto, PrioridadCamaraDto (+80 more)
 
 ### Community 120 - "dependencies"
 Cohesion: 0.12
 Nodes (17): dependencies, @angular/common@^20.3.0, @angular/compiler@^20.3.0, @angular/core@^20.3.0, @angular/forms@^20.3.0, @angular/platform-browser@^20.3.0, @angular/router@^20.3.0, @fontsource-variable/geist@^5.3.0 (+9 more)
-
-### Community 121 - "ValidacionActaUseCase"
-Cohesion: 0.17
-Nodes (4): ValidacionActaUseCase, EvidenciaActaInvalidaError, ValidacionActaRepositoryPort, datosSipraDePractica()
 
 ### Community 122 - "reportes-analitica.spec.ts"
 Cohesion: 0.11
 Nodes (19): FACETAS, MAX_MUESTRAS_TIEMPO, MODALIDADES_ARTICULADAS, SIN_DATO, AHORA, CICLOS, coordinacionGeneral, docenteNegocios (+11 more)
 
 ### Community 124 - "TipoDocumento"
-Cohesion: 0.02
-Nodes (107): TipoDocumento, ACTA_INICIO, ARTICULO_CIENTIFICO, AUTORIZACION_FUNCIONES, AVANCE_PLAN_MEJORAMIENTO, CAMARA_COMERCIO, CARTA_ACEPTACION, CARTA_FINALIZACION (+99 more)
+Cohesion: 0.03
+Nodes (90): ActualizarPeriodo, CargueEstudianteEntrada, CrearPeriodo, CronogramaDto, PeriodoRespuesta, VentanaDto, CartaPresentacionDomainService, CRITERIOS_DOCUMENTALES (+82 more)
 
 ### Community 125 - "Actor"
 Cohesion: 0.07
-Nodes (11): DecisionDocumentoDto, DocumentoRespuestaDto, HallazgoLecturaDto, MetricasCapturaDto, GestionarDocumentoUseCase, lecturaAsistida(), hayAlgunCarguePosible(), puedeConsultarDocumentos() (+3 more)
+Nodes (10): DecisionDocumentoDto, DocumentoRespuestaDto, GestionarDocumentoUseCase, lecturaAsistida(), Actor, puedeConsultarDocumentos(), puedeVerDocumento(), DocumentosController (+2 more)
 
 ### Community 126 - "E2E Mesa Cámara"
 Cohesion: 0.16
@@ -844,49 +821,49 @@ Nodes (23): abrirCaso(), abrirMesa(), afirmar(), ANDRES, api(), BOTON(), cargarR
 Cohesion: 0.20
 Nodes (3): ItemBarra, ReportesBarrasComponent, ReportesColumnasComponent
 
-### Community 129 - ".desde"
-Cohesion: 0.16
-Nodes (8): practicaDe(), armar(), dia(), practicaBase(), practicaBase(), practica(), PracticasEnMemoria, armar()
+### Community 129 - "paginaEscaneada"
+Cohesion: 0.22
+Nodes (5): Ctx, envolver(), Lienzo, paginaEscaneada(), trazarFirma()
 
 ### Community 130 - "SobrescrituraParametro"
-Cohesion: 0.06
-Nodes (23): ParametroVigente, CATALOGO_PARAMETROS, definicionDe(), DefinicionParametro, NaturalezaParametro, NORMATIVO, OPERATIVO, ParametroDesconocidoError (+15 more)
+Cohesion: 0.07
+Nodes (24): CambioParametro, ParametroVigente, CATALOGO_PARAMETROS, definicionDe(), DefinicionParametro, NaturalezaParametro, NORMATIVO, OPERATIVO (+16 more)
 
-### Community 131 - "pdfjs.worker.js"
-Cohesion: 0.16
-Nodes (13): abrir(), cajas(), cerrarAbierto(), { createCanvas }, { createRequire }, { dirname, join }, falla(), { parentPort, workerData } (+5 more)
+### Community 131 - "estilos-globales.spec.ts"
+Cohesion: 0.17
+Nodes (6): ambiente, angular, globales, raiz, tokens, Incidente «aplicación sin estilos»
 
 ### Community 132 - "externos.adapter.ts"
-Cohesion: 0.08
-Nodes (26): CorrespondenciaCampo, FilaMatriculaSinu, ResumenSincronizacion, ROLES_VISTAS, VistaEstudianteSinu, VistasSinuUseCase, AsignacionDocenteSinu, MatriculaSinu (+18 more)
+Cohesion: 0.11
+Nodes (16): FilaMatriculaSinu, VistaEstudianteSinu, AsignacionDocenteSinu, MatriculaSinu, MensajeNotificacion, NotificacionPort, ResultadoEnvio, ResultadoRues (+8 more)
 
 ### Community 133 - "validacion-documental.component.ts"
-Cohesion: 0.07
-Nodes (18): VdColaComponent, TipoEstadoVd, VdCargandoComponent, VdEstadoComponent, VdActaComponent, VdCamaraComponent, VdEpsComponent, VdGeneralComponent (+10 more)
+Cohesion: 0.11
+Nodes (11): VdActaComponent, VdCamaraComponent, VdEpsComponent, VdGeneralComponent, VdPielBahiaComponent, VdPielInspectorComponent, VdPielNormalComponent, VdRutComponent (+3 more)
 
 ### Community 134 - "openai-adaptador.spec.ts"
 Cohesion: 0.10
 Nodes (19): adaptadorDePrueba(), configDe(), conocimiento, cuerpoEnviado(), CuerpoPeticion, decodificador, Fetch, JPEG_FALSO (+11 more)
 
 ### Community 136 - "verificar-concurrencia-pg.ts"
-Cohesion: 0.06
-Nodes (18): base, Capturador, cronometrar(), estres(), generar(), generarHistorico(), main(), ms() (+10 more)
+Cohesion: 0.03
+Nodes (56): base, Capturador, cronometrar(), estres(), generar(), generarHistorico(), main(), ms() (+48 more)
 
-### Community 137 - "validacion-documental.model.ts"
-Cohesion: 0.22
-Nodes (11): DocumentoDeExpediente, EncabezadoExpediente, Expediente, FiltrosExpedientes, ItemExpediente, ListadoExpedientes, MotorDocumental, PrioridadExpediente (+3 more)
+### Community 137 - "soporte-certificado.ts"
+Cohesion: 0.47
+Nodes (10): crearCertificadoAutofirmado(), ECDSA_SHA256, entero(), fecha(), largo(), nombre(), oid(), secuencia() (+2 more)
 
 ### Community 138 - "Empresa"
-Cohesion: 0.09
-Nodes (9): EmpresaRespuestaDto, GestionarEmpresaUseCase, normalizar(), DecisionEmpresaSinJustificacionError, Empresa, EmpresaRepositoryAdapter, casoDeUso(), preverificar() (+1 more)
+Cohesion: 0.07
+Nodes (16): EmpresaRespuestaDto, GestionarEmpresaUseCase, normalizar(), DecisionEmpresaSinJustificacionError, Empresa, EstadoEmpresa, EN_VERIFICACION, HABILITADA (+8 more)
 
-### Community 139 - "ValidacionDocumentoEmpresarialRepositoryAdapter"
-Cohesion: 0.17
-Nodes (11): comprobar(), main(), rechaza(), comprobar(), main(), rechaza(), comprobar(), main() (+3 more)
+### Community 139 - "verificar-decision-camara-pg.ts"
+Cohesion: 0.06
+Nodes (33): comprobar(), HASH, main(), rechaza(), TIPOS_CAMARA, url, comprobar(), HASH (+25 more)
 
-### Community 140 - "validacion-acta.use-case.ts"
-Cohesion: 0.12
-Nodes (21): CAMPOS_ACTA_PERSISTIBLES, LecturaActaPersistible, MAX_CARACTERES_FUNCIONES_PERSISTIDAS, TipoEvidenciaActa, CAMBIO_DATOS_PRACTICA, CLASIFICACION_DOCUMENTAL, COMPARACION, DECISION_HUMANA (+13 more)
+### Community 140 - "saneamiento-pdf.domain-service.ts"
+Cohesion: 0.24
+Nodes (5): HallazgoSaneamiento, OBJETOS_ACTIVOS, ResultadoSaneamiento, SaneamientoPdfDomainService, saneador
 
 ### Community 141 - "cdp.mjs"
 Cohesion: 0.15
@@ -896,21 +873,21 @@ Nodes (3): RUTAS_CHROME, resultados, sesion
 Cohesion: 0.22
 Nodes (18): abrirExpediente(), abrirMesa(), afirmar(), api(), cargarPorApi(), chipDoc(), decidirCamara(), docApi() (+10 more)
 
-### Community 144 - "PracticaRespuestaDto"
-Cohesion: 0.16
-Nodes (4): PracticaRespuestaDto, CRITERIOS_DOCUMENTALES, CatalogoController, PracticasController
+### Community 145 - "antidiscriminacion.domain-service.ts"
+Cohesion: 0.32
+Nodes (4): AntidiscriminacionDomainService, HallazgoDiscriminatorio, ReglaAntidiscriminacion, REGLAS
 
 ### Community 146 - ".analitica"
-Cohesion: 0.16
-Nodes (10): celdaCsv(), cobertura(), compararCiclos(), compararPeriodos(), cruce(), cumpleFaceta(), normalizar(), ordenCronologico() (+2 more)
+Cohesion: 0.18
+Nodes (9): celdaCsv(), cobertura(), compararCiclos(), compararPeriodos(), cruce(), cumpleFaceta(), ordenCronologico(), tipoReceptor() (+1 more)
 
 ### Community 147 - "aviso-arl-g3.spec.ts"
 Cohesion: 0.07
 Nodes (17): aviso, registro, tAviso, tRegistro, ayudaArl(), ERROR_ARL_SIN_ELEGIR, ETIQUETA_RESPONSABLE_ARL, etiquetaResponsableArl() (+9 more)
 
-### Community 148 - "MotivoDevolucionActa"
-Cohesion: 0.13
-Nodes (13): CorregirDatosPracticaDto, DecisionActaDto, TomarSiguienteActaDto, MotivoDevolucionActa, ARL_NO_COINCIDE, DOCUMENTO_INCORRECTO, FALTA_FIRMA_EMPRESA, FALTA_FIRMA_PRACTICANTE (+5 more)
+### Community 148 - "mesa-actas.use-case.ts"
+Cohesion: 0.12
+Nodes (20): CampoComparadoDto, CorreccionDatosPracticaRespuestaDto, CorregirDatosPracticaDto, DecisionActaDto, DetalleActaDto, EstadoActaEstudianteDto, ItemBandejaActaDto, ListadoBandejaActaDto (+12 more)
 
 ### Community 149 - "Contraste VD"
 Cohesion: 0.14
@@ -925,8 +902,8 @@ Cohesion: 0.11
 Nodes (17): credentials_file, type, proyecto, global, evaluation_interval, external_labels, scrape_interval, ambiente (+9 more)
 
 ### Community 152 - "OidcService"
-Cohesion: 0.16
-Nodes (6): base64UrlADecodificado(), igualesEnTiempoConstante(), OidcService, montar(), usuarioDePrueba(), iniciar()
+Cohesion: 0.04
+Nodes (28): base64UrlADecodificado(), ClaveJwk, huellaCorreo(), IdentidadOidc, igualesEnTiempoConstante(), OidcService, SaludController, TrabajosController (+20 more)
 
 ### Community 153 - "Runbook EPS"
 Cohesion: 0.12
@@ -953,40 +930,36 @@ Cohesion: 0.15
 Nodes (23): abrir(), ACTA, admin(), base, borrarBase(), COLUMNAS_NUEVAS, comprobar(), compuertaArl() (+15 more)
 
 ### Community 160 - "ReportesAnaliticaUseCase"
-Cohesion: 0.17
-Nodes (5): agrupar(), percentil(), ReportesAnaliticaUseCase, VersionAnalitica, armar()
+Cohesion: 0.15
+Nodes (6): agrupar(), normalizar(), percentil(), ReportesAnaliticaUseCase, VersionAnalitica, armar()
 
-### Community 161 - "evaluar-lectura.ts"
-Cohesion: 0.20
-Nodes (14): argumentos, Caso, coincide(), construirExtractor(), corpus(), evaluarCaso(), hace(), HOY (+6 more)
+### Community 161 - "TipoDocumento"
+Cohesion: 0.04
+Nodes (48): Caso, TipoDocumento, ACTA_INICIO, ARTICULO_CIENTIFICO, AUTORIZACION_FUNCIONES, AVANCE_PLAN_MEJORAMIENTO, CAMARA_COMERCIO, CARTA_ACEPTACION (+40 more)
 
 ### Community 162 - "Periodo"
 Cohesion: 0.07
-Nodes (24): exp, per, CargueEstudiante, EstadoCargueEstudiante, Periodo, TipoVentana, PeriodosComponent, avisoFechaPasada() (+16 more)
+Nodes (25): exp, per, CargueEstudiante, EstadoCargueEstudiante, Periodo, TipoVentana, PeriodosComponent, VENTANAS (+17 more)
 
-### Community 163 - "PqrsUseCase"
-Cohesion: 0.13
-Nodes (3): PqrsRespuesta, PqrsUseCase, PqrsController
-
-### Community 164 - "AuthController"
-Cohesion: 0.19
-Nodes (4): SesionDto, Publico(), AuthController, iniciar()
+### Community 164 - "Usuario"
+Cohesion: 0.04
+Nodes (21): IngresoAbiertoDto, InicioOidcDto, OidcCallbackDto, PerfilDisponibleDto, SesionDto, UsuarioDePerfilDto, IngresarAbiertoUseCase, DESCRIPCIONES (+13 more)
 
 ### Community 166 - "Documentos empresariales: RUT y Cámara de Comercio"
 Cohesion: 0.14
 Nodes (10): Motor de Cámara de Comercio, camaraMaxDiasExpedicion, clasificacion-documento-empresarial.domain-service, Documentos empresariales: RUT y Cámara de Comercio, Tabla evidencias_validacion_doc_empresarial, firmaPdfPresente (≠ firmaPdfValida), Hash SHA-256 y detección de duplicados, Migración 21 MotivosDecisionCamara (+2 more)
 
-### Community 168 - "worker-y-metricas.spec.ts"
-Cohesion: 0.15
-Nodes (10): TrabajosController, ahora(), b64(), CLOUD_TASKS, JWK, montarWorker(), par, parAjeno (+2 more)
+### Community 167 - "Componente VD"
+Cohesion: 0.13
+Nodes (3): EncabezadoExpediente, ItemExpediente, ValidacionDocumentalComponent
 
 ### Community 169 - "Configuración Jest"
 Cohesion: 0.14
 Nodes (14): jest, collectCoverageFrom, coverageDirectory, moduleFileExtensions, moduleNameMapper, rootDir, testEnvironment, testRegex (+6 more)
 
 ### Community 171 - "extraccion-acta.domain-service.ts"
-Cohesion: 0.08
-Nodes (35): CampoActa, CAMPOS_ACTA, CAMPOS_PUEDEN_ENVOLVER, CAMPOS_TEXTO_OCR, CONFIANZA_MAXIMA_OCR_ACTA, CONFIANZA_MINIMA_ACTA, CONFIANZA_OCR_ACTA, CONFIANZA_TEXTO_NATIVO_ACTA (+27 more)
+Cohesion: 0.05
+Nodes (60): FuenteLecturaActa, VARIANTES_OCR, CAMPOS_PUEDEN_ENVOLVER, CAMPOS_TEXTO_OCR, CONFIANZA_MAXIMA_OCR_ACTA, CONFIANZA_MINIMA_ACTA, CONFIANZA_OCR_ACTA, Contexto (+52 more)
 
 ### Community 172 - "Cloud Build aislamiento"
 Cohesion: 0.10
@@ -996,17 +969,21 @@ Nodes (18): images, options, logging, machineType, steps, args, entrypoint, id (
 Cohesion: 0.06
 Nodes (4): ReportesCrucesComponent, ReportesDocumentosComponent, ReportesGeneralComponent, ReportesPeriodosComponent
 
-### Community 178 - "oidc-service.spec.ts"
-Cohesion: 0.22
-Nodes (8): ahora(), b64(), claims(), idToken(), JWK, par, parAjeno, servicio()
+### Community 174 - ".estudiante"
+Cohesion: 0.07
+Nodes (3): normalizar(), CartasController, VistasController
 
-### Community 183 - "1756000022000-RolesGobiernoOperativo.ts"
-Cohesion: 0.32
-Nodes (5): lista(), ROLES_ANTERIORES, ROLES_NUEVOS, RolesGobiernoOperativo1756000022000, sqlDe()
+### Community 178 - "crear-aplicacion.ts"
+Cohesion: 0.52
+Nodes (3): crearAplicacion(), documentacionApiHabilitada(), arrancar()
+
+### Community 179 - "ValidacionDocumentalEstado"
+Cohesion: 0.15
+Nodes (4): VistaRapida, ValidacionDocumentalEstado, filtrosLimpios(), navegarDocumento()
 
 ### Community 184 - "modelos.ts"
-Cohesion: 0.04
-Nodes (47): AvanceDocumental, Bandera, CalendarioPeriodo, CargueEstudiantePeriodo, CategoriaPqrs, CriterioArl, CronogramaPeriodo, DiscrepanciaLegible (+39 more)
+Cohesion: 0.03
+Nodes (52): abierto, dev, AvanceDocumental, Bandera, CalendarioPeriodo, CargueEstudiantePeriodo, CategoriaPqrs, CriterioArl (+44 more)
 
 ### Community 185 - "Reglas de alertas"
 Cohesion: 0.17
@@ -1016,21 +993,17 @@ Nodes (11): description, summary, groups, name, rules, severidad, alert, annotat
 Cohesion: 0.17
 Nodes (11): images, options, logging, steps, args, id, name, substitutions (+3 more)
 
-### Community 187 - "GenerarReporteSpeUseCase"
-Cohesion: 0.06
-Nodes (15): GenerarReporteSpeUseCase, ResultadoReporte, aFechaCompacta(), ArchivoPlano, Campo, CAMPOS_PLAZA, CAMPOS_VACANTE, MARCA_BORRADOR (+7 more)
+### Community 187 - "reportes-spe.domain-service.ts"
+Cohesion: 0.15
+Nodes (11): aFechaCompacta(), Campo, CAMPOS_PLAZA, CAMPOS_VACANTE, MARCA_BORRADOR, RegistroPlazaSpe, RegistroVacanteSpe, ReportesSpeDomainService (+3 more)
 
 ### Community 188 - "Proceso base del SGP (paridad)"
 Cohesion: 0.14
 Nodes (13): AvanceDocumentalDomainService, Bitácora (EntradaBitacora, solo inserción), Centro de ayuda (123 preguntas), expediente-documental.domain-service, ExpedienteDocumentalLecturaPort, ExpedienteDocumentalUseCase, MATRIZ_MODALIDADES, PQRS y Centro de ayuda (123 preguntas) (+5 more)
 
 ### Community 189 - "ExpedienteDocumentalUseCase"
-Cohesion: 0.23
+Cohesion: 0.27
 Nodes (5): comprobar(), main(), diaColombia(), enmascarar(), ExpedienteDocumentalUseCase
-
-### Community 190 - "acompanamiento.domain-service.ts"
-Cohesion: 0.12
-Nodes (15): AVANCE_RESERVADO, POR_ROL, proyectarPracticaPara(), SIN_ACADEMICO_NI_DOCUMENTAL, SenalAcompanamiento, AL_DIA, EN_RIESGO, REQUIERE_ATENCION (+7 more)
 
 ### Community 194 - "Guía del proyecto"
 Cohesion: 0.12
@@ -1052,9 +1025,9 @@ Nodes (22): Alcance de visibilidad (rol.vo.ts), Angular (standalone, signals, On
 Cohesion: 0.20
 Nodes (9): collection, compilerOptions, assets, deleteOutDir, plugins, tsConfigPath, watchAssets, $schema (+1 more)
 
-### Community 199 - "validacion-documental.controller.ts"
-Cohesion: 0.29
-Nodes (10): EncabezadoExpedienteDto, ExpedienteDto, ItemExpedienteDto, ResumenDocumentoDto, SupervisionDocumentalDto, VersionDocumentoDto, DocumentoDeExpediente, EstadoHumanoDocumento (+2 more)
+### Community 200 - "pqrs.use-case.ts"
+Cohesion: 0.12
+Nodes (21): PqrsRespuesta, RadicarPqrs, ROLES_ATIENDEN, CategoriaPqrs, CATEGORIAS_PQRS, EstadoPqrs, CERRADA, EN_TRAMITE (+13 more)
 
 ### Community 202 - "Build producción web"
 Cohesion: 0.20
@@ -1064,37 +1037,29 @@ Nodes (10): production, aot, budgets, buildTarget, extractLicenses, fileReplacem
 Cohesion: 0.20
 Nodes (10): sipra-web, changeDetection, standalone, style, @schematics/angular:component, prefix, projectType, root (+2 more)
 
+### Community 204 - "Consentimiento"
+Cohesion: 0.14
+Nodes (3): Consentimiento, ConsentimientoRepositoryPort, ConsentimientoRepositoryAdapter
+
 ### Community 205 - "Auditoría inmutable"
 Cohesion: 0.10
 Nodes (18): cat_ciiu (CIIU Rev. 4 A.C.), cat_cno (CNO / CIUO-08 A.C.), cat_divipola (DIVIPOLA DANE), cat_estado (bloqueo de reportes), CHECK ck_documentos_justificacion, CHECK ck_vacantes_vigencia, EPS_RETENCION_DIAS, Estados de vacante y postulación (+10 more)
 
-### Community 206 - ".estimarDocumento"
-Cohesion: 0.44
-Nodes (4): costoDe(), tokensImagen(), CostosIaDomainService, redondear()
-
-### Community 207 - "lectura-local-acta.domain-service.ts"
-Cohesion: 0.13
-Nodes (19): VARIANTES_OCR, Estado, LIMITES_LECTURA_ACTA, MetodoLecturaActa, MIMES_IMAGEN, OrigenTexto, PaginaLeida, ResumenLecturaActa (+11 more)
-
 ### Community 208 - "armar"
-Cohesion: 0.18
-Nodes (11): dia(), periodo(), armar(), armar(), armar(), dia(), periodoCon(), version() (+3 more)
+Cohesion: 0.22
+Nodes (8): dia(), periodo(), armar(), armar(), armar(), dia(), periodoCon(), version()
 
 ### Community 209 - "Ctx2"
-Cohesion: 0.39
-Nodes (3): Ctx2, garabato(), linea()
+Cohesion: 0.22
+Nodes (8): LIMITES_LECTURA_ACTA, Ctx2, garabato(), imagenZona(), linea(), TEXTO_CON_ROTULOS, ZONA_COMPLETA, Firma
 
 ### Community 212 - "Mesa operativa de validación de EPS (Fase 5)"
 Cohesion: 0.08
 Nodes (27): ADRES_ASISTIDO_HABILITADO, ADRES_FRESCURA_DIAS, ADRES / BDUA, Bitácora de cambios, calcularPrioridad (prioridad transparente), carga:mesa (benchmark de volumen), Clasificación documental EPS por contenido, construirDiscrepancias (deduplicación) (+19 more)
 
-### Community 213 - "consulta-adres.use-case.ts"
-Cohesion: 0.07
-Nodes (36): exigirInterruptorEps(), interruptorEps(), PORTAL_ADRES_OFICIAL, portalAdresValido(), TAMANO_MAXIMO_ADRES_MB, VIGENCIA_CONSULTA_ADRES_MS, CLAVES_PROHIBIDAS_EN_EVIDENCIA, FuenteEvidenciaEps (+28 more)
-
-### Community 214 - "acceso-validacion-documental.vo.ts"
-Cohesion: 0.39
-Nodes (7): puedeOperarMesaActas(), puedeOperarRevisionCamara(), puedeOperarRevisionRut(), esSupervisorValidacionDocumental(), MOTORES, puedeOperarMotor(), puedeUsarValidacionDocumental()
+### Community 213 - "interruptores-eps.spec.ts"
+Cohesion: 0.33
+Nodes (7): exigirInterruptorEps(), interruptorEps(), ClaveInterruptorEps, interruptorActivo(), INTERRUPTORES_EPS, valorPorDefectoEps(), BASE
 
 ### Community 216 - "Assets web"
 Cohesion: 0.25
@@ -1105,8 +1070,8 @@ Cohesion: 0.18
 Nodes (5): PerfilDisponible, UsuarioDePerfil, IngresoComponent, DURACION_TRANSICION_MS, lanzarTransicionEntrada()
 
 ### Community 220 - ".armar"
-Cohesion: 0.19
-Nodes (8): ExpedienteArmado, DocumentoDeLectura, FiltroExpedientes, PracticaDeExpediente, prioridadExpediente(), progresoExpediente(), ExpedienteDocumentalLecturaAdapter, LecturaFalsa
+Cohesion: 0.16
+Nodes (10): DocumentoDeLectura, EXPEDIENTE_DOCUMENTAL_LECTURA, ExpedienteDocumentalLecturaPort, FiltroExpedientes, LecturaExpedientes, PracticaDeExpediente, prioridadExpediente(), ExpedienteDocumentalLecturaAdapter (+2 more)
 
 ### Community 221 - "tsconfig app"
 Cohesion: 0.25
@@ -1121,8 +1086,8 @@ Cohesion: 0.25
 Nodes (8): scripts, build, build:dev, lint, start, test, typecheck:pruebas, watch
 
 ### Community 224 - "VariablesEntorno"
-Cohesion: 0.09
-Nodes (26): @fastify/multipart@^9.0.3, nestjs-pino@^4.4.0, @nestjs/platform-fastify@^11.1.6, crearAplicacion(), Ambiente, DEV, PRE, PROD (+18 more)
+Cohesion: 0.14
+Nodes (16): Ambiente, DEV, PRE, PROD, QA, aplicarReglasDeAmbiente(), BOOLEANOS, ENTEROS (+8 more)
 
 ### Community 228 - "angular.json"
 Cohesion: 0.29
@@ -1136,21 +1101,25 @@ Nodes (7): serve, port, proxyConfig, builder, configurations, defaultConfigurati
 Cohesion: 0.52
 Nodes (7): Favicon 16x16 (SIPRA mark), Favicon 32x32 (SIPRA mark), App Icon 192x192 (PWA), App Icon 512x512 (PWA), Browser Tab Favicon, PWA / Installed App Icon, SIPRA Brand Mark (interlocked rounded-stroke monogram, off-white on deep green rounded square)
 
+### Community 231 - "TipoConsentimiento"
+Cohesion: 0.13
+Nodes (8): PoliticaVigenteDto, PublicarPoliticaDto, RegistrarConsentimientoDto, ResultadoConsentimientoDto, TipoConsentimiento, TRATAMIENTO_DATOS, PoliticaConsentimientoRepositoryAdapter, ConsultaPoliticaDto
+
 ### Community 232 - "VerificacionEpsUseCase (verificación oficial, Fase 3)"
 Cohesion: 0.16
 Nodes (12): AdaptadorRespuestaEps, AppModule (app.module.ts), ClienteHttpSeguro (anti-SSRF), /metrics (METRICAS_HABILITADAS + METRICAS_TOKEN), EPS_AUTOAPROBACION_HABILITADA, Métricas Prometheus EPS sin PII, prom-client / Prometheus / Grafana, Smoke de arranque del JS compilado (+4 more)
 
-### Community 233 - "Pdf417DomainService"
+### Community 233 - "pdfjs.worker.js"
 Cohesion: 0.08
-Nodes (18): zxing-wasm@^3.1.3, ResultadoCodigoBarras, CedulaColombiana, DISPOSICION_TRAMA, LecturaCedula, Pdf417DomainService, PREFIJOS_TRAMA, Pdf417Adapter (+10 more)
+Nodes (24): zxing-wasm@^3.1.3, ResultadoCodigoBarras, Pdf417Adapter, abrir(), cajas(), cerrarAbierto(), { createCanvas }, { createRequire } (+16 more)
 
 ### Community 236 - "Script permisos"
 Cohesion: 0.60
 Nodes (5): aviso(), intentar(), malo(), ok(), permisos.sh script
 
 ### Community 237 - "soporte-acta-pdf.ts"
-Cohesion: 0.05
-Nodes (53): main(), salida, documentoComoActa(), fechaComoActa(), main(), nitComoActa(), PRACTICAS, PROGRAMAS (+45 more)
+Cohesion: 0.07
+Nodes (37): main(), salida, lineas(), main(), PRACTICAS, salida, sinTildes(), url (+29 more)
 
 ### Community 238 - "Build Angular"
 Cohesion: 0.40
@@ -1160,10 +1129,6 @@ Nodes (5): build, builder, configurations, defaultConfiguration, architect
 Cohesion: 0.40
 Nodes (5): development, buildTarget, namedChunks, optimization, sourceMap
 
-### Community 243 - "ActaEstudianteComponent"
-Cohesion: 0.24
-Nodes (3): EstadoActaEstudiante, ActaEstudianteComponent, tonoEstudiante()
-
 ### Community 245 - "smoke-arranque.js"
 Cohesion: 0.25
 Nodes (5): host, main(), net, puertoLibre(), RUTAS_PROTEGIDAS
@@ -1172,17 +1137,13 @@ Nodes (5): host, main(), net, puertoLibre(), RUTAS_PROTEGIDAS
 Cohesion: 0.50
 Nodes (3): exclude, extends, ./tsconfig.json
 
+### Community 249 - "reportes-estudiantes.component.ts"
+Cohesion: 0.06
+Nodes (17): hayDatos(), migas(), nivel(), semestre(), SIN_EMPRESA, PESTANAS, ReportesComponent, ROLES_ANALITICA (+9 more)
+
 ### Community 250 - "index.html (documento raíz Angular)"
 Cohesion: 0.40
 Nodes (5): index.html (documento raíz Angular), manifest.webmanifest e íconos de marca, <sipra-raiz> (componente raíz), assets/tema-inicial.js (tema antes del arranque), Tema oscuro por defecto (data-theme=dark, data-modo=oscuro, color-scheme)
-
-### Community 251 - "usuarios-prueba.ts"
-Cohesion: 0.32
-Nodes (6): abierto, dev, AMBIENTES_PROTEGIDOS, debeMostrarUsuariosDePrueba(), EntornoCliente, esProtegido()
-
-### Community 252 - "kit-v3-controles.spec.ts"
-Cohesion: 0.15
-Nodes (8): cuenta, ingreso, shell, tema, ControlCuentaComponent, etiquetaRol(), ETIQUETAS_ROL, inicialesDe()
 
 ### Community 254 - "Fuentes DejaVu"
 Cohesion: 0.67
@@ -1192,33 +1153,29 @@ Nodes (3): Licencia Bitstream Vera, DejaVu fonts, GPL-2+ (empaquetado debian/*)
 Cohesion: 0.67
 Nodes (3): AlmacenamientoPort, Escaneo antivirus ClamAV (recomendado), Google Cloud Storage
 
-### Community 258 - "registro-fur.spec.ts"
-Cohesion: 0.08
-Nodes (25): AcuseSolicitudDto, DecisionEmpresaDto, NitVerificadoDto, DOMINIOS_GENERICOS, ROLES_CONSULTAN, RegistrarPracticaUseCase, DatosEmpresa, EstadoEmpresa (+17 more)
+### Community 258 - "test/distribucion-docentes-g6.spec.ts"
+Cohesion: 0.05
+Nodes (47): comprobar(), main(), url, AplicarDistribucionDto, DocenteExcluidoDto, FilaDocenteDistribucionDto, NoAsignablesDto, ResultadoDistribucionDto (+39 more)
 
 ### Community 259 - "clasificacion-documental-eps.domain-service.ts"
 Cohesion: 0.28
 Nodes (8): ClasificacionDocumentalEps, clasificarDocumentoEps(), evaluar(), normalizarParaClasificar(), Senal, SENALES_EPS, SENALES_OTRO, TipoDocumentalEps
-
-### Community 261 - "AvisosFalsos"
-Cohesion: 0.25
-Nodes (3): ApiFalsa, AvisosFalsos, crear()
-
-### Community 275 - "TipoConsentimiento"
-Cohesion: 0.22
-Nodes (5): TipoConsentimiento, TRATAMIENTO_DATOS, PoliticaConsentimientoRepositoryAdapter, ConsultaPoliticaDto, PoliticasEnMemoria
 
 ### Community 283 - "DecisionActaPgAdapter"
 Cohesion: 0.40
 Nodes (4): DecisionActaPgAdapter, DecisionActaPort, GestionarDocumentoUseCase, planificarDecisionActa
 
 ### Community 289 - "ColaEnProcesoAdapter"
-Cohesion: 0.11
-Nodes (7): @google-cloud/tasks@^7.0.0, PrioridadTrabajo, Trabajo, ColaCloudTasksAdapter, ColaEnProcesoAdapter, AppModule, @google-cloud/tasks
+Cohesion: 0.24
+Nodes (3): Trabajo, ColaEnProcesoAdapter, AppModule
 
 ### Community 304 - "exports"
 Cohesion: 0.50
 Nodes (4): exports, ./catalogos, ./datasource, ./semillas
+
+### Community 308 - "reportes-documentos.component.ts"
+Cohesion: 0.09
+Nodes (16): Cobertura, CATEGORIAS_OBLIGACION, razon(), semanaCorta(), TASAS, DIMENSIONES_SALUD, DimensionSalud, FilaSalud (+8 more)
 
 ### Community 311 - "EfectoObligacion"
 Cohesion: 0.40
@@ -1228,13 +1185,13 @@ Nodes (5): EfectoObligacion, ALERTA, BLOQUEA_ACTIVA, BLOQUEA_CARGUE, BLOQUEA_CER
 Cohesion: 0.70
 Nodes (4): azul(), ip_privada(), ok(), red-privada.sh script
 
-### Community 314 - "ResponsableObligacion"
-Cohesion: 0.50
-Nodes (4): ResponsableObligacion, CUN, EMPRESA, ESTUDIANTE
+### Community 314 - "test/gobierno-practica-g5.spec.ts"
+Cohesion: 0.10
+Nodes (23): FilaTablero, CATALOGO_OBLIGACIONES, CatalogoObligacion, EstadoObligacion, CUMPLIDA, NO_APLICA, PENDIENTE, VENCIDA (+15 more)
 
-### Community 337 - "practica.dto.ts"
-Cohesion: 0.19
-Nodes (14): ActualizarVacanteDto, AsignarTutorDto, CambiarEstadoOperativoDto, CrearPracticaDto, DestinoOperativoDto, GobiernoPracticaDto, ModificarPracticaDto, RegistrarArlDto (+6 more)
+### Community 337 - "practica.entity.ts"
+Cohesion: 0.03
+Nodes (94): ActualizarVacanteDto, AsignarTutorDto, CambiarEstadoOperativoDto, CrearPracticaDto, DestinoOperativoDto, GobiernoPracticaDto, ModificarPracticaDto, RegistrarArlDto (+86 more)
 
 ## Ambiguous Edges - Review These
 - `P-01 Cerrar el flujo OIDC de extremo a extremo` → `state firmado OIDC (HMAC-SHA256)`  [AMBIGUOUS]
@@ -1249,23 +1206,23 @@ Nodes (14): ActualizarVacanteDto, AsignarTutorDto, CambiarEstadoOperativoDto, Cr
   docs/DOCUMENTO-TECNICO.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **627 isolated node(s):** `SESION_INICIADA`, `EXPEDIENTE_CONSULTADO`, `DOCUMENTO_VISUALIZADO`, `DOCUMENTO_DESCARGADO`, `DOCUMENTO_CARGADO` (+622 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3332 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **136 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **629 isolated node(s):** `NO_REQUERIDO`, `PENDIENTE`, `EN_CONSULTA`, `EVIDENCIA_RECIBIDA`, `PROCESADO` (+624 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3321 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **67 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `@nestjs/common` connect `@nestjs/common` to `repositorios.port.ts`, `registro-fur.spec.ts`, `externos.adapter.ts`, `soporte-mesa-camara.ts`, `validacion-acta.use-case.ts`, `periodo.entity.ts`, `ValidacionEpsUseCase`, `reportes-analitica.use-case.ts`, `ref_node_fs`, `mesa-eps.use-case.ts`, `app.module.ts`, `costos-ia.use-case.ts`, `lector-documento-local.port.ts`, `CartaPresentacion`, `validacion-acta.entity.ts`, `openai.adapter.ts`, `repositorios.adapter.ts`, `verificacion-eps.use-case.ts`, `validacion-eps.entity.ts`, `worker-y-metricas.spec.ts`, `adres-resultado.domain-service.ts`, `lector-documento-local.port.ts`, `oidc-service.spec.ts`, `reportes-sgp.use-case.ts`, `repositorios.port.ts`, `Dependencias API`, `validacion-documental.controller.ts`, `Dev-dependencias API`, `ValidacionActa`, `expediente-documental.use-case.ts`, `consulta-adres.use-case.ts`, `gestionar-vacante.use-case.ts`, `VariablesEntorno`, `soporte-mesa-actas.ts`, `Pdf417DomainService`, `consentimiento.use-case.ts`, `mesa-actas.use-case.ts`, `enlaces-descarga.spec.ts`, `reportes-analitica.spec.ts`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
-- **What connects `SESION_INICIADA`, `EXPEDIENTE_CONSULTADO`, `DOCUMENTO_VISUALIZADO` to the rest of the system?**
-  _627 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `repositorios.port.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.030016420361247947 - nodes in this community are weakly interconnected._
-- **Why does `TipoDocumento` connect `TipoDocumento` to `repositorios.port.ts`, `@nestjs/common`, `SobrescrituraParametro`, `openai-adaptador.spec.ts`, `soporte-mesa-camara.ts`, `validacion-acta.use-case.ts`, `periodo.entity.ts`, `ValidacionEpsUseCase`, `reportes-analitica.use-case.ts`, `ref_node_fs`, `mesa-eps.use-case.ts`, `app.module.ts`, `costos-ia.use-case.ts`, `mesa-rut-dominio.spec.ts`, `evaluar-lectura.ts`, `camara-lector.spec.ts`, `openai.adapter.ts`, `repositorios.adapter.ts`, `verificacion-eps.use-case.ts`, `adres-resultado.domain-service.ts`, `lector-documento-local.port.ts`, `comparacion-camara.domain-service.ts`, `ExpedienteDocumentalUseCase`, `reportes-sgp.use-case.ts`, `.buscarPorId`, `documento-empresarial.ts`, `EscribirBitacoraDto`, `repositorios.port.ts`, `validacion-documental.controller.ts`, `conocimiento-documental.domain-service.ts`, `.estimarDocumento`, `ValidacionActa`, `expediente-documental.use-case.ts`, `.buscarPorId`, `consulta-adres.use-case.ts`, `.desde`, `.armar`, `soporte-mesa-actas.ts`, `Documento`, `acta-validacion-persistencia.spec.ts`, `soporte-acta-pdf.ts`, `mesa-actas.use-case.ts`, `ValidacionDocumentalController`, `reportes-analitica.spec.ts`, `Actor`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+- **Why does `@nestjs/common` connect `app.module.ts` to `gestionar-practica.use-case.ts`, `test/distribucion-docentes-g6.spec.ts`, `SobrescrituraParametro`, `externos.adapter.ts`, `typeorm`, `verificar-concurrencia-pg.ts`, `soporte-mesa-camara.ts`, `verificar-decision-camara-pg.ts`, `ValidacionEpsUseCase`, `cargue-estudiante.service.ts`, `reportes-analitica.use-case.ts`, `ref_node_fs`, `mesa-actas.use-case.ts`, `mesa-eps.use-case.ts`, `costos-ia.use-case.ts`, `documento.entity.ts`, `OidcService`, `CartaPresentacion`, `mesa-rut.use-case.ts`, `validacion-acta.entity.ts`, `openai.adapter.ts`, `Usuario`, `verificacion-eps.use-case.ts`, `repositorios.adapter.ts`, `validacion-eps.entity.ts`, `lector-documento-local.port.ts`, `crear-aplicacion.ts`, `Documento`, `test/gobierno-practica-g5.spec.ts`, `validacion-documento-empresarial.entity.ts`, `reportes-sgp.use-case.ts`, `reporte-bloqueado.spec.ts`, `expediente-documental.spec.ts`, `pqrs.use-case.ts`, `api/package.json`, `practica.entity.ts`, `expediente-documental.use-case.ts`, `interruptores-eps.spec.ts`, `cola.adapter.ts`, `rol.vo.ts`, `soporte-mesa-actas.ts`, `TipoConsentimiento`, `pdfjs.worker.js`, `consentimiento.use-case.ts`, `enlaces-descarga.spec.ts`, `adres-caso-uso.spec.ts`, `mesa-camara.use-case.ts`, `reportes-analitica.spec.ts`, `TipoDocumento`?**
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **What connects `NO_REQUERIDO`, `PENDIENTE`, `EN_CONSULTA` to the rest of the system?**
+  _629 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `gestionar-practica.use-case.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.03977326405290505 - nodes in this community are weakly interconnected._
+- **Why does `Rol` connect `app.module.ts` to `gestionar-practica.use-case.ts`, `test/distribucion-docentes-g6.spec.ts`, `verificar-concurrencia-pg.ts`, `soporte-mesa-camara.ts`, `ValidacionEpsUseCase`, `cargue-estudiante.service.ts`, `reportes-analitica.use-case.ts`, `ref_node_fs`, `mesa-eps.use-case.ts`, `mesa-actas.use-case.ts`, `costos-ia.use-case.ts`, `documento.entity.ts`, `mesa-acta.domain-service.ts`, `mesa-rut.use-case.ts`, `CrearUsuarioDto`, `Usuario`, `repositorios.adapter.ts`, `verificacion-eps.use-case.ts`, `validacion-eps.entity.ts`, `test/gobierno-practica-g5.spec.ts`, `reportes-sgp.use-case.ts`, `reporte-bloqueado.spec.ts`, `expediente-documental.spec.ts`, `pqrs.use-case.ts`, `ejecutar-semillas.ts`, `practica.entity.ts`, `expediente-documental.use-case.ts`, `rol.vo.ts`, `soporte-mesa-actas.ts`, `TipoConsentimiento`, `consentimiento.use-case.ts`, `acta-validacion-persistencia.spec.ts`, `costos-ia.spec.ts`, `adres-caso-uso.spec.ts`, `mesa-camara.use-case.ts`, `reportes-analitica.spec.ts`, `TipoDocumento`, `Actor`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Should `@angular/core` be split into smaller, more focused modules?**
-  _Cohesion score 0.043458980044345896 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.031521242576518956 - nodes in this community are weakly interconnected._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._

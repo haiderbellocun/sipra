@@ -26,6 +26,9 @@ export enum AccionAuditada {
   PRACTICA_MODIFICADA = 'practica_modificada',
   /** G5 · cambio manual de estado operativo (Inscrito, En práctica, Anulado, Reprobado, Cerrado). */
   ESTADO_OPERATIVO_CAMBIADO = 'estado_operativo_cambiado',
+  // G6 · distribución de docentes facilitadores
+  DISTRIBUCION_DOCENTES_APLICADA = 'distribucion_docentes_aplicada',
+  TUTOR_ASIGNADO = 'tutor_asignado',
   CARTA_PRESENTACION_GENERADA = 'carta_presentacion_generada',
   BITACORA_REGISTRADA = 'bitacora_registrada',
   CALIFICACION_REGISTRADA = 'calificacion_registrada',

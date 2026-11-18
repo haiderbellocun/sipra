@@ -209,6 +209,18 @@ export interface Periodo {
   cargueEstudiante: CargueEstudiantePeriodo;
 }
 
+/** G6 · distribución de estudiantes por docente facilitador. */
+export interface FilaDocenteDistribucion { id: string; nombre: string; escuelas: string[]; actual: number; nuevos: number; final: number }
+export interface VistaPreviaDistribucion {
+  periodoAcademico: string; periodoActivo: boolean; escuelas: string[] | null;
+  pendientes: number; asignables: number; sinDocenteCompatible: number;
+  docentes: FilaDocenteDistribucion[];
+  noAsignables: { escuelaId: string; cantidad: number; motivo: string }[];
+  docentesExcluidos: { id: string; nombre: string; motivo: string }[];
+  huella: string; puedeAplicar: boolean; motivoNoAplicable: string | null;
+}
+export interface ResultadoDistribucion { periodoAcademico: string; asignados: number; docentes: number; sinDocenteCompatible: number }
+
 export interface ModalidadCatalogo {
   modalidad: string; etiqueta: string; etiquetaSgp: string; descripcion: string; articulada: boolean;
   responsableArl: string; solicitudArl: 'si' | 'no' | 'segun_cobertura';

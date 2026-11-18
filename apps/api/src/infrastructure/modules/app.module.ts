@@ -128,6 +128,9 @@ import { DECISION_ACTA } from '../../domain/ports/out/decision-acta.port';
 import { DECISION_RUT } from '../../domain/ports/out/decision-rut.port';
 import { DecisionRutPgAdapter } from '../adapters/persistence/postgres/decision-rut.adapter';
 import { DecisionActaPgAdapter } from '../adapters/persistence/postgres/decision-acta.adapter';
+import { DISTRIBUCION_DOCENTES } from '../../domain/ports/out/distribucion-docentes.port';
+import { DistribucionDocentesPgAdapter } from '../adapters/persistence/postgres/distribucion-docentes.adapter';
+import { DistribucionDocentesUseCase } from '../../application/use-cases/practicas/distribucion-docentes.use-case';
 import { VerificacionEpsUseCase } from '../../application/use-cases/documentos/verificacion-eps.use-case';
 import { ConsultaAdresUseCase } from '../../application/use-cases/documentos/consulta-adres.use-case';
 import { MesaEpsUseCase } from '../../application/use-cases/documentos/mesa-eps.use-case';
@@ -279,6 +282,8 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: LECTURA_CAMARA, useExisting: LecturaCamaraLocalAdapter },
     ValidacionCamaraUseCase,
     { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
+    { provide: DISTRIBUCION_DOCENTES, useClass: DistribucionDocentesPgAdapter },
+    DistribucionDocentesUseCase,
     { provide: DECISION_RUT, useClass: DecisionRutPgAdapter },
     { provide: EXPEDIENTE_DOCUMENTAL_LECTURA, useClass: ExpedienteDocumentalLecturaAdapter },
     { provide: GENERADOR_PDF, useClass: PdfKitAdapter },

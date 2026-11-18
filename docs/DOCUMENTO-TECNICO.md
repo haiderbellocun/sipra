@@ -369,7 +369,8 @@ al SPE. El resto es operación interna.
 | Ver puntaje y banderas internas | — | ✓ | ✓ | — | ✓ | — | — |
 | Cambiar el estado de la práctica (estado operativo; G5) | — | — | ✓ (coordinador y analista) | — | — | — | — |
 | Registrar afiliación a ARL | — | — | ✓ | ✓ | ✓ | — | — |
-| Asignar tutor / sincronizar docentes | — | — | ✓ (área) | — | ✓ | — | — |
+| Asignar docente facilitador (manual) y distribuir estudiantes por periodo (G6) | — | — | ✓ (coordinador y analista) | — | — | — | — |
+| Sincronizar docentes desde SINU (sin cambios en G6) | — | — | ✓ (área) | — | ✓ | — | — |
 | Gestión de usuarios y de periodos | — | — | — (0.39.1: administrador y director) | — | ✓ | — | — |
 | Reportes del SGP | — | ✓ (su alcance) | ✓ | ✓ | ✓ | — | — |
 | Habilitar empresas | — | — | — | — | ✓ | — | — |
@@ -387,6 +388,7 @@ y no hereda las escrituras operativas.
 | Gestionar usuarios administrativos | ✓ todos | ✓ solo operativos¹ | — | — |
 | Ver la institución (prácticas, expedientes, documentos, bitácora, reportes, cumplimiento) | ✓ | ✓ lectura | según `escuelas`² | según `escuelas`² |
 | Modificar la práctica y cambiar su estado operativo (G5, 0.43.0) | — | — | ✓ | ✓ |
+| Distribuir estudiantes entre docentes facilitadores y asignar docente manualmente (G6, 0.44.0) | — | — | ✓ | ✓ |
 | Decidir documentos | ✓ | — | ✓ | ✓ |
 | Operar y supervisar Mesas (EPS, RUT, Cámara, Actas, Validación Documental) | ✓ | — | ✓ | ✓ |
 | Operar ARL (radicar, decidir, remitir certificado, registrar afiliación) | ✓ | — | ✓ | ✓ |
@@ -3552,6 +3554,95 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.44.0 — 18 de noviembre de 2026
+
+**Gobierno operativo · G6: Distribución homogénea de estudiantes por docente facilitador.** Requerimiento institucional: «Los estudiantes deben distribuirse homogéneamente entre los docentes facilitadores». La distribución la hacen solo **coordinación y analista**. Administración, dirección, docente, auxiliar y estudiante reciben 403 y no ven la acción. Siempre es sobre **un periodo**, se previsualiza antes de aplicar, es determinística, auditable y segura frente a concurrencia, y **nunca mueve asignaciones existentes**. En la interfaz se dice «Docente facilitador»; internamente sigue siendo `tutor`.
+
+- **Universo elegible.** Prácticas del periodo elegido, **sin docente** (`tutor_id IS NULL`) y **no terminales**: quedan fuera `certificada`, `cancelada`, `anulada` y `reprobada` (`ESTADOS_TERMINALES_PRACTICA`). Inscrito y En práctica sí reciben docente. El universo se acota al alcance del actor: con escuelas, solo las suyas; sin escuelas (Área de Prácticas), todas. Opcionalmente se elige **una escuela** de forma explícita; nunca se infiere de los filtros del listado.
+- **Docentes elegibles.** Rol `tutor`, **activo**, permiso de **escritura** y **al menos una escuela** en su alcance. Para el docente, alcance vacío **no es institucional**: significa «solo sus asignados» (G1/G4), así que no recibe estudiantes automáticamente. Una práctica solo va a un docente cuyo alcance incluye su escuela. Los excluidos (inhabilitado, solo consulta, sin escuelas) se listan con el motivo.
+- **Algoritmo** (`domain/services/distribucion-docentes.domain-service.ts`, dominio puro y sin SQL).
+  - **(1) Voraz «menos cargado primero».**
+    - Las prácticas se ordenan por (escuela, programa, estudiante, id).
+    - La carga inicial de cada docente es la que **ya tiene en el mismo periodo** (prácticas no terminales) dentro de las escuelas de su alcance; las asignaciones de otros periodos no cuentan.
+    - Los empates se resuelven por nombre normalizado (sin tildes ni mayúsculas) y luego por id.
+  - **(2) Mejora hasta el óptimo (semi-matching).** Mientras exista un camino de reasignación, solo con prácticas **nuevas** y respetando el alcance, desde un docente con carga L hasta otro con ≤ L−2, se mueve una práctica por tramo.
+    - Cada movimiento reduce estrictamente la suma de cuadrados, así que el proceso termina.
+    - Cuando no queda ningún camino, el reparto es óptimo para la carga máxima y la dispersión.
+    - Resultado: diferencia ≤ 1 cuando las restricciones lo permiten (100 / 6 → 17, 17, 17, 17, 16, 16), también con docentes de varias escuelas, donde el voraz solo no lo lograba.
+    - Si las escuelas no lo permiten (por ejemplo, una escuela con mucha demanda y pocos docentes), el resultado es el mejor posible y no se fuerzan estudiantes fuera de alcance.
+  - **Prácticas sin ningún docente elegible:** se informan como «No asignables» por escuela, con el motivo «No hay docentes activos con alcance compatible.».
+  - **Determinismo:** mismos datos, mismo resultado, sin importar el orden de entrada; no hay azar.
+- **Vista previa** (`GET /api/v1/practicas/distribucion-docentes?periodo=…&escuela=…`). **No escribe.**
+  - Devuelve el periodo (y si está activo), las escuelas, los pendientes, los asignables, los sin docente compatible y, por docente: escuelas, actual, nuevos y final.
+  - Incluye también los no asignables, los docentes excluidos, `puedeAplicar` con su motivo y una **huella**: el SHA-256 del texto canónico de prácticas pendientes, docentes (estado, permiso y alcance) y cargas.
+- **Aplicación** (`POST /api/v1/practicas/distribucion-docentes` con `{ periodoAcademico, escuelaId?, huella }`).
+  - Recalcula con datos frescos. Si la huella cambió, responde **409** «Las asignaciones cambiaron desde la vista previa. Genera una nueva distribución.».
+  - Escribe en **una transacción** (`DistribucionDocentesPgAdapter`):
+    - bloquea las prácticas del lote en orden de id (`FOR UPDATE`, siempre el mismo orden, sin interbloqueos);
+    - ejecuta `UPDATE … WHERE tutor_id IS NULL AND estado no terminal` para todo el lote, y si no se actualizaron **todas** las filas revierte todo (409);
+    - inserta la auditoría y la bitácora en bloques de 500.
+  - Todo o nada: los «no asignables» conocidos desde la vista previa quedan fuera del lote y no impiden aplicar el resto.
+  - **Periodo inactivo:** la vista previa se permite como consulta, pero la aplicación se rechaza (400). Es la opción conservadora: no había una regla previa.
+  - **Rendimiento:** dos lecturas agregadas (pendientes del periodo y cargas `GROUP BY tutor_id, escuela_id`), sin N+1.
+- **Asignaciones existentes y rebalanceo.** Nunca se mueven. No hay rebalanceo automático; si se necesita, será una acción separada y explícita.
+- **Asignación manual endurecida** (`PATCH /practicas/:id/tutor`).
+  - Solo coordinación y analista; administración ya no.
+  - El usuario debe existir, ser docente facilitador, estar activo, tener permiso de escritura y la escuela de la práctica en su alcance.
+  - No se asigna a prácticas terminales.
+  - **Reemplazar** un docente ya asignado exige justificación (mínimo 10 caracteres).
+  - Queda auditada (`tutor_asignado`, método `manual`, de → a) y con una nota en la bitácora.
+- **Auditoría e historial.**
+  - El evento de lote `distribucion_docentes_aplicada` registra: actor, rol, periodo, escuelas, asignados, docentes, no asignables, huella, `loteId`, carga final por docente y fecha.
+  - Hay un evento `tutor_asignado` por práctica (práctica, docente, método `automatico`, `loteId`, periodo).
+  - La bitácora de cada práctica registra, por ejemplo: «Docente facilitador asignado: Laura Gómez. Distribución automática del periodo 2026C, por Analista de prácticas (Nombre).».
+  - No hubo migración: el enumerado de acciones es de código.
+- **Frontend.**
+  - El botón «Distribuir estudiantes» está en la cabecera de **Prácticas**, solo para coordinación y analista. No hay módulo nuevo ni cambios en Gestión de usuarios.
+  - El panel lateral (`sipra-distribucion-docentes`, OnPush, `<dialog>` nativo) permite elegir:
+    - el **periodo** (obligatorio, sin opción «Todos»; marca los inactivos; por defecto el del filtro o el vigente);
+    - el alcance: «Todas las escuelas de mi alcance» o «Una escuela».
+  - Cambiar el periodo o el alcance descarta la vista previa.
+  - La vista previa muestra cifras compactas (Pendientes, Docentes, Asignables, Sin docente compatible), una tabla compacta (Docente, Escuela(s), Actual, Nuevos, Final), los no asignables por escuela y los docentes que no reciben, con el motivo.
+  - **Confirmación** en un diálogo aparte: «Se asignarán X estudiantes a Y docentes facilitadores. Las asignaciones existentes no serán modificadas.».
+  - Ante un 409, la vista se descarta y se pide generar una nueva.
+  - **Éxito:** «Distribución completada» con Asignados, Docentes y Sin docente compatible; luego se recarga el listado.
+  - En móvil, el panel ocupa el ancho completo, las cifras van en 2 columnas y la tabla oculta la columna de escuelas.
+- **Contador de G4.** No se integró en Gestión de usuarios: la carga por docente se ve en la vista previa (columna «Actual» por periodo). Acoplar G4 a un agregado por periodo no aportaba más.
+- **Pruebas.**
+  - **API:**
+    - `test/distribucion-docentes-g6.spec.ts` (52): algoritmo (1/1, 10/2, 11/2, 100/6, carga previa, docente inactivo, escuelas incompatibles, multiescuela, sin docente elegible, determinismo con permutaciones, desempate, 10.000 prácticas en ~60 ms), permisos, periodo, vista previa sin escrituras, terminales, periodo inactivo, 409 por vista obsoleta, doble aplicación, carrera tras la huella, alcance, auditoría, asignación manual y el DTO del periodo.
+    - Rutas: bloque G6 en `autorizacion-rutas.spec.ts`.
+    - Suite completa: 116 suites, 3.170/3.170. Aislamiento: 10/10.
+  - **PostgreSQL real** (`npm run test:pg:distribucion`, base desechable, 20/20):
+    - lecturas agregadas;
+    - aplicación atómica con auditoría y bitácora;
+    - lote obsoleto sin ninguna escritura;
+    - 8 rondas de lotes solapados en orden inverso, con un ganador, sin doble asignación ni interbloqueos;
+    - dos coordinadores con la misma vista previa: uno aplica y el otro recibe 409;
+    - 3.000 prácticas: vista previa ~0,1 s, aplicación ~1–2 s, diferencia ≤ 1.
+  - **Web:** `pruebas/distribucion-docentes-g6.spec.ts`; suite 523/523. Lint con 0 advertencias, build de API y web, y `verificar:secretos` limpio.
+  - **Navegador real** (API 3101 → `sipra_dev`, web 4203): todas las comprobaciones pasaron.
+    - **Administración y dirección:** sin botón; 403 en la API.
+    - **Docente:** 403.
+    - **Coordinación de ESC-ING:** 403 sobre ESC-NEG y universo solo ESC-ING.
+    - **Periodo inactivo:** solo consulta.
+    - **Vista previa sin escrituras:** 24 pendientes, 21 asignables y 3 no asignables de ESC-SOC; docentes inhabilitado y de solo consulta excluidos con su motivo.
+    - **Caso con restricciones:** 9/9/4/4, el óptimo posible: ESC-ING solo la cubren dos docentes.
+    - **Caso balanceado (11 de ESC-ING):** 6/5.
+    - **Confirmación y vista obsoleta:** confirmación con foco en Cancelar; asignación manual intermedia → 409 en la interfaz sin escrituras.
+    - **Analista (claro):** aplica 20 → «Distribución completada»; la asignación manual no se movió.
+    - **Historial y móvil:** nota de historial en el expediente; móvil 390 px sin desbordes.
+  - **Datos sintéticos «QA G6» en `sipra_dev`:**
+    - periodos `26G06` (activo), `26G07` (inactivo) y `26G08` (balanceado);
+    - docentes «Docente QA G6 Multiescuela» (ESC-ING y ESC-NEG) y «Docente QA G6 Inhabilitado»;
+    - 43 estudiantes «Estudiante QA G6 NN» con sus prácticas, algunas ya distribuidas por la QA.
+  - Base desechable `sipra_pg_g6` en el PostgreSQL local de pruebas. `sipra_reportes_1000` no se tocó.
+- **Capturas:** `docs/assets/g6/`.
+- **Riesgos y pendientes.**
+  - **Sincronización de docentes desde SINU:** sigue reasignando según SINU (y permitida a administración). Es otro mecanismo, previo a G6, y puede cambiar asignaciones hechas por la distribución si el periodo tiene la sincronización habilitada; hay que definir cuál manda.
+  - **Rebalanceo explícito:** no existe (fuera de G6).
+  - **Contador por docente en Gestión de usuarios:** no se incluyó.
 
 ### 0.43.0 — 18 de noviembre de 2026
 

@@ -390,6 +390,11 @@ describe('G5 · gobierno de la práctica sobre las rutas reales', () => {
       expect([...(ruta(clave)?.roles ?? [])].sort()).toEqual([Rol.ANALISTA, Rol.COORDINADOR].sort());
     }
   });
+  it('G6 · distribución (vista previa y aplicación) y asignación manual de docente: exactamente coordinación y analista', () => {
+    for (const clave of ['PracticasController.previsualizarDistribucion', 'PracticasController.aplicarDistribucion', 'PracticasController.asignarTutor']) {
+      expect([...(ruta(clave)?.roles ?? [])].sort()).toEqual([Rol.ANALISTA, Rol.COORDINADOR].sort());
+    }
+  });
   it('ya no existen rutas superpuestas de edición (vacante, datos gobernantes)', () => {
     expect(ruta('PracticasController.actualizarVacante')).toBeUndefined();
     expect(ruta('PracticasController.corregirDatosGobernantes')).toBeUndefined();
