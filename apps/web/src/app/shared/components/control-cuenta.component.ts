@@ -63,14 +63,26 @@ let siguienteId = 0;
     /* Prueba: anillo y punto ámbar (el rail es oscuro en ambos temas), para que la sesión sintética se reconozca sin abrir el menú. */
     :host([data-variante='rail']) .disparador.prueba { border-color: var(--p-amber-400); }
     .punto { position: absolute; right: -1px; top: -1px; width: 8px; height: 8px; border-radius: 50%; background: var(--p-amber-400); box-shadow: 0 0 0 2px var(--surface-rail, var(--surface-canvas)); }
+    /* Barra superior: avatar con iniciales + nombre y rol (truncados; el texto completo va en el título). */
     :host([data-variante='barra']) .disparador {
-      display: inline-flex; align-items: center; gap: 8px; max-width: 13rem; height: 36px; padding: 0 12px; border-radius: 6px;
-      border: 1px solid var(--border-strong); color: var(--text-primary); font-size: var(--fs-sm); font-weight: 500;
-      background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+      display: inline-flex; align-items: center; gap: 10px; max-width: 16rem; min-height: 40px; padding: 3px 10px 3px 4px; border-radius: 8px;
+      border: 1px solid var(--border-strong); color: var(--text-primary); font-size: var(--fs-sm); text-align: left;
+      background: color-mix(in srgb, var(--text-primary) 5%, transparent);
     }
-    :host([data-variante='barra']) .disparador .nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    :host([data-variante='barra']) .punto { position: static; flex: none; box-shadow: none; }
-    @media (pointer: coarse) { :host([data-variante='barra']) .disparador { height: 44px; } }
+    :host([data-variante='barra']) .disparador:hover, :host([data-variante='barra']) .disparador[aria-expanded='true'] { border-color: color-mix(in srgb, var(--signal-active) 55%, var(--border-strong)); }
+    .avatar { position: relative; display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; font-size: 12px; font-weight: 650; letter-spacing: .02em; color: var(--text-inverse); background: var(--signal-active); }
+    .txt { display: grid; min-width: 0; line-height: 16px; }
+    .txt .nombre { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .txt .rol-b { font-size: var(--fs-meta); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chev { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: var(--text-secondary); }
+    :host([data-variante='barra']) .avatar .punto { right: -2px; top: -2px; box-shadow: 0 0 0 2px var(--surface-canvas); }
+    /* Pantallas angostas: solo el avatar (el nombre completo queda en el panel y en el nombre accesible). */
+    @media (width < 768px) {
+      :host([data-variante='barra']) .disparador { padding: 3px; border-radius: 50%; }
+      :host([data-variante='barra']) .txt, :host([data-variante='barra']) .chev { display: none; }
+    }
+    @media (pointer: coarse) { :host([data-variante='barra']) .disparador { min-height: 44px; } }
+    .correo { margin: 2px 0 0; font-size: var(--fs-meta); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Tooltip del avatar (hover y foco de teclado), encima para no tapar el rótulo del rail abierto;
        no es la única vía: el clic abre el panel. */
@@ -115,8 +127,14 @@ let siguienteId = 0;
     <button #disparador type="button" class="disparador" [class.prueba]="esPrueba()"
             [attr.aria-expanded]="abierto()" [attr.aria-controls]="idPanel" [attr.aria-label]="nombreAccesible()"
             (click)="alternar($event)">
-      @if (variante() === 'rail') { {{ iniciales() }} } @else { <span class="nombre">{{ s?.nombre }}</span> }
-      @if (esPrueba()) { <span class="punto" aria-hidden="true"></span> }
+      @if (variante() === 'rail') {
+        {{ iniciales() }}
+        @if (esPrueba()) { <span class="punto" aria-hidden="true"></span> }
+      } @else {
+        <span class="avatar" aria-hidden="true">{{ iniciales() }}@if (esPrueba()) { <span class="punto"></span> }</span>
+        <span class="txt" aria-hidden="true" [attr.title]="(s?.nombre ?? '') + ' · ' + rol()"><span class="nombre">{{ s?.nombre }}</span><span class="rol-b">{{ rol() }}</span></span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      }
     </button>
     @if (variante() === 'rail') { <span class="tip" aria-hidden="true">{{ esPrueba() ? 'Usuario de prueba' : 'Cuenta' }}</span> }
     @if (abierto()) {
@@ -124,6 +142,7 @@ let siguienteId = 0;
         <p class="kicker" [class.normal]="!esPrueba()">{{ esPrueba() ? 'Usuario de prueba' : 'Cuenta' }}</p>
         <p class="quien">{{ s?.nombre }}</p>
         <p class="rol">{{ rol() }}</p>
+        @if (s?.correo) { <p class="correo" [attr.title]="s?.correo">{{ s?.correo }}</p> }
         <div class="regla" aria-hidden="true"></div>
         <button #salir type="button" class="salir" (click)="sesion.salir()">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/></svg>

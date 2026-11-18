@@ -2,6 +2,11 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
+import { tieneRol } from '@core/auth/roles';
+import { Rol } from '@core/models/modelos';
+
+/** Roles de GET /cumplimiento/tablero (los mismos de la ruta /cumplimiento). */
+const ROLES_TABLERO_CUMPLIMIENTO: readonly Rol[] = ['administrador', 'director', 'coordinador', 'analista', 'extension', 'tutor'];
 import { ApiService } from '@core/services/api.service';
 import { Periodo, Practica, TableroCumplimiento } from '@core/models/modelos';
 import { CronogramaComponent } from '@shared/components/cronograma.component';
@@ -353,7 +358,8 @@ export class InicioComponent implements OnInit {
       if (this.sesion.rol() !== 'empresa') {
         this.periodos.set(await firstValueFrom(this.api.listarPeriodos()).catch(() => [] as Periodo[]));
       }
-      if (this.sesion.esInterno()) {
+      // Solo quien puede consultar el tablero (mismos roles que GET /cumplimiento/tablero); el auxiliar no (antes: 403).
+      if (tieneRol(ROLES_TABLERO_CUMPLIMIENTO, this.sesion.rol())) {
         this.tablero.set(await firstValueFrom(this.api.tableroCumplimiento(60)));
       }
     } finally {

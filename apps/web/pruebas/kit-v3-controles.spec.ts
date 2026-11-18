@@ -39,11 +39,11 @@ describe('Kit V3 · un solo mecanismo de sesión y de tema', () => {
     assert.match(tema, /tema\.alternar\(\)/);
     assert.doesNotMatch(tema, /localStorage|sipra\.tema|matchMedia\(/);
   });
-  it('shell e ingreso usan el MISMO control de tema; el shell, el de cuenta', () => {
-    assert.match(shell, /<sipra-control-tema variante="rail"/);
-    assert.match(shell, /<sipra-control-tema variante="etiqueta"/);
-    assert.match(shell, /<sipra-control-cuenta variante="rail"/);
+  it('shell e ingreso usan el MISMO control de tema; el shell, el de cuenta (ambos en la barra superior)', () => {
+    assert.match(shell, /<sipra-control-tema class="tema-grande" variante="etiqueta"/);
+    assert.match(shell, /<sipra-control-tema class="tema-chico" variante="icono"/);
     assert.match(shell, /<sipra-control-cuenta variante="barra"/);
+    assert.doesNotMatch(shell, /variante="rail"/);
     assert.match(ingreso, /<sipra-control-tema [^>]*variante="icono"/);
     assert.doesNotMatch(shell + ingreso, /role="switch"/);
   });

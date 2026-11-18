@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, s
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { VdMesasComponent } from './vd-mesas.component';
 import { ItemExpediente } from '@core/models/validacion-documental.model';
 import { VdColaComponent } from './vd-cola.component';
 import { VdCargandoComponent, VdEstadoComponent } from './vd-estados.component';
@@ -26,7 +27,7 @@ const ANCHO_COLA_PLEGADA = 1280;
 @Component({
   selector: 'sipra-validacion-documental',
   standalone: true,
-  imports: [FormsModule, VdColaComponent, VdEstadoComponent, VdCargandoComponent, VdProgresoComponent, VdSignalRailComponent, VdEpsComponent, VdActaComponent, VdRutComponent, VdCamaraComponent, VdGeneralComponent, VdPielBahiaComponent, VdPielInspectorComponent, VdPielNormalComponent, VdSupervisionComponent],
+  imports: [FormsModule, VdMesasComponent, VdColaComponent, VdEstadoComponent, VdCargandoComponent, VdProgresoComponent, VdSignalRailComponent, VdEpsComponent, VdActaComponent, VdRutComponent, VdCamaraComponent, VdGeneralComponent, VdPielBahiaComponent, VdPielInspectorComponent, VdPielNormalComponent, VdSupervisionComponent],
   providers: [ValidacionDocumentalEstado],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
@@ -132,15 +133,15 @@ const ANCHO_COLA_PLEGADA = 1280;
 
     /* ≥ 1024: estación de alto completo (Figma 1440 × 1024): cola 340 px, 24 px de calle, márgenes 8/16/8/12. */
     @media (width >= 1024px) {
-      .cuerpo { grid-template-columns:var(--c-cola-ancho) minmax(0, 1fr); column-gap:24px; padding:8px 16px 8px 12px; min-height:calc(100dvh - var(--alto-cinta, 0px)); align-items:start; }
+      .cuerpo { grid-template-columns:var(--c-cola-ancho) minmax(0, 1fr); column-gap:24px; padding:8px 16px 8px 12px; min-height:calc(100dvh - var(--alto-cinta, 0px) - var(--alto-barra, 0px)); align-items:start; }
       .cuerpo.cola-no { grid-template-columns:minmax(0, 1fr); padding-left:24px; }
       .cuerpo.cola-no .p-cola { display:none; }
       /* La cola acompaña al desplazamiento (sticky, alto del viewport) y desplaza su propia lista. */
-      .p-cola { position:sticky; top:calc(var(--alto-cinta, 0px) + 8px); height:calc(100dvh - var(--alto-cinta, 0px) - 16px); min-height:0; overflow:hidden; }
+      .p-cola { position:sticky; top:calc(var(--alto-cinta, 0px) + var(--alto-barra, 0px) + 8px); height:calc(100dvh - var(--alto-cinta, 0px) - var(--alto-barra, 0px) - 16px); min-height:0; overflow:hidden; }
       .cola-lista { flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--text-primary) 22%, transparent) transparent; }
       .ws { min-height:0; }
       /* Mesa del documento a alto completo: bahía e inspector usan todo el viewport tras desplazar el encabezado. */
-      .p-doc { flex:none; height:calc(100dvh - var(--alto-cinta, 0px) - 16px); min-height:520px; }
+      .p-doc { flex:none; height:calc(100dvh - var(--alto-cinta, 0px) - var(--alto-barra, 0px) - 16px); min-height:520px; }
       .p-vacio { display:grid; place-items:center; height:100%; }
       .cuerpo:not(.sin-exp) .p-vacio { display:none; }
     }
@@ -179,6 +180,7 @@ const ANCHO_COLA_PLEGADA = 1280;
           <h2 id="vd-cola-titulo">Cola operativa</h2>
           <span class="cuenta" role="status">{{ estado.items().length }} {{ estado.items().length === 1 ? 'expediente' : 'expedientes' }}</span>
         </header>
+        <sipra-vd-mesas />
 
         <div class="buscar" role="search" aria-label="Filtros de la cola">
           <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L20 20" /></svg>

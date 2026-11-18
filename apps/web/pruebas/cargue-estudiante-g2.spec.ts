@@ -134,6 +134,6 @@ describe('G2 · gestión de periodos', () => {
 
   it('Gestión de periodos sigue siendo solo de administrador y director (menú y ruta)', () => {
     assert.match(src('app.routes.ts'), /path: 'gestion\/periodos',[\s\S]*?rolGuard\('administrador', 'director'\)/);
-    assert.ok(src('layout', 'shell.component.ts').includes("{ ruta: '/gestion/periodos', etiqueta: 'Gestión de periodos', icono: 'sipra-calendario', roles: ['administrador', 'director'] }"));
+    assert.ok(src('layout', 'navegacion.ts').includes("{ ruta: '/gestion/periodos', etiqueta: 'Gestión de periodos', icono: 'sipra-calendario', roles: ['administrador', 'director'] }"));
   });
 });

@@ -3114,9 +3114,9 @@
     "semantic_hash": "9cf7bafbe4cfe124d3dc932f8ab31f9a"
   },
   "apps/web/src/app/features/gestion/periodos.component.ts": {
-    "mtime": 1794933715.6962671,
-    "seen": 1794936263.2090428,
-    "ast_hash": "0580fe453cb655ecd99fff11219bb274",
+    "mtime": 1795012538.578621,
+    "seen": 1795015339.6736832,
+    "ast_hash": "9d4bfdd5102ed4e23c51cd8cf18d87ef",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/gestion/usuarios.component.ts": {
@@ -3162,9 +3162,9 @@
     "semantic_hash": "a5d23230abeb3f25b47e3a41cbcbabb4"
   },
   "apps/web/src/app/features/inicio/inicio.component.ts": {
-    "mtime": 1794930531.7778542,
-    "seen": 1794930871.3867114,
-    "ast_hash": "481ab60b7469068ad751913ab58f5f1b",
+    "mtime": 1795014691.3100245,
+    "seen": 1795015339.687383,
+    "ast_hash": "40f85b1432165754560c7cd4f8c3cfc7",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/pqrs/pqrs.component.ts": {
@@ -3264,9 +3264,9 @@
     "semantic_hash": "3eb41708a65c74893ec727fa6e1c90ab"
   },
   "apps/web/src/app/features/validacion-documental/validacion-documental.component.ts": {
-    "mtime": 1794341571.328788,
-    "seen": 1794343118.421238,
-    "ast_hash": "735d74fa68ae95c5443e85cc22512508",
+    "mtime": 1795014185.926889,
+    "seen": 1795015339.793863,
+    "ast_hash": "4d42d519fb8e90f75844988977864fbf",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/validacion-documental/vd-cola.component.ts": {
@@ -3330,9 +3330,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/layout/shell.component.ts": {
-    "mtime": 1794931725.3219776,
-    "seen": 1794932082.3654933,
-    "ast_hash": "b7a49741a1e26292a5ddf7047d4a3e4e",
+    "mtime": 1795014748.1765654,
+    "seen": 1795015339.8124363,
+    "ast_hash": "5c1d6270eecf2a6a5c0138c9471832ed",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/components/avisos.component.ts": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1795011685.8403656,
-    "seen": 1795011820.0425518,
-    "ast_hash": "51a2e7306a5c171443fcf4aafb750449",
+    "mtime": 1795015225.9203837,
+    "seen": 1795015339.883927,
+    "ast_hash": "2e6c3c7e2cde5d5c9cd74d70da16a592",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -3678,9 +3678,9 @@
     "semantic_hash": ""
   },
   "apps/web/pruebas/kit-v3-controles.spec.ts": {
-    "mtime": 1794321365.7732685,
-    "seen": 1794343118.4210286,
-    "ast_hash": "784507db305d399397d1e092d20d2a64",
+    "mtime": 1795013998.4256942,
+    "seen": 1795015339.5779061,
+    "ast_hash": "0f6bc4fa5ec466c14e1660d92177108c",
     "semantic_hash": ""
   },
   "apps/web/pruebas/practicas-v3.spec.ts": {
@@ -3690,9 +3690,9 @@
     "semantic_hash": ""
   },
   "apps/web/pruebas/vd-scroll.spec.ts": {
-    "mtime": 1794328965.229174,
-    "seen": 1794343118.4210572,
-    "ast_hash": "fc5880108ed19c520dceb63cc797e697",
+    "mtime": 1795014052.574921,
+    "seen": 1795015339.5987067,
+    "ast_hash": "101a35e216ccc7f68c58cdfa856a9ff6",
     "semantic_hash": ""
   },
   "apps/web/pruebas/vistas-estudiante-v3.spec.ts": {
@@ -3714,9 +3714,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/components/control-cuenta.component.ts": {
-    "mtime": 1794930531.7733345,
-    "seen": 1794930871.4095132,
-    "ast_hash": "7672481466a9a0f9dee7f28fb5ccec2b",
+    "mtime": 1795013785.6646945,
+    "seen": 1795015339.8166578,
+    "ast_hash": "0ccbc37abfe12d080a433a5ea74ee903",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/components/control-tema.component.ts": {
@@ -4296,9 +4296,9 @@
     "semantic_hash": ""
   },
   "apps/web/pruebas/cargue-estudiante-g2.spec.ts": {
-    "mtime": 1794933561.1807523,
-    "seen": 1794936263.1413093,
-    "ast_hash": "6590dafe9862a1a25d947943e80303c1",
+    "mtime": 1795013998.432635,
+    "seen": 1795015339.5226233,
+    "ast_hash": "9823b65fbeae8a98f9ae3251b9fdaaf5",
     "semantic_hash": ""
   },
   "apps/web/src/app/shared/utils/cargue-estudiante.ts": {
@@ -4605,6 +4605,96 @@
     "mtime": 1795011196.0186174,
     "seen": 1795011820.1462145,
     "ast_hash": "c78b90394961199ff520a46c2d1ca787",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/periodos-anio.spec.ts": {
+    "mtime": 1795012968.4213116,
+    "seen": 1795015339.5785825,
+    "ast_hash": "57f0be453a01fc6b1294ae4c4501fa4c",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/shell-navegacion.spec.ts": {
+    "mtime": 1795014748.7727358,
+    "seen": 1795015339.5932996,
+    "ast_hash": "7f26355adb4c171edfae0f3ce1acfb9f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/gestion/periodos-anio.ts": {
+    "mtime": 1795012512.7068887,
+    "seen": 1795015339.6736658,
+    "ast_hash": "b2aabe58caa0e034d3bcf726b6d8bb89",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/validacion-documental/vd-mesas.component.ts": {
+    "mtime": 1795014179.8108594,
+    "seen": 1795015339.7951493,
+    "ast_hash": "de426eedbcf5562190640cac796a5008",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/layout/navegacion.ts": {
+    "mtime": 1795013672.3444703,
+    "seen": 1795015339.8124313,
+    "ast_hash": "ca62f478ef65ef5b225cc90024a909fb",
+    "semantic_hash": ""
+  },
+  "docs/assets/periodos-anio/periodos-anio-2025-creado-dark.webp": {
+    "mtime": 1795013027.23405,
+    "seen": 1795015340.001765,
+    "ast_hash": "0181132b884761c0e2adb3b3b280b400",
+    "semantic_hash": ""
+  },
+  "docs/assets/periodos-anio/periodos-anio-2026-dark.webp": {
+    "mtime": 1795013023.4882147,
+    "seen": 1795015340.0017703,
+    "ast_hash": "0b421a6d629f370c97bb2c04e7bd626c",
+    "semantic_hash": ""
+  },
+  "docs/assets/periodos-anio/periodos-anio-2026-light.webp": {
+    "mtime": 1795013037.865426,
+    "seen": 1795015340.0017743,
+    "ast_hash": "2ea632ae558c796152601a839728f34c",
+    "semantic_hash": ""
+  },
+  "docs/assets/periodos-anio/periodos-anio-movil.webp": {
+    "mtime": 1795013044.114937,
+    "seen": 1795015340.0017772,
+    "ast_hash": "87b54778c30816f0acbe0a7b9995ee68",
+    "semantic_hash": ""
+  },
+  "docs/assets/shell-nav/shell-admin-dark.webp": {
+    "mtime": 1795015089.5640554,
+    "seen": 1795015340.1135073,
+    "ast_hash": "cb1d14902e2a02b0b42c846368afc9c4",
+    "semantic_hash": ""
+  },
+  "docs/assets/shell-nav/shell-admin-light.webp": {
+    "mtime": 1795014860.8427474,
+    "seen": 1795015340.1135173,
+    "ast_hash": "6771d7986457c32da3200c4a2fcbf60c",
+    "semantic_hash": ""
+  },
+  "docs/assets/shell-nav/shell-coordinador.webp": {
+    "mtime": 1795014907.8713737,
+    "seen": 1795015340.1135232,
+    "ast_hash": "d32efe6e6288c5b76578ca787d77604b",
+    "semantic_hash": ""
+  },
+  "docs/assets/shell-nav/shell-estudiante.webp": {
+    "mtime": 1795015005.5749946,
+    "seen": 1795015340.1135283,
+    "ast_hash": "122bf3a8ecae6958cf9b50f086e00a0b",
+    "semantic_hash": ""
+  },
+  "docs/assets/shell-nav/shell-mobile.webp": {
+    "mtime": 1795015034.2081542,
+    "seen": 1795015340.1135333,
+    "ast_hash": "a95d02c7087c023fdeaf3ab6a60f31bb",
+    "semantic_hash": ""
+  },
+  "docs/assets/shell-nav/validacion-navegacion.webp": {
+    "mtime": 1795014911.243949,
+    "seen": 1795015340.113539,
+    "ast_hash": "b74b9cc8d263a687fb72471e8e2abda0",
     "semantic_hash": ""
   },
   "package-lock.json": {

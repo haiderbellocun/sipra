@@ -1,59 +1,52 @@
-import { tieneRol } from '@core/auth/roles';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import { SesionService } from '@core/auth/sesion.service';
-import { TemaService } from '@core/ui/tema.service';
-import { Rol } from '@core/models/modelos';
 import { AvisosComponent } from '@shared/components/avisos.component';
-import { ControlCuentaComponent, etiquetaRol } from '@shared/components/control-cuenta.component';
+import { ControlCuentaComponent } from '@shared/components/control-cuenta.component';
 import { ControlTemaComponent } from '@shared/components/control-tema.component';
+import { NavItem, estaActiva, navegacionPara } from './navegacion';
 
-interface EntradaMenu {
-  ruta: string;
-  etiqueta: string;
-  icono: string;
-  roles: Rol[] | null;
-}
+const CLAVE_COLAPSO = 'sipra.menu.colapsado';
 
 /**
- * Armazón de la aplicación (V3).
+ * Armazón de la aplicación (V3, ajuste de navegación posterior a G6).
  *
- * Escritorio: command rail de 64 px (iconos; al pasar el puntero o enfocar con teclado se abre a 248 px y
- * muestra las etiquetas), con el control de tema y la cuenta al pie. Móvil/tablet: barra inferior.
- * La navegación sigue filtrada por el rol de la sesión; no cambian rutas ni menús. El tema lo gestiona
- * TemaService (se persiste en el navegador y se aplica antes del primer pintado).
+ * - Barra lateral = SOLO navegación, agrupada (Principal · Operación · Análisis · Validación · Gestión · Soporte) desde la
+ *   configuración central `navegacion.ts`, filtrada por el rol de la sesión. Logo fijo y área de navegación con scroll
+ *   propio. En escritorio se puede contraer a iconos (con tooltip); el estado se recuerda en el navegador.
+ * - Barra superior global (sticky): menú/contraer, título de la vista y, a la derecha, el tema y la cuenta.
+ * - Móvil y tablet (< 1024 px): la navegación es un cajón (`<dialog>`) que se abre con ☰.
+ * El tema sigue siendo TemaService (sin cambios); la cuenta, `SesionService.salir()`.
  */
 @Component({
   selector: 'sipra-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, AvisosComponent, ControlTemaComponent, ControlCuentaComponent],
+  imports: [RouterOutlet, RouterLink, NgTemplateOutlet, AvisosComponent, ControlTemaComponent, ControlCuentaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.con-cinta]': "sesion.sesion()?.modo === 'abierto'",
+    '[class.colapsada]': 'colapsada()',
   },
   styles: [`
-    :host { display: block; min-height: 100dvh; }
+    :host { display: block; min-height: 100dvh; --alto-cinta: 0px; --alto-barra: 56px; --ancho-lat: 264px; }
+    :host(.con-cinta) { --alto-cinta: 36px; }
+    :host(.colapsada) { --ancho-lat: 68px; }
     .sprite { display: none; }
-    /* Regiones estables entre vistas: solo el contenido principal transita. */
     .lateral { view-transition-name: lateral; }
-    .appbar { view-transition-name: appbar; }
-    .barra-inf { view-transition-name: barra-inf; }
+    .topbar { view-transition-name: appbar; }
     .cinta { view-transition-name: cinta; }
 
-    :host { --alto-cinta: 0px; }
-    :host(.con-cinta) { --alto-cinta: 36px; }
     .cinta {
       background: var(--surface-overlay); color: var(--text-primary); border-bottom: 1px solid var(--border-default);
       padding: 7px var(--space-16); font-size: var(--fs-meta); line-height: 20px;
-      display: flex; gap: var(--space-12); align-items: center; justify-content: center;
-      flex-wrap: wrap; text-align: center;
+      display: flex; gap: var(--space-12); align-items: center; justify-content: center; flex-wrap: wrap; text-align: center;
     }
     .cinta strong { font-weight: 650; display: inline-flex; align-items: center; gap: var(--space-8); }
     .cinta strong::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--status-review); }
     .cinta .detalle { color: var(--text-secondary); }
-    /* Móvil: una línea («Ambiente de pruebas») y el detalle a un toque; en escritorio se ve completo. */
     .cinta-mas { display: none; }
     @media (width < 768px) {
       .cinta { padding: var(--space-4) var(--space-12); }
@@ -61,96 +54,101 @@ interface EntradaMenu {
       .cinta .detalle { display: none; flex-basis: 100%; }
       .cinta.abierta .detalle { display: block; }
     }
+    @media (width >= 1024px) { .cinta { position: sticky; top: 0; z-index: 60; min-height: var(--alto-cinta); } }
+
+    .app { display: grid; min-height: calc(100dvh - var(--alto-cinta)); grid-template-columns: minmax(0, 1fr); }
+    @media (width >= 1024px) { .app { grid-template-columns: var(--ancho-lat) minmax(0, 1fr); } }
+
+    /* ── Barra lateral: solo navegación ── */
+    .lateral { display: none; }
     @media (width >= 1024px) {
-      .cinta { position: sticky; top: 0; z-index: 60; min-height: var(--alto-cinta); }
+      .lateral {
+        display: flex; flex-direction: column; position: sticky; top: var(--alto-cinta); height: calc(100dvh - var(--alto-cinta)); z-index: 40;
+        background: var(--surface-rail); border-right: 1px solid var(--border-subtle); min-width: 0;
+      }
     }
-
-    .app { display: grid; min-height: calc(100dvh - var(--alto-cinta)); grid-template-columns: 1fr; }
-    @media (width >= 1024px) { .app { grid-template-columns: var(--c-rail-ancho) 1fr; } }
-
-    /* ── Command rail ── */
-    .lateral { display: none; position: relative; z-index: 50; }
-    @media (width >= 1024px) { .lateral { display: block; } }
-    .dock {
-      position: fixed; top: var(--alto-cinta); bottom: 0; left: 0; width: var(--c-rail-ancho);
-      display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-16) 0 var(--space-12);
-      background: var(--surface-rail); border-right: 1px solid transparent;
-      border-image: linear-gradient(180deg, transparent, color-mix(in srgb, var(--signal-active) 28%, transparent) 50%, transparent) 1;
-      overflow: hidden; backdrop-filter: blur(10px);
-      transition: width var(--motion-default) var(--ease-out), box-shadow var(--motion-default) var(--ease-out);
-    }
-    .dock:hover, .dock:focus-within { width: var(--c-rail-ancho-abierto); box-shadow: var(--shadow-floating); }
-    .logo {
-      display: flex; align-items: center; gap: var(--space-12); height: 32px; padding: 0 16px; flex: none;
-      color: var(--text-primary); text-decoration: none; white-space: nowrap;
-    }
+    .lat-cab { flex: none; display: flex; align-items: center; height: var(--alto-barra); padding: 0 14px; border-bottom: 1px solid var(--border-subtle); }
+    .logo { display: flex; align-items: center; gap: var(--space-12); min-width: 0; color: var(--rail-ink-active); text-decoration: none; white-space: nowrap; }
     .logo:hover { text-decoration: none; }
+    .logo:focus-visible { outline: 2px solid var(--focus-ring, var(--signal-active)); outline-offset: 2px; }
     .logo .simbolo {
       width: 32px; height: 32px; flex: none; padding: 5px; color: var(--text-inverse); background: var(--signal-active);
       clip-path: polygon(0 var(--chaflan), var(--chaflan) 0, 100% 0, 100% calc(100% - var(--chaflan)), calc(100% - var(--chaflan)) 100%, 0 100%);
     }
-    .logo .marca-texto { font-weight: 650; font-size: 1.05rem; letter-spacing: .04em; opacity: 0; transition: opacity var(--motion-fast); color: var(--rail-ink-active); }
+    .logo .marca-texto { font-weight: 650; font-size: 1.05rem; letter-spacing: .04em; line-height: 1.1; }
     .logo small { display: block; font-weight: 400; font-size: var(--fs-meta); color: var(--rail-ink); letter-spacing: 0; }
-    .nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: var(--space-8) 0; scrollbar-width: none; overscroll-behavior: contain; }
-    .nav::-webkit-scrollbar { display: none; }
+    :host(.colapsada) .lateral .marca-texto { display: none; }
+
+    .nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: var(--space-8) var(--space-8) var(--space-16); overscroll-behavior: contain; scrollbar-width: thin; }
+    .grupo { display: grid; gap: 2px; }
+    .grupo + .grupo { margin-top: var(--space-12); }
+    .g-tit { margin: 0 0 2px; padding: 0 12px; font: 600 11px/18px var(--fuente); letter-spacing: .08em; text-transform: uppercase; color: var(--rail-ink); opacity: .8; }
     .nav a {
-      position: relative; display: flex; align-items: center; gap: var(--space-12); height: 40px; flex: none;
-      padding: 0 20px; color: var(--rail-ink); font-size: var(--fs-sm); text-decoration: none; white-space: nowrap;
+      position: relative; display: flex; align-items: center; gap: var(--space-12); min-height: 40px; padding: 0 12px; border-radius: var(--radius-6);
+      color: var(--rail-ink); font-size: var(--fs-sm); text-decoration: none; white-space: nowrap;
       transition: color var(--motion-fast), background var(--motion-fast);
     }
     .nav a:hover { color: var(--rail-ink-active); background: color-mix(in srgb, var(--rail-ink-active) 8%, transparent); text-decoration: none; }
-    .nav svg { width: 24px; height: 24px; flex: none; }
-    .nav .et, .dock .oculto-rail { opacity: 0; transition: opacity var(--motion-fast); }
-    .dock:hover .et, .dock:focus-within .et, .dock:hover .marca-texto, .dock:focus-within .marca-texto { opacity: 1; }
-    /* Activo: pista de señal + punto + luz de borde suave (no un botón relleno). */
-    .nav a.activo { color: var(--rail-ink-active); background: radial-gradient(30px 30px at 32px 50%, color-mix(in srgb, var(--signal-default) 45%, transparent), color-mix(in srgb, var(--signal-default) 16%, transparent) 55%, transparent); font-weight: 600; }
-    .nav a.activo::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--signal-default); box-shadow: 0 0 8px var(--signal-default); }
-    .nav a.activo::after { content: ""; position: absolute; left: 44px; top: 9px; width: 5px; height: 5px; border-radius: 50%; background: var(--signal-active); box-shadow: 0 0 6px var(--signal-active); }
+    .nav a:focus-visible { outline: 2px solid var(--focus-ring, var(--signal-active)); outline-offset: -2px; }
+    .nav svg { width: 20px; height: 20px; flex: none; }
+    .nav .et { overflow: hidden; text-overflow: ellipsis; }
+    /* Activo: fondo de selección, texto e icono con contraste y una pequeña barra de acento (sin brillo). */
+    .nav a.activo { color: var(--rail-ink-active); font-weight: 600; background: color-mix(in srgb, var(--signal-default) 18%, transparent); }
+    .nav a.activo svg { color: var(--signal-active); }
+    .nav a.activo::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--signal-active); }
 
-    /* Pie del rail: control de tema y cuenta (Kit V3: sipra-control-tema / sipra-control-cuenta). */
-    .pie { display: flex; flex-direction: column; gap: var(--space-12); align-items: stretch; padding-top: var(--space-8); border-top: 1px solid var(--border-subtle); flex: none; }
-    .fila-pie { display: flex; align-items: center; gap: var(--space-12); padding: 0 17px; white-space: nowrap; }
-    .fila-pie .et { color: var(--rail-ink); font-size: var(--fs-sm); opacity: 0; transition: opacity var(--motion-fast); overflow: hidden; text-overflow: ellipsis; }
-    .dock:hover .fila-pie .et, .dock:focus-within .fila-pie .et, .dock.fijo .fila-pie .et { opacity: 1; }
-    /* Con el panel de cuenta abierto el rail no se repliega aunque el puntero salga. */
-    .dock.fijo { width: var(--c-rail-ancho-abierto); box-shadow: var(--shadow-floating); overflow: visible; }
-    .dock.fijo .et, .dock.fijo .marca-texto { opacity: 1; }
-
-    /* ── Contenido ── */
-    .contenido { display: flex; flex-direction: column; min-width: 0; }
-    .appbar {
-      position: sticky; top: 0; z-index: 15;
-      background: color-mix(in srgb, var(--surface-canvas) 78%, transparent);
-      backdrop-filter: blur(8px); border-bottom: 1px solid var(--border-subtle);
-      padding: var(--space-12) var(--space-16); display: flex; gap: var(--space-12); align-items: center; flex-wrap: wrap;
+    /* Contraída: solo iconos; el título del grupo se vuelve una línea fina y la etiqueta, un tooltip (hover y foco). */
+    :host(.colapsada) .lateral .nav { padding-inline: 10px; }
+    :host(.colapsada) .lateral .g-tit { font-size: 0; height: 1px; margin: 4px 8px 6px; padding: 0; background: var(--border-subtle); opacity: 1; }
+    :host(.colapsada) .lateral .grupo:first-child .g-tit { display: none; }
+    :host(.colapsada) .lateral .nav a { justify-content: center; padding: 0; }
+    :host(.colapsada) .lateral .nav .et { display: none; }
+    .tip {
+      display: none; position: fixed; z-index: 90; pointer-events: none; white-space: nowrap; padding: 4px 8px; border-radius: 4px;
+      font: 500 12px/16px var(--fuente); color: var(--text-primary); background: var(--surface-overlay);
+      border: 1px solid var(--border-default); box-shadow: var(--shadow-floating);
     }
-    .appbar h2 { margin: 0; font-size: var(--fs-xl); }
-    .appbar .der { margin-left: auto; display: flex; gap: var(--space-8); align-items: center; flex-wrap: wrap; position: relative; }
-    @media (width >= 1024px) { .appbar .der { display: none; } .appbar { top: var(--alto-cinta); } .appbar.sin-barra { display: none; } }
-    main { padding: var(--space-24) var(--space-16) var(--space-48); max-width: 78rem; width: 100%; }
+    :host(.colapsada) .lateral .nav a:hover .tip, :host(.colapsada) .lateral .nav a:focus-visible .tip { display: block; }
+
+    /* ── Contenido y barra superior global ── */
+    .contenido { display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      position: sticky; top: 0; z-index: 30; min-height: var(--alto-barra); box-sizing: border-box;
+      display: flex; align-items: center; gap: var(--space-12); padding: 0 var(--space-16);
+      background: color-mix(in srgb, var(--surface-canvas) 82%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border-subtle);
+    }
+    @media (width >= 1024px) { .topbar { top: var(--alto-cinta); padding-inline: var(--space-24); } }
+    .icono-btn {
+      display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; padding: 0; cursor: pointer;
+      color: var(--text-secondary); background: transparent; border: 1px solid transparent; border-radius: var(--radius-6);
+    }
+    .icono-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+    .icono-btn:focus-visible { outline: 2px solid var(--focus-ring, var(--signal-active)); outline-offset: 2px; }
+    .icono-btn svg { width: 20px; height: 20px; }
+    .btn-menu { display: inline-grid; } .btn-colapsar { display: none; }
+    @media (width >= 1024px) { .btn-menu { display: none; } .btn-colapsar { display: inline-grid; } }
+    .titulo { margin: 0; flex: 1 1 auto; min-width: 0; font-size: var(--fs-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .der { display: flex; align-items: center; gap: var(--space-8); flex: none; }
+    .tema-chico { display: inline-flex; } .tema-grande { display: none; }
+    @media (width >= 640px) { .tema-chico { display: none; } .tema-grande { display: inline-flex; } }
+
+    main { padding: var(--space-24) var(--space-16) var(--space-48); max-width: 78rem; width: 100%; box-sizing: border-box; }
     @media (width >= 1024px) { main { padding-inline: var(--space-32); } }
-    /* Estación de trabajo (Mesas): usa casi todo el ancho; las demás vistas conservan su medida de lectura. */
     main.ancho { max-width: 150rem; margin-inline: auto; }
     @media (width >= 1024px) { main.ancho { padding-inline: var(--space-16); } }
-    /* Lienzo: Validación documental ocupa todo el alto/ancho útil (sin padding): el contenido gestiona sus paneles. */
     main.lienzo { max-width: none; padding: 0; }
 
-    /* ── Barra inferior (móvil) ── */
-    .barra-inf {
-      position: sticky; bottom: 0; z-index: 20; display: flex; margin-top: auto;
-      background: var(--surface-rail); border-top: 1px solid var(--border-subtle); backdrop-filter: blur(10px);
-      padding-bottom: env(safe-area-inset-bottom, 0);
+    /* ── Cajón de navegación (móvil y tablet) ── */
+    dialog.cajon-nav {
+      margin: 0 auto 0 0; height: 100dvh; max-height: 100dvh; width: min(300px, 86vw); padding: 0; border: 0;
+      border-right: 1px solid var(--border-subtle); background: var(--surface-rail); color: var(--rail-ink-active);
     }
-    @media (width >= 1024px) { .barra-inf { display: none; } }
-    .barra-inf a {
-      position: relative; flex: 1; display: grid; place-items: center; gap: 2px; min-height: 56px;
-      color: var(--rail-ink); font-size: var(--fs-meta); line-height: 14px; font-weight: 500;
-      padding: var(--space-4) 2px; min-width: 0; text-decoration: none; text-align: center;
-      overflow-wrap: normal; hyphens: auto;
-    }
-    .barra-inf svg { width: 24px; height: 24px; }
-    .barra-inf a.activo { color: var(--rail-ink-active); }
-    .barra-inf a.activo::before { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 2px; border-radius: 2px; background: var(--signal-default); box-shadow: 0 0 8px var(--signal-default); }
+    dialog.cajon-nav::backdrop { background: rgb(0 0 0 / .45); }
+    dialog.cajon-nav[open] { display: flex; flex-direction: column; }
+    .cajon-nav .lat-cab { justify-content: space-between; gap: var(--space-8); }
+    .cajon-nav .icono-btn { color: var(--rail-ink); }
+    @media (width >= 1024px) { dialog.cajon-nav { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .nav a { transition: none; } }
   `],
   template: `
     <!-- Sprite de iconos del paquete de diseño SIPRA (24 px, trazo 1.8, currentColor). -->
@@ -179,8 +177,10 @@ interface EntradaMenu {
       <symbol id="sipra-remoto" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M2 21h20M9 16v5M15 16v5"/></g></symbol>
       <symbol id="sipra-seguridad" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 4v7c0 5-9 9-9 9s-9-4-9-9V6Z"/><path d="m7 12 3 3 7-7"/></g></symbol>
       <symbol id="sipra-revision" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16M6 17l-1-4L16 2l5 5-11 11Z"/><path d="m13 5 5 5"/></g></symbol>
+      <symbol id="sipra-auditoria" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9Z"/><path d="M15 5h3v16H6V5h3"/><path d="M9 12h6M9 16h4"/></g></symbol>
+      <symbol id="sipra-costos" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></g></symbol>
+      <symbol id="sipra-colapsar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 10l-2 2 2 2"/></g></symbol>
     </svg>
-
     @if (sesion.sesion()?.modo === 'abierto') {
       <div class="cinta" [class.abierta]="cintaAbierta()">
         <strong>Ambiente de pruebas</strong>
@@ -189,100 +189,75 @@ interface EntradaMenu {
       </div>
     }
 
+    <ng-template #navegacion let-movil="movil">
+      <nav class="nav" [attr.aria-label]="'Navegación principal'">
+        @for (g of grupos(); track g.id) {
+          <div class="grupo" role="group" [attr.aria-labelledby]="(movil ? 'gm-' : 'g-') + g.id">
+            <p class="g-tit" [id]="(movil ? 'gm-' : 'g-') + g.id">{{ g.etiqueta }}</p>
+            @for (item of g.items; track item.ruta + item.etiqueta) {
+              <a [routerLink]="item.ruta" [class.activo]="activa(item)" [attr.aria-current]="activa(item) ? 'page' : null"
+                 [attr.aria-label]="item.etiqueta" (click)="movil && cerrarCajon()" (mouseenter)="ubicarTip($event)" (focus)="ubicarTip($event)">
+                <svg aria-hidden="true"><use [attr.href]="'#' + item.icono" /></svg>
+                <span class="et" aria-hidden="true">{{ item.etiqueta }}</span>
+                @if (!movil) { <span class="tip" aria-hidden="true">{{ item.etiqueta }}</span> }
+              </a>
+            }
+          </div>
+        }
+      </nav>
+    </ng-template>
+
     <div class="ambiente-grano" aria-hidden="true"></div>
     <div class="app">
-      <aside class="lateral">
-        <div class="dock" [class.fijo]="cuentaAbierta()">
+      <aside class="lateral" id="sipra-lateral" aria-label="Menú de SIPRA">
+        <div class="lat-cab">
           <a class="logo" routerLink="/inicio" aria-label="SIPRA · Prácticas y empleo CUN, ir al inicio">
             <svg class="simbolo" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"><path d="M22 94V38L42 18L74 50"/><path d="M96 24V80L65 109L44 90V57L74 86"/></g></svg>
             <span class="marca-texto">SIPRA<small>Prácticas y empleo CUN</small></span>
           </a>
-          <nav class="nav" aria-label="Principal">
-            @for (entrada of menuVisible(); track entrada.ruta + entrada.etiqueta) {
-              <a [routerLink]="entrada.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page" [attr.title]="entrada.etiqueta">
-                <svg aria-hidden="true"><use [attr.href]="'#' + entrada.icono" /></svg>
-                <span class="et">{{ entrada.etiqueta }}</span>
-              </a>
-            }
-          </nav>
-          <div class="pie">
-            <div class="fila-pie">
-              <sipra-control-tema variante="rail" />
-              <span class="et" aria-hidden="true">{{ temaServicio.etiqueta() }}</span>
-            </div>
-            <div class="fila-pie">
-              <sipra-control-cuenta variante="rail" (abiertoCambio)="cuentaAbierta.set($event)" />
-              <span class="et" aria-hidden="true" [attr.title]="sesion.sesion()?.nombre">{{ rotuloCuenta() }}</span>
-            </div>
-          </div>
         </div>
+        <ng-container [ngTemplateOutlet]="navegacion" [ngTemplateOutletContext]="{ movil: false }" />
       </aside>
 
       <div class="contenido">
-        <header class="appbar" [class.sin-barra]="lienzo()">
-          <h2>{{ titulo() }}</h2>
+        <header class="topbar">
+          <button #botonMenu type="button" class="icono-btn btn-menu" aria-label="Abrir menú" aria-haspopup="dialog" (click)="abrirCajon()">
+            <svg aria-hidden="true"><use href="#sipra-menu" /></svg>
+          </button>
+          <button type="button" class="icono-btn btn-colapsar" aria-controls="sipra-lateral" [attr.aria-expanded]="!colapsada()"
+                  [attr.aria-label]="colapsada() ? 'Expandir menú' : 'Contraer menú'" [attr.title]="colapsada() ? 'Expandir menú' : 'Contraer menú'" (click)="alternarColapso()">
+            <svg aria-hidden="true"><use href="#sipra-colapsar" /></svg>
+          </button>
+          <h2 class="titulo">{{ titulo() }}</h2>
           <div class="der">
-            <sipra-control-tema variante="etiqueta" />
+            <sipra-control-tema class="tema-grande" variante="etiqueta" />
+            <sipra-control-tema class="tema-chico" variante="icono" />
             <sipra-control-cuenta variante="barra" />
           </div>
         </header>
         <main [class.ancho]="anchoCompleto()" [class.lienzo]="lienzo()"><router-outlet /></main>
         <sipra-avisos />
-        <nav class="barra-inf" aria-label="Principal">
-          @for (entrada of menuMovil(); track entrada.ruta + entrada.etiqueta) {
-            <a [routerLink]="entrada.ruta" routerLinkActive="activo" ariaCurrentWhenActive="page">
-              <svg aria-hidden="true"><use [attr.href]="'#' + entrada.icono" /></svg>
-              {{ entrada.etiqueta }}
-            </a>
-          }
-        </nav>
       </div>
     </div>
+
+    <dialog #cajon class="cajon-nav" aria-label="Menú de SIPRA" (close)="alCerrarCajon()">
+      <div class="lat-cab">
+        <a class="logo" routerLink="/inicio" (click)="cerrarCajon()" aria-label="SIPRA · Prácticas y empleo CUN, ir al inicio">
+          <svg class="simbolo" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"><path d="M22 94V38L42 18L74 50"/><path d="M96 24V80L65 109L44 90V57L74 86"/></g></svg>
+          <span class="marca-texto">SIPRA<small>Prácticas y empleo CUN</small></span>
+        </a>
+        <button #cerrarCajonBtn type="button" class="icono-btn" aria-label="Cerrar menú" (click)="cerrarCajon()"><svg aria-hidden="true"><use href="#sipra-cerrar" /></svg></button>
+      </div>
+      <ng-container [ngTemplateOutlet]="navegacion" [ngTemplateOutletContext]="{ movil: true }" />
+    </dialog>
   `,
 })
 export class ShellComponent {
   readonly sesion = inject(SesionService);
-  readonly temaServicio = inject(TemaService);
   private readonly router = inject(Router);
-
-  private readonly menu: EntradaMenu[] = [
-    { ruta: '/inicio', etiqueta: 'Inicio', icono: 'sipra-inicio', roles: null },
-    { ruta: '/registro', etiqueta: 'Registrar mi práctica', icono: 'sipra-cargar', roles: ['estudiante'] },
-    { ruta: '/practicas', etiqueta: 'Prácticas', icono: 'sipra-documentos', roles: null },
-    {
-      ruta: '/arl', etiqueta: 'Solicitud de ARL', icono: 'sipra-seguridad',
-      roles: ['estudiante', 'auxiliar', 'coordinador', 'analista', 'administrador', 'tutor'],
-    },
-    {
-      ruta: '/registro', etiqueta: 'Registro FUR y cartas', icono: 'sipra-cargar',
-      roles: ['coordinador', 'analista', 'administrador', 'tutor', 'auxiliar'],
-    },
-    {
-      ruta: '/cumplimiento', etiqueta: 'Cumplimiento', icono: 'sipra-verificado',
-      roles: ['administrador', 'director', 'coordinador', 'analista', 'extension', 'tutor'],
-    },
-    {
-      ruta: '/empresas', etiqueta: 'Empresas', icono: 'sipra-empresa',
-      roles: ['administrador', 'coordinador', 'analista', 'extension', 'empresa'],
-    },
-    { ruta: '/bolsa', etiqueta: 'Bolsa de empleo', icono: 'sipra-oportunidades', roles: null },
-    {
-      ruta: '/reportes', etiqueta: 'Reportes', icono: 'sipra-indicadores',
-      roles: ['administrador', 'director', 'extension', 'coordinador', 'analista', 'auxiliar', 'tutor'],
-    },
-    { ruta: '/costos-ia', etiqueta: 'Costos de IA', icono: 'sipra-indicadores', roles: ['administrador', 'coordinador', 'analista'] },
-    { ruta: '/vistas', etiqueta: 'Vistas SINU', icono: 'sipra-buscar', roles: ['coordinador', 'analista', 'administrador', 'auxiliar', 'tutor'] },
-    { ruta: '/validacion-documental', etiqueta: 'Validación documental', icono: 'sipra-documentos', roles: ['tutor', 'auxiliar', 'coordinador', 'analista', 'administrador'] },
-    { ruta: '/eps', etiqueta: 'Validación de EPS', icono: 'sipra-seguridad', roles: ['auxiliar', 'coordinador', 'analista', 'administrador'] },
-    { ruta: '/actas', etiqueta: 'Actas de iniciación', icono: 'sipra-verificado', roles: ['auxiliar', 'coordinador', 'analista', 'administrador'] },
-    { ruta: '/mesa-rut', etiqueta: 'RUT', icono: 'sipra-verificado', roles: ['tutor', 'coordinador', 'analista', 'administrador'] },
-    { ruta: '/mesa-camara', etiqueta: 'Mesa de Cámara', icono: 'sipra-empresa', roles: ['tutor', 'coordinador', 'analista', 'administrador'] },
-    { ruta: '/pqrs', etiqueta: 'PQRS', icono: 'sipra-correo', roles: ['estudiante', 'coordinador', 'analista', 'administrador', 'auxiliar'] },
-    { ruta: '/ayuda', etiqueta: 'Ayuda', icono: 'sipra-ayuda', roles: null },
-    { ruta: '/gestion/periodos', etiqueta: 'Gestión de periodos', icono: 'sipra-calendario', roles: ['administrador', 'director'] },
-    { ruta: '/gestion/usuarios', etiqueta: 'Gestión de usuarios', icono: 'sipra-configuracion', roles: ['administrador', 'director'] },
-    { ruta: '/auditoria', etiqueta: 'Auditoría', icono: 'sipra-revision', roles: ['administrador'] },
-  ];
+  private readonly cajon = viewChild.required<ElementRef<HTMLDialogElement>>('cajon');
+  private readonly botonMenu = viewChild.required<ElementRef<HTMLButtonElement>>('botonMenu');
+  private readonly cerrarCajonBtn = viewChild.required<ElementRef<HTMLButtonElement>>('cerrarCajonBtn');
 
   private readonly titulos: Record<string, string> = {
     inicio: 'Inicio',
@@ -306,55 +281,48 @@ export class ShellComponent {
     'validacion-documental': 'Validación documental',
   };
 
-  readonly menuVisible = computed(() => {
-    const rol = this.sesion.rol();
-    if (!rol) return [];
-    return this.menu.filter((e) => e.roles === null || tieneRol(e.roles, rol));
-  });
+  /** Grupos visibles para el rol de la sesión (configuración central; los grupos vacíos no aparecen). */
+  readonly grupos = computed(() => navegacionPara(this.sesion.rol()));
 
-  /** En móvil caben cinco: las primeras del menú visible. */
-  readonly menuMovil = computed(() => this.menuVisible().slice(0, 5));
-
-  readonly titulo = toSignal(
-    this.router.events.pipe(
-      filter((e) => e instanceof NavigationEnd),
-      startWith(null),
-      map(() => this.tituloDe(this.router.url)),
-    ),
-    { initialValue: '' },
+  private readonly url = toSignal(
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd), startWith(null), map(() => this.router.url)),
+    { initialValue: this.router.url },
   );
+  readonly titulo = computed(() => this.tituloDe(this.url()));
+  /** Vistas de trabajo denso que piden todo el ancho útil (Mesas especializadas y Reportes). */
+  readonly anchoCompleto = computed(() => /^\/(?:eps|actas|mesa-rut|mesa-camara|reportes)(?:[/?#]|$)/.test(this.url()));
+  /** Validación documental usa el lienzo completo (sin padding). */
+  readonly lienzo = computed(() => /^\/validacion-documental(?:[/?#]|$)/.test(this.url()));
 
-  /**
-   * Vistas de trabajo denso que piden todo el ancho útil (Mesas de EPS, Actas, RUT y Cámara, y Reportes, cuya tabla
-   * granular de 13 columnas y cruces no caben en 78rem). El resto conserva su medida de lectura.
-   */
-  readonly anchoCompleto = toSignal(
-    this.router.events.pipe(
-      filter((e) => e instanceof NavigationEnd),
-      startWith(null),
-      map(() => /^\/(?:eps|actas|mesa-rut|mesa-camara|reportes)(?:[/?#]|$)/.test(this.router.url)),
-    ),
-    { initialValue: false },
-  );
-
-  /** Validación documental usa el lienzo completo (sin padding ni barra superior en escritorio). */
-  readonly lienzo = toSignal(
-    this.router.events.pipe(
-      filter((e) => e instanceof NavigationEnd),
-      startWith(null),
-      map(() => /^\/validacion-documental(?:[/?#]|$)/.test(this.router.url)),
-    ),
-    { initialValue: false },
-  );
-
-  /** Rótulo junto al avatar cuando el rail se abre (el mismo rol que muestra el control de cuenta). */
-  readonly rotuloCuenta = computed(() => {
-    const rol = etiquetaRol(this.sesion.rol(), this.sesion.sesion()?.permiso);
-    return this.sesion.sesion()?.modo === 'abierto' ? `Prueba · ${rol}` : rol;
-  });
-
-  readonly cuentaAbierta = signal(false);
+  readonly colapsada = signal(leerColapso());
   readonly cintaAbierta = signal(false);
+
+  activa(item: NavItem): boolean { return estaActiva(item, this.url()); }
+
+  alternarColapso(): void {
+    const valor = !this.colapsada();
+    this.colapsada.set(valor);
+    try { localStorage.setItem(CLAVE_COLAPSO, valor ? '1' : '0'); } catch { /* almacenamiento no disponible: solo esta sesión */ }
+  }
+
+  abrirCajon(): void {
+    const el = this.cajon().nativeElement;
+    if (!el.open) el.showModal();
+    setTimeout(() => this.cerrarCajonBtn().nativeElement.focus(), 0);
+  }
+  cerrarCajon(): void { const el = this.cajon().nativeElement; if (el.open) el.close(); }
+  alCerrarCajon(): void { this.botonMenu().nativeElement.focus({ preventScroll: true }); }
+
+  /** El tooltip de la barra contraída se posiciona junto al icono (position: fixed: no lo recorta el scroll). */
+  ubicarTip(evento: Event): void {
+    if (!this.colapsada()) return;
+    const a = evento.currentTarget as HTMLElement;
+    const tip = a.querySelector<HTMLElement>('.tip');
+    if (!tip) return;
+    const r = a.getBoundingClientRect();
+    tip.style.left = `${r.right + 8}px`;
+    tip.style.top = `${r.top + r.height / 2 - 12}px`;
+  }
 
   private tituloDe(url: string): string {
     const limpia = url.split('?')[0].split('#')[0];
@@ -364,4 +332,8 @@ export class ShellComponent {
     const primera = limpia.split('/').filter(Boolean)[0] ?? 'inicio';
     return this.titulos[primera] ?? 'SIPRA';
   }
+}
+
+function leerColapso(): boolean {
+  try { return localStorage.getItem(CLAVE_COLAPSO) === '1'; } catch { return false; }
 }

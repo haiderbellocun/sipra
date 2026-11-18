@@ -3555,6 +3555,52 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.45.0 — 18 de noviembre de 2026
+
+**Armazón y navegación (ajuste de UX posterior a G6, para todos los perfiles).** Cambio solo de frontend: no hay cambios en el backend, en las rutas, en los endpoints ni en los permisos de G1–G6.
+
+- **Antes.**
+  - Un rail de 64 px que se abría al pasar el puntero, con ~21 entradas planas: navegación, análisis, cuatro mesas de motores, administración y soporte mezclados.
+  - Al pie, el control de tema y la cuenta, que quedaba cortada.
+  - En móvil, una barra inferior con las cinco primeras entradas.
+- **Configuración central** (`layout/navegacion.ts`).
+  - Grupos `NavGroup { id, etiqueta, items }` y entradas `NavItem { ruta, etiqueta, icono, roles, rutasActivas? }`, filtrados por el rol de la sesión con `tieneRol`; los grupos vacíos no se muestran.
+  - Los roles de cada entrada son **exactamente** los del `rolGuard` de su ruta; una prueba lo verifica para cada perfil leyendo `app.routes.ts`. La API sigue siendo la autoridad.
+  - Mismo orden para todos los perfiles.
+- **Grupos.** Títulos discretos (11 px, mayúsculas, color tenue):
+  - **Principal:** Inicio.
+  - **Operación:** Prácticas, Registrar mi práctica (estudiante), Solicitud de ARL, Registro FUR y cartas, Cumplimiento, Empresas, Bolsa de empleo.
+  - **Análisis:** Reportes, Costos de IA, Vistas SINU (nombre conservado).
+  - **Validación:** Validación documental.
+  - **Gestión:** periodos, usuarios y Auditoría, ya no después de Soporte.
+  - **Soporte:** PQRS y Ayuda.
+- **Validación documental, punto único.** EPS, Actas, RUT y Cámara salen del primer nivel, pero sus rutas históricas (`/eps`, `/actas`, `/mesa-rut`, `/mesa-camara`) se conservan.
+  - Se alcanzan desde la fila «Mesas:» de la cola de Validación documental (`sipra-vd-mesas`), que muestra solo las mesas que el rol puede abrir (docente: RUT y Cámara; auxiliar: EPS y Actas).
+  - Estando en una mesa o en un expediente, «Validación documental» aparece activa (`rutasActivas`).
+- **Barra lateral = solo navegación.** Ya no lleva tema, avatar, nombre ni salida.
+  - Logo fijo (56 px) y área de navegación con scroll propio.
+  - Entradas de ~40 px.
+  - Estado activo: fondo de selección, texto e icono con contraste y una barra de acento de 3 px, sin brillo.
+  - Se puede **contraer** a iconos (264 → 68 px) desde la barra superior, con tooltip al pasar el puntero y al enfocar. El estado se recuerda en el navegador (`sipra.menu.colapsado`, con try/catch).
+- **Barra superior global** (sticky, 56 px). A la izquierda, el botón de contraer (☰ en móvil) y el título de la vista; a la derecha, el **tema** y la **cuenta**.
+  - **Tema:** `sipra-control-tema` (TemaService sin cambios, sin recargar). Es un switch accesible con texto «Claro»/«Oscuro»; en pantallas angostas es un icono con tooltip.
+  - **Cuenta:** avatar con iniciales, nombre y rol truncables con su texto completo en `title`. El panel muestra nombre, rol, correo y «Cerrar sesión», la única acción existente.
+- **Responsive.**
+  - **≥ 1024 px:** barra lateral.
+  - **< 1024 px (tablet y móvil):** la navegación es un cajón `<dialog>` que se abre con ☰. Se cierra al navegar o con Esc y devuelve el foco. Se retiró la barra inferior.
+  - Validación documental descuenta la barra superior en sus altos (`--alto-barra`). Su navegación de mesas va en un componente propio para respetar el presupuesto de estilos.
+- **Iconos.** Dos símbolos nuevos en el sprite existente (auditoría y costos), para no repetir iconos; no hay dependencias nuevas.
+- **Corrección asociada.** Inicio pedía el tablero de cumplimiento a cualquier perfil interno, y el auxiliar recibía 403. Ahora solo lo pide con los roles de `GET /cumplimiento/tablero`.
+- **Pruebas.**
+  - **Web:** `pruebas/shell-navegacion.spec.ts`, con la matriz perfil → enlace → `rolGuard`, grupos, orden, grupos vacíos, perfiles, mesas, ruta hija activa, contraída, cajón, foco y tema/cuenta en la barra superior. Se actualizaron `kit-v3-controles`, `cargue-estudiante-g2` y `vd-scroll`. Suite 559/559 con typecheck; lint con 0 advertencias, build web dentro del presupuesto y `verificar:secretos` limpio.
+  - **Navegador real** (administrador, director, coordinador, analista, docente, auxiliar y estudiante): todas las comprobaciones en verde.
+    - **Por perfil:** menú esperado y en orden, sin grupos vacíos ni mesas en primer nivel, y cada enlace visible abre su ruta y queda activo sin ningún 403 de la API.
+    - **Barra superior:** tema sin recargar; cuenta con correo, sin recortes; cierre de sesión.
+    - **Barra contraída:** tooltip con teclado y estado recordado.
+    - **Mesas:** las cuatro desde Validación documental, con la entrada padre activa.
+    - **Anchos:** 1440, 1366 y 1024 sin desborde, con logo y barra superior fijos; 768 y 390 con cajón, Esc y retorno del foco.
+- **Capturas:** `docs/assets/shell-nav/`.
+
 ### 0.44.1 — 18 de noviembre de 2026
 
 **Gestión de periodos · filtro por año** (ajuste solo de frontend; sin backend, sin endpoints nuevos ni consultas extra).
