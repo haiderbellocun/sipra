@@ -10,6 +10,7 @@
  *   - claves de API conocidas (OpenAI, Anthropic, Google);
  *   - claves privadas PEM;
  *   - JSON de cuenta de servicio de Google;
+ *   - un valor real de HISTORICO_HMAC_KEY (secreto del histórico del SGP);
  *   - archivos .env sensibles versionados (se permite .env.example).
  *
  * Salida: código 0 si está limpio; 1 si encontró un posible secreto. Nunca imprime el valor
@@ -47,6 +48,8 @@ const PATRONES = [
   { tipo: 'Secreto de cliente OAuth de Google', re: /GOCSPX-[A-Za-z0-9_-]{20,}/g },
   { tipo: 'Clave privada PEM', re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/g },
   { tipo: 'JSON de cuenta de servicio', re: /"type"\s*:\s*"service_account"/g },
+  // Secreto HMAC del histórico del SGP: en un .env o en un literal solo se admite el marcador de plantilla (`<…>`).
+  { tipo: 'Secreto HMAC del histórico (HISTORICO_HMAC_KEY)', re: /(?:^\s*(?:export\s+)?HISTORICO_HMAC_KEY\s*=\s*(?!<)[^\s#'"]{8,})|(?:HISTORICO_HMAC_KEY['"]?\s*[:=]\s*['"`](?!<)[^'"`\s]{8,}['"`])/g },
 ];
 
 /** `.env`, `.env.dev`, `.env.production`, `apps/api/.env.local`…; `.env.example` y plantillas no. */

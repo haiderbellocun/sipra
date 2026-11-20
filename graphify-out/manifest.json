@@ -132,9 +132,9 @@
     "semantic_hash": "120d33e2939a2b7f09108d1fcd57d25c"
   },
   "apps/api/herramientas/verificar-migraciones.ts": {
-    "mtime": 1795019626.1706214,
-    "seen": 1795021262.4704316,
-    "ast_hash": "470a8bd4faa5b16889d8a24e316b8685",
+    "mtime": 1795183073.2295215,
+    "seen": 1795183340.0421424,
+    "ast_hash": "21119f3bbfaa154e1890d3f83d4d0f39",
     "semantic_hash": ""
   },
   "apps/api/herramientas/verificar-rut-pg.ts": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "apps/api/package.json": {
-    "mtime": 1795019073.5803487,
-    "seen": 1795021262.4778564,
-    "ast_hash": "dc2918b1e836123778681ac899b90778",
+    "mtime": 1795107742.4575837,
+    "seen": 1795183340.048531,
+    "ast_hash": "bb40ab2bad2e6962bb33711742ea2dbc",
     "semantic_hash": ""
   },
   "apps/api/src/application/dtos/acta-iniciacion.dto.ts": {
@@ -420,10 +420,10 @@
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/obligaciones/tablero-cumplimiento.use-case.ts": {
-    "mtime": 1792078634.7292383,
-    "seen": 1794319155.1081948,
-    "ast_hash": "5260856c0c7a3a412fbcd09178978771",
-    "semantic_hash": "5260856c0c7a3a412fbcd09178978771"
+    "mtime": 1795035687.8984325,
+    "seen": 1795036921.4700081,
+    "ast_hash": "6488698c9e70147571b1c725e55469f7",
+    "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/practicas/bitacora.use-case.ts": {
     "mtime": 1794940599.2658997,
@@ -564,9 +564,9 @@
     "semantic_hash": "79361b03f4b4c2e7e0bcced28f7c5059"
   },
   "apps/api/src/domain/entities/obligacion.entity.ts": {
-    "mtime": 1794940474.6919808,
-    "seen": 1795007957.2346675,
-    "ast_hash": "f9eb0d74c22b30b39225f91a9aeece98",
+    "mtime": 1795033099.7919526,
+    "seen": 1795036921.6113932,
+    "ast_hash": "8bdf61f1693d47119c4f7159dee34acc",
     "semantic_hash": ""
   },
   "apps/api/src/domain/entities/parametro.entity.ts": {
@@ -1488,9 +1488,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/cumplimiento.controller.ts": {
-    "mtime": 1794931374.769656,
-    "seen": 1794932082.1426928,
-    "ast_hash": "b8d502e133b4e2d576e9ab445e6810d1",
+    "mtime": 1795033348.2373476,
+    "seen": 1795036922.381265,
+    "ast_hash": "ea8a04c56ae39017b912e6155b7c84c7",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/documentos.controller.ts": {
@@ -1596,9 +1596,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/modules/app.module.ts": {
-    "mtime": 1795022096.8727527,
-    "seen": 1795024103.3814147,
-    "ast_hash": "7af482975993caa3fc92256073d3e7b0",
+    "mtime": 1795033348.2286017,
+    "seen": 1795036922.489481,
+    "ast_hash": "8aa0a868d001b315e2a6b435e1e51cc2",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/modules/auditoria.service.ts": {
@@ -1830,9 +1830,9 @@
     "semantic_hash": "0a7379467232b88d2a04be11cbc3ef2a"
   },
   "apps/api/src/infrastructure/persistence/postgres/migrations/todas.migracion.ts": {
-    "mtime": 1795017370.24418,
-    "seen": 1795021262.9364595,
-    "ast_hash": "b70e0924d77c8bdefdd7247c0ea76b7c",
+    "mtime": 1795105658.4026105,
+    "seen": 1795183340.662442,
+    "ast_hash": "c2c9eba598c1b765da776fcd80a07a2a",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/opciones-datasource.ts": {
@@ -2880,9 +2880,9 @@
     "semantic_hash": "85ebb88462db6de8aca5d59fd1700cd0"
   },
   "apps/web/src/app/core/models/modelos.ts": {
-    "mtime": 1795022364.169107,
-    "seen": 1795024103.6775765,
-    "ast_hash": "a5c7b6a1ba38e0e1c166a2d48bca52ef",
+    "mtime": 1795033677.523873,
+    "seen": 1795036923.9152706,
+    "ast_hash": "dd88032af7704abe47a4ae022080000f",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/validacion-documental.model.ts": {
@@ -2892,9 +2892,9 @@
     "semantic_hash": "65181eb1348fe3c7e12c77c6740ea07d"
   },
   "apps/web/src/app/core/services/api.service.ts": {
-    "mtime": 1795022364.1655438,
-    "seen": 1795024103.6786222,
-    "ast_hash": "68f51d42c8f585d0c797f577790f4267",
+    "mtime": 1795033677.5302439,
+    "seen": 1795036923.923073,
+    "ast_hash": "79aa8d125c5066041793cfcbe0079950",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/services/captura-guiada.service.ts": {
@@ -3048,10 +3048,10 @@
     "semantic_hash": "833c93b77adad18671317ba2866c871d"
   },
   "apps/web/src/app/features/cumplimiento/cumplimiento.component.ts": {
-    "mtime": 1792078635.9013119,
-    "seen": 1794319155.1085892,
-    "ast_hash": "345e10d8254ba10dc64c1888fab6e173",
-    "semantic_hash": "345e10d8254ba10dc64c1888fab6e173"
+    "mtime": 1795035145.6212454,
+    "seen": 1795036924.0450535,
+    "ast_hash": "8351604fd0801bf010c39ba1b34a1bd7",
+    "semantic_hash": ""
   },
   "apps/web/src/app/features/empresas/empresas.component.ts": {
     "mtime": 1793031147.071506,
@@ -3498,9 +3498,9 @@
     "semantic_hash": "afbdcf6df932934fbcdedb360ce2d3e8"
   },
   "package.json": {
-    "mtime": 1794513266.2540736,
-    "seen": 1794930871.422848,
-    "ast_hash": "a07d723bb24e77c3025a060428898ca1",
+    "mtime": 1795105985.9822228,
+    "seen": 1795183341.1581035,
+    "ast_hash": "5d4c8c0fe8100bc73cfba8951f910a70",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1795023825.0674634,
-    "seen": 1795024103.8247454,
-    "ast_hash": "876c569ec197c74513cd6bce2f4902d7",
+    "mtime": 1795183123.5483139,
+    "seen": 1795183341.1612191,
+    "ast_hash": "761df67e5eb2767867a3cbe3ab37573e",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -4224,9 +4224,9 @@
     "semantic_hash": ""
   },
   "apps/api/herramientas/verificar-secretos.mjs": {
-    "mtime": 1794513264.2453568,
-    "seen": 1794930871.1066248,
-    "ast_hash": "5a00dbc8d07e18a738869942ef5f81ac",
+    "mtime": 1795101642.6154103,
+    "seen": 1795104378.6136768,
+    "ast_hash": "f5e3321cc5b49183d07e0e04a560b37a",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/migrations/1756000022000-RolesGobiernoOperativo.ts": {
@@ -4851,6 +4851,312 @@
     "mtime": 1795022894.9479475,
     "seen": 1795024103.8466587,
     "ast_hash": "8d673158db6199ccb1af1cd4cdbd0a21",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/ports/out/cumplimiento-lectura.port.ts": {
+    "mtime": 1795033125.844049,
+    "seen": 1795036921.6722276,
+    "ast_hash": "8dbf7ebddea6b47fd043c37891c3408d",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/services/cumplimiento.domain-service.ts": {
+    "mtime": 1795035678.7020497,
+    "seen": 1795036921.8358257,
+    "ast_hash": "93f7666125ff89b69e07d82dfc37d29a",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/cumplimiento-lectura.adapter.ts": {
+    "mtime": 1795033154.199398,
+    "seen": 1795036922.2293077,
+    "ast_hash": "edc82fda3e1fcd53c0d1ba05caea1fb9",
+    "semantic_hash": ""
+  },
+  "apps/api/test/cumplimiento-v3.spec.ts": {
+    "mtime": 1795033542.8519676,
+    "seen": 1795036923.0623398,
+    "ast_hash": "c62cba583f4aea40e628adc709b65853",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/cumplimiento-v3.spec.ts": {
+    "mtime": 1795033852.374907,
+    "seen": 1795036923.7168334,
+    "ast_hash": "e1fb6a52f3335711522b24ed79c3e3a2",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/cumplimiento/cumplimiento-tabla.component.ts": {
+    "mtime": 1795033731.27387,
+    "seen": 1795036924.0450366,
+    "ast_hash": "b525ca0e2351b39cbb64a22623ad5aa0",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/cumplimiento/cumplimiento-tipos.component.ts": {
+    "mtime": 1795033765.7311842,
+    "seen": 1795036924.0450442,
+    "ast_hash": "652405829bf90eb54bff020cb9e0390f",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/cumplimiento/cumplimiento.util.ts": {
+    "mtime": 1795033696.9140334,
+    "seen": 1795036924.0450602,
+    "ast_hash": "4b2785d34e0d38493786dd561abe46b4",
+    "semantic_hash": ""
+  },
+  "docs/assets/cumplimiento-v3/cumplimiento-atencion.webp": {
+    "mtime": 1795035181.3977368,
+    "seen": 1795036925.000694,
+    "ast_hash": "fed8bfc843c99f926258f51c0f8d2211",
+    "semantic_hash": ""
+  },
+  "docs/assets/cumplimiento-v3/cumplimiento-dark.webp": {
+    "mtime": 1795035180.4682035,
+    "seen": 1795036925.0007098,
+    "ast_hash": "f47385b757706f7444345298fc2e166f",
+    "semantic_hash": ""
+  },
+  "docs/assets/cumplimiento-v3/cumplimiento-filtros.webp": {
+    "mtime": 1795035183.379674,
+    "seen": 1795036925.0007195,
+    "ast_hash": "37b3c1685aaad3d06f928987eb3c8a25",
+    "semantic_hash": ""
+  },
+  "docs/assets/cumplimiento-v3/cumplimiento-light.webp": {
+    "mtime": 1795035192.6046135,
+    "seen": 1795036925.000727,
+    "ast_hash": "59536183f2c28d8a75e64750568830b9",
+    "semantic_hash": ""
+  },
+  "docs/assets/cumplimiento-v3/cumplimiento-mobile.webp": {
+    "mtime": 1795035201.6202614,
+    "seen": 1795036925.0007348,
+    "ast_hash": "708696496624c969a2a1dcc031aff6ff",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/historico-fixture.ts": {
+    "mtime": 1795100969.0484185,
+    "seen": 1795104378.579431,
+    "ast_hash": "166d86a519d768b583f7fc82601893a6",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/historico-importar.ts": {
+    "mtime": 1795107355.494767,
+    "seen": 1795183340.009262,
+    "ast_hash": "488ca99f75620342d1684b14febdb03d",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/historico-revertir.ts": {
+    "mtime": 1795100967.4468145,
+    "seen": 1795104378.5794423,
+    "ast_hash": "6b25b3452073639bd7deea2bf9996725",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/verificar-historico-pg.ts": {
+    "mtime": 1795108211.9609053,
+    "seen": 1795183340.0421312,
+    "ast_hash": "7a9ca902ce8768875e2ffc44db0cbbc2",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/historico/importar-historico.use-case.ts": {
+    "mtime": 1795107483.230143,
+    "seen": 1795183340.1312778,
+    "ast_hash": "31b777a2cfcc9901b5f49c6a0d804ece",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/historico/revertir-importacion-historico.use-case.ts": {
+    "mtime": 1795100627.7734466,
+    "seen": 1795104378.7230933,
+    "ast_hash": "b93aadf89fc9a87b5c432f25d691b4d0",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/calidad-historico.ts": {
+    "mtime": 1795105381.9529307,
+    "seen": 1795183340.192296,
+    "ast_hash": "9edea244d0f50e3b71f9ea68e826d762",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/fechas-sgp.parser.ts": {
+    "mtime": 1795100396.9281242,
+    "seen": 1795104378.7933512,
+    "ast_hash": "19a05a05aa74959f9efaf2d9000e8b5a",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/normalizacion-sgp.ts": {
+    "mtime": 1795100464.1638832,
+    "seen": 1795104378.7933729,
+    "ast_hash": "470eaba08e447595f7536f1b2896cb52",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/periodo-sgp.parser.ts": {
+    "mtime": 1795100394.3143387,
+    "seen": 1795104378.79338,
+    "ast_hash": "87a867fe08b61fa9177bf58e32127719",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/registro-historico.ts": {
+    "mtime": 1795105545.9403057,
+    "seen": 1795183340.2004473,
+    "ast_hash": "b91718918e72e508686fd8ebcd78cab7",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/seudonimizacion-historico.ts": {
+    "mtime": 1795100482.4329462,
+    "seen": 1795104378.7933888,
+    "ast_hash": "d692d057266dc5391450dfdd316dd346",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/ports/out/historico-repositorio.port.ts": {
+    "mtime": 1795105678.5228558,
+    "seen": 1795183340.217735,
+    "ast_hash": "3d0cf0ed867d0ecd36b5363d5c708a69",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/historico.adapter.ts": {
+    "mtime": 1795109114.4207325,
+    "seen": 1795183340.470793,
+    "ast_hash": "735e4adab743009475073de147d45cac",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/historico/configuracion-historico.ts": {
+    "mtime": 1795105947.7616172,
+    "seen": 1795183340.5846932,
+    "ast_hash": "45908cac7b945afe78d68ac333d204a1",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/historico/lector-xlsx-sgp.ts": {
+    "mtime": 1795101874.7119763,
+    "seen": 1795104379.0830266,
+    "ast_hash": "9c076ae12d2f9343671016f6b3a2544a",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000025000-HistoricoSgp.ts": {
+    "mtime": 1795100701.6683698,
+    "seen": 1795104379.1557631,
+    "ast_hash": "c52119bcd5897e3e575b34302e235684",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-fechas.spec.ts": {
+    "mtime": 1795101060.4600048,
+    "seen": 1795104379.2500103,
+    "ast_hash": "6d4111b8616ad7e00b828dc2b210971a",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-hmac.spec.ts": {
+    "mtime": 1795101061.9826322,
+    "seen": 1795104379.2500558,
+    "ast_hash": "26312a4076257cf268abbb14488b346d",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-migracion.spec.ts": {
+    "mtime": 1795108657.0345054,
+    "seen": 1795183340.732928,
+    "ast_hash": "05368236d3478f46c659bbf9a94c43f1",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-normalizacion.spec.ts": {
+    "mtime": 1795101874.7119763,
+    "seen": 1795104379.2500818,
+    "ast_hash": "71a881b44ea7ce02ac3e1450cf689a29",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-periodo.spec.ts": {
+    "mtime": 1795101058.6321642,
+    "seen": 1795104379.250086,
+    "ast_hash": "81069424c684a771d4617fa729668878",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-registro.spec.ts": {
+    "mtime": 1795107783.8981388,
+    "seen": 1795183340.7353675,
+    "ast_hash": "b028a34a7382fc67e138b90bf0c7458f",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-xlsx.spec.ts": {
+    "mtime": 1795107784.5232177,
+    "seen": 1795183340.7353814,
+    "ast_hash": "257397877088d30fd225cccc7977c1b9",
+    "semantic_hash": ""
+  },
+  "apps/api/test/soporte-historico-sgp.ts": {
+    "mtime": 1795108309.6800954,
+    "seen": 1795183340.833306,
+    "ast_hash": "6705f91ae57b0dc2d39d481c634df1f0",
+    "semantic_hash": ""
+  },
+  "docs/HISTORICO-PRACTICAS-AUDITORIA.md": {
+    "mtime": 1795183123.4578953,
+    "seen": 1795183341.161227,
+    "ast_hash": "170b4c0e27692e837bd0dc87c9f27142",
+    "semantic_hash": ""
+  },
+  "apps/api/config/historico/programas-sgp.json": {
+    "mtime": 1795107742.4575837,
+    "seen": 1795183339.9972444,
+    "ast_hash": "c6559ad2aee0fb3a4e68f2e8cf02f88a",
+    "semantic_hash": ""
+  },
+  "apps/api/config/historico/solapamiento.json": {
+    "mtime": 1795105945.6625404,
+    "seen": 1795183339.997254,
+    "ast_hash": "c4e67148495b749772f3a924208cc7e9",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/benchmark-historico-pg.ts": {
+    "mtime": 1795108306.6227136,
+    "seen": 1795183340.000514,
+    "ast_hash": "2f5e623ca4e914b66ba9bad4ff9c0a06",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/historico-proponer-correspondencias.ts": {
+    "mtime": 1795105984.802338,
+    "seen": 1795183340.0092733,
+    "ast_hash": "f85c7b8b1bdff44231dfe69f10c52783",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/politica-calidad-historico.ts": {
+    "mtime": 1795105545.941981,
+    "seen": 1795183340.2004144,
+    "ast_hash": "911b57326df2ef08ea0097f9ae218c3e",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/programas-sgp.ts": {
+    "mtime": 1795108608.7297108,
+    "seen": 1795183340.2004313,
+    "ast_hash": "b6fe887cbb4ad8c3f0dde9f25d8cb21a",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/solapamiento-historico.ts": {
+    "mtime": 1795107894.2595227,
+    "seen": 1795183340.202999,
+    "ast_hash": "921f7e78fc0edab8ac9420beeebc7e1b",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/historico/lector-xlsx-flujo.ts": {
+    "mtime": 1795108608.7269585,
+    "seen": 1795183340.5847108,
+    "ast_hash": "19454220266b5d8743a808019e2e0e0c",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000026000-HistoricoPreparacionCarga.ts": {
+    "mtime": 1795105658.4016173,
+    "seen": 1795183340.662431,
+    "ast_hash": "dc76b6fd8d53099945be3816402ee1b9",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-politica.spec.ts": {
+    "mtime": 1795107869.1897886,
+    "seen": 1795183340.7353463,
+    "ast_hash": "b416821f0dc3a6f1b6d5ef97cf4ecc3b",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-programas.spec.ts": {
+    "mtime": 1795107873.0005844,
+    "seen": 1795183340.7353578,
+    "ast_hash": "187c3f43116f22d52e35e7e7a25c16b9",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-solapamiento.spec.ts": {
+    "mtime": 1795107871.735036,
+    "seen": 1795183340.7353747,
+    "ast_hash": "f4c7479736cd6e8b202f42aa808d0cba",
     "semantic_hash": ""
   },
   "package-lock.json": {

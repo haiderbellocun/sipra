@@ -32,17 +32,32 @@ export class CumplimientoController {
   @Get('tablero')
   @Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.EXTENSION, Rol.TUTOR)
   @ApiOperation({
-    summary: 'Tablero de obligaciones próximas a vencer',
+    summary: 'Tablero de cumplimiento: indicadores, por tipo, requiere atención y listado paginado (alcance G1)',
     description:
       'Una obligación no es una validación sobre un documento: es un estado con fecha límite ' +
       'que puede estar vencido sin que nadie haya cargado nada.',
   })
-  @ApiQuery({ name: 'dias', required: false, example: 60 })
+  @ApiQuery({ name: 'dias', required: false, description: 'Compatibilidad: se acepta y se ignora (el tablero V3 cubre todo el universo).' })
+  @ApiQuery({ name: 'periodo', required: false })
+  @ApiQuery({ name: 'escuela', required: false })
+  @ApiQuery({ name: 'programa', required: false })
+  @ApiQuery({ name: 'tipo', required: false })
+  @ApiQuery({ name: 'estado', required: false, enum: ['cumplida', 'vencida', 'proxima', 'en_plazo'] })
+  @ApiQuery({ name: 'busqueda', required: false })
+  @ApiQuery({ name: 'pagina', required: false, example: 1 })
   tableroCumplimiento(
     @ActorActual() actor: Actor,
-    @Query('dias') dias?: string,
+    @Query('periodo') periodo?: string,
+    @Query('escuela') escuela?: string,
+    @Query('programa') programa?: string,
+    @Query('tipo') tipo?: string,
+    @Query('estado') estado?: string,
+    @Query('busqueda') busqueda?: string,
+    @Query('pagina') pagina?: string,
   ): Promise<TableroCumplimiento> {
-    return this.tablero.construir(actor, dias ? Number(dias) : 60);
+    return this.tablero.construir(actor, {
+      periodo, escuela, programa, tipo, estado, busqueda, pagina: pagina ? Number(pagina) : undefined,
+    });
   }
 
   @Get('auditoria')

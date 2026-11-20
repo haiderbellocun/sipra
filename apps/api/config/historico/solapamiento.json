@@ -1,0 +1,5 @@
+{
+  "descripcion": "Política de solapamiento histórico SGP ↔ SIPRA (§27.5). HISTORICO_OVERLAP_POLICY la reemplaza. Fronteras: primer periodo que pertenece a SIPRA por calendario; null = pendiente de decisión institucional (sin frontera, COMBINED cruza todos los periodos).",
+  "politica": "COMBINED",
+  "fronteras": { "presencial": null, "virtual": null, "335": null }
+}

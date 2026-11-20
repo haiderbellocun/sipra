@@ -5,7 +5,7 @@ import { entorno } from '../../../environments/environment';
 import {
   Carta, CartaPublica, SolicitudCarta, VistaPreviaCarta, VerificacionCarta, CatalogoProceso, ConsolidadoArl, Documento, Empresa, EntradaBitacora, EscribirBitacora, EstadoCierre,
   EstadoPractica, FilaMatriculaSinu, FiltroPracticas, ModalidadCatalogo, Periodo, Practica, RadicarArl, RegistroFur,
-  ReporteTabla, ResultadoAntidiscriminacion, ResumenSincronizacion, SolicitudArl, TableroCumplimiento,
+  ReporteTabla, ResultadoAntidiscriminacion, ResumenSincronizacion, SolicitudArl, TableroCumplimiento, FiltrosCumplimiento,
   UsuarioAdministrativo, Vacante, VistaEstudianteSinu, VistaPreviaDistribucion, ResultadoDistribucion,
   CategoriaAyuda, PreguntaFrecuente, Pqrs, RadicarPqrs,
   ComparativaModeloIa, ConfiguracionIa, EstimacionIa, ResumenGastoIa, TarifaIa,
@@ -528,6 +528,15 @@ export class ApiService {
     return this.http.get<TableroCumplimiento>(`${this.base}/cumplimiento/tablero`, {
       params: new HttpParams().set('dias', dias),
     });
+  }
+
+  /** Cumplimiento V3: filtros, agregación y paginación en el servidor (mismo endpoint, mismo alcance G1). */
+  tableroCumplimientoV3(f: Partial<FiltrosCumplimiento>): Observable<TableroCumplimiento> {
+    let params = new HttpParams();
+    for (const [k, v] of Object.entries(f)) {
+      if (v !== undefined && v !== null && String(v).trim() !== '') params = params.set(k, String(v).trim());
+    }
+    return this.http.get<TableroCumplimiento>(`${this.base}/cumplimiento/tablero`, { params });
   }
 
   catalogoObligaciones(): Observable<

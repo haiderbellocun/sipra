@@ -1,0 +1,139 @@
+{
+  "version": "2026-11-19.1",
+  "descripcion": "Equivalencia programa SGP (nombre normalizado) → código SINU. Decisión institucional: solo cuentan las entradas «confirmado» con código. Nunca por similitud de texto (las notas solo son sugerencias para revisar). Sin datos personales.",
+  "programas": [
+    {
+      "programaSgp": "ADMINISTRACION DE EMPRESAS",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": "Posible renombramiento/variante de: ADMINISTRACION DE EMPRESAS AGROINDUSTRIALES"
+    },
+    {
+      "programaSgp": "INGENIERIA DE SISTEMAS",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "CONTADURIA PUBLICA",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "INGENIERIA INDUSTRIAL",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "DISENO GRAFICO",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "NEGOCIOS INTERNACIONALES",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "DIRECCION Y PRODUCCION DE MEDIOS AUDIOVISUALES",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "COMUNICACION SOCIAL",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "ADMINISTRACION EN SERVICIOS DE SALUD",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "PUBLICIDAD Y MERCADEO",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "DISENO DE MODAS",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "ADMINISTRACION TURISTICA Y HOTELERA",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "ADMINISTRACION DE EMPRESAS AGROINDUSTRIALES",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": "Posible renombramiento/variante de: ADMINISTRACION DE EMPRESAS"
+    },
+    {
+      "programaSgp": "INGENIERIA ELECTRONICA",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "ADMINISTRACION DE LA SEGURIDAD SOCIAL",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "ADMINISTRACION PUBLICA",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "ADMINISTRACION DEPORTIVA",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "GESTION SOCIAL Y SALUD COMUNITARIA",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    },
+    {
+      "programaSgp": "DISENO DE MODA Y PATRONAJE",
+      "codigoSinu": null,
+      "estado": "pendiente",
+      "aprobadoPor": null,
+      "notas": null
+    }
+  ]
+}

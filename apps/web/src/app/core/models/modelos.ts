@@ -413,24 +413,48 @@ export interface Empresa {
   senales?: SenalPreverificacion[];
 }
 
-export interface FilaTablero {
-  practicaId: string;
-  estudianteId: string;
-  escuelaId: string;
+/** Cumplimiento V3 · categoría operativa de una obligación aplicable (la calcula el servidor desde el semáforo). */
+export type CategoriaCumplimiento = 'cumplida' | 'vencida' | 'proxima' | 'en_plazo';
+export type SemaforoObligacion = 'cumplida' | 'vencida' | 'critica' | 'alerta' | 'vigente';
+
+export interface FilaCumplimiento {
   obligacionId: string;
   tipo: string;
   norma: string;
   responsable: string;
   efecto: string;
   estado: string;
+  categoria: CategoriaCumplimiento;
+  semaforo: SemaforoObligacion;
   fechaLimite: string;
+  /** Calculado en el servidor (negativo = días de vencida). */
   diasRestantes: number;
-  semaforo: 'cumplida' | 'vencida' | 'critica' | 'alerta' | 'vigente';
+  practicaId: string;
+  practicaEstado: string;
+  periodo: string;
+  estudianteNombre: string;
+  programaId: string;
+  escuelaId: string;
+  escuelaNombre: string | null;
 }
 
+export interface ConteoCumplimiento { aplicables: number; cumplidas: number; enPlazo: number; proximas: number; vencidas: number }
+
+export interface FiltrosCumplimiento {
+  periodo: string; escuela: string; programa: string; tipo: string; estado: '' | CategoriaCumplimiento; busqueda: string; pagina: number;
+}
+
+/** GET /cumplimiento/tablero. Inicio usa solo `practicasBloqueadas`; `resumen` se conserva por compatibilidad. */
 export interface TableroCumplimiento {
-  resumen: Record<'cumplida' | 'vencida' | 'critica' | 'alerta' | 'vigente', number>;
-  filas: FilaTablero[];
+  generadoEn: string;
+  alcance: { tipo: 'institucional' | 'escuelas' | 'asignados'; escuelas: string[] };
+  filtros: { periodo: string | null; escuela: string | null; programa: string | null; tipo: string | null; estado: CategoriaCumplimiento | null; busqueda: string | null };
+  opciones: { periodos: string[]; escuelas: { codigo: string; nombre: string }[]; programas: string[]; tipos: { tipo: string; norma: string; descripcion: string }[] };
+  indicadores: ConteoCumplimiento & { noAplica: number };
+  porTipo: (ConteoCumplimiento & { tipo: string; norma: string })[];
+  atencion: { total: number; filas: FilaCumplimiento[] };
+  listado: { total: number; pagina: number; tamano: number; paginas: number; filas: FilaCumplimiento[] };
+  resumen: Record<SemaforoObligacion, number>;
   practicasBloqueadas: number;
 }
 

@@ -16,6 +16,26 @@ export enum EstadoObligacion {
   NO_APLICA = 'no_aplica',
 }
 
+export type SemaforoObligacion = 'cumplida' | 'vencida' | 'critica' | 'alerta' | 'vigente';
+
+/** Días hasta la fecha límite (negativos = vencida), en días completos de 24 h. */
+export function diasRestantesHasta(fechaLimite: Date, ahora: Date = new Date()): number {
+  return Math.floor((fechaLimite.getTime() - ahora.getTime()) / 86_400_000);
+}
+
+/**
+ * Semáforo de una obligación (regla única del dominio): cumplida; vencida (fecha límite pasada); crítica (≤ 3 días);
+ * alerta (≤ 10 días); vigente (más de 10 días). La usan la entidad y el tablero de cumplimiento.
+ */
+export function semaforoObligacion(estado: EstadoObligacion, fechaLimite: Date, ahora: Date = new Date()): SemaforoObligacion {
+  if (estado === EstadoObligacion.CUMPLIDA) return 'cumplida';
+  const dias = diasRestantesHasta(fechaLimite, ahora);
+  if (dias < 0) return 'vencida';
+  if (dias <= 3) return 'critica';
+  if (dias <= 10) return 'alerta';
+  return 'vigente';
+}
+
 export enum ResponsableObligacion {
   CUN = 'cun',
   EMPRESA = 'empresa',
@@ -97,18 +117,12 @@ export class Obligacion {
   instantanea(): DatosObligacion { return { ...this.datos }; }
 
   diasRestantes(ahora: Date = new Date()): number {
-    const ms = this.datos.fechaLimite.getTime() - ahora.getTime();
-    return Math.floor(ms / 86_400_000);
+    return diasRestantesHasta(this.datos.fechaLimite, ahora);
   }
 
   /** Semáforo del tablero de cumplimiento. */
-  semaforo(ahora: Date = new Date()): 'cumplida' | 'vencida' | 'critica' | 'alerta' | 'vigente' {
-    if (this.datos.estado === EstadoObligacion.CUMPLIDA) return 'cumplida';
-    const dias = this.diasRestantes(ahora);
-    if (dias < 0) return 'vencida';
-    if (dias <= 3) return 'critica';
-    if (dias <= 10) return 'alerta';
-    return 'vigente';
+  semaforo(ahora: Date = new Date()): SemaforoObligacion {
+    return semaforoObligacion(this.datos.estado, this.datos.fechaLimite, ahora);
   }
 
   cumplir(documentoId: string | null, ahora: Date = new Date()): void {

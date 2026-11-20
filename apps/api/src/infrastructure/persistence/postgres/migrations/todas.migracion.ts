@@ -26,6 +26,8 @@ import { MotivosDecisionCamara1756000021000 } from './1756000021000-MotivosDecis
 import { RolesGobiernoOperativo1756000022000 } from './1756000022000-RolesGobiernoOperativo';
 import { CargueEstudiantePeriodo1756000023000 } from './1756000023000-CargueEstudiantePeriodo';
 import { CartaPresentacionDigital1756000024000 } from './1756000024000-CartaPresentacionDigital';
+import { HistoricoSgp1756000025000 } from './1756000025000-HistoricoSgp';
+import { HistoricoPreparacionCarga1756000026000 } from './1756000026000-HistoricoPreparacionCarga';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -61,4 +63,6 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   RolesGobiernoOperativo1756000022000,
   CargueEstudiantePeriodo1756000023000,
   CartaPresentacionDigital1756000024000,
+  HistoricoSgp1756000025000,
+  HistoricoPreparacionCarga1756000026000,
 ];

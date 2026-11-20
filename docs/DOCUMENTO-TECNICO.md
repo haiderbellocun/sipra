@@ -2028,6 +2028,65 @@ Extensión ya no ve la sección del SGP, que la API le niega. La coordinación v
 
 ---
 
+### 8.10 Cumplimiento V3: tablero operativo de obligaciones
+
+**Qué es.** `/cumplimiento` monitorea obligaciones, vencimientos y casos que requieren atención. No es analítica (eso es Reportes V3, §8.9), no es el resumen de Inicio y no duplica el expediente: su acción es «Ver práctica».
+
+**Fuente única.** `GET /api/v1/cumplimiento/tablero`, el mismo endpoint y los mismos roles de siempre (administrador, director, coordinador, analista, extensión y docente facilitador). Cambio mínimo y justificado del backend: sin él, el navegador tendría que traer todas las obligaciones de la institución y replicar alcance, semáforo, filtros y orden.
+
+- **Arquitectura.**
+  - Puerto `CumplimientoLecturaPort` (`domain/ports/out/cumplimiento-lectura.port.ts`).
+  - Adaptador `CumplimientoLecturaPgAdapter`: **una** consulta parametrizada `obligaciones ⋈ practicas ⋈ usuarios ⟕ cat_escuela`, sin N+1 y con los índices existentes; sin índices nuevos ni migración.
+  - Agregación pura en `domain/services/cumplimiento.domain-service.ts`.
+  - El semáforo de `Obligacion` se extrajo a funciones puras (`semaforoObligacion`, `diasRestantesHasta`) sin cambiar la regla: la entidad delega en ellas.
+- **Alcance G1 en SQL** (misma semántica que `Practica.visiblePara`):
+  - administración, dirección y extensión: institucional;
+  - coordinación o analista con escuelas: sus escuelas; sin escuelas: institucional;
+  - docente: sus prácticas asignadas **y** las de sus escuelas.
+- **Defectos corregidos del tablero anterior:**
+  - un docente sin escuelas veía toda la institución (la lista vacía de escuelas no filtraba);
+  - «cumplidas» siempre era 0 (solo se leían pendientes y vencidas);
+  - truncamiento silencioso a 200 prácticas y 2.000 obligaciones;
+  - las obligaciones de prácticas anuladas aparecían como vencidas.
+- **Universo de los indicadores:** obligaciones de prácticas no `anulada` ni `cancelada`, dentro del alcance y de los filtros (periodo, escuela, programa, tipo, búsqueda de estudiante). `no_aplica` no entra en las aplicables: se informa aparte.
+- **Categorías** (salen del semáforo del dominio, no se inventan):
+  - **cumplida**;
+  - **vencida**: días < 0;
+  - **próxima a vencer**: crítica ≤ 3 días o alerta ≤ 10 días;
+  - **en plazo**: más de 10 días.
+  - Los días los calcula el servidor (`floor((fecha_límite − ahora) / 1 día)`, la misma regla del expediente).
+- **Indicadores:**
+  - cumplidas, vencidas, próximas, en plazo y prácticas detenidas por la compuerta ARL (en validación con una obligación `bloquea_activa` sin cumplir);
+  - cumplimiento como **«X de Y obligaciones cumplidas»**: sin porcentaje, porque el universo mezcla fechas futuras y puede ser pequeño.
+  - El filtro de **estado** no cambia los indicadores ni las barras: solo el listado.
+- **Requiere atención:** vencidas y próximas a vencer, en orden operativo (vencidas, la más antigua primero; luego próximas, la más cercana primero; desempate estable por id). Se devuelven las 50 más urgentes y el total real.
+  - «Correcciones» y «devueltos» no existen en el modelo de obligaciones, así que no forman parte de la atención.
+  - Las pendientes en plazo y las cumplidas tampoco entran.
+- **Listado:** el filtro completo en orden operativo, paginado en el servidor (25 por página; una página fuera de rango se acota).
+- **Contrato:**
+  - `generadoEn`: el momento real del cálculo; no hay corte programado.
+  - `alcance`, `filtros`, `opciones` (periodos, escuelas y programas que existen en el alcance, y tipos del catálogo), `indicadores`, `porTipo`, `atencion` y `listado`.
+  - Compatibilidad con Inicio: `resumen` (semáforo) y `practicasBloqueadas`.
+  - El parámetro `dias` se acepta y se ignora.
+  - Los filtros se validan: tipo y estado de listas cerradas, códigos con patrón, búsqueda de 80 caracteres como máximo y resuelta con la búsqueda existente de usuarios (solo estudiantes).
+- **Frontend:** `features/cumplimiento/` (página, `cumplimiento-tabla`, `cumplimiento-tipos`, `cumplimiento.util`). Standalone, signals y OnPush; carga perezosa (ruta existente).
+  - Encabezado «Cumplimiento» con contexto (alcance, periodo y hora de cálculo) y filtros reales.
+  - Franja compacta de indicadores (`sipra-tira-metricas`).
+  - Barras horizontales apiladas por tipo, con la distribución total por estado en la primera fila.
+  - Requiere atención, listado paginado y el catálogo plegable.
+  - Estados vacío, de carga (esqueleto) y de error recuperable («Reintentar»).
+  - Las respuestas viejas se descartan.
+  - La pantalla **no calcula reglas**: la prueba web lo vigila (sin aritmética de fechas, sin `sort`, sin umbrales).
+- **Accesibilidad y diseño:**
+  - nunca color solo: etiqueta de estado, texto de días, leyenda, textura en «vencida» y `role="img"` con la lectura completa de cada barra;
+  - tabla con `caption` y `scope`, apilada bajo 760 px;
+  - solo tokens existentes (`--status-*`, `--signal-*`), sin púrpura ni índigo; Signal Dark y Arctic Light.
+- **Datos de QA:** 12 obligaciones sintéticas en `sipra_dev` sobre prácticas QA G6, con ids `00000000-0000-4000-8747-0000000000NN`.
+  - Cubren: cumplidas, pendiente en plazo, próximas (2, 5 y 8 días), vencidas, `no_aplica` y una vencida de una práctica **anulada** (excluida a propósito).
+  - Reversión: `DELETE FROM obligaciones WHERE id::text LIKE '00000000-0000-4000-8747-%';`.
+  - `sipra_reportes_1000` no se tocó.
+- **Capturas:** `docs/assets/cumplimiento-v3/` (`cumplimiento-dark`, `-light`, `-atencion`, `-filtros`, `-mobile`).
+
 ## 9. Autenticación y el modo abierto de pruebas
 
 ### 9.1 La decisión
@@ -3554,6 +3613,112 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.49.0 — 19 de noviembre de 2026
+
+**Histórico del SGP · H3: preparación de la importación real.** Detalle en el §27 de
+`docs/HISTORICO-PRACTICAS-AUDITORIA.md`. Datos reales importados: 0; solo hubo simulacros.
+
+- **Calidad separada por dominio.** La calidad de la ORGANIZACIÓN (`organization_flags` y las marcas del catálogo)
+  ya no vuelve observada la práctica.
+  - En el simulacro real, las prácticas observadas bajan de 89,5 % a 63,3 %, y las observadas por alias de empresa
+    pasan de 67,5 % a 0.
+  - De las observadas, 73.615 lo son solo por `MISSING_LEVEL`, que no excluye de ninguna métrica.
+  - 16.170 de 44.070 organizaciones requieren revisión.
+- **Migración `1756000026000-HistoricoPreparacionCarga`**, solo en `historico`: añade `organization_flags`,
+  `organization_type_hint`, `duplicado_de`, `mapping_status` y `load_mode`. Admite las versiones H2 sin reescribirlas.
+- **Política de calidad por métrica** (`politica-calidad-historico.ts`), con «Indicador documental SGP» separado de
+  Cumplimiento.
+- **Solapamiento** configurable (`HISTORICO_OVERLAP_POLICY`, COMBINED por omisión) con matriz y prueba de no doble
+  conteo.
+- **P-42 investigado:** no existe ni se perdió un identificador del SGP en SIPRA, porque nunca hubo carga inicial.
+- **Programa → SINU** en `config/historico/programas-sgp.json`: 19 programas pendientes, nunca por similitud.
+- **Propuesta segura de correspondencias** (NIT exacto, DV compatible, candidato único; solo `propuesta`).
+- **Carga por lotes** (`batched`, por omisión): versiones no vigentes, finalización atómica, `failed` con purga y
+  recuperación de procesos caídos.
+- **Lector XLSX en flujo propio:** sin temporales en disco (`exceljs` copiaba la hoja con PII al temporal del
+  sistema), sin cargar cadenas personales y equivalente fila a fila al anterior.
+  - Con un tope de heap, el pico baja de 1.021 MB a unos 531–581 MB.
+- **Verificación:**
+  - 141 pruebas del histórico; suite de la API 128 suites y 3.377 pruebas;
+  - lint, build, aislamiento, smoke de arranque y escaneo de secretos;
+  - QA en `sipra_dev`, que encontró y corrigió el estado de correspondencia;
+  - `test:pg:historico` 85/85;
+  - `verificar:migraciones` con 141 comprobaciones, 0 fallas y 11 deudas heredadas;
+  - benchmark de 10.000 registros sintéticos: APPLY por lotes 22,9 s, repetido 0,02 s, reversión 0,42 s y pico de
+    317 MB; extrapolación de unos 5–6 minutos para 143.659.
+
+### 0.48.0 — 19 de noviembre de 2026
+
+**Histórico del SGP · H2: infraestructura de importación controlada.** Detalle en el §26 de
+`docs/HISTORICO-PRACTICAS-AUDITORIA.md`. Datos reales importados: 0. La carga real queda para H3.
+
+- **Agrega:**
+  - migración `1756000025000-HistoricoSgp`: esquema `historico` con importaciones, versiones de prácticas,
+    organizaciones, alias y correspondencias. No toca `public`; `sipra_app` no tiene acceso al esquema;
+  - variante minimizada: sin nombre, correo ni teléfono, sin datos del jefe ni funciones, sin copia de la fila;
+    estudiante, docente y organización viven como claves HMAC-SHA256 con prefijo de propósito y versión de clave;
+  - importador CLI (`historico:dry-run`, que es el modo por defecto, `historico:import --apply` con doble compuerta,
+    `historico:revert` de la última importación, `historico:fixture`) y `test:pg:historico`;
+  - `HISTORICO_HMAC_KEY`, `HISTORICO_HMAC_KEY_VERSION` y `HISTORICO_IMPORT_APPLY` en `.env.example`, solo con marcadores;
+  - un patrón nuevo en `verificar:secretos`.
+- **Garantías:**
+  - idempotencia por SHA-256 del archivo;
+  - versionado por `content_hash` y claves seudónimas, sin sobrescribir;
+  - una sola versión vigente, garantizada por un índice único parcial;
+  - versiones inmutables (disparador);
+  - bloqueo consultivo y transacción única;
+  - reversión por importación (LIFO).
+- **`verificar:migraciones`:** sección H estricta para la 25. Los bloques heredados que asumen la 20 como última
+  corren en «modo deuda» (separados, visibles, sin decidir la salida); la protección de la 22 no cambia.
+- **Verificación:**
+  - 104 pruebas unitarias nuevas; suite de la API 125 suites y 3.340 pruebas;
+  - `test:pg:historico` 67/67;
+  - `verificar:migraciones` sin fallas (9 deudas heredadas);
+  - aislamiento 10/10, lint, build, smoke de arranque y escaneo de secretos.
+- **`sipra_dev`:** migración aplicada y fixture sintético cargado, versionado y revertido.
+- **Simulacro del Excel real** (sin escribir): 143.659 registros reales, 902.533 filas fantasma descartadas,
+  68.435 estudiantes y 79 periodos, en 69 s con unos 1 GB de memoria.
+
+### 0.47.1 — 19 de noviembre de 2026
+
+**Auditoría de la fuente histórica de prácticas** (sin código). Perfil de solo lectura del Excel
+histórico de la plataforma anterior (143.659 registros reales de 2018-10 a 2026-09; la hoja declara
+1.046.195 filas por una celda rellenada hasta el final). Granularidad: una fila = un registro de
+inscripción a la asignatura de práctica, clave de origen `#`. Propuesta de esquema `historico`
+separado del modelo operativo; nada importado ni migrado. Informe sin datos personales en
+`docs/HISTORICO-PRACTICAS-AUDITORIA.md`; el Excel no entra al repositorio. Diseño de integración
+(§25 de ese informe): el Excel es el SGP, mismo dominio que `Practica` pero fotos al corte. Se definen
+`historico` (versionado por `content_hash`, claves HMAC, marcas de calidad, variante minimizada sin
+datos personales) y `analytics.practicas` (fuente `current`/`historical`, regla de solapamiento por
+periodo frontera + correspondencia, ligada a P-42). Cumplimiento y la operación no leen el histórico.
+
+### 0.47.0 — 18 de noviembre de 2026
+
+**Cumplimiento V3** (§8.10). Pantalla operativa de obligaciones sobre el mismo `GET /cumplimiento/tablero` y los mismos roles; cambio mínimo del backend con puerto, adaptador de PostgreSQL (una consulta, alcance G1 en SQL) y agregación pura de dominio. Sin migración, sin índices, sin endpoints ni exportaciones nuevos.
+
+- **Corrige:**
+  - fuga de alcance del docente sin escuelas;
+  - «cumplidas» siempre en 0;
+  - truncamiento a 200/2.000;
+  - obligaciones de prácticas anuladas contadas como vencidas.
+- **Agrega:**
+  - filtros (periodo, escuela, programa, tipo, estado y búsqueda de estudiante);
+  - indicadores «X de Y»;
+  - desglose por tipo;
+  - «Requiere atención» en orden operativo;
+  - listado paginado en el servidor;
+  - `generadoEn`.
+- **Compatibilidad:** Inicio sigue usando `practicasBloqueadas` sin cambios.
+- **Fuera de alcance:** Bolsa de empleo, permisos G1–G6, Reportes V3, la carta de presentación y el armazón no se modificaron.
+- **Pruebas nuevas:**
+  - `apps/api/test/cumplimiento-v3.spec.ts` (13): dominio, alcance por rol, filtros, paginación, compatibilidad y búsqueda;
+  - `apps/web/pruebas/cumplimiento-v3.spec.ts` (13): textos, barras, garantías estáticas.
+- **QA en navegador** (API 3000 → `sipra_dev`, web 4200):
+  - seis roles autorizados con cifras idénticas a la API;
+  - auxiliar sin entrada en el menú y sin 403 desde Inicio;
+  - filtros, búsqueda, vacío, error con reintento y «Ver práctica»;
+  - 1440/1366/1024/768/390, menú expandido, colapsado y cajón, temas oscuro y claro, sin desborde horizontal.
 
 ### 0.46.1 — 18 de noviembre de 2026
 
