@@ -3614,6 +3614,34 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.50.0 — 20 de noviembre de 2026
+
+**Histórico del SGP · H4: capa analítica unificada.** Detalle en el §28 de `docs/HISTORICO-PRACTICAS-AUDITORIA.md`.
+No se conecta a ningún controlador (H5). Reportes V3 y Cumplimiento V3 sin cambios. Datos reales importados: 0.
+
+- **Consulta encapsulada en repositorio + agregación en el dominio** (sin vista ni vista materializada):
+  - `source` `current` / `historical` / `all`;
+  - identidad analítica estable;
+  - modelo común con claves de dimensión seguras.
+- **Unión:** solo lo CONFIRMADO se deduplica, con SIPRA ganando; candidatos y ambiguos se cuentan e informan.
+- **Estudiantes únicos por identidad:** HMAC del documento actual en memoria, por versión de clave; sin clave, cota
+  superior.
+- **Calidad:** política H3 por métrica; tasas solo sobre estados finales; «Indicador documental SGP» aparte.
+- **Migración `1756000027000-HistoricoCorrespondenciaPracticas`:** registro de correspondencias de práctica SGP ↔
+  SIPRA (método `sgp_id` o `manual`, con revisor, sin FK a `public`, sin acceso de `sipra_app`).
+- **Rendimiento:** el plan con 10.000 registros mostró un *nested loop* de 10.000 × 500 por estadísticas vacías
+  (907 ms). La lectura del catálogo de organizaciones pasa a una consulta aparte unida en memoria: SQL en 16 ms y
+  ningún índice nuevo.
+- **Verificación:**
+  - 26 pruebas nuevas (incluida una de arquitectura que impide al histórico entrar a Cumplimiento o Reportes);
+  - suite de la API 130 suites y 3.403 pruebas;
+  - `test:pg:analitica` en verde (confirmado, candidato, ambiguo, `failed`, `reverted`, estudiantes únicos, PII y
+    10.000 registros);
+  - `test:pg:historico` 85/85;
+  - `verificar:migraciones` con 145 comprobaciones, 0 fallas y 13 deudas heredadas;
+  - lint, build, aislamiento, smoke de arranque y escaneo de secretos;
+  - CURRENT = operación = Reportes V3 en `sipra_dev`.
+
 ### 0.49.0 — 19 de noviembre de 2026
 
 **Histórico del SGP · H3: preparación de la importación real.** Detalle en el §27 de

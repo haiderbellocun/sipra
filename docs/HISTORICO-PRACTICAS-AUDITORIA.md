@@ -1700,3 +1700,208 @@ No quedan bases temporales (`hist_*`, `mig_*`).
    - B frente a C;
    - política de calidad aprobada.
 3. **P-42:** si habrá carga inicial del SGP en la operación y si guardará `origen_sgp_id`.
+
+---
+
+## 28. Capa analítica unificada (H4)
+
+> 20 de noviembre de 2026. **Datos reales importados: 0.** Solo se usaron el fixture sintético y lotes sintéticos.
+> Reportes V3 y Cumplimiento V3 no se modificaron. La capa **no** está conectada a ningún controlador; eso es H5.
+
+### 28.1 Arquitectura elegida y por qué
+
+```
+public.practicas (SIPRA) ─┐      lectura plana       ┌─► proyección al modelo común ─┐
+                          ├──────────────────────────┤                               ├─► unión (solo lo confirmado se deduplica)
+historico.practicas (SGP) ┘  vigentes de completed   └─► proyección al modelo común ─┘        │
+          + organizaciones + correspondencias confirmadas                                     ▼
+                                                              métricas con la política de calidad H3 → contrato
+```
+
+Se comparó con las alternativas:
+
+| Opción | Decisión |
+|---|---|
+| A. Vista SQL | **No.** La identidad común de estudiante exige el HMAC del documento actual, y el secreto no puede estar en la base. La unión y la precedencia ya son funciones puras del dominio. |
+| B. Vista materializada | **No por anticipación.** Ver §28.9: hoy no se justifica, y es la candidata si H5 lo necesita. |
+| **C. Consulta encapsulada en repositorio + agregación en el dominio** | **Elegida.** Conserva el origen, admite filtros, es testeable con un repositorio en memoria, no duplica datos y aguanta el volumen futuro (§28.9). |
+| D. Tabla analítica construida | **No.** Copiaría datos y crearía una tercera verdad. |
+
+**Piezas:**
+
+| Capa | Archivo |
+|---|---|
+| Dominio | `domain/analitica/modelo-analitico.ts` (modelo común, filtros, contrato) |
+| Dominio | `domain/analitica/analitica-unificada.service.ts` (elegibilidad, unión, métricas, identidad) |
+| Puertos | `domain/ports/out/analitica-unificada.port.ts` (lectura e identidad) |
+| Aplicación | `application/use-cases/analitica/analitica-unificada.use-case.ts` |
+| Infraestructura | `adapters/persistence/postgres/analitica-unificada.adapter.ts` (solo lectura) |
+| Infraestructura | `infrastructure/historico/identidad-analitica.adapter.ts` (HMAC en memoria) |
+| Migración 27 | `1756000027000-HistoricoCorrespondenciaPracticas.ts` |
+| Herramientas | `analitica:validar` (interna, sin endpoint) y `test:pg:analitica` |
+
+### 28.2 Fuente e identidad analítica
+
+- **`source`:**
+  - `current`: solo SIPRA;
+  - `historical`: solo SGP, versiones `is_current` de importaciones `completed`; nunca `processing`, `failed` ni
+    `reverted`;
+  - `all`: la unión deduplicada.
+- **`analyticsId`** estable y sin PK compartida: `current:<uuid de la práctica>` o
+  `historical:<sistema>:<#>:<versión>`.
+- **Estado al corte:** cada fila lleva `estadoAl` (ahora para SIPRA, la fecha de corte para el SGP) y
+  `esEstadoDeCorte`. Una fila histórica abierta **no** está abierta hoy.
+
+### 28.3 Modelo común
+
+| Campo | SIPRA | SGP |
+|---|---|---|
+| periodo | `periodo_academico` | código normalizado; legado como `sgp:<original>` |
+| programa | `sinu:<programa_id>` | `sinu:<código>` solo con equivalencia confirmada; si no, `sgp:<nombre normalizado>` |
+| nivel | `ciclo` | `nivel_inferido` (mismo vocabulario: dimensión común) |
+| regional | texto normalizado | texto normalizado (misma regla exacta, sin parecidos) |
+| modalidad de estudio | no existe | `estudio:<virtual / presencial / a_distancia>` |
+| modalidad de práctica | `modalidad:<enum>` | `modalidad:<enum>`; `EMPRESA PROPIA` como `sgp:EMPRESA PROPIA` («sin equivalente») |
+| estado | `ESTADO_OPERATIVO` | `estado_analitico` (mismo vocabulario) |
+| organización | `empresa:<uuid>` o texto del FUR | `empresa:<uuid>` con correspondencia confirmada; si no, `org-historica:<uuid>` con la etiqueta «Organización histórica sin correspondencia» |
+| ciudad | `divipola:<código>` | `sgp-texto:<ciudad normalizada>` (no se fusionan sin DIVIPOLA) |
+| fechas y duración | `fecha_fin − fecha_inicio`, solo si es mayor o igual a 0 | `duracion_dias`, ya nulo si las fechas no son válidas |
+| indicador documental SGP | no aplica | proporciones subida y aprobada |
+
+Las claves de dimensión son **seguras**: prefijo más código, uuid o texto de catálogo. Nunca un HMAC, un documento
+ni un nombre reconstruido.
+
+### 28.4 Identidad del estudiante
+
+- En SIPRA, la identidad es `current:<usuario>`.
+- En el SGP, `historical:<versión>:<student_key>`, que es **interna** y nunca sale.
+- **En `all`**, el backend calcula **en memoria** el HMAC del documento de cada estudiante actual, una vez por
+  estudiante y por versión de clave disponible, y el histórico con esa clave adopta la identidad del actual. El
+  documento se descarta de inmediato y no se persiste.
+- **Varias versiones de clave** (v1, v2…): el mapa se indexa por `versión:clave`. Si el histórico tiene una versión
+  sin secreto disponible, `all` informa `precisionEstudiantes = 'cota_superior'` y una advertencia; nunca inventa
+  identidades.
+- **Sin `HISTORICO_HMAC_KEY`** en el proceso: no se leen documentos y `all` es una cota superior.
+- **Alcance por escuelas:** el SGP no registra escuela, así que con un alcance restringido el histórico **no entra**
+  y se advierte. Nunca se filtra de más.
+
+### 28.5 Solapamiento y precedencia
+
+- **Solo lo CONFIRMADO se deduplica.** Está registrado en `historico.practica_correspondencia` (migración 27): método
+  `sgp_id` o `manual`, revisor obligatorio, una sola confirmada por registro del SGP y por práctica, y sin FK a
+  `public`. La fila de SIPRA gana en `all` y la histórica sigue disponible en `historical`.
+- **Candidatos y ambiguos** (matriz H3: mismo estudiante + periodo + ciclo) **no** son duplicados confirmados: cuentan
+  en ambas fuentes y se informan en `solapamiento.categorias`.
+- **Frontera institucional**, si se configura: el histórico desde la frontera sale de `all` con el motivo
+  `DESPUES_DE_LA_FRONTERA`.
+- **Categorías informadas:** `historical_only`, `current_only`, `matched`, `candidate_overlap`, `ambiguous_overlap`,
+  más `excluidosDeAll` con su motivo. Nada desaparece sin explicación.
+- Esto **reemplaza para H4** la exclusión conservadora de candidatos de `seleccionarParaConteo` (H3), por la regla del
+  encargo: un parecido no es un duplicado.
+
+### 28.6 Calidad y métricas
+
+- **Exclusiones:** salen de `POLITICA_CALIDAD` (H3), sin reglas paralelas. La fila analítica aporta solo el requisito
+  de dato de cada métrica.
+- **Métricas limpias:** prácticas, estudiantes únicos, periodos, programas, niveles, regionales, modalidad de estudio,
+  modalidad de práctica, estados, y tasas de cierre, reprobación y anulación.
+  - Las tasas usan **solo estados finales** (cerrado, reprobado, anulado) en las dos fuentes; inscrito y en práctica
+    no son un resultado.
+  - En el SGP, además, se excluye el estado al corte.
+- **Métricas condicionadas:**
+  - organización: excluye identificador ausente o inválido;
+  - ciudad;
+  - duración: excluye `END_BEFORE_START`, fechas inválidas, `0000-00-00`, fuera de rango, extremas y filas truncadas.
+- **Copias idénticas del SGP** (`duplicado_de`): cuentan una vez.
+- **Indicador documental SGP:** sección propia y nula para `current`. **No** se combina con Cumplimiento.
+
+### 28.7 Contrato y seguridad
+
+`ResultadoAnaliticoUnificado` contiene: totales (con la precisión de estudiantes), dimensiones (clave segura,
+etiqueta, origen `current` / `historical` / `comun` y valor), tasas, percentiles de duración, indicador documental
+SGP, solapamiento y elegibilidad por métrica.
+
+**No contiene** `student_key`, `teacher_key`, `organization_key`, HMAC, documentos, correos, teléfonos, nombres
+históricos, identidades internas ni marcas de calidad. Las pruebas unitarias y PG lo verifican sobre el JSON
+completo: ningún hex de 64 caracteres, ningún documento sembrado, ningún centinela.
+
+### 28.8 Pruebas
+
+| Prueba | Resultado |
+|---|---|
+| `test/analitica-unificada.spec.ts` (current, historical, all, solapamiento, estudiantes únicos, calidad, filtros, PII) | 19/19 |
+| `test/analitica-arquitectura.spec.ts`: Cumplimiento y Reportes no importan el histórico ni la analítica; ningún módulo ni controlador la registra; el dominio no depende de infraestructura; SQL de la migración 27 | 7/7 |
+| Suite completa de la API | 130 suites, 3.403 pruebas en verde (incluidas las de Reportes V3 y `cumplimiento-v3.spec`, sin regresión) |
+| `npm run test:pg:analitica` (base temporal) | **todo en verde** |
+| `npm run test:pg:historico` | 85/85 (ajustado a 6 tablas) |
+| `npm run verificar:migraciones` | 145 comprobaciones estrictas · 0 fallas · 13 deudas heredadas |
+| `npm run analitica:validar` en `sipra_dev` | CURRENT = operación = Reportes V3 (47 = 47 = 47) |
+| lint, build, `test:aislamiento` (10/10), `smoke:arranque`, `verificar:secretos` | en verde |
+
+**`test:pg:analitica`** construye, contra estudiantes sembrados, un solapamiento **confirmado** (con correspondencia
+manual revisada), uno **candidato** y uno **ambiguo**, más una importación `reverted` y una `failed` con versiones sin
+purgar. Comprueba:
+- CURRENT = `practicas` = adaptador de Reportes V3, también filtrado por periodo;
+- HISTORICAL = vigentes de la importación `completed` (253): las `reverted` y `failed` no aportan;
+- ALL = CURRENT + HISTORICAL − 1 confirmado, con `matched` 1, `candidate` 1 y `ambiguous` 2, y solo lo confirmado
+  sale de ALL;
+- **estudiantes únicos** de ALL = actuales + históricos − 3 compartidos, con precisión `exacta`;
+- sin clave, cota superior;
+- alcance por escuelas;
+- `EMPRESA PROPIA` separada y B/C sin unificar;
+- tasas sin estados al corte;
+- ausencia de PII.
+
+**Migración 27 UP/DOWN/UP** (`verificar:migraciones`, sección H estricta): se aplica sobre una base poblada sin tocar
+`public`, baja limpia sin filas, vuelve a subir, y se **niega** a bajar con una correspondencia registrada. Las deudas
+heredadas suben de 11 a 13 por el mismo desplazamiento de siempre (las secuencias antiguas suponen la 20 como
+última); ninguna involucra a las migraciones del histórico.
+
+### 28.9 Rendimiento, plan e índices
+
+Con 10.000 registros SGP sintéticos más la operación, en base temporal:
+
+| Consulta | Tiempo |
+|---|---:|
+| historical (10.000) | 656 ms |
+| historical · periodo 24V03 (845) | 50 ms |
+| historical · nivel + modalidad (1.235) | 273 ms |
+| current | 11 ms |
+| all (10.003) | 689 ms |
+| all · periodo 24V03 | 60 ms |
+
+**Defecto encontrado y corregido por el plan.** La primera versión unía `historico.organizaciones` en la misma
+consulta. Con la tabla recién cargada y sin estadísticas, el planificador estimó 1 fila y eligió un *nested loop*
+con `Materialize`: `Rows Removed by Join Filter: 4.990.000`, es decir, 10.000 × 500, y **907 ms** solo en SQL. Ahora
+el catálogo de organizaciones se lee en una **segunda consulta plana** y se une en memoria con un mapa (O(n + m)),
+sin depender de las estadísticas:
+- consulta de versiones: `Hash Join` + `Seq Scan` sobre lo vigente, **16–19 ms**;
+- catálogo: `Index Scan ux_horg_clave`, **1,2 ms**;
+- la prueba exige ningún nodo con más filas que las versiones leídas y menos de 200 ms.
+
+**Índices:** **ninguno nuevo**. El `Seq Scan` es correcto porque se lee casi toda la tabla, y los índices parciales
+de H2 (`ux_hprac_vigente`, `ix_hprac_periodo`) y `ux_horg_clave` cubren lo demás. No hay N+1 ni subconsultas por fila.
+Hay un HMAC por estudiante actual y versión (solo en `all`), no por combinación.
+
+**Extrapolación a 143.659:** unos 15 ms × 14 en SQL, más la proyección y agregación en Node (≈ 65 µs por fila):
+**≈ 9–10 s por consulta sin filtros** y menos de 1 s filtrando por periodo. Es aceptable para validación interna,
+**no** para una pantalla interactiva. Riesgo para H5 (§28.10).
+
+**Recomendación al importador (no aplicada en H4):** ejecutar `ANALYZE` sobre las tablas de `historico` al terminar
+una carga real, para que el planificador no trabaje con estadísticas vacías.
+
+### 28.10 Riesgos para H5
+
+1. **Latencia sin filtros con 143.659 registros** (≈ 9–10 s). Opciones, con evidencia y no por anticipación:
+   - caché del resultado por filtro (Redis ya está en el stack; el histórico solo cambia al importar, así que la
+     invalidación es simple);
+   - una tabla de agregados derivada de lo vigente, refrescada al publicar una importación.
+2. **Privilegios.** `sipra_app` no tiene acceso al esquema `historico`. H5 necesitará `SELECT` sobre `practicas`,
+   `importaciones`, `organizaciones`, `organizacion_mapping` y `practica_correspondencia` (migración 28), y la API
+   necesitará `HISTORICO_HMAC_KEY` para la identidad común. Sin ella, `all` es una cota superior.
+3. **Alcance por escuelas:** el histórico solo se puede atribuir a escuelas con la equivalencia programa → SINU →
+   escuela (0 de 19 confirmadas).
+4. **Correspondencias de práctica:** hoy ninguna. Faltan la pantalla y el flujo de revisión, y la decisión sobre
+   P-42 (`origen_sgp_id` en la carga inicial).
+5. **Decisiones institucionales del §25.19** (B/C, `EMPRESA PROPIA`, programas, frontera, retención, custodia de la
+   clave): siguen pendientes.

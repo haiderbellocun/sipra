@@ -28,6 +28,7 @@ import { CargueEstudiantePeriodo1756000023000 } from './1756000023000-CargueEstu
 import { CartaPresentacionDigital1756000024000 } from './1756000024000-CartaPresentacionDigital';
 import { HistoricoSgp1756000025000 } from './1756000025000-HistoricoSgp';
 import { HistoricoPreparacionCarga1756000026000 } from './1756000026000-HistoricoPreparacionCarga';
+import { HistoricoCorrespondenciaPracticas1756000027000 } from './1756000027000-HistoricoCorrespondenciaPracticas';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -65,4 +66,5 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   CartaPresentacionDigital1756000024000,
   HistoricoSgp1756000025000,
   HistoricoPreparacionCarga1756000026000,
+  HistoricoCorrespondenciaPracticas1756000027000,
 ];

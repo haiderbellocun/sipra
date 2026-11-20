@@ -132,9 +132,9 @@
     "semantic_hash": "120d33e2939a2b7f09108d1fcd57d25c"
   },
   "apps/api/herramientas/verificar-migraciones.ts": {
-    "mtime": 1795183073.2295215,
-    "seen": 1795183340.0421424,
-    "ast_hash": "21119f3bbfaa154e1890d3f83d4d0f39",
+    "mtime": 1795187358.2048767,
+    "seen": 1795187991.2561893,
+    "ast_hash": "43b87933308b886a20a7b64889a11533",
     "semantic_hash": ""
   },
   "apps/api/herramientas/verificar-rut-pg.ts": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "apps/api/package.json": {
-    "mtime": 1795107742.4575837,
-    "seen": 1795183340.048531,
-    "ast_hash": "bb40ab2bad2e6962bb33711742ea2dbc",
+    "mtime": 1795184945.7032294,
+    "seen": 1795187991.2575262,
+    "ast_hash": "4e7800c0f8073bd18f25e39d06fd2521",
     "semantic_hash": ""
   },
   "apps/api/src/application/dtos/acta-iniciacion.dto.ts": {
@@ -1830,9 +1830,9 @@
     "semantic_hash": "0a7379467232b88d2a04be11cbc3ef2a"
   },
   "apps/api/src/infrastructure/persistence/postgres/migrations/todas.migracion.ts": {
-    "mtime": 1795105658.4026105,
-    "seen": 1795183340.662442,
-    "ast_hash": "c2c9eba598c1b765da776fcd80a07a2a",
+    "mtime": 1795184585.7060444,
+    "seen": 1795187991.3924127,
+    "ast_hash": "5ee645528eaf4c827c04344d1c0c317e",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/opciones-datasource.ts": {
@@ -3498,9 +3498,9 @@
     "semantic_hash": "afbdcf6df932934fbcdedb360ce2d3e8"
   },
   "package.json": {
-    "mtime": 1795105985.9822228,
-    "seen": 1795183341.1581035,
-    "ast_hash": "5d4c8c0fe8100bc73cfba8951f910a70",
+    "mtime": 1795184945.7068603,
+    "seen": 1795187991.6170104,
+    "ast_hash": "6a3a2725975a8f829425ef47ce7df423",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1795183123.5483139,
-    "seen": 1795183341.1612191,
-    "ast_hash": "761df67e5eb2767867a3cbe3ab37573e",
+    "mtime": 1795187912.209306,
+    "seen": 1795187991.6187456,
+    "ast_hash": "7f4ee142e7d09fd7e3c844143e30782d",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -4950,9 +4950,9 @@
     "semantic_hash": ""
   },
   "apps/api/herramientas/verificar-historico-pg.ts": {
-    "mtime": 1795108211.9609053,
-    "seen": 1795183340.0421312,
-    "ast_hash": "7a9ca902ce8768875e2ffc44db0cbbc2",
+    "mtime": 1795187358.2064948,
+    "seen": 1795187991.2561846,
+    "ast_hash": "2497dfc7a1566528e03e32ed5569f709",
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/historico/importar-historico.use-case.ts": {
@@ -5046,9 +5046,9 @@
     "semantic_hash": ""
   },
   "apps/api/test/historico-migracion.spec.ts": {
-    "mtime": 1795108657.0345054,
-    "seen": 1795183340.732928,
-    "ast_hash": "05368236d3478f46c659bbf9a94c43f1",
+    "mtime": 1795184780.5918014,
+    "seen": 1795187991.426027,
+    "ast_hash": "518c7606860f3b20ba239044c2d1e550",
     "semantic_hash": ""
   },
   "apps/api/test/historico-normalizacion.spec.ts": {
@@ -5082,9 +5082,9 @@
     "semantic_hash": ""
   },
   "docs/HISTORICO-PRACTICAS-AUDITORIA.md": {
-    "mtime": 1795183123.4578953,
-    "seen": 1795183341.161227,
-    "ast_hash": "170b4c0e27692e837bd0dc87c9f27142",
+    "mtime": 1795187883.4095612,
+    "seen": 1795187991.6187494,
+    "ast_hash": "d721ec9509f033e87b7b4625ae02cef6",
     "semantic_hash": ""
   },
   "apps/api/config/historico/programas-sgp.json": {
@@ -5157,6 +5157,72 @@
     "mtime": 1795107871.735036,
     "seen": 1795183340.7353747,
     "ast_hash": "f4c7479736cd6e8b202f42aa808d0cba",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/analitica-unificada.ts": {
+    "mtime": 1795184939.6744463,
+    "seen": 1795187991.2400134,
+    "ast_hash": "0a56dd95e937134eb3402f64e36a25f3",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/verificar-analitica-pg.ts": {
+    "mtime": 1795187196.2435598,
+    "seen": 1795187991.2527227,
+    "ast_hash": "439418973d5a590868ab6ef93b3dc3a6",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/analitica/analitica-unificada.use-case.ts": {
+    "mtime": 1795184524.5322587,
+    "seen": 1795187991.2699273,
+    "ast_hash": "8669d1c70319eb4ba110d44e59ecbbbf",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/analitica/analitica-unificada.service.ts": {
+    "mtime": 1795184356.9324067,
+    "seen": 1795187991.2896543,
+    "ast_hash": "9d83a828eaab8f1c3cd5d31ac766a3f3",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/analitica/modelo-analitico.ts": {
+    "mtime": 1795184307.872944,
+    "seen": 1795187991.2896578,
+    "ast_hash": "36e53d7f3ee48a7ae261cf48a6ab0706",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/ports/out/analitica-unificada.port.ts": {
+    "mtime": 1795184425.23811,
+    "seen": 1795187991.3020709,
+    "ast_hash": "651581bbe6aef551a4fb8e753f62050c",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/analitica-unificada.adapter.ts": {
+    "mtime": 1795187196.2422948,
+    "seen": 1795187991.3430538,
+    "ast_hash": "ac961a2431d69013fcd62bdb5a89829b",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/historico/identidad-analitica.adapter.ts": {
+    "mtime": 1795184578.7740078,
+    "seen": 1795187991.3703296,
+    "ast_hash": "8bf20580fe40b7334db846684243f240",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000027000-HistoricoCorrespondenciaPracticas.ts": {
+    "mtime": 1795184574.6153843,
+    "seen": 1795187991.3924084,
+    "ast_hash": "b80eead3843b74ecd9339083a84364d6",
+    "semantic_hash": ""
+  },
+  "apps/api/test/analitica-arquitectura.spec.ts": {
+    "mtime": 1795184683.9518065,
+    "seen": 1795187991.4038928,
+    "ast_hash": "cfca0cb21d0bf91f51cc933741a161e1",
+    "semantic_hash": ""
+  },
+  "apps/api/test/analitica-unificada.spec.ts": {
+    "mtime": 1795184780.5860434,
+    "seen": 1795187991.403901,
+    "ast_hash": "8c247255727fb257f5c732fe4550fbfe",
     "semantic_hash": ""
   },
   "package-lock.json": {

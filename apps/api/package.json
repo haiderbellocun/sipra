@@ -43,6 +43,8 @@
     "historico:revert": "ts-node --transpile-only herramientas/historico-revertir.ts",
     "historico:fixture": "ts-node --transpile-only herramientas/historico-fixture.ts",
     "historico:proponer-correspondencias": "ts-node --transpile-only herramientas/historico-proponer-correspondencias.ts",
+    "analitica:validar": "ts-node --transpile-only herramientas/analitica-unificada.ts",
+    "test:pg:analitica": "node --max-old-space-size=1024 -r ts-node/register/transpile-only herramientas/verificar-analitica-pg.ts",
     "benchmark:historico": "node --max-old-space-size=1024 --expose-gc -r ts-node/register/transpile-only herramientas/benchmark-historico-pg.ts",
     "test:aislamiento": "jest --testPathPatterns=aislamiento --runInBand",
     "typeorm": "typeorm-ts-node-commonjs -d src/infrastructure/persistence/postgres/data-source.ts",

@@ -92,7 +92,7 @@ async function main(): Promise<void> {
     console.log('\n1. Esquema historico');
     const tablas = (await ds.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'historico' ORDER BY 1`)).map((r: { table_name: string }) => r.table_name);
     comprobar('migraciones 25 y 26 aplicadas', (await n(`SELECT count(*)::int AS n FROM migrations WHERE name IN ('HistoricoSgp1756000025000', 'HistoricoPreparacionCarga1756000026000')`)) === 2);
-    comprobar('existen las 5 tablas del histórico', JSON.stringify(tablas) === JSON.stringify(['importaciones', 'organizacion_alias', 'organizacion_mapping', 'organizaciones', 'practicas']), tablas.join(','));
+    comprobar('existen las 6 tablas del histórico', JSON.stringify(tablas) === JSON.stringify(['importaciones', 'organizacion_alias', 'organizacion_mapping', 'organizaciones', 'practica_correspondencia', 'practicas']), tablas.join(','));
     const columnas = (await ds.query(`SELECT table_name || '.' || column_name AS c FROM information_schema.columns WHERE table_schema = 'historico'`)).map((r: { c: string }) => r.c);
     const sensibles = columnas.filter((c: string) => /(student_name|email|correo|phone|telefono|teacher_name|nombre_docente|boss|jefe|funciones|functions_text|nombre_estudiante|nombre_empresa|raw|fila_original)/i.test(c) || /\.documento(_docente|_estudiante)?$/i.test(c));
     comprobar(`ninguna columna personal directa ni copia de la fila (${columnas.length} columnas)`, sensibles.length === 0, sensibles.join(','));

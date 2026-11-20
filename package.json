@@ -29,6 +29,8 @@
     "historico:revert": "npm run historico:revert --workspace=@sipra/api --",
     "historico:fixture": "npm run historico:fixture --workspace=@sipra/api --",
     "historico:proponer-correspondencias": "npm run historico:proponer-correspondencias --workspace=@sipra/api --",
+    "analitica:validar": "npm run analitica:validar --workspace=@sipra/api --",
+    "test:pg:analitica": "npm run test:pg:analitica --workspace=@sipra/api --",
     "benchmark:historico": "npm run benchmark:historico --workspace=@sipra/api --",
     "verificar:secretos": "node apps/api/herramientas/verificar-secretos.mjs",
     "lint": "npm run lint --workspace=@sipra/api && npm run lint --workspace=@sipra/web",

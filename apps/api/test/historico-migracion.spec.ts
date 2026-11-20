@@ -103,8 +103,9 @@ describe('Migración de preparación de la carga del histórico · H3 (sin ejecu
     }
   }
 
-  it('es la última migración y solo altera tablas del esquema historico', async () => {
-    expect(MIGRACIONES[MIGRACIONES.length - 1]).toBe(HistoricoPreparacionCarga1756000026000);
+  it('va justo antes de la 27 (H4) y solo altera tablas del esquema historico', async () => {
+    const i = MIGRACIONES.indexOf(HistoricoPreparacionCarga1756000026000);
+    expect(MIGRACIONES[i + 1].name).toBe('HistoricoCorrespondenciaPracticas1756000027000');
     const { sql } = await sql26('up');
     for (const m of sql.matchAll(/ALTER TABLE\s+([a-z_."]+)/g)) expect(m[1]).toMatch(/^historico\./);
     expect(sql).not.toMatch(/\bpublic\.|UPDATE |INSERT |DELETE /);

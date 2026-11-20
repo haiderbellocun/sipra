@@ -34,7 +34,7 @@ const urlDe = (db: string): string => { const u = new URL(base); u.pathname = `/
 let fallos = 0;
 /**
  * DEUDA conocida (desde G1, ver la nota de la sección B): varias secuencias de reversión heredadas se escribieron
- * cuando la última migración era la 20; con las 21–26 presentes ya no bajan lo que dicen bajar, y la 22 (roles de
+ * cuando la última migración era la 20; con las 21–27 presentes ya no bajan lo que dicen bajar, y la 22 (roles de
  * gobierno) se NIEGA por diseño a revertirse con usuarios director/analista sembrados. Esa protección no se relaja.
  * Esos bloques corren en «modo deuda»: sus fallos se informan como DEUDA y se cuentan aparte, sin ocultarse, pero no
  * deciden el código de salida. Todo lo demás (A, H, la carta, la reversión sin datos) es estricto.
@@ -157,7 +157,7 @@ async function esquemaActa(ds: DataSource, etiqueta: string): Promise<void> {
 
 async function esquemaHistorico(ds: DataSource, etiqueta: string): Promise<void> {
   const t = (await ds.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'historico' ORDER BY 1`)).map((r: { table_name: string }) => r.table_name);
-  comprobar(`${etiqueta}: esquema historico con sus 5 tablas`, JSON.stringify(t) === JSON.stringify(['importaciones', 'organizacion_alias', 'organizacion_mapping', 'organizaciones', 'practicas']), t.join(','));
+  comprobar(`${etiqueta}: esquema historico con sus 6 tablas`, JSON.stringify(t) === JSON.stringify(['importaciones', 'organizacion_alias', 'organizacion_mapping', 'organizaciones', 'practica_correspondencia', 'practicas']), t.join(','));
   const idx = (await ds.query(`SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = 'historico'`)) as { indexname: string; indexdef: string }[];
   const vigente = idx.find((i) => i.indexname === 'ux_hprac_vigente');
   comprobar(`${etiqueta}: índice único PARCIAL de la versión vigente`, !!vigente && /UNIQUE/.test(vigente.indexdef) && /WHERE is_current/.test(vigente.indexdef));
@@ -261,7 +261,7 @@ async function main(): Promise<void> {
     await ds.destroy();
 
     // ── H. Histórico del SGP (25): estricta ────────────────────────────────
-    console.log('\nH. Histórico del SGP (migraciones 25 y 26) sobre una base con operación');
+    console.log('\nH. Histórico del SGP (migraciones 25, 26 y 27) sobre una base con operación');
     const ANTES_HIST = MIGRACIONES.slice(0, MIGRACIONES.findIndex((m) => m.name.startsWith('HistoricoSgp')));
     const colsH3 = async (): Promise<number> => (await ds.query(`SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema = 'historico'
       AND ((table_name = 'practicas' AND column_name IN ('organization_flags', 'organization_type_hint', 'duplicado_de'))
@@ -276,11 +276,16 @@ async function main(): Promise<void> {
     await ds.destroy();
     ds = await abrir(bases.hist, MIGRACIONES);
     const hist = await ds.runMigrations({ transaction: 'each' });
-    comprobar('la 25 y la 26 se aplican solas sobre una base ya poblada', hist.length === 2 && hist[0].name.startsWith('HistoricoSgp') && hist[1].name.startsWith('HistoricoPreparacionCarga'), hist.map((m) => m.name).join(','));
+    comprobar('la 25, la 26 y la 27 se aplican solas sobre una base ya poblada', hist.length === 3 && hist[0].name.startsWith('HistoricoSgp')
+      && hist[1].name.startsWith('HistoricoPreparacionCarga') && hist[2].name.startsWith('HistoricoCorrespondenciaPracticas'), hist.map((m) => m.name).join(','));
+    const tablaCorr = async (): Promise<boolean> => (await ds.query(`SELECT to_regclass('historico.practica_correspondencia') IS NOT NULL AS hay`))[0].hay as boolean;
+    comprobar('la 27 crea historico.practica_correspondencia', await tablaCorr());
     comprobar('la 26 agrega las 6 columnas de H3 (calidad de organización, pista, duplicado, correspondencia, modo de carga)', (await colsH3()) === 6);
     await esquemaHistorico(ds, 'historico');
-    comprobar('la 25 y la 26 no cambian ninguna tabla de public (conteo y contenido)', (await huellaPublica(ds)) === operacionAntes);
+    comprobar('la 25, la 26 y la 27 no cambian ninguna tabla de public (conteo y contenido)', (await huellaPublica(ds)) === operacionAntes);
     await integridad(ds, 'historico');
+    await ds.undoLastMigration({ transaction: 'each' });
+    comprobar('down de HistoricoCorrespondenciaPracticas (sin filas): quita solo su tabla', !(await tablaCorr()) && (await colsH3()) === 6);
     await ds.undoLastMigration({ transaction: 'each' });
     comprobar('down de HistoricoPreparacionCarga (sin versiones): quita solo sus columnas', (await colsH3()) === 0
       && !(await registradas(ds)).some((x) => x.startsWith('HistoricoPreparacionCarga')) && (await ds.query(`SELECT to_regnamespace('historico') AS n`))[0].n !== null);
@@ -290,7 +295,14 @@ async function main(): Promise<void> {
     comprobar('down de HistoricoSgp no toca public', (await huellaPublica(ds)) === operacionAntes);
     await ds.runMigrations({ transaction: 'each' });
     await esquemaHistorico(ds, 're-up');
-    comprobar('re-up: la 26 también se reaplicó', (await colsH3()) === 6);
+    comprobar('re-up: la 26 y la 27 también se reaplicaron', (await colsH3()) === 6 && await tablaCorr());
+    // Con una correspondencia registrada, la 27 se NIEGA a bajar.
+    await ds.query(`INSERT INTO historico.practica_correspondencia (id, source_system, source_record_id, practica_id, method, status)
+      VALUES ($1, 'SGP_SINTETICO', '1', $2, 'manual', 'propuesta')`, [randomUUID(), randomUUID()]);
+    const falla27 = await ds.undoLastMigration({ transaction: 'each' }).then(() => null, (e: Error) => e.message);
+    comprobar('down de HistoricoCorrespondenciaPracticas se NIEGA con correspondencias', falla27 !== null && /hay correspondencias/.test(falla27), falla27 ?? 'no se negó');
+    await ds.query(`DELETE FROM historico.practica_correspondencia`);
+    await ds.undoLastMigration({ transaction: 'each' });
     // Con una importación registrada (sin versiones): la 26 baja, la 25 se NIEGA.
     await ds.query(`INSERT INTO historico.importaciones (id, source_system, file_name, file_sha256, hmac_key_version, importer_version, status, finished_at)
       VALUES ($1, 'SGP_SINTETICO', 'sintetico.xlsx', $2, 'v1', 'verificacion', 'failed', now())`, [randomUUID(), 'a'.repeat(64)]);
@@ -325,10 +337,11 @@ async function main(): Promise<void> {
       // Si el esquema exige otras columnas, se informa en vez de adivinar.
       comprobar('se pudo sembrar una evidencia OCR sintética', false, e.message.slice(0, 200));
     });
-    // La 26 y la 25 (histórico, vacío) bajan primero y limpio: así la 24 vuelve a ser la última para el bloque de la carta.
+    // La 27, la 26 y la 25 (histórico, vacío) bajan primero y limpio: así la 24 vuelve a ser la última para el bloque de la carta.
     await ds.undoLastMigration({ transaction: 'each' });
     await ds.undoLastMigration({ transaction: 'each' });
-    comprobar('B: down de HistoricoPreparacionCarga y HistoricoSgp sin importaciones: limpio', !(await registradas(ds)).some((x) => x.startsWith('Historico')));
+    await ds.undoLastMigration({ transaction: 'each' });
+    comprobar('B: down de las migraciones del histórico (27, 26, 25) sin datos: limpio', !(await registradas(ds)).some((x) => x.startsWith('Historico')));
     // Carta de presentación digital (24, la última sin el histórico): down limpio (columnas, restricciones, índice y disparador) y re-up.
     {
       const colsCarta = async () => (await ds.query(`SELECT column_name FROM information_schema.columns WHERE table_name='cartas_presentacion' AND column_name IN ('referencia','estado','snapshot','pdf_sha256','ruta_archivo')`)).length;
@@ -339,7 +352,7 @@ async function main(): Promise<void> {
         (await colsCarta()) === 0 && (await disparador()) === 0 && (await ds.query(`SELECT 1 FROM pg_indexes WHERE indexname='ux_cartas_referencia'`)).length === 0);
       await ds.runMigrations({ transaction: 'each' });
       comprobar('re-up de CartaPresentacionDigital: restituida', (await colsCarta()) === 5 && (await disparador()) === 1);
-      comprobar('re-up: el histórico (25 y 26) también se reaplicó', (await registradas(ds)).filter((x) => x.startsWith('Historico')).length === 2);
+      comprobar('re-up: el histórico (25, 26 y 27) también se reaplicó', (await registradas(ds)).filter((x) => x.startsWith('Historico')).length === 3);
     }
     const dsB = ds;
     await bloqueDeuda('B: reversión heredada 20 → 12 con datos', async () => {
@@ -558,7 +571,7 @@ async function main(): Promise<void> {
     for (const b of Object.values(bases)) await borrarBase(b).catch(() => undefined);
   }
   console.log(`\n${fallos === 0 ? 'TODO OK' : `${fallos} FALLA(S)`} — verificación de migraciones`);
-  if (deuda > 0) console.log(`DEUDA CONOCIDA: ${deuda} comprobación(es) heredada(s) no aplican con las migraciones 21–26 presentes (no son fallos de la 25 ni de la 26, que tienen su sección H estricta; ver la nota en la cabecera de comprobar()).`);
+  if (deuda > 0) console.log(`DEUDA CONOCIDA: ${deuda} comprobación(es) heredada(s) no aplican con las migraciones 21–27 presentes (no son fallos de la 25, la 26 ni la 27, que tienen su sección H estricta; ver la nota en la cabecera de comprobar()).`);
   process.exitCode = fallos === 0 ? 0 : 1;
 }
 
