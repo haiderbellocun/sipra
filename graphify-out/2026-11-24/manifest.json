@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "apps/api/package.json": {
-    "mtime": 1795190239.6128595,
-    "seen": 1795192790.527036,
-    "ast_hash": "30efc5883a1854458270fabb02b53155",
+    "mtime": 1795535055.1403017,
+    "seen": 1795539173.8591163,
+    "ast_hash": "ff1bf2498f15c6b2f9c7798ec97ce427",
     "semantic_hash": ""
   },
   "apps/api/src/application/dtos/acta-iniciacion.dto.ts": {
@@ -3498,9 +3498,9 @@
     "semantic_hash": "afbdcf6df932934fbcdedb360ce2d3e8"
   },
   "package.json": {
-    "mtime": 1795190239.6156073,
-    "seen": 1795192790.992352,
-    "ast_hash": "41cbc35a4714e46229930b33f2c296d3",
+    "mtime": 1795535056.7327504,
+    "seen": 1795539174.7164338,
+    "ast_hash": "6becc2f9c9550f54cbedf44daff1efeb",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1795194845.033074,
-    "seen": 1795194884.5497031,
-    "ast_hash": "349d634547c586fe28365dbf955228b4",
+    "mtime": 1795538912.0754275,
+    "seen": 1795539174.7192483,
+    "ast_hash": "6c5db84d925bd8d6f1f31a651f414163",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -3858,9 +3858,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-barras.component.ts": {
-    "mtime": 1794499705.5775132,
-    "seen": 1794500882.1923974,
-    "ast_hash": "4d0e7b9bb3ee7fba104ed894ce3043f4",
+    "mtime": 1795537045.6044347,
+    "seen": 1795539174.6192489,
+    "ast_hash": "81ab15bcc3fab91b257c0c0cdcf33c43",
     "semantic_hash": ""
   },
   "apps/api/herramientas/seed-reportes-1000.ts": {
@@ -3942,15 +3942,15 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-dona.component.ts": {
-    "mtime": 1794496152.8480432,
-    "seen": 1794498469.9006805,
-    "ast_hash": "afc888fa892d7535aee580bc9cc87308",
+    "mtime": 1795536958.7551248,
+    "seen": 1795539174.623071,
+    "ast_hash": "c6ac625b9d8481e7dcb78c0107ceaf37",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-graficos.util.ts": {
-    "mtime": 1794501280.5376787,
-    "seen": 1794502339.2683666,
-    "ast_hash": "23c9285a5a2363beda0124aa4935956c",
+    "mtime": 1795537124.1164055,
+    "seen": 1795539174.6291173,
+    "ast_hash": "d5b0886c4c8ac581d88a2a6c315c9511",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-grupos.component.ts": {
@@ -3966,9 +3966,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-lineas.component.ts": {
-    "mtime": 1794494465.8466754,
-    "seen": 1794495134.840342,
-    "ast_hash": "6f6759f320bcbc47a842d9d9c1dc6d88",
+    "mtime": 1795537125.7057464,
+    "seen": 1795539174.6340241,
+    "ast_hash": "6e4eeb602a8ebf6957b49a2592f1776a",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-matriz.component.ts": {
@@ -4062,9 +4062,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-bump.component.ts": {
-    "mtime": 1794500011.682927,
-    "seen": 1794500882.192401,
-    "ast_hash": "605d5003e931b4f04f465439e3738b1f",
+    "mtime": 1795537130.888144,
+    "seen": 1795539174.619254,
+    "ast_hash": "e0140abd4287ef497b42a7805b7112f9",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-insights.component.ts": {
@@ -4086,9 +4086,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-stream.component.ts": {
-    "mtime": 1794500159.042496,
-    "seen": 1794500882.1999938,
-    "ast_hash": "817760752adb906eb5a81b6e8cc674ae",
+    "mtime": 1795537131.6338036,
+    "seen": 1795539174.6378367,
+    "ast_hash": "0f26fd76f2d2d34555c3a31654b9868d",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-swarm.component.ts": {
@@ -4968,9 +4968,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/calidad-historico.ts": {
-    "mtime": 1795105381.9529307,
-    "seen": 1795183340.192296,
-    "ast_hash": "9edea244d0f50e3b71f9ea68e826d762",
+    "mtime": 1795534720.379858,
+    "seen": 1795539173.9859605,
+    "ast_hash": "241127a2cc6761d5b918c3f1aa9885ac",
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/fechas-sgp.parser.ts": {
@@ -4992,9 +4992,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/registro-historico.ts": {
-    "mtime": 1795105545.9403057,
-    "seen": 1795183340.2004473,
-    "ast_hash": "b91718918e72e508686fd8ebcd78cab7",
+    "mtime": 1795534776.7282925,
+    "seen": 1795539173.990424,
+    "ast_hash": "66ef9a218342ebab0d8890254aca1296",
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/seudonimizacion-historico.ts": {
@@ -5076,15 +5076,15 @@
     "semantic_hash": ""
   },
   "apps/api/test/soporte-historico-sgp.ts": {
-    "mtime": 1795108309.6800954,
-    "seen": 1795183340.833306,
+    "mtime": 1795205460.6219258,
+    "seen": 1795539174.4483852,
     "ast_hash": "6705f91ae57b0dc2d39d481c634df1f0",
     "semantic_hash": ""
   },
   "docs/HISTORICO-PRACTICAS-AUDITORIA.md": {
-    "mtime": 1795194822.4192412,
-    "seen": 1795194884.5497081,
-    "ast_hash": "733afcae1ec3ccdd5005185fc8d9aa8c",
+    "mtime": 1795538768.7214606,
+    "seen": 1795539174.719254,
+    "ast_hash": "eda6c3b3dc2345b253f86cee4a896f23",
     "semantic_hash": ""
   },
   "apps/api/config/historico/programas-sgp.json": {
@@ -5244,15 +5244,15 @@
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/reportes/reportes-fuentes.use-case.ts": {
-    "mtime": 1795190595.7815642,
-    "seen": 1795192790.567913,
-    "ast_hash": "856d91d267c7eeb5df5ad709849f9379",
+    "mtime": 1795535447.732452,
+    "seen": 1795539173.9530013,
+    "ast_hash": "74fdbd0f75cf1fe55a925e81eabc5d90",
     "semantic_hash": ""
   },
   "apps/api/src/domain/analitica/serving-analitico.ts": {
-    "mtime": 1795193424.787964,
-    "seen": 1795194884.3010452,
-    "ast_hash": "5ab1461a9b1f9bd5490ef429b83a5044",
+    "mtime": 1795535408.4237964,
+    "seen": 1795539173.9578562,
+    "ast_hash": "0c4faa24c071c46219618987a7b88169",
     "semantic_hash": ""
   },
   "apps/api/src/domain/ports/out/serving-analitico.port.ts": {
@@ -5262,9 +5262,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/adapters/persistence/postgres/serving-analitico.adapter.ts": {
-    "mtime": 1795193927.1722512,
-    "seen": 1795194884.380808,
-    "ast_hash": "53bbf563e3361416feebdd8fcb342a2a",
+    "mtime": 1795535468.8558395,
+    "seen": 1795539174.1820102,
+    "ast_hash": "83684710031fe9471ddd54911141a44e",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/migrations/1756000028000-HistoricoServingAnalitico.ts": {
@@ -5274,21 +5274,21 @@
     "semantic_hash": ""
   },
   "apps/api/test/reportes-fuentes.spec.ts": {
-    "mtime": 1795193447.855408,
-    "seen": 1795194884.452357,
-    "ast_hash": "da01f047ff3571e761079b2ff7659248",
+    "mtime": 1795537854.1813004,
+    "seen": 1795539174.426067,
+    "ast_hash": "539dc9f349bd19fc1b3a6565b6394fcf",
     "semantic_hash": ""
   },
   "apps/web/pruebas/reportes-fuentes.spec.ts": {
-    "mtime": 1795191930.3293934,
-    "seen": 1795192790.8621738,
-    "ast_hash": "d470b366ad7540aaf7223a1f4027d35e",
+    "mtime": 1795537229.652766,
+    "seen": 1795539174.5194228,
+    "ast_hash": "61e2f07b8a4addd0f38e7f2b99ececba",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/reportes-fuentes.model.ts": {
-    "mtime": 1795191464.0491586,
-    "seen": 1795192790.877877,
-    "ast_hash": "251311c73190d97005327f649d9899f8",
+    "mtime": 1795536273.5915966,
+    "seen": 1795539174.5495973,
+    "ast_hash": "8a3d99a29da95e82207f2dd678b2369c",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-fuente.component.ts": {
@@ -5304,15 +5304,87 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-unificado.component.ts": {
-    "mtime": 1795192006.9345412,
-    "seen": 1795192790.9468353,
-    "ast_hash": "ed5a0218a857f664c2c15a667ca0efe5",
+    "mtime": 1795537157.0167189,
+    "seen": 1795539174.6427608,
+    "ast_hash": "1b4904829117a98aeb5e0f11edeac608",
     "semantic_hash": ""
   },
   "apps/api/herramientas/soporte-base-temporal.ts": {
     "mtime": 1795194223.634572,
     "seen": 1795194884.2723548,
     "ast_hash": "f1b1ad90f11ec1f92da5ce077e15173c",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-11-24T16-12-26-665Z.yml": {
+    "mtime": 1795536746.6769505,
+    "seen": 1795539173.816856,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-11-24T16-12-35-807Z.yml": {
+    "mtime": 1795536755.8256352,
+    "seen": 1795539173.8168814,
+    "ast_hash": "f15b122b910d5bbe1b615310208f17d0",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-11-24T16-13-44-995Z.yml": {
+    "mtime": 1795536825.0036316,
+    "seen": 1795539173.8168874,
+    "ast_hash": "d84faa8485184357d607ca165b0eaa4c",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/historico-barrido-pii.ts": {
+    "mtime": 1795535043.5224402,
+    "seen": 1795539173.8280451,
+    "ast_hash": "097346562178360c491a51dcf932b94a",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/saneamiento-pii-historico.ts": {
+    "mtime": 1795534989.4252818,
+    "seen": 1795539173.9904413,
+    "ast_hash": "98a797e0251f5c676427c41e37f11c75",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-saneamiento-pii.spec.ts": {
+    "mtime": 1795534991.0280838,
+    "seen": 1795539174.370705,
+    "ast_hash": "4765c766533309b4de4689aca0e32605",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-no-disponible.component.ts": {
+    "mtime": 1795536385.4846838,
+    "seen": 1795539174.6347008,
+    "ast_hash": "ade3deb903664fd1c9692d31619cf1fe",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-paridad.util.ts": {
+    "mtime": 1795537280.617499,
+    "seen": 1795539174.6363611,
+    "ast_hash": "1c4196afb50258255e30691eeb89d0ad",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/general-historico-1440-light.jpg": {
+    "mtime": 1795536922.443708,
+    "seen": 1795539174.7237906,
+    "ast_hash": "bc5555c8874db660cc8938f84ced0958",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/general-historico-390-dark.jpg": {
+    "mtime": 1795537570.6182778,
+    "seen": 1795539174.723801,
+    "ast_hash": "51f98253b0921e9afadc63b46e80fff6",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/general-todos-1440-dark.jpg": {
+    "mtime": 1795537029.6830647,
+    "seen": 1795539174.7238076,
+    "ast_hash": "246131e4594c80d32be66657270c1f1b",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/periodos-todos-1440-dark.jpg": {
+    "mtime": 1795537357.5940988,
+    "seen": 1795539174.7238133,
+    "ast_hash": "363881545c573b5eda1d228d77a0e52e",
     "semantic_hash": ""
   },
   "package-lock.json": {

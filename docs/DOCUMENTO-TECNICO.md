@@ -3670,6 +3670,13 @@ serving.
 **Sin cambios:** `sipra_reportes_1000`, Cumplimiento, Bolsa y exportaciones. La clave HMAC no está en el
 repositorio, `.env`, documentos ni Graphify.
 
+**Regresiones PostgreSQL de cierre (§31.9).**
+
+- Con CREATEDB temporal: `test:pg:serving` 27/27, `test:pg:historico` 87/87 y `test:pg:analitica` 22/22.
+- `verificar:migraciones`: 150 comprobaciones, 0 fallas y 14 deudas heredadas conocidas.
+- Ninguna base temporal quedó en el servidor, y `sipra_dev` se volvió a validar sin diferencias.
+- **Histórico cerrado.** H5-PERF-01 queda como deuda técnica abierta.
+
 ### 0.51.1 — 20 de noviembre de 2026
 
 **Histórico del SGP · cierre funcional de H5 y preparación de la carga real.** Detalle en §29.6 y §30 de

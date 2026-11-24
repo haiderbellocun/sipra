@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1795538912.0754275,
-    "seen": 1795539174.7192483,
-    "ast_hash": "6c5db84d925bd8d6f1f31a651f414163",
+    "mtime": 1795544730.0407922,
+    "seen": 1795544773.754102,
+    "ast_hash": "67a9f1e077cc0e12ca1bef8269c6220f",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -5082,9 +5082,9 @@
     "semantic_hash": ""
   },
   "docs/HISTORICO-PRACTICAS-AUDITORIA.md": {
-    "mtime": 1795538768.7214606,
-    "seen": 1795539174.719254,
-    "ast_hash": "eda6c3b3dc2345b253f86cee4a896f23",
+    "mtime": 1795544728.482613,
+    "seen": 1795544773.7541063,
+    "ast_hash": "7f9010b23c7542ac5652e553a32700f9",
     "semantic_hash": ""
   },
   "apps/api/config/historico/programas-sgp.json": {
@@ -5315,24 +5315,6 @@
     "ast_hash": "f1b1ad90f11ec1f92da5ce077e15173c",
     "semantic_hash": ""
   },
-  ".playwright-mcp/page-2026-11-24T16-12-26-665Z.yml": {
-    "mtime": 1795536746.6769505,
-    "seen": 1795539173.816856,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/page-2026-11-24T16-12-35-807Z.yml": {
-    "mtime": 1795536755.8256352,
-    "seen": 1795539173.8168814,
-    "ast_hash": "f15b122b910d5bbe1b615310208f17d0",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/page-2026-11-24T16-13-44-995Z.yml": {
-    "mtime": 1795536825.0036316,
-    "seen": 1795539173.8168874,
-    "ast_hash": "d84faa8485184357d607ca165b0eaa4c",
-    "semantic_hash": ""
-  },
   "apps/api/herramientas/historico-barrido-pii.ts": {
     "mtime": 1795535043.5224402,
     "seen": 1795539173.8280451,
@@ -5361,30 +5343,6 @@
     "mtime": 1795537280.617499,
     "seen": 1795539174.6363611,
     "ast_hash": "1c4196afb50258255e30691eeb89d0ad",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/general-historico-1440-light.jpg": {
-    "mtime": 1795536922.443708,
-    "seen": 1795539174.7237906,
-    "ast_hash": "bc5555c8874db660cc8938f84ced0958",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/general-historico-390-dark.jpg": {
-    "mtime": 1795537570.6182778,
-    "seen": 1795539174.723801,
-    "ast_hash": "51f98253b0921e9afadc63b46e80fff6",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/general-todos-1440-dark.jpg": {
-    "mtime": 1795537029.6830647,
-    "seen": 1795539174.7238076,
-    "ast_hash": "246131e4594c80d32be66657270c1f1b",
-    "semantic_hash": ""
-  },
-  ".playwright-mcp/periodos-todos-1440-dark.jpg": {
-    "mtime": 1795537357.5940988,
-    "seen": 1795539174.7238133,
-    "ast_hash": "363881545c573b5eda1d228d77a0e52e",
     "semantic_hash": ""
   },
   "package-lock.json": {

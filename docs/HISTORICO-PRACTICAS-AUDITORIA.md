@@ -2406,3 +2406,22 @@ API 3010, 7 corridas por caso, mediana de las 5 calientes:
   historial de Git, `historico.importaciones` ni `public.auditoria`.
 - **PII directa:** 0 en el schema `historico`, 0 en el serving y 0 en las respuestas HTTP.
 - `sipra_reportes_1000`, Cumplimiento, Bolsa y exportaciones: sin cambios.
+
+### 31.9 Regresiones PostgreSQL de cierre (CREATEDB temporal)
+
+Con `CREATEDB` concedido temporalmente por el propietario, después del backup completo posterior al cierre:
+
+| Validación | Resultado |
+|---|---|
+| `test:pg:serving` | **27/27** |
+| `test:pg:historico` | **87/87** |
+| `test:pg:analitica` | **22/22** |
+| `verificar:migraciones` | **150 comprobaciones, 0 fallas, 14 deudas heredadas** (las conocidas de §29.7, ajenas a las migraciones 25–28) |
+
+No hubo que corregir nada. Ninguna base temporal quedó en el servidor. Contra `sipra_dev`:
+
+- Se repitieron los conteos de vigentes, estudiantes, PII directa (schema, serving y HTTP), serving publicado y
+  huella de `public.practicas`: los valores coinciden con §31.4–31.5.
+- Reportes Actual, Histórico y Todos responden.
+- La paridad visual de §31.6 se mantiene.
+- `CREATEDB` ya puede retirarse del rol `sipra`.
