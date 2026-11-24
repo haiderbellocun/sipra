@@ -127,3 +127,13 @@ export function medidorTexto(fuente: string, px: number): (t: string) => number 
   if (canvas) { canvas.font = `600 ${px}px ${fuente}`; return (t) => canvas.measureText(t).width; }
   return (t) => t.length * px * 0.56;
 }
+
+/**
+ * Cada cuántas categorías se rotula un eje X temporal para que las etiquetas no se monten (p. ej. 83 periodos del
+ * histórico). Con pocas categorías es 1: se rotulan todas, como siempre. La primera y la última se rotulan siempre.
+ */
+export function pasoEtiquetas(n: number, anchoUtil: number, minimo = 52): number {
+  if (n <= 1 || anchoUtil <= 0) return 1;
+  return Math.max(1, Math.ceil((n * minimo) / anchoUtil));
+}
+export const rotulaEn = (i: number, n: number, paso: number): boolean => paso <= 1 || i === 0 || i === n - 1 || (i % paso === 0 && n - 1 - i >= paso / 2);

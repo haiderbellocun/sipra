@@ -14,6 +14,7 @@ import {
 import { EquivalenciasProgramas, resolverPrograma } from './programas-sgp';
 import { EstadoMapeoPeriodo, FormatoPeriodo, parsearPeriodoSgp } from './periodo-sgp.parser';
 import { SeudonimizadorHistorico } from './seudonimizacion-historico';
+import { esSalarioConPii, sanearTextoLibre } from './saneamiento-pii-historico';
 
 /** Sistemas de origen admitidos. `SGP_SINTETICO` aísla los fixtures de prueba del histórico real. */
 export const SISTEMAS_ORIGEN = ['SGP', 'SGP_SINTETICO'] as const;
@@ -195,11 +196,18 @@ function huella(pares: readonly (readonly [string, string | null])[]): string {
   return createHash('sha256').update(JSON.stringify(pares), 'utf8').digest('hex');
 }
 
-function representacionCanonica(celdas: FilaSgp, incluirId: boolean): [string, string | null][] {
+/**
+ * Marcador fijo con el que una celda saneada (§31) entra a la huella. El valor original no participa: el resto de la
+ * fila se persiste, así que un hash que lo incluyera permitiría recuperarlo por fuerza bruta (p. ej. 10⁹ celulares).
+ */
+const CELDA_SANEADA = '[SANEADO]';
+
+function representacionCanonica(celdas: FilaSgp, incluirId: boolean, saneadas: ReadonlySet<ColumnaSgp> = new Set()): [string, string | null][] {
   const pares: [string, string | null][] = [];
   for (const columna of COLUMNAS_LEIDAS) {
     if (COLUMNAS_SOLO_CLAVE.includes(columna)) continue;
     if (columna === '#' && !incluirId) continue;
+    if (saneadas.has(columna)) { pares.push([columna, CELDA_SANEADA]); continue; }
     const c = celdas[columna] ?? null;
     pares.push([columna, c instanceof Date ? c.toISOString() : textoCelda(c)]);
   }
@@ -291,8 +299,14 @@ export function transformarFilaSgp(
   const movDoc = parsearMarcaTiempoSgp(c['Ultimo movimiento Docente'] ?? null);
   if (movEst.estado === 'invalida' || movDoc.estado === 'invalida') marcas.add('INVALID_ACTIVITY_DATE');
 
-  const salario = parsearSalarioSgp(c['Salario'] ?? null);
-  if (salario.calidad === 'no_interpretable') marcas.add('SALARY_UNPARSEABLE');
+  // §31: un celular o un correo en la columna Salario no se guarda ni como texto ni como monto.
+  const celdaSalario = c['Salario'] ?? null;
+  const salarioConPii = esSalarioConPii(typeof celdaSalario === 'string' || typeof celdaSalario === 'number' ? String(celdaSalario) : null);
+  const salario: ReturnType<typeof parsearSalarioSgp> = salarioConPii
+    ? { original: null, normalizado: null, calidad: 'no_interpretable' }
+    : parsearSalarioSgp(celdaSalario);
+  if (salarioConPii) marcas.add('PII_SUSPECT_SALARY');
+  else if (salario.calidad === 'no_interpretable') marcas.add('SALARY_UNPARSEABLE');
   if (salario.calidad === 'atipico') marcas.add('SALARY_OUTLIER');
 
   const subidos = proporcion(c['Documentos Subidos'] ?? null);
@@ -302,15 +316,32 @@ export function transformarFilaSgp(
   const bitacora = conteoNoNegativo(c['Registros Bitacora'] ?? null);
   if (bitacora.invalido) marcas.add('LOGBOOK_COUNT_INVALID');
 
-  const ciudad = t('Ciudad');
+  // §31: saneamiento de datos personales en texto libre ANTES de persistir. Un campo contaminado queda en NULL entero
+  // (la ciudad, además, sin versión normalizada: la normalización no debe conservar el dato transformado).
+  const ciudad = sanearTextoLibre(t('Ciudad')?.slice(0, 200) ?? null);
+  const cargo = sanearTextoLibre(t('Cargo Estudiante')?.slice(0, 300) ?? null);
+  const horario = sanearTextoLibre(horarioTexto(c['Horario'] ?? null));
+  const area = sanearTextoLibre(t('Área'));
+  const ciudadNormalizada = ciudad.valor ? sanearTextoLibre(claveTexto(ciudad.valor)?.slice(0, 200) ?? null) : { valor: null, saneado: false };
+  if (ciudad.saneado || ciudadNormalizada.saneado) marcas.add('PII_SUSPECT_CITY');
+  if (cargo.saneado) marcas.add('PII_SUSPECT_STUDENT_POSITION');
+  if (horario.saneado) marcas.add('PII_SUSPECT_SCHEDULE');
+  if (area.saneado) marcas.add('PII_SUSPECT_AREA');
+  const ciudadLimpia = ciudadNormalizada.saneado ? null : ciudad.valor;
+  const saneadas = new Set<ColumnaSgp>();
+  if (ciudad.saneado || ciudadNormalizada.saneado) saneadas.add('Ciudad');
+  if (cargo.saneado) saneadas.add('Cargo Estudiante');
+  if (horario.saneado) saneadas.add('Horario');
+  if (area.saneado) saneadas.add('Área');
+  if (salarioConPii) saneadas.add('Salario');
   const regional = t('Regional');
   const flags = ordenarMarcas(marcas);
   return {
     sourceSystem: sistema,
     sourceRecordId: id,
     sourceRow: fila.filaOrigen,
-    contentHash: huella(representacionCanonica(c, true)),
-    huellaSinId: huella(representacionCanonica(c, false)),
+    contentHash: huella(representacionCanonica(c, true, saneadas)),
+    huellaSinId: huella(representacionCanonica(c, false, saneadas)),
     hmacKeyVersion: seud.versionClave,
     studentKey: seud.clave('student', doc.normalizado),
     teacherKey: seud.clave('teacher', docDocente.normalizado),
@@ -355,11 +386,11 @@ export function transformarFilaSgp(
     organizationTypeHint: pista,
     organizationFlags: ordenarMarcasOrganizacion(marcasOrg),
 
-    area: i(t('Área')),
-    cargoEstudiante: i(t('Cargo Estudiante')?.slice(0, 300) ?? null),
-    horario: horarioTexto(c['Horario'] ?? null),
-    ciudadOriginal: i(ciudad?.slice(0, 200) ?? null),
-    ciudadNormalizada: i(claveTexto(ciudad)?.slice(0, 200) ?? null),
+    area: i(area.valor),
+    cargoEstudiante: i(cargo.valor),
+    horario: horario.valor,
+    ciudadOriginal: i(ciudadLimpia),
+    ciudadNormalizada: i(ciudadNormalizada.valor),
 
     fechaInicioOriginal: inicio.original,
     fechaInicio: inicio.fecha,

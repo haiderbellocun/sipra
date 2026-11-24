@@ -176,6 +176,13 @@ import { PqrsUseCase } from '../../application/use-cases/administracion/pqrs.use
 import { GestionarPeriodosUseCase } from '../../application/use-cases/administracion/gestionar-periodos.use-case';
 import { ReportesSgpUseCase } from '../../application/use-cases/reportes/reportes-sgp.use-case';
 import { ReportesAnaliticaUseCase } from '../../application/use-cases/reportes/reportes-analitica.use-case';
+import { IDENTIDAD_ANALITICA, ReportesFuentesUseCase, SISTEMA_HISTORICO } from '../../application/use-cases/reportes/reportes-fuentes.use-case';
+import { LECTURA_ANALITICA_UNIFICADA } from '../../domain/ports/out/analitica-unificada.port';
+import { SERVING_HISTORICO_LECTURA } from '../../domain/ports/out/serving-analitico.port';
+import { AnaliticaUnificadaPostgresAdapter } from '../adapters/persistence/postgres/analitica-unificada.adapter';
+import { ServingAnaliticoPostgresAdapter } from '../adapters/persistence/postgres/serving-analitico.adapter';
+import { IdentidadAnaliticaHmac } from '../historico/identidad-analitica.adapter';
+import { DataSource } from 'typeorm';
 import { REPORTES_ANALITICA } from '../../domain/ports/out/reportes-analitica.port';
 import { ReportesAnaliticaAdapter } from '../adapters/persistence/postgres/reportes-analitica.adapter';
 import { ReportesAnaliticaController } from '../controllers/reportes-analitica.controller';
@@ -266,6 +273,16 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     { provide: CATALOGO_REPOSITORY, useClass: CatalogoRepositoryAdapter },
     { provide: REPORTE_REPOSITORY, useClass: ReporteRepositoryAdapter },
     { provide: REPORTES_ANALITICA, useClass: ReportesAnaliticaAdapter },
+    // Histórico en Reportes V3 (H5): solo lectura. La API lee el serving publicado; nunca escribe en `historico`.
+    { provide: LECTURA_ANALITICA_UNIFICADA, useFactory: (ds: DataSource) => new AnaliticaUnificadaPostgresAdapter(ds), inject: [DataSource] },
+    { provide: SERVING_HISTORICO_LECTURA, useFactory: (ds: DataSource) => new ServingAnaliticoPostgresAdapter(ds), inject: [DataSource] },
+    {
+      provide: IDENTIDAD_ANALITICA, inject: [ConfigService],
+      useFactory: (config: ConfigService) => IdentidadAnaliticaHmac.desdeEntornoTolerante({
+        HISTORICO_HMAC_KEY: config.get<string>('HISTORICO_HMAC_KEY'), HISTORICO_HMAC_KEY_VERSION: config.get<string>('HISTORICO_HMAC_KEY_VERSION'),
+      }),
+    },
+    { provide: SISTEMA_HISTORICO, inject: [ConfigService], useFactory: (config: ConfigService) => config.get<string>('HISTORICO_SISTEMA_REPORTES') ?? 'SGP' },
     { provide: COSTOS_IA_REPOSITORY, useClass: CostosIaRepositoryAdapter },
     { provide: PARAMETRO_REPOSITORY, useClass: ParametroRepositoryAdapter },
     { provide: PERIODO_REPOSITORY, useClass: PeriodoRepositoryAdapter },
@@ -386,6 +403,7 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     VistasSinuUseCase,
     ReportesSgpUseCase,
     ReportesAnaliticaUseCase,
+    ReportesFuentesUseCase,
     GestionarPeriodosUseCase,
     PqrsUseCase,
     ConsentimientoUseCase,

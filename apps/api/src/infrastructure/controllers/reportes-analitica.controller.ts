@@ -6,6 +6,7 @@ import {
   ESTADOS_OBLIGACION, EstadoObligacion, FiltroReporteAnalitica, LIMITE_FILAS_JSON, ReporteAnalitica, ReportesAnaliticaUseCase, SITUACIONES, SIN_EMPRESA,
   SegmentoDetalle, SituacionExpediente, TipoReceptor,
 } from '../../application/use-cases/reportes/reportes-analitica.use-case';
+import { ReporteFuentes, ReportesFuentesUseCase, filtroFuentesDe } from '../../application/use-cases/reportes/reportes-fuentes.use-case';
 import { Rol } from '../../domain/value-objects/rol.vo';
 import { ActorActual } from '../auth/actor.decorator';
 import { Roles } from '../auth/roles.decorator';
@@ -19,7 +20,27 @@ import { Roles } from '../auth/roles.decorator';
 @Controller('reportes/analitica')
 @Roles(Rol.ADMINISTRADOR, Rol.DIRECTOR, Rol.COORDINADOR, Rol.ANALISTA, Rol.AUXILIAR, Rol.TUTOR)
 export class ReportesAnaliticaController {
-  constructor(private readonly reportes: ReportesAnaliticaUseCase) {}
+  constructor(private readonly reportes: ReportesAnaliticaUseCase, private readonly fuentes: ReportesFuentesUseCase) {}
+
+  /**
+   * Fuentes Actual / Histórico / Todos (H5). Ruta hermana de la analítica operativa: el contrato del expediente
+   * (obligaciones, fricción, tiempos) no existe en el SGP y no se rellena con ceros. Mismos roles y mismo alcance G1.
+   */
+  @Get('unificada')
+  @ApiOperation({ summary: 'Agregados comparables por fuente', description: 'source=current|historical|all (por omisión current). Sin datos personales.' })
+  @ApiQuery({ name: 'source', required: false, enum: ['current', 'historical', 'all'] })
+  @ApiQuery({ name: 'periodos', required: false })
+  @ApiQuery({ name: 'escuela', required: false })
+  @ApiQuery({ name: 'programa', required: false })
+  @ApiQuery({ name: 'nivel', required: false })
+  @ApiQuery({ name: 'modalidadEstudio', required: false })
+  @ApiQuery({ name: 'modalidadPractica', required: false })
+  @ApiQuery({ name: 'estado', required: false })
+  @ApiQuery({ name: 'organizacion', required: false })
+  @ApiQuery({ name: 'ciudad', required: false })
+  unificada(@ActorActual() actor: Actor, @Query() q: Record<string, string | undefined>): Promise<ReporteFuentes> {
+    return this.fuentes.consultar(filtroFuentesDe(q), actor);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Agregados de prácticas, documentos y periodos', description: 'Estudiantes únicos, cobertura documental, fricción, tiempos y tendencia semanal (hora de Bogotá).' })

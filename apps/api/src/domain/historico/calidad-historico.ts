@@ -56,6 +56,12 @@ export const MARCAS_CALIDAD = [
   'DOCUMENT_RATIO_INVALID',
   'DOCS_APPROVED_EXCEED_UPLOADED',
   'LOGBOOK_COUNT_INVALID',
+  // ── Datos personales en texto libre (§31): el campo se persistió en NULL; la marca solo registra el hecho ──
+  'PII_SUSPECT_CITY',
+  'PII_SUSPECT_STUDENT_POSITION',
+  'PII_SUSPECT_SCHEDULE',
+  'PII_SUSPECT_AREA',
+  'PII_SUSPECT_SALARY',
   // ── Lote (se calculan sobre el archivo completo) ──
   'IDENTICAL_CONTENT',
   'DUPLICATE_ACTIVE_IN_PERIOD',

@@ -3614,6 +3614,122 @@ con una prueba; lo que el manual no dice, no se inventa.
 
 ## 21. Bitácora de cambios
 
+### 0.52.0 — 24 de noviembre de 2026
+
+**Histórico del SGP · carga real, saneamiento de datos personales, serving y paridad visual de Reportes.** Detalle en
+el §31 de `docs/HISTORICO-PRACTICAS-AUDITORIA.md`. Ambiente local `sipra_dev`; no es un despliegue.
+
+**Saneamiento de datos personales (§31.2).** La primera carga real encontró correos, celulares y números de documento
+en campos de texto libre del SGP: 114 registros en el primer barrido y 121 con la regla final. No se publicó el
+serving.
+
+- **Regla única** en `domain/historico/saneamiento-pii-historico.ts`, aplicada antes de persistir:
+  - patrones: correo con TLD, celular `3XXXXXXXXX` y 7+ dígitos continuos, sin concatenar dígitos separados;
+  - campos: ciudad (original y normalizada), cargo, horario y área; en salario, solo correo y celular.
+- El campo queda en `NULL` y la marca `PII_SUSPECT_*` registra solo el hecho. El `content_hash` recibe un marcador
+  fijo en lugar del valor anulado.
+- `npm run historico:barrido-pii -- --file …`: barrido de lo persistible antes de un APPLY; sale con código 1 ante
+  cualquier hallazgo.
+
+**Carga limpia.**
+
+- Reversión de la importación contaminada por el mecanismo existente, seguida de `VACUUM FULL` de
+  `historico.practicas`.
+- Reimportación con la misma clave HMAC v1:
+  - 143.659 vigentes, 68.435 estudiantes, 79 periodos y 19 programas;
+  - 424 EMPRESA PROPIA y B/C preservados;
+  - limpias 52.632 y observadas 91.027.
+- Validación: PII directa 0 en las 103 columnas textuales de todo el schema `historico`.
+- Después: `ANALYZE` y serving SGP publicado (143.659 filas).
+- `public.practicas` sin cambios.
+- **Backup.** El backup previo de `sipra_dev` pesaba 0 bytes. Se creó otro sin los datos de `historico.*` (no
+  perpetúa la PII) y sin secretos.
+
+**Reportes V3, paridad visual (§31.6).** Histórico y Todos usan las mismas gráficas y la misma rejilla que Actual.
+
+- La API `unificada` agrega `cruces` (periodo×programa, periodo×modalidad y modalidad×estado) y `periodoPorFuente`.
+- Lo que solo existe en el expediente de SIPRA se muestra como «No disponible para información histórica».
+- **Ajustes en componentes compartidos**, que solo actúan con volúmenes grandes:
+  - total de la dona;
+  - eje de barras abreviado;
+  - rotulado de ejes temporales con muchas categorías;
+  - eje histórico ordenado por año.
+- **QA** con datos reales en navegador: 5 anchos y 2 temas, sin overflow.
+
+**H5-PERF-01: ABIERTA.**
+
+| Caso | Mediana real |
+|---|---|
+| Completo | ≈4,0 s |
+| Filtrado | ≈1,8 s |
+
+- La causa son unas 15 pasadas completas sin índice.
+- La migración 29 hace falta para los filtros, y el caso completo pide precomputar los agregados por publicación.
+  Ninguna de las dos se implementó.
+
+**Sin cambios:** `sipra_reportes_1000`, Cumplimiento, Bolsa y exportaciones. La clave HMAC no está en el
+repositorio, `.env`, documentos ni Graphify.
+
+### 0.51.1 — 20 de noviembre de 2026
+
+**Histórico del SGP · cierre funcional de H5 y preparación de la carga real.** Detalle en §29.6 y §30 de
+`docs/HISTORICO-PRACTICAS-AUDITORIA.md`.
+
+- **H5 cerrado funcionalmente**, con la deuda de rendimiento **H5-PERF-01**: los filtros por periodo son más lentos que
+  H4 con 10.000. Se medirá con los datos reales; sin migración 29 ni índices nuevos por ahora.
+- **Hash del archivo real verificado** e igual al de la auditoría.
+- **Dry run final** idéntico a H2/H3: 143.659 registros, 902.533 fantasmas, 68.435 estudiantes, 79 periodos,
+  3 truncadas.
+- **Carga real detenida** con `HISTORICO_HMAC_KEY_REQUIRED`: no hay clave institucional definitiva.
+- Datos reales importados: 0. Sin cambios de código.
+
+### 0.51.0 — 20 de noviembre de 2026
+
+**Histórico del SGP · H5: Reportes V3 por fuente (Actual / Histórico / Todos).** Detalle en el §29 de
+`docs/HISTORICO-PRACTICAS-AUDITORIA.md`. Datos reales importados: 0. Cumplimiento V3, Bolsa de empleo y
+`sipra_reportes_1000` sin cambios.
+
+- **Serving analítico precomputado** (migración `1756000028000-HistoricoServingAnalitico`):
+  - `historico.serving_practicas` (proyección H4 y elegibilidad por métrica) y `historico.serving_publicacion`
+    (puntero);
+  - refresco atómico: construir, validar y cambiar el puntero en una transacción, bajo un bloqueo consultivo;
+  - lo publican `historico:import --apply`, `historico:revert` y `historico:serving`.
+- **Mínimo privilegio:** `sipra_app` solo tiene `SELECT` sobre el serving, el puntero y `practica_correspondencia`
+  (sin escritura). Sin acceso a las versiones crudas.
+- **API:** `GET /api/v1/reportes/analitica/unificada?source=current|historical|all`.
+  - Mismo alcance G1; 400 para un `source` inválido.
+  - 503 controlado si no hay serving; Actual nunca depende de él.
+  - `GET /reportes/analitica`, sin `source`, no cambió.
+  - La H5 da exactamente lo mismo que H4.
+- **Identidad:** `HISTORICO_HMAC_KEY` opcional y tolerante. Sin ella, los estudiantes únicos de Todos son una cota
+  superior con aviso. Nueva variable `HISTORICO_SISTEMA_REPORTES` (`SGP`; `SGP_SINTETICO` solo en dev).
+- **Web:**
+  - selector de fuente accesible (`radiogroup`, teclado, marca y no solo color);
+  - vista `reportes-unificado` en General, Organizaciones y Períodos;
+  - Estudiantes y Documentos «no disponible» en Histórico y Todos; Exportaciones siempre de la operación;
+  - rango temporal y tooltip de estado al corte;
+  - organizaciones sin correspondencia agrupadas; esqueleto, error y reintento.
+- **Verificación:**
+  - API: 131 suites y 3.425 pruebas (18 nuevas de fuentes y 4 de migración 28 y arquitectura);
+  - web: 613 pruebas;
+  - lint (0 advertencias), build, aislamiento (10/10), escaneo de secretos y smoke de arranque;
+  - QA en navegador: 5 perfiles con acceso más 2 sin acceso, temas claro y oscuro, 1440 a 390;
+  - probador HTTP por rol sin datos personales.
+- **PostgreSQL** (CREATEDB temporal del propietario):
+  - `test:pg:serving` 27/27 (nuevo), `test:pg:historico` 87/87, `test:pg:analitica` 22/22;
+  - `verificar:migraciones`: 150 comprobaciones, 0 fallas y 14 deudas heredadas;
+  - 0 bases temporales al cierre.
+- **Defectos hallados en PostgreSQL y corregidos**, sin relajar pruebas:
+  - indicador documental SGP no nulo sin filas del SGP (ahora igual que H4);
+  - histórico fuera de alcance contado en 0 (lógica NULL de `escuela_id`);
+  - CTE anchas materializadas con derrame a disco: 658 → ≈ 200 ms de motor con 10.000.
+- **Rendimiento con 10.000:**
+  - Historical: H4 261 ms → H5 186 ms (−28,6 %); All: 298 → 179 ms (−39,9 %).
+  - Filtrado por periodo: H5 más lento (21 → 106 ms y 27 → 90 ms).
+  - Veredicto y opciones en §29.6: el serving aún no justifica su complejidad frente a H4.
+- **Infraestructura:** `herramientas/soporte-base-temporal.ts` borra las bases temporales aunque un autovacuum ajeno
+  impida `DROP … WITH (FORCE)`.
+
 ### 0.50.0 — 20 de noviembre de 2026
 
 **Histórico del SGP · H4: capa analítica unificada.** Detalle en el §28 de `docs/HISTORICO-PRACTICAS-AUDITORIA.md`.

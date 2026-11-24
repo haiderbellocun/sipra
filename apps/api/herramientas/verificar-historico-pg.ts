@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
+import { borrarBaseTemporal } from './soporte-base-temporal';
 import { ImportarHistoricoUseCase, ResumenImportacion } from '../src/application/use-cases/historico/importar-historico.use-case';
 import { RevertirImportacionHistoricoUseCase } from '../src/application/use-cases/historico/revertir-importacion-historico.use-case';
 import { SeudonimizadorHistorico } from '../src/domain/historico/seudonimizacion-historico';
@@ -92,14 +93,24 @@ async function main(): Promise<void> {
     console.log('\n1. Esquema historico');
     const tablas = (await ds.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'historico' ORDER BY 1`)).map((r: { table_name: string }) => r.table_name);
     comprobar('migraciones 25 y 26 aplicadas', (await n(`SELECT count(*)::int AS n FROM migrations WHERE name IN ('HistoricoSgp1756000025000', 'HistoricoPreparacionCarga1756000026000')`)) === 2);
-    comprobar('existen las 6 tablas del histórico', JSON.stringify(tablas) === JSON.stringify(['importaciones', 'organizacion_alias', 'organizacion_mapping', 'organizaciones', 'practica_correspondencia', 'practicas']), tablas.join(','));
+    comprobar('existen las 8 tablas del histórico (con el serving H5)', JSON.stringify(tablas) === JSON.stringify(['importaciones', 'organizacion_alias', 'organizacion_mapping', 'organizaciones', 'practica_correspondencia', 'practicas', 'serving_practicas', 'serving_publicacion']), tablas.join(','));
     const columnas = (await ds.query(`SELECT table_name || '.' || column_name AS c FROM information_schema.columns WHERE table_schema = 'historico'`)).map((r: { c: string }) => r.c);
     const sensibles = columnas.filter((c: string) => /(student_name|email|correo|phone|telefono|teacher_name|nombre_docente|boss|jefe|funciones|functions_text|nombre_estudiante|nombre_empresa|raw|fila_original)/i.test(c) || /\.documento(_docente|_estudiante)?$/i.test(c));
     comprobar(`ninguna columna personal directa ni copia de la fila (${columnas.length} columnas)`, sensibles.length === 0, sensibles.join(','));
     const priv = async (q: string): Promise<boolean> => (await ds!.query(q))[0].v as boolean;
-    comprobar('sipra_app SIN uso del esquema ni SELECT sobre historico.practicas',
-      !(await priv(`SELECT has_schema_privilege('sipra_app', 'historico', 'USAGE') AS v`))
-      && !(await priv(`SELECT has_table_privilege('sipra_app', 'historico.practicas', 'SELECT') AS v`)));
+    // Desde H5 (migración 28) sipra_app tiene USAGE en historico SOLO para leer el serving derivado: los datos de carga
+    // siguen fuera de su alcance y no puede escribir nada en el esquema.
+    const tienePrivilegio = (tabla: string, p: string): Promise<boolean> => priv(`SELECT has_table_privilege('sipra_app', 'historico.${tabla}', '${p}') AS v`);
+    let leeCarga = false;
+    for (const t of ['practicas', 'importaciones', 'organizaciones', 'organizacion_alias', 'organizacion_mapping']) leeCarga ||= await tienePrivilegio(t, 'SELECT');
+    comprobar('sipra_app SIN SELECT sobre los datos de carga (practicas, importaciones, organizaciones, alias, mapping)', !leeCarga);
+    let escribe = false;
+    for (const t of ['practicas', 'importaciones', 'organizaciones', 'organizacion_alias', 'organizacion_mapping', 'practica_correspondencia', 'serving_practicas', 'serving_publicacion']) {
+      for (const p of ['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) escribe ||= await tienePrivilegio(t, p);
+    }
+    comprobar('sipra_app no puede escribir en ninguna tabla de historico', !escribe);
+    comprobar('el USAGE de sipra_app en historico existe solo junto con SELECT sobre el serving derivado',
+      (await priv(`SELECT has_schema_privilege('sipra_app', 'historico', 'USAGE') AS v`)) === (await tienePrivilegio('serving_practicas', 'SELECT')));
 
     // ── 2. Simulacro y compuertas: CERO escrituras ────────────────────────
     console.log('\n2. Simulacro y compuertas');
@@ -298,7 +309,7 @@ async function main(): Promise<void> {
     comprobar(`la salida del importador (${salida.length} líneas) no contiene centinelas, documentos ni cédulas`, enSalida.length === 0 && !/9100000\d{3}|1099000001/.test(texto), enSalida.join(','));
   } finally {
     if (ds) await ds.destroy();
-    await admin.query(`DROP DATABASE IF EXISTS "${nombre}" WITH (FORCE)`);
+    await borrarBaseTemporal(admin, nombre);
     await admin.destroy();
     await rm(dir, { recursive: true, force: true });
   }

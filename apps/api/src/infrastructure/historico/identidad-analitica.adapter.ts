@@ -20,6 +20,18 @@ export class IdentidadAnaliticaHmac implements IdentidadAnaliticaPort {
     return new IdentidadAnaliticaHmac([SeudonimizadorHistorico.desdeSecreto(entorno.HISTORICO_HMAC_KEY, entorno.HISTORICO_HMAC_KEY_VERSION)]);
   }
 
+  /**
+   * Para la API: un secreto ausente, un marcador de plantilla o un secreto inválido NO impiden arrancar (la fuente Actual
+   * no depende del histórico). La identidad queda no disponible y «Todos» lo informa como cota superior, nunca en silencio.
+   */
+  static desdeEntornoTolerante(entorno: NodeJS.ProcessEnv): IdentidadAnaliticaHmac {
+    try {
+      return IdentidadAnaliticaHmac.desdeEntorno(entorno);
+    } catch {
+      return new IdentidadAnaliticaHmac([]);
+    }
+  }
+
   versiones(): readonly string[] {
     return [...this.porVersion.keys()];
   }

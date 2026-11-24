@@ -13,6 +13,7 @@
  *   Opciones: --source-system SGP|SGP_SINTETICO (por defecto SGP) · --sin-base (simulacro sin conectar) · --json
  *             --modo-carga batched|single (por defecto batched) · --perfil (memoria por etapa)
  *             --informe <archivo.json> (resumen agregado SIN datos personales) · --sin-solapamiento
+ *             --sin-serving (no refresca el serving de Reportes tras un APPLY)
  *             --lector flujo|exceljs (por omisión `flujo`: sin temporales en disco ni cadenas personales en memoria)
  *   Configuración versionable: config/historico/programas-sgp.json y solapamiento.json (HISTORICO_OVERLAP_POLICY).
  *
@@ -27,6 +28,7 @@ import { writeFile } from 'node:fs/promises';
 import { cargarEquivalenciasProgramas, configuracionHistorico, configuracionSolapamiento } from '../src/infrastructure/historico/configuracion-historico';
 import { LectorXlsxSgp } from '../src/infrastructure/historico/lector-xlsx-sgp';
 import { LectorXlsxFlujoSgp } from '../src/infrastructure/historico/lector-xlsx-flujo';
+import { publicarServing } from './historico-serving';
 
 interface Argumentos {
   archivo: string; apply: boolean; sourceSystem: SistemaOrigen; sinBase: boolean; json: boolean;
@@ -82,6 +84,8 @@ export async function ejecutarCli(argv: string[], entorno: NodeJS.ProcessEnv, sa
       modoCarga: a.modoCarga, programas, solapamiento, perfilMemoria: a.perfil,
     });
     if (a.json) salida(JSON.stringify(resumen, null, 2));
+    // H5: una importación publicada refresca el serving de Reportes (construir → validar → publicar).
+    if (resumen.resultado === 'COMPLETED' && ds && !argv.includes('--sin-serving')) await publicarServing(ds, a.sourceSystem, salida);
     if (a.informe) await writeFile(a.informe, JSON.stringify(resumen, null, 2), 'utf8');
     return resumen;
   } finally {

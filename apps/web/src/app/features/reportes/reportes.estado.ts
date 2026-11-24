@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 import { AvisosService } from '@core/ui/avisos.service';
@@ -6,6 +7,9 @@ import { descargarBlob, leerError, nombreDeCabecera } from '@shared/utils/errore
 import {
   DetalleAnalitica, FILTROS_VACIOS, FiltrosAnalitica, ReporteAnalitica, SegmentoAnalitica, cantidadFiltros, parametros, quitar,
 } from './reportes-analitica.util';
+import {
+  FILTROS_FUENTE_VACIOS, FiltrosFuente, FuenteReporte, ReporteFuentes, cantidadFiltrosFuente, mensajeErrorFuente, parametrosFuente,
+} from './reportes-fuentes.util';
 
 export type PestanaReportes = 'general' | 'estudiantes' | 'organizaciones' | 'documentos' | 'periodos' | 'exportaciones';
 
@@ -71,6 +75,75 @@ export class ReportesEstado {
 
   private turno = 0;
   private turnoDetalle = 0;
+
+  // ── Fuente (H5): «Actual» es la vista operativa de siempre; «Histórico» y «Todos» usan su propio contexto de filtros ──
+  /** Fuente elegida. Por omisión «Actual»: la pantalla se comporta exactamente como antes de H5. */
+  readonly fuente = signal<FuenteReporte>('current');
+  readonly filtrosFuente = signal<FiltrosFuente>(FILTROS_FUENTE_VACIOS);
+  readonly datosFuente = signal<ReporteFuentes | null>(null);
+  readonly cargandoFuente = signal(false);
+  readonly errorFuente = signal<string | null>(null);
+  /** Periodos vistos en las respuestas por fuente (la barra de periodos no se encoge al filtrar). */
+  readonly periodosFuente = signal<{ clave: string; etiqueta: string }[]>([]);
+  readonly activosFuente = computed(() => cantidadFiltrosFuente(this.filtrosFuente()));
+  readonly porFuente = computed(() => this.fuente() !== 'current');
+  private turnoFuente = 0;
+
+  /** Cambia la fuente. Volver a «Actual» no recarga nada: sus datos siguen vigentes. */
+  cambiarFuente(f: FuenteReporte): void {
+    if (f === this.fuente()) return;
+    this.fuente.set(f);
+    if (f === 'current') { this.turnoFuente += 1; this.cargandoFuente.set(false); this.errorFuente.set(null); return; }
+    // Las respuestas de otra fuente no se muestran mientras llega la nueva (serían cifras de otro universo).
+    if (this.datosFuente()?.fuente !== f) this.datosFuente.set(null);
+    void this.cargarFuente();
+  }
+
+  async cargarFuente(): Promise<void> {
+    const fuente = this.fuente();
+    if (fuente === 'current') return;
+    const mio = ++this.turnoFuente;
+    this.cargandoFuente.set(true);
+    this.errorFuente.set(null);
+    try {
+      const r = await firstValueFrom(this.api.reporteFuentes(parametrosFuente(fuente, this.filtrosFuente())));
+      if (mio !== this.turnoFuente) return;
+      this.datosFuente.set(r);
+      this.periodosFuente.update((v) => {
+        const m = new Map(v.map((p) => [p.clave, p]));
+        for (const p of r.dimensiones.periodo) m.set(p.clave, { clave: p.clave, etiqueta: p.etiqueta });
+        return [...m.values()].sort((a, b) => a.clave.localeCompare(b.clave, 'es', { numeric: true }));
+      });
+    } catch (e) {
+      if (mio === this.turnoFuente) this.errorFuente.set(mensajeErrorFuente(e instanceof HttpErrorResponse ? e.status : null, leerError(e)));
+    } finally {
+      if (mio === this.turnoFuente) this.cargandoFuente.set(false);
+    }
+  }
+
+  filtrarFuente(cambio: Partial<FiltrosFuente>): void {
+    this.filtrosFuente.update((f) => ({ ...f, ...cambio }));
+    void this.cargarFuente();
+  }
+
+  /** Cross-filter en la vista por fuente: elegir de nuevo el valor activo lo quita. */
+  alternarFuente<K extends Exclude<keyof FiltrosFuente, 'periodos'>>(clave: K, valor: FiltrosFuente[K]): void {
+    this.filtrarFuente({ [clave]: this.filtrosFuente()[clave] === valor ? '' : valor } as Partial<FiltrosFuente>);
+  }
+
+  alternarPeriodoFuente(periodo: string): void {
+    const p = this.filtrosFuente().periodos;
+    this.filtrarFuente({ periodos: p.includes(periodo) ? p.filter((x) => x !== periodo) : [...p, periodo] });
+  }
+
+  quitarFuente(clave: keyof FiltrosFuente): void {
+    this.filtrarFuente({ [clave]: clave === 'periodos' ? [] : '' } as Partial<FiltrosFuente>);
+  }
+
+  limpiarFuente(): void {
+    this.filtrosFuente.set(FILTROS_FUENTE_VACIOS);
+    void this.cargarFuente();
+  }
 
   async cargar(): Promise<void> {
     const mio = ++this.turno;

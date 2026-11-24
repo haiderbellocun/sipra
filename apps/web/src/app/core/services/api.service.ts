@@ -17,6 +17,7 @@ import {
 } from '../models/modelos';
 import { Expediente, FiltrosExpedientes, ListadoExpedientes, SupervisionDocumental, VersionDocumento } from '../models/validacion-documental.model';
 import { DetalleAnalitica, ReporteAnalitica } from '../models/reportes-analitica.model';
+import { ReporteFuentes } from '../models/reportes-fuentes.model';
 
 const aParams = (valores: Record<string, string | number | boolean | null | undefined>): HttpParams => {
   let params = new HttpParams();
@@ -450,6 +451,11 @@ export class ApiService {
 
   reporteAnalitica(parametros: Record<string, string>): Observable<ReporteAnalitica> {
     return this.http.get<ReporteAnalitica>(`${this.base}/reportes/analitica`, { params: aParams(parametros) });
+  }
+
+  /** Reportes V3 por fuente (Actual / Histórico / Todos). `source` siempre explícito. */
+  reporteFuentes(parametros: Record<string, string>): Observable<ReporteFuentes> {
+    return this.http.get<ReporteFuentes>(`${this.base}/reportes/analitica/unificada`, { params: aParams(parametros) });
   }
 
   reporteAnaliticaDetalle(parametros: Record<string, string>): Observable<DetalleAnalitica> {

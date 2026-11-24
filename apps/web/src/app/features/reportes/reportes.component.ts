@@ -12,11 +12,30 @@ import { ReportesExportacionesComponent } from './reportes-exportaciones.compone
 import { ReportesGeneralComponent } from './reportes-general.component';
 import { ReportesOrganizacionesComponent } from './reportes-organizaciones.component';
 import { ReportesPeriodosComponent } from './reportes-periodos.component';
+import { ReportesFuenteComponent } from './reportes-fuente.component';
+import { COMPATIBILIDAD_VISTA, FiltrosFuente, etiquetaEstado, rotuloFuente } from './reportes-fuentes.util';
+import { ReportesUnificadoComponent } from './reportes-unificado.component';
 import { SIN_EMPRESA, hayDatos, migas, nivel, semestre } from './reportes-analitica.util';
 import { num } from './reportes-graficos.util';
 
 /** Nombre del contexto inicial en dev sintético (los periodos los entrega el servidor). */
 export const ROTULO_DATASET = 'Dataset v4';
+
+const ROTULOS_FUENTE: Record<Exclude<keyof FiltrosFuente, 'periodos'>, string> = {
+  programa: 'Programa', nivel: 'Nivel', regional: 'Regional', modalidadEstudio: 'Mod. de estudio', modalidadPractica: 'Modalidad', estado: 'Estado', organizacion: 'Organización', ciudad: 'Ciudad',
+};
+/** Migas del contexto por fuente. La etiqueta sale de la respuesta; sin ella, la clave sin su prefijo técnico. */
+export function migasFuente(f: FiltrosFuente, dims?: Record<string, { clave: string; etiqueta: string }[]>): { clave: keyof FiltrosFuente; rotulo: string; valor: string }[] {
+  const out: { clave: keyof FiltrosFuente; rotulo: string; valor: string }[] = [];
+  if (f.periodos.length) out.push({ clave: 'periodos', rotulo: 'Periodo', valor: f.periodos.join(', ') });
+  for (const k of Object.keys(ROTULOS_FUENTE) as (keyof typeof ROTULOS_FUENTE)[]) {
+    const v = f[k];
+    if (!v) continue;
+    const etq = k === 'estado' ? etiquetaEstado(v) : k === 'nivel' ? nivel(v) : dims?.[k]?.find((d) => d.clave === v)?.etiqueta ?? v.replace(/^[a-z-]+:/, '');
+    out.push({ clave: k, rotulo: ROTULOS_FUENTE[k], valor: etq });
+  }
+  return out;
+}
 import { PestanaReportes, ReportesEstado } from './reportes.estado';
 
 /** Perfiles que consultan la analítica (los mismos del servidor). Extensión solo ve las exportaciones regulatorias. */
@@ -42,6 +61,7 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
   imports: [
     DatePipe, EtiquetaPipe, CargaSenalComponent, EstadoVacioComponent, ReportesGeneralComponent, ReportesEstudiantesComponent,
     ReportesDocumentosComponent, ReportesOrganizacionesComponent, ReportesPeriodosComponent, ReportesDetalleComponent, ReportesExportacionesComponent,
+    ReportesFuenteComponent, ReportesUnificadoComponent,
   ],
   providers: [ReportesEstado],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -101,6 +121,7 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
     :host-context([data-theme='light']) .universo.dev { color: var(--text-secondary); }
     .chip.preset { font-family: var(--fuente); }
 
+    .nota-fuente { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
     .error { display: grid; justify-items: start; gap: 10px; padding: 24px 0; }
     .error strong { font-size: 15px; color: var(--text-primary); }
     .error span { font-size: 13px; color: var(--text-secondary); }
@@ -119,11 +140,25 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
     <header class="cabecera">
       <h1>Reportes</h1>
       <p class="ayuda">Inteligencia operativa de prácticas en su alcance: estudiantes únicos; documentos por obligación exigida.</p>
-      @if (estado.datos(); as r) { <span class="sello">Calculado {{ r.generadoEn | date: 'yyyy-MM-dd HH:mm' : '-0500' }} · hora de Colombia</span> }
+      @if (estado.porFuente() ? estado.datosFuente() : estado.datos(); as r) { <span class="sello">Calculado {{ r.generadoEn | date: 'yyyy-MM-dd HH:mm' : '-0500' }} · hora de Colombia</span> }
     </header>
 
     @if (analitica()) {
       <div class="herramientas" role="group" aria-label="Filtros del reporte">
+        <sipra-reportes-fuente />
+        @if (estado.porFuente()) {
+          <div class="periodos" role="group" aria-labelledby="rp-per">
+            <span class="rotulo" id="rp-per">Periodo</span>
+            <button type="button" class="chip" [attr.aria-pressed]="estado.filtrosFuente().periodos.length === 0" (click)="estado.filtrarFuente({ periodos: [] })">Todos</button>
+            @for (p of estado.periodosFuente(); track p.clave) {
+              <button type="button" class="chip" [attr.aria-pressed]="estado.filtrosFuente().periodos.includes(p.clave)" (click)="estado.alternarPeriodoFuente(p.clave)">{{ p.etiqueta }}</button>
+            }
+          </div>
+          <button type="button" class="bt" [disabled]="estado.activosFuente() === 0" (click)="estado.limpiarFuente()">Limpiar</button>
+          @if (estado.datosFuente(); as r) {
+            <span class="universo">{{ num(r.totales.practicas) }} prácticas · {{ rotuloFuente(r.fuente) }}</span>
+          }
+        } @else {
         <div class="periodos" role="group" aria-labelledby="rp-per">
           <span class="rotulo" id="rp-per">Periodo</span>
           @if (estado.dataset()) {
@@ -143,8 +178,9 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
           <span class="universo">{{ num(r.resumen.estudiantes) }} de {{ num(r.universo.estudiantes) }} estudiantes en alcance</span>
           @if (contextoDev(); as c) { <span class="universo dev">{{ c }}</span> }
         }
+        }
       </div>
-      <div class="panel" id="rp-filtros" [hidden]="!panel()">
+      <div class="panel" id="rp-filtros" [hidden]="!panel() || estado.porFuente()">
         <label for="rp-escuela">Escuela
           <select id="rp-escuela" class="ctl" [value]="estado.filtros().escuela" (change)="estado.filtrar({ escuela: valor($event) })">
             <option value="">Todas</option>
@@ -198,7 +234,19 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
             @for (e of empresasDelContexto(); track e) { <option [value]="e ?? sinEmpresa" [selected]="(e ?? sinEmpresa) === estado.filtros().empresa">{{ e ?? 'Sin empresa registrada' }}</option> }
           </select></label>
       </div>
-      @if (migas().length) {
+      @if (estado.porFuente() && migasFuente().length) {
+        <nav class="contexto" aria-label="Contexto del reporte">
+          <span class="rotulo">Contexto</span>
+          <ol>
+            <li><button type="button" class="miga raiz" (click)="estado.limpiarFuente()">Todo {{ rotuloFuente(estado.fuente()) }}</button></li>
+            @for (m of migasFuente(); track m.clave) {
+              <li><span class="miga activa" [attr.aria-label]="m.rotulo + ': ' + m.valor"><span class="mr">{{ m.rotulo }}</span> {{ m.valor }}
+                <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + m.rotulo + ' ' + m.valor" (click)="estado.quitarFuente(m.clave)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></span></li>
+            }
+          </ol>
+        </nav>
+      }
+      @if (!estado.porFuente() && migas().length) {
         <nav class="contexto" aria-label="Contexto del reporte">
           <span class="rotulo">Contexto</span>
           <ol>
@@ -220,15 +268,31 @@ export const PESTANAS: readonly { id: PestanaReportes; texto: string }[] = [
         }
       </div>
       <div class="estado-linea" role="status" aria-live="polite">
+        @if (estado.porFuente()) {
+          @if (estado.cargandoFuente() && estado.datosFuente()) { <span>Actualizando…</span> }
+          @if (estado.errorFuente() && estado.datosFuente()) { <span role="alert">No se pudo actualizar: se muestran las cifras anteriores.</span><button type="button" class="bt" (click)="estado.cargarFuente()">Reintentar</button> }
+        } @else {
         @if (estado.cargando() && estado.datos()) { <span>Actualizando…</span> }
         @if (estado.error() && estado.datos()) { <span role="alert">No se pudo actualizar: se muestran las cifras anteriores.</span><button type="button" class="bt" (click)="estado.cargar()">Reintentar</button> }
+        }
       </div>
     </div>
 
     <div role="tabpanel" [id]="'vista-' + estado.pestana()" [attr.aria-labelledby]="'tab-' + estado.pestana()" tabindex="0"
-         [class.recalculando]="estado.cargando() && !!estado.datos()" [attr.aria-busy]="estado.cargando()">
+         [class.recalculando]="estado.porFuente() ? estado.cargandoFuente() && !!estado.datosFuente() : estado.cargando() && !!estado.datos()"
+         [attr.aria-busy]="estado.porFuente() ? estado.cargandoFuente() : estado.cargando()">
       @if (estado.pestana() === 'exportaciones') {
+        @if (estado.porFuente()) { <p class="nota-fuente">Las exportaciones regulatorias son siempre de la operación actual de SIPRA.</p> }
         <sipra-reportes-exportaciones />
+      } @else if (estado.porFuente()) {
+        @if (compatibilidad() === 'comun') {
+          <sipra-reportes-unificado [vista]="vistaFuente()" />
+        } @else {
+          <sipra-estado-vacio [titulo]="'Esta vista no está disponible en ' + rotuloFuente(estado.fuente())"
+            texto="Se basa en el expediente de SIPRA (obligaciones, versiones y revisiones), que el archivo histórico del SGP no tiene. Use General, Organizaciones o Períodos, o vuelva a Actual.">
+            <button type="button" class="bt" (click)="estado.cambiarFuente('current')">Ver en Actual</button>
+          </sipra-estado-vacio>
+        }
       } @else if (estado.error() && !estado.datos()) {
         <div class="error" role="alert">
           <strong>No fue posible calcular el reporte</strong>
@@ -274,6 +338,11 @@ export class ReportesComponent implements OnInit {
   protected readonly migas = computed(() => migas(this.estado.filtros(), { escuela: this.estado.nombreEscuela, etiqueta: (v) => this.etiqueta.transform(v), programa: this.estado.nombrePrograma, sector: this.estado.nombreSector, ciudad: this.estado.nombreCiudad })
     .map((m) => (m.clave === 'periodos' && this.estado.presetActivo() ? { ...m, valor: `${ROTULO_DATASET} (${this.estado.filtros().periodos.length} periodos)` } : m)));
   protected readonly rotuloDataset = ROTULO_DATASET;
+  protected readonly rotuloFuente = rotuloFuente;
+  protected readonly compatibilidad = computed(() => COMPATIBILIDAD_VISTA[this.estado.pestana()]);
+  protected readonly vistaFuente = computed(() => (['organizaciones', 'periodos'].includes(this.estado.pestana()) ? this.estado.pestana() : 'general') as 'general' | 'organizaciones' | 'periodos');
+  /** Migas del contexto por fuente: rótulos humanos tomados de la propia respuesta (nunca claves técnicas). */
+  protected readonly migasFuente = computed(() => migasFuente(this.estado.filtrosFuente(), this.estado.datosFuente()?.dimensiones));
   protected readonly num = num;
   /**
    * Solo dev sintético: explica la diferencia entre el dataset y «Todos» con un conteo calculado (universo menos las

@@ -551,9 +551,10 @@ describe('Reportes V3 · plantillas', () => {
     assert.match(t, /titulo="Sin prácticas para estos filtros"/);
     assert.match(t, /role="alert"[\s\S]*?Reintentar/);
     assert.match(t, /class="estado-linea" role="status" aria-live="polite"/);
-    assert.match(t, /\[class\.recalculando\]="estado\.cargando\(\) && !!estado\.datos\(\)"/);
+    // H5: el recálculo sigue la fuente activa; en Actual es exactamente el de siempre.
+    assert.match(t, /\[class\.recalculando\]="estado\.porFuente\(\) \? estado\.cargandoFuente\(\) && !!estado\.datosFuente\(\) : estado\.cargando\(\) && !!estado\.datos\(\)"/);
     assert.match(t, /@for \(e of empresasDelContexto\(\); track e\)/);
-    assert.match(t, /@if \(migas\(\)\.length\) \{/);
+    assert.match(t, /@if \(!estado\.porFuente\(\) && migas\(\)\.length\) \{/);
   });
   it('responsive: barras, pilas y tabla se reorganizan bajo 700 px', () => {
     for (const f of ['reportes-barras.component.ts', 'reportes-apiladas.component.ts', 'reportes-detalle.component.ts', 'reportes.component.ts']) {

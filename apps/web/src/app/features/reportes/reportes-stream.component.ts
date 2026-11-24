@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input, signal, viewChild } from '@angular/core';
 import { Celda, pct1 } from './reportes-analitica.util';
-import { TipGrafico, TonoGrafico, categorico, escucharMovil, num } from './reportes-graficos.util';
+import { TipGrafico, TonoGrafico, categorico, escucharMovil, num, pasoEtiquetas, rotulaEn } from './reportes-graficos.util';
 import { ReportesTooltipComponent } from './reportes-tooltip.component';
 import { ESTILOS_REPORTES } from './reportes.estilos';
 
@@ -68,7 +68,7 @@ const ALTO = 260, M = { arriba: 10, abajo: 28, izquierda: 12, derecha: 12 };
             <path class="gs-banda" [class]="'gt-' + c.tono" [class.foco]="foco() === c.clave" [attr.d]="c.d" (mousemove)="mover($event)" (mouseenter)="foco.set(c.clave)" (mouseleave)="foco.set(null)" />
           }
           @if (indice() !== null) { <line class="gs-guia" [attr.x1]="x(indice()!)" [attr.x2]="x(indice()!)" [attr.y1]="mg.arriba" [attr.y2]="alto - mg.abajo" /> }
-          @for (c of categorias(); track c; let i = $index) { <text class="gs-x" [attr.x]="x(i)" [attr.y]="alto - 8" text-anchor="middle">{{ c }}</text> }
+          @for (c of categorias(); track c; let i = $index) { @if (rotula(i)) { <text class="gs-x" [attr.x]="x(i)" [attr.y]="alto - 8" text-anchor="middle">{{ c }}</text> } }
         </svg>
         <ul class="gr-leyenda gs-ley" aria-label="Modalidades">
           @for (c of capas(); track c.clave) {
@@ -130,6 +130,9 @@ export class ReportesStreamComponent {
     });
   }
 
+  /** Paso de etiquetas del eje X (1 con pocas categorías). */
+  private readonly paso = computed(() => pasoEtiquetas(this.categorias().length, this.ancho() - M.izquierda - M.derecha));
+  protected rotula(i: number): boolean { return rotulaEn(i, this.categorias().length, this.paso()); }
   protected x(i: number): number {
     const n = this.categorias().length, util = this.ancho() - M.izquierda - M.derecha;
     return n <= 1 ? M.izquierda + util / 2 : M.izquierda + 24 + (i * (util - 48)) / (n - 1);

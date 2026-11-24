@@ -132,9 +132,9 @@
     "semantic_hash": "120d33e2939a2b7f09108d1fcd57d25c"
   },
   "apps/api/herramientas/verificar-migraciones.ts": {
-    "mtime": 1795187358.2048767,
-    "seen": 1795187991.2561893,
-    "ast_hash": "43b87933308b886a20a7b64889a11533",
+    "mtime": 1795194291.1153455,
+    "seen": 1795194884.2770207,
+    "ast_hash": "b4bcdc7ba061bfd87db6bd4ec4d69d77",
     "semantic_hash": ""
   },
   "apps/api/herramientas/verificar-rut-pg.ts": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "apps/api/package.json": {
-    "mtime": 1795184945.7032294,
-    "seen": 1795187991.2575262,
-    "ast_hash": "4e7800c0f8073bd18f25e39d06fd2521",
+    "mtime": 1795535055.1403017,
+    "seen": 1795539173.8591163,
+    "ast_hash": "ff1bf2498f15c6b2f9c7798ec97ce427",
     "semantic_hash": ""
   },
   "apps/api/src/application/dtos/acta-iniciacion.dto.ts": {
@@ -1428,9 +1428,9 @@
     "semantic_hash": "57c35be7af933a41a7ec3349849a47a5"
   },
   "apps/api/src/infrastructure/config/configuracion.ts": {
-    "mtime": 1795017661.3857038,
-    "seen": 1795021262.836319,
-    "ast_hash": "6316fabb2895cefa4fb2fa2005770c3a",
+    "mtime": 1795190101.8907218,
+    "seen": 1795192790.6797817,
+    "ast_hash": "b65298e49158885131ace89da3d9f2e5",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/actas-iniciacion.controller.ts": {
@@ -1596,9 +1596,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/modules/app.module.ts": {
-    "mtime": 1795033348.2286017,
-    "seen": 1795036922.489481,
-    "ast_hash": "8aa0a868d001b315e2a6b435e1e51cc2",
+    "mtime": 1795190135.285617,
+    "seen": 1795192790.6994114,
+    "ast_hash": "393ae610780475251c49114f2ba7bde0",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/modules/auditoria.service.ts": {
@@ -1830,9 +1830,9 @@
     "semantic_hash": "0a7379467232b88d2a04be11cbc3ef2a"
   },
   "apps/api/src/infrastructure/persistence/postgres/migrations/todas.migracion.ts": {
-    "mtime": 1795184585.7060444,
-    "seen": 1795187991.3924127,
-    "ast_hash": "5ee645528eaf4c827c04344d1c0c317e",
+    "mtime": 1795189747.9867342,
+    "seen": 1795192790.7310236,
+    "ast_hash": "7d2ce43c6ac83a29606d77ca43e72460",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/opciones-datasource.ts": {
@@ -2892,9 +2892,9 @@
     "semantic_hash": "65181eb1348fe3c7e12c77c6740ea07d"
   },
   "apps/web/src/app/core/services/api.service.ts": {
-    "mtime": 1795033677.5302439,
-    "seen": 1795036923.923073,
-    "ast_hash": "79aa8d125c5066041793cfcbe0079950",
+    "mtime": 1795191464.0511608,
+    "seen": 1795192790.8786528,
+    "ast_hash": "3618effeb4cd61b8ff54538559d37780",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/services/captura-guiada.service.ts": {
@@ -3210,9 +3210,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes.component.ts": {
-    "mtime": 1794931725.3264916,
-    "seen": 1794932082.3380225,
-    "ast_hash": "2f6d9afc3b94036709b415aa108a4bfb",
+    "mtime": 1795191657.107009,
+    "seen": 1795192790.9468434,
+    "ast_hash": "99f60567f7350d51b8c0a09e3b22d927",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/rut/rut-decision.component.ts": {
@@ -3498,9 +3498,9 @@
     "semantic_hash": "afbdcf6df932934fbcdedb360ce2d3e8"
   },
   "package.json": {
-    "mtime": 1795184945.7068603,
-    "seen": 1795187991.6170104,
-    "ast_hash": "6a3a2725975a8f829425ef47ce7df423",
+    "mtime": 1795535056.7327504,
+    "seen": 1795539174.7164338,
+    "ast_hash": "6becc2f9c9550f54cbedf44daff1efeb",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -3528,9 +3528,9 @@
     "semantic_hash": "d6d61ff74d2c1b5fb934db4c2f559639"
   },
   "docs/DOCUMENTO-TECNICO.md": {
-    "mtime": 1795187912.209306,
-    "seen": 1795187991.6187456,
-    "ast_hash": "7f4ee142e7d09fd7e3c844143e30782d",
+    "mtime": 1795538912.0754275,
+    "seen": 1795539174.7192483,
+    "ast_hash": "6c5db84d925bd8d6f1f31a651f414163",
     "semantic_hash": ""
   },
   "docs/prototipo/sipra-prototipo.html": {
@@ -3774,9 +3774,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/controllers/reportes-analitica.controller.ts": {
-    "mtime": 1794931374.767651,
-    "seen": 1794932082.1427107,
-    "ast_hash": "d21cf1a27d9bb979ee6928decfbd923d",
+    "mtime": 1795190101.9013956,
+    "seen": 1795192790.691323,
+    "ast_hash": "96c7fd654b87a8b49e70d63453aea111",
     "semantic_hash": ""
   },
   "apps/api/test/reportes-analitica.spec.ts": {
@@ -3786,9 +3786,9 @@
     "semantic_hash": ""
   },
   "apps/web/pruebas/reportes-v3.spec.ts": {
-    "mtime": 1794932178.0734494,
-    "seen": 1794936263.1565042,
-    "ast_hash": "db05ad4abdc27d1373f2b5f34e95de08",
+    "mtime": 1795191766.918115,
+    "seen": 1795192790.8621807,
+    "ast_hash": "7c36e30e7f4f33e10fd5760a0e28b897",
     "semantic_hash": ""
   },
   "apps/web/src/app/core/models/reportes-analitica.model.ts": {
@@ -3840,9 +3840,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes.estado.ts": {
-    "mtime": 1794496010.0004482,
-    "seen": 1794498469.9025874,
-    "ast_hash": "e5592cd1ae5f3e859b64e16997963ca0",
+    "mtime": 1795191485.866549,
+    "seen": 1795192790.9468486,
+    "ast_hash": "ba487b51e0885f810073fb229ff837aa",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes.estilos.ts": {
@@ -3858,9 +3858,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-barras.component.ts": {
-    "mtime": 1794499705.5775132,
-    "seen": 1794500882.1923974,
-    "ast_hash": "4d0e7b9bb3ee7fba104ed894ce3043f4",
+    "mtime": 1795537045.6044347,
+    "seen": 1795539174.6192489,
+    "ast_hash": "81ab15bcc3fab91b257c0c0cdcf33c43",
     "semantic_hash": ""
   },
   "apps/api/herramientas/seed-reportes-1000.ts": {
@@ -3942,15 +3942,15 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-dona.component.ts": {
-    "mtime": 1794496152.8480432,
-    "seen": 1794498469.9006805,
-    "ast_hash": "afc888fa892d7535aee580bc9cc87308",
+    "mtime": 1795536958.7551248,
+    "seen": 1795539174.623071,
+    "ast_hash": "c6ac625b9d8481e7dcb78c0107ceaf37",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-graficos.util.ts": {
-    "mtime": 1794501280.5376787,
-    "seen": 1794502339.2683666,
-    "ast_hash": "23c9285a5a2363beda0124aa4935956c",
+    "mtime": 1795537124.1164055,
+    "seen": 1795539174.6291173,
+    "ast_hash": "d5b0886c4c8ac581d88a2a6c315c9511",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-grupos.component.ts": {
@@ -3966,9 +3966,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-lineas.component.ts": {
-    "mtime": 1794494465.8466754,
-    "seen": 1794495134.840342,
-    "ast_hash": "6f6759f320bcbc47a842d9d9c1dc6d88",
+    "mtime": 1795537125.7057464,
+    "seen": 1795539174.6340241,
+    "ast_hash": "6e4eeb602a8ebf6957b49a2592f1776a",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-matriz.component.ts": {
@@ -4062,9 +4062,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-bump.component.ts": {
-    "mtime": 1794500011.682927,
-    "seen": 1794500882.192401,
-    "ast_hash": "605d5003e931b4f04f465439e3738b1f",
+    "mtime": 1795537130.888144,
+    "seen": 1795539174.619254,
+    "ast_hash": "e0140abd4287ef497b42a7805b7112f9",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-insights.component.ts": {
@@ -4086,9 +4086,9 @@
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-stream.component.ts": {
-    "mtime": 1794500159.042496,
-    "seen": 1794500882.1999938,
-    "ast_hash": "817760752adb906eb5a81b6e8cc674ae",
+    "mtime": 1795537131.6338036,
+    "seen": 1795539174.6378367,
+    "ast_hash": "0f26fd76f2d2d34555c3a31654b9868d",
     "semantic_hash": ""
   },
   "apps/web/src/app/features/reportes/reportes-swarm.component.ts": {
@@ -4938,21 +4938,21 @@
     "semantic_hash": ""
   },
   "apps/api/herramientas/historico-importar.ts": {
-    "mtime": 1795107355.494767,
-    "seen": 1795183340.009262,
-    "ast_hash": "488ca99f75620342d1684b14febdb03d",
+    "mtime": 1795190239.5640657,
+    "seen": 1795192790.5113277,
+    "ast_hash": "fe7c7dd533a1b4d8ae125608996d534c",
     "semantic_hash": ""
   },
   "apps/api/herramientas/historico-revertir.ts": {
-    "mtime": 1795100967.4468145,
-    "seen": 1795104378.5794423,
-    "ast_hash": "6b25b3452073639bd7deea2bf9996725",
+    "mtime": 1795190239.5660791,
+    "seen": 1795192790.512025,
+    "ast_hash": "a1c0b534125d71869800e67fec6d84c9",
     "semantic_hash": ""
   },
   "apps/api/herramientas/verificar-historico-pg.ts": {
-    "mtime": 1795187358.2064948,
-    "seen": 1795187991.2561846,
-    "ast_hash": "2497dfc7a1566528e03e32ed5569f709",
+    "mtime": 1795194239.3790536,
+    "seen": 1795194884.2770135,
+    "ast_hash": "cbb1bed8fdec20570234405e3fc803a9",
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/historico/importar-historico.use-case.ts": {
@@ -4968,9 +4968,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/calidad-historico.ts": {
-    "mtime": 1795105381.9529307,
-    "seen": 1795183340.192296,
-    "ast_hash": "9edea244d0f50e3b71f9ea68e826d762",
+    "mtime": 1795534720.379858,
+    "seen": 1795539173.9859605,
+    "ast_hash": "241127a2cc6761d5b918c3f1aa9885ac",
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/fechas-sgp.parser.ts": {
@@ -4992,9 +4992,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/registro-historico.ts": {
-    "mtime": 1795105545.9403057,
-    "seen": 1795183340.2004473,
-    "ast_hash": "b91718918e72e508686fd8ebcd78cab7",
+    "mtime": 1795534776.7282925,
+    "seen": 1795539173.990424,
+    "ast_hash": "66ef9a218342ebab0d8890254aca1296",
     "semantic_hash": ""
   },
   "apps/api/src/domain/historico/seudonimizacion-historico.ts": {
@@ -5076,15 +5076,15 @@
     "semantic_hash": ""
   },
   "apps/api/test/soporte-historico-sgp.ts": {
-    "mtime": 1795108309.6800954,
-    "seen": 1795183340.833306,
+    "mtime": 1795205460.6219258,
+    "seen": 1795539174.4483852,
     "ast_hash": "6705f91ae57b0dc2d39d481c634df1f0",
     "semantic_hash": ""
   },
   "docs/HISTORICO-PRACTICAS-AUDITORIA.md": {
-    "mtime": 1795187883.4095612,
-    "seen": 1795187991.6187494,
-    "ast_hash": "d721ec9509f033e87b7b4625ae02cef6",
+    "mtime": 1795538768.7214606,
+    "seen": 1795539174.719254,
+    "ast_hash": "eda6c3b3dc2345b253f86cee4a896f23",
     "semantic_hash": ""
   },
   "apps/api/config/historico/programas-sgp.json": {
@@ -5172,9 +5172,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/application/use-cases/analitica/analitica-unificada.use-case.ts": {
-    "mtime": 1795184524.5322587,
-    "seen": 1795187991.2699273,
-    "ast_hash": "8669d1c70319eb4ba110d44e59ecbbbf",
+    "mtime": 1795189680.5457883,
+    "seen": 1795192790.544096,
+    "ast_hash": "a02e37ec350ae6f39ac71af8454ca22b",
     "semantic_hash": ""
   },
   "apps/api/src/domain/analitica/analitica-unificada.service.ts": {
@@ -5202,9 +5202,9 @@
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/historico/identidad-analitica.adapter.ts": {
-    "mtime": 1795184578.7740078,
-    "seen": 1795187991.3703296,
-    "ast_hash": "8bf20580fe40b7334db846684243f240",
+    "mtime": 1795190135.2846508,
+    "seen": 1795192790.6978486,
+    "ast_hash": "f8363a681e57934ae13b91989129f306",
     "semantic_hash": ""
   },
   "apps/api/src/infrastructure/persistence/postgres/migrations/1756000027000-HistoricoCorrespondenciaPracticas.ts": {
@@ -5214,15 +5214,177 @@
     "semantic_hash": ""
   },
   "apps/api/test/analitica-arquitectura.spec.ts": {
-    "mtime": 1795184683.9518065,
-    "seen": 1795187991.4038928,
-    "ast_hash": "cfca0cb21d0bf91f51cc933741a161e1",
+    "mtime": 1795190182.621306,
+    "seen": 1795192790.7456512,
+    "ast_hash": "081c21d1a60774f18d9304c540d7ec9f",
     "semantic_hash": ""
   },
   "apps/api/test/analitica-unificada.spec.ts": {
     "mtime": 1795184780.5860434,
     "seen": 1795187991.403901,
     "ast_hash": "8c247255727fb257f5c732fe4550fbfe",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/historico-serving.ts": {
+    "mtime": 1795190223.9017675,
+    "seen": 1795192790.5120316,
+    "ast_hash": "a1045abd50fa4cdf6ea674bd4b62e05b",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/verificar-serving-pg.ts": {
+    "mtime": 1795194226.456022,
+    "seen": 1795194884.2779486,
+    "ast_hash": "59200498a7c0ee9d6c36ce9c0f5ee58a",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/analitica/construir-serving.use-case.ts": {
+    "mtime": 1795189996.9973495,
+    "seen": 1795192790.5440996,
+    "ast_hash": "88732527204350303afdb997a36d7a21",
+    "semantic_hash": ""
+  },
+  "apps/api/src/application/use-cases/reportes/reportes-fuentes.use-case.ts": {
+    "mtime": 1795535447.732452,
+    "seen": 1795539173.9530013,
+    "ast_hash": "74fdbd0f75cf1fe55a925e81eabc5d90",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/analitica/serving-analitico.ts": {
+    "mtime": 1795535408.4237964,
+    "seen": 1795539173.9578562,
+    "ast_hash": "0c4faa24c071c46219618987a7b88169",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/ports/out/serving-analitico.port.ts": {
+    "mtime": 1795189848.2400303,
+    "seen": 1795192790.5987833,
+    "ast_hash": "f207715d9531340fb0109bca93242c4e",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/adapters/persistence/postgres/serving-analitico.adapter.ts": {
+    "mtime": 1795535468.8558395,
+    "seen": 1795539174.1820102,
+    "ast_hash": "83684710031fe9471ddd54911141a44e",
+    "semantic_hash": ""
+  },
+  "apps/api/src/infrastructure/persistence/postgres/migrations/1756000028000-HistoricoServingAnalitico.ts": {
+    "mtime": 1795189744.6691916,
+    "seen": 1795192790.7310126,
+    "ast_hash": "fa51bd7d25347f8eff423661c9769dfd",
+    "semantic_hash": ""
+  },
+  "apps/api/test/reportes-fuentes.spec.ts": {
+    "mtime": 1795537854.1813004,
+    "seen": 1795539174.426067,
+    "ast_hash": "539dc9f349bd19fc1b3a6565b6394fcf",
+    "semantic_hash": ""
+  },
+  "apps/web/pruebas/reportes-fuentes.spec.ts": {
+    "mtime": 1795537229.652766,
+    "seen": 1795539174.5194228,
+    "ast_hash": "61e2f07b8a4addd0f38e7f2b99ececba",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/core/models/reportes-fuentes.model.ts": {
+    "mtime": 1795536273.5915966,
+    "seen": 1795539174.5495973,
+    "ast_hash": "8a3d99a29da95e82207f2dd678b2369c",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-fuente.component.ts": {
+    "mtime": 1795191905.4171894,
+    "seen": 1795192790.9356265,
+    "ast_hash": "28de2083e3542f8b2122abe5152709cc",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-fuentes.util.ts": {
+    "mtime": 1795191974.6754997,
+    "seen": 1795192790.93563,
+    "ast_hash": "d563e38fde9d980e9ac95713a43f44a2",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-unificado.component.ts": {
+    "mtime": 1795537157.0167189,
+    "seen": 1795539174.6427608,
+    "ast_hash": "1b4904829117a98aeb5e0f11edeac608",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/soporte-base-temporal.ts": {
+    "mtime": 1795194223.634572,
+    "seen": 1795194884.2723548,
+    "ast_hash": "f1b1ad90f11ec1f92da5ce077e15173c",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-11-24T16-12-26-665Z.yml": {
+    "mtime": 1795536746.6769505,
+    "seen": 1795539173.816856,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-11-24T16-12-35-807Z.yml": {
+    "mtime": 1795536755.8256352,
+    "seen": 1795539173.8168814,
+    "ast_hash": "f15b122b910d5bbe1b615310208f17d0",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/page-2026-11-24T16-13-44-995Z.yml": {
+    "mtime": 1795536825.0036316,
+    "seen": 1795539173.8168874,
+    "ast_hash": "d84faa8485184357d607ca165b0eaa4c",
+    "semantic_hash": ""
+  },
+  "apps/api/herramientas/historico-barrido-pii.ts": {
+    "mtime": 1795535043.5224402,
+    "seen": 1795539173.8280451,
+    "ast_hash": "097346562178360c491a51dcf932b94a",
+    "semantic_hash": ""
+  },
+  "apps/api/src/domain/historico/saneamiento-pii-historico.ts": {
+    "mtime": 1795534989.4252818,
+    "seen": 1795539173.9904413,
+    "ast_hash": "98a797e0251f5c676427c41e37f11c75",
+    "semantic_hash": ""
+  },
+  "apps/api/test/historico-saneamiento-pii.spec.ts": {
+    "mtime": 1795534991.0280838,
+    "seen": 1795539174.370705,
+    "ast_hash": "4765c766533309b4de4689aca0e32605",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-no-disponible.component.ts": {
+    "mtime": 1795536385.4846838,
+    "seen": 1795539174.6347008,
+    "ast_hash": "ade3deb903664fd1c9692d31619cf1fe",
+    "semantic_hash": ""
+  },
+  "apps/web/src/app/features/reportes/reportes-paridad.util.ts": {
+    "mtime": 1795537280.617499,
+    "seen": 1795539174.6363611,
+    "ast_hash": "1c4196afb50258255e30691eeb89d0ad",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/general-historico-1440-light.jpg": {
+    "mtime": 1795536922.443708,
+    "seen": 1795539174.7237906,
+    "ast_hash": "bc5555c8874db660cc8938f84ced0958",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/general-historico-390-dark.jpg": {
+    "mtime": 1795537570.6182778,
+    "seen": 1795539174.723801,
+    "ast_hash": "51f98253b0921e9afadc63b46e80fff6",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/general-todos-1440-dark.jpg": {
+    "mtime": 1795537029.6830647,
+    "seen": 1795539174.7238076,
+    "ast_hash": "246131e4594c80d32be66657270c1f1b",
+    "semantic_hash": ""
+  },
+  ".playwright-mcp/periodos-todos-1440-dark.jpg": {
+    "mtime": 1795537357.5940988,
+    "seen": 1795539174.7238133,
+    "ast_hash": "363881545c573b5eda1d228d77a0e52e",
     "semantic_hash": ""
   },
   "package-lock.json": {

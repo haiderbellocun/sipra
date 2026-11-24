@@ -72,7 +72,7 @@ import { ESTILOS_REPORTES } from './reportes.estilos';
       </ul>
       <div class="gb-eje" aria-hidden="true">
         <span class="gr-eje-t">{{ eje() }}</span>
-        <span class="gb-marcas">@for (m of esc().marcas; track $index) { <span [style.left.%]="(m * 100) / esc().max">{{ cifra(m) }}</span> }</span>
+        <span class="gb-marcas">@for (m of esc().marcas; track $index) { <span [style.left.%]="(m * 100) / esc().max">{{ cifraEje(m, $index) }}</span> }</span>
       </div>
       <sipra-reportes-tooltip [tip]="tip()" />
     </div>
@@ -115,6 +115,11 @@ export class ReportesBarrasComponent {
 
   protected ancho(n: number): number { return (Math.max(0, n) * 100) / this.esc().max; }
   protected cifra(n: number): string { return this.formato()?.(n) ?? num(n); }
+  /** Marcas del eje: con escalas de decenas de miles (histórico) se abrevian para que no se peguen («10 mil»). */
+  protected cifraEje(n: number, i: number): string {
+    if (this.formato() || this.esc().max < 10_000) return this.cifra(n);
+    return i % 2 ? '' : n === 0 ? '0' : `${num(n / 1000)} mil`;
+  }
   private lineas(i: ItemBarra): string[] {
     const l = [`${this.cifra(i.n)} ${this.unidad()}`];
     if (this.total() > 0) l.push(`${pct1(i.n, this.total())} ${this.base()}`);

@@ -11,6 +11,7 @@ import { DataSource } from 'typeorm';
 import { RevertirImportacionHistoricoUseCase } from '../src/application/use-cases/historico/revertir-importacion-historico.use-case';
 import { HistoricoPostgresAdapter } from '../src/infrastructure/adapters/persistence/postgres/historico.adapter';
 import { compuertaApplyHabilitada } from '../src/infrastructure/historico/configuracion-historico';
+import { publicarServing } from './historico-serving';
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
@@ -24,6 +25,9 @@ async function main(): Promise<void> {
   try {
     const r = await new RevertirImportacionHistoricoUseCase(new HistoricoPostgresAdapter(ds)).ejecutar(id);
     console.log(`Importación ${r.importacionId} revertida: ${r.versionesRetiradas} versiones retiradas, ${r.vigentesRestituidas} versiones anteriores restituidas como vigentes.`);
+    // H5: el serving de Reportes se reconstruye con lo que quedó vigente.
+    const [{ sistema }] = (await ds.query('SELECT source_system AS sistema FROM historico.importaciones WHERE id = $1', [id])) as { sistema: 'SGP' | 'SGP_SINTETICO' }[];
+    await publicarServing(ds, sistema);
   } finally {
     await ds.destroy();
   }

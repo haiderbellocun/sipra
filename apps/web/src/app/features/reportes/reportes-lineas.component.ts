@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input, output, signal, viewChild } from '@angular/core';
-import { TONOS_SERIE, TipGrafico, TonoGrafico, escala, num } from './reportes-graficos.util';
+import { TONOS_SERIE, TipGrafico, TonoGrafico, escala, num, pasoEtiquetas, rotulaEn } from './reportes-graficos.util';
 import { ReportesTooltipComponent } from './reportes-tooltip.component';
 import { ESTILOS_REPORTES } from './reportes.estilos';
 
@@ -37,6 +37,8 @@ const ALTO = 220, M = { arriba: 14, derecha: 16, abajo: 30, izquierda: 44 };
     button.gl-xi:hover { color: var(--text-primary); text-decoration-color: currentColor; }
     button.gl-xi:focus-visible { outline: 2px solid var(--signal-active); outline-offset: 0; }
     .gl-xi[aria-pressed='true'] { color: var(--text-primary); font-weight: 600; }
+    /* Ejes con muchas categorías: la etiqueta intermedia se oculta (sigue enfocable y con su aria-label). */
+    .gl-xi.salto:not(:focus-visible):not([aria-pressed='true']) { opacity: 0; pointer-events: none; }
     .gl-ley { margin-top: 10px; }
     .gl-ley button { padding: 2px 4px; font: inherit; color: inherit; background: none; border: 0; border-radius: 4px; cursor: default; }
     .gl-trazo { display: inline-block; width: 14px; height: 2px; margin-right: 6px; background: var(--c); vertical-align: 3px; border-radius: 1px; }
@@ -60,8 +62,8 @@ const ALTO = 220, M = { arriba: 14, derecha: 16, abajo: 30, izquierda: 44 };
       <div class="gl-x">
         @for (c of categorias(); track c; let i = $index) {
           @if (filtrable()) {
-            <button type="button" class="gl-xi" [style.left.px]="x(i)" [attr.aria-pressed]="c === seleccionX()" [attr.aria-label]="c + ': ' + resumen(i)" (click)="elegirX.emit(c)">{{ corto()(c) }}</button>
-          } @else { <span class="gl-xi" [style.left.px]="x(i)" aria-hidden="true">{{ corto()(c) }}</span> }
+            <button type="button" class="gl-xi" [class.salto]="!rotula(i)" [style.left.px]="x(i)" [attr.aria-pressed]="c === seleccionX()" [attr.aria-label]="c + ': ' + resumen(i)" (click)="elegirX.emit(c)">{{ corto()(c) }}</button>
+          } @else if (rotula(i)) { <span class="gl-xi" [style.left.px]="x(i)" aria-hidden="true">{{ corto()(c) }}</span> }
         }
       </div>
       <ul class="gr-leyenda gl-ley" aria-hidden="true">
@@ -113,6 +115,9 @@ export class ReportesLineasComponent {
     });
   }
 
+  /** Paso de etiquetas del eje X (1 con pocas categorías). */
+  private readonly paso = computed(() => pasoEtiquetas(this.categorias().length, this.ancho() - M.izquierda - M.derecha));
+  protected rotula(i: number): boolean { return rotulaEn(i, this.categorias().length, this.paso()); }
   protected x(i: number): number {
     const n = this.categorias().length, util = this.ancho() - M.izquierda - M.derecha;
     return n <= 1 ? M.izquierda + util / 2 : M.izquierda + 8 + (i * (util - 16)) / (n - 1);

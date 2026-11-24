@@ -29,6 +29,8 @@ const C = 2 * Math.PI * R;
     .gd.con-foco .gd-arco:not(.activa) { opacity: .35; }
     .gd.con-seleccion .gd-arco.fuera { stroke: var(--gr-muted); }
     .gd-n { font: 600 22px/1 var(--fuente-mono); fill: var(--text-primary); }
+    /* Totales de seis cifras o más (histórico): más pequeños para que no pisen el anillo. */
+    .gd-n.largo { font-size: 15px; }
     .gd-t { font: 500 11px/1 var(--fuente); fill: var(--text-secondary); }
     .gd-ley { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
     .gd-item { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.8rem; column-gap: 10px; align-items: center; width: 100%; min-height: 30px; padding: 3px 8px;
@@ -50,7 +52,7 @@ const C = 2 * Math.PI * R;
                   cx="66" cy="66" [attr.r]="r" transform="rotate(-90 66 66)" [style.stroke-dasharray]="a.largo + ' ' + (c - a.largo)" [style.stroke-dashoffset]="-a.inicio"
                   (click)="elegir.emit(a.p.clave)" (mouseenter)="ver($event, a.p)" (mousemove)="ver($event, a.p)" (mouseleave)="salir()" />
         }
-        <text class="gd-n" x="66" y="68" text-anchor="middle">{{ num(suma()) }}</text>
+        <text class="gd-n" [class.largo]="num(suma()).length > 6" x="66" y="68" text-anchor="middle">{{ num(suma()) }}</text>
         <text class="gd-t" x="66" y="86" text-anchor="middle">{{ centro() }}</text>
       </svg>
       <ul class="gd-ley" [attr.aria-label]="titulo()">

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input, signal, viewChild } from '@angular/core';
-import { TipGrafico, TonoGrafico, categorico, escucharMovil, num } from './reportes-graficos.util';
+import { TipGrafico, TonoGrafico, categorico, escucharMovil, num, pasoEtiquetas, rotulaEn } from './reportes-graficos.util';
 import { ReportesTooltipComponent } from './reportes-tooltip.component';
 import { ESTILOS_REPORTES } from './reportes.estilos';
 
@@ -95,7 +95,7 @@ const ALTO_FILA = 34, M = { arriba: 18, abajo: 30, izquierda: 30, derecha: 200 }
             <line class="gu-rej" [attr.x1]="mg.izquierda" [attr.x2]="ancho() - mg.derecha" [attr.y1]="y(k)" [attr.y2]="y(k)" />
             <text class="gu-y" [attr.x]="mg.izquierda - 10" [attr.y]="y(k) + 4" text-anchor="end">{{ k }}</text>
           }
-          @for (c of categorias(); track c; let i = $index) { <text class="gu-x" [attr.x]="x(i)" [attr.y]="alto() - 8" text-anchor="middle">{{ c }}</text> }
+          @for (c of categorias(); track c; let i = $index) { @if (rotula(i)) { <text class="gu-x" [attr.x]="x(i)" [attr.y]="alto() - 8" text-anchor="middle">{{ c }}</text> } }
           @for (s of trazos(); track s.clave) {
             <g class="gu-serie" [class]="'gt-' + s.tono" [class.foco]="foco() === s.clave" (mouseenter)="foco.set(s.clave)" (mouseleave)="foco.set(null); tip.set(null)">
               <path class="gu-linea" [attr.d]="s.d" />
@@ -178,6 +178,9 @@ export class ReportesBumpComponent {
 
   /** Color estable por serie: su posición en el orden por volumen (no cambia al elegir otras). */
   protected tonoDe(clave: string): TonoGrafico { return categorico(this.candidatos().findIndex((s) => s.clave === clave)); }
+  /** Paso de etiquetas del eje X (1 con pocas categorías). */
+  private readonly paso = computed(() => pasoEtiquetas(this.categorias().length, this.ancho() - M.izquierda - M.derecha));
+  protected rotula(i: number): boolean { return rotulaEn(i, this.categorias().length, this.paso()); }
   protected x(i: number): number {
     const n = this.categorias().length, util = this.ancho() - M.izquierda - M.derecha;
     return n <= 1 ? M.izquierda + util / 2 : M.izquierda + 12 + (i * (util - 24)) / (n - 1);

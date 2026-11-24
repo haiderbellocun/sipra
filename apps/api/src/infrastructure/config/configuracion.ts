@@ -99,6 +99,15 @@ export class VariablesEntorno {
    */
   @IsBoolean() REPORTES_UBICACION_SINTETICA = false;
 
+  /**
+   * Histórico del SGP en Reportes V3 (H5). Sistema cuyo serving publicado leen las fuentes Histórico y Todos.
+   * `SGP_SINTETICO` (fixture de pruebas) solo en `dev`.
+   */
+  @IsIn(['SGP', 'SGP_SINTETICO']) HISTORICO_SISTEMA_REPORTES: 'SGP' | 'SGP_SINTETICO' = 'SGP';
+  /** Secreto HMAC del histórico: solo para la identidad común de estudiantes en «Todos». Sin él, cota superior. */
+  @IsOptional() @IsString() HISTORICO_HMAC_KEY?: string;
+  @IsOptional() @IsString() HISTORICO_HMAC_KEY_VERSION?: string;
+
   @IsString() @MinLength(32, {
     message: 'JWT_SECRETO debe tener al menos 32 caracteres y ser distinto en cada ambiente',
   })
@@ -313,6 +322,13 @@ function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
     errores.push(
       `REPORTES_UBICACION_SINTETICA=true está prohibido en el ambiente "${config.SIPRA_AMBIENTE}": ` +
         'la ubicación internacional sintética existe solo en bases de prueba de desarrollo.',
+    );
+  }
+
+  if (config.HISTORICO_SISTEMA_REPORTES === 'SGP_SINTETICO' && config.SIPRA_AMBIENTE !== Ambiente.DEV) {
+    errores.push(
+      `HISTORICO_SISTEMA_REPORTES=SGP_SINTETICO está prohibido en el ambiente "${config.SIPRA_AMBIENTE}": ` +
+        'el histórico sintético existe solo para pruebas de desarrollo.',
     );
   }
 

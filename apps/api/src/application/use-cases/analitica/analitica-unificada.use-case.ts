@@ -76,8 +76,8 @@ export class AnaliticaUnificadaUseCase {
     if (filtro.fuente === 'all' && sinClave.length) advertencias.push(`IDENTIDAD_NO_COMPARABLE: sin clave para la(s) versión(es) ${sinClave.join(', ')}; los estudiantes únicos de ALL son una cota superior`);
     const identidad = resolverIdentidades([...clavesActuales.entries()].map(([usuarioId, clavesPorVersion]) => ({ usuarioId, clavesPorVersion })));
 
-    const actuales = crudasActuales.map((a) => this.proyectarActual(a)).filter((f) => cumpleFiltro(f, filtro));
-    const historicas = crudasHistoricas.map((h) => this.proyectarHistorica(h, sistema, filtro.fuente === 'all' ? identidad : null)).filter((f) => cumpleFiltro(f, filtro));
+    const actuales = crudasActuales.map((a) => proyectarFilaActual(a)).filter((f) => cumpleFiltro(f, filtro));
+    const historicas = crudasHistoricas.map((h) => proyectarFilaHistorica(h, sistema, filtro.fuente === 'all' ? identidad : null)).filter((f) => cumpleFiltro(f, filtro));
     const ahora = (this.opciones.ahora ?? (() => new Date()))().toISOString();
     const corte = crudasHistoricas.reduce<string | null>((m, h) => (h.estadoFechaCorte && (!m || h.estadoFechaCorte > m) ? h.estadoFechaCorte : m), null);
 
@@ -105,60 +105,62 @@ export class AnaliticaUnificadaUseCase {
     const l = parsearPeriodoSgp(limite);
     return l.anio !== null && (p.anio > l.anio || (p.anio === l.anio && (p.ordinal ?? '') >= (l.ordinal ?? '')));
   }
+}
 
-  private proyectarActual(a: FilaActualCruda): FilaAnalitica {
-    const estado = ESTADOS_TECNICOS.has(a.estado) ? ESTADO_OPERATIVO[a.estado as EstadoPractica] : null;
-    const regional = claveTexto(a.regional);
-    const fur = claveTexto(a.empresa);
-    return {
-      analyticsId: `current:${a.id}`, origen: 'current', idOrigen: a.id,
-      identidadEstudiante: `current:${a.estudianteId}`,
-      periodo: dim(a.periodo, a.periodo),
-      programa: dim(`sinu:${a.programaId}`, a.programaId),
-      nivel: dim(a.ciclo, a.ciclo),
-      regional: regional ? dim(`regional:${regional}`, regional) : null,
-      modalidadEstudio: null,
-      modalidadPractica: dim(`modalidad:${a.modalidad}`, a.modalidad),
-      estado, estadoAl: null, esEstadoDeCorte: false,
-      organizacion: a.empresaId ? dim(`empresa:${a.empresaId}`, a.empresa) : fur ? dim(`fur:${fur}`, a.empresa) : null,
-      ciudad: a.ciudadCodigo ? dim(`divipola:${a.ciudadCodigo}`, a.ciudadNombre ?? a.ciudadCodigo) : null,
-      fechaInicio: a.fechaInicio, fechaFin: a.fechaFin, duracionDias: diasEntre(a.fechaInicio, a.fechaFin),
-      documentosSubidosRatio: null, documentosAprobadosRatio: null, bitacoraCount: null,
-      qualityFlags: [], organizationFlags: [], duplicadoDe: null,
-      periodoCodigo: a.periodo.toUpperCase(), ciclo: a.ciclo, modalidadCodigo: a.modalidad, creadaEn: a.creadaEn,
-    };
-  }
+/** Proyección de una práctica de SIPRA al modelo común (la usan la capa H4 y el serving H5). */
+export function proyectarFilaActual(a: FilaActualCruda): FilaAnalitica {
+  const estado = ESTADOS_TECNICOS.has(a.estado) ? ESTADO_OPERATIVO[a.estado as EstadoPractica] : null;
+  const regional = claveTexto(a.regional);
+  const fur = claveTexto(a.empresa);
+  return {
+    analyticsId: `current:${a.id}`, origen: 'current', idOrigen: a.id,
+    identidadEstudiante: `current:${a.estudianteId}`,
+    periodo: dim(a.periodo, a.periodo),
+    programa: dim(`sinu:${a.programaId}`, a.programaId),
+    nivel: dim(a.ciclo, a.ciclo),
+    regional: regional ? dim(`regional:${regional}`, regional) : null,
+    modalidadEstudio: null,
+    modalidadPractica: dim(`modalidad:${a.modalidad}`, a.modalidad),
+    estado, estadoAl: null, esEstadoDeCorte: false,
+    organizacion: a.empresaId ? dim(`empresa:${a.empresaId}`, a.empresa) : fur ? dim(`fur:${fur}`, a.empresa) : null,
+    ciudad: a.ciudadCodigo ? dim(`divipola:${a.ciudadCodigo}`, a.ciudadNombre ?? a.ciudadCodigo) : null,
+    fechaInicio: a.fechaInicio, fechaFin: a.fechaFin, duracionDias: diasEntre(a.fechaInicio, a.fechaFin),
+    documentosSubidosRatio: null, documentosAprobadosRatio: null, bitacoraCount: null,
+    qualityFlags: [], organizationFlags: [], duplicadoDe: null,
+    periodoCodigo: a.periodo.toUpperCase(), ciclo: a.ciclo, modalidadCodigo: a.modalidad, creadaEn: a.creadaEn,
+  };
+}
 
-  private proyectarHistorica(h: FilaHistoricaCruda, sistema: SistemaOrigen, identidad: ((v: string, k: string | null) => string | null) | null): FilaAnalitica {
-    const estado = h.estadoAnalitico && ESTADOS_OPERATIVOS.has(h.estadoAnalitico) ? h.estadoAnalitico as EstadoOperativo : null;
-    const periodo = h.periodoNormalizado
-      ? dim(h.periodoNormalizado, h.periodoNormalizado)
-      : h.periodoOriginal ? dim(`sgp:${h.periodoOriginal}`, `${h.periodoOriginal} (SGP, legado)`) : null;
-    const modalidad = h.modalidadPracticaNormalizada
-      ? dim(`modalidad:${h.modalidadPracticaNormalizada}`, h.modalidadPracticaNormalizada)
-      : h.modalidadPracticaOriginal ? dim(`sgp:${claveTexto(h.modalidadPracticaOriginal)}`, `${h.modalidadPracticaOriginal} (SGP, sin equivalente)`) : null;
-    const regional = claveTexto(h.regional);
-    return {
-      analyticsId: `historical:${sistema}:${h.sourceRecordId}:${h.version}`, origen: 'historical', idOrigen: h.sourceRecordId,
-      // Sin unión, la identidad histórica es propia; en ALL se resuelve contra los estudiantes actuales.
-      identidadEstudiante: identidad ? identidad(h.hmacKeyVersion, h.studentKey) : h.studentKey ? `historical:${h.hmacKeyVersion}:${h.studentKey}` : null,
-      periodo,
-      programa: h.codigoSinu ? dim(`sinu:${h.codigoSinu}`, h.codigoSinu) : h.programaNormalizado ? dim(`sgp:${h.programaNormalizado}`, h.programaNormalizado) : null,
-      nivel: dim(h.nivelInferido, h.nivelInferido),
-      regional: regional ? dim(`regional:${regional}`, regional) : null,
-      modalidadEstudio: dim(h.modalidadEstudio ? `estudio:${h.modalidadEstudio}` : null, h.modalidadEstudio),
-      modalidadPractica: modalidad,
-      estado, estadoAl: h.estadoFechaCorte, esEstadoDeCorte: h.esEstadoDeCorte,
-      organizacion: h.empresaConfirmadaId
-        ? dim(`empresa:${h.empresaConfirmadaId}`, h.empresaConfirmadaNombre)
-        : h.organizacionId ? dim(`org-historica:${h.organizacionId}`, 'Organización histórica sin correspondencia') : null,
-      ciudad: h.ciudadNormalizada ? dim(`sgp-texto:${h.ciudadNormalizada}`, h.ciudadNormalizada) : null,
-      fechaInicio: h.fechaInicio, fechaFin: h.fechaFin, duracionDias: h.duracionDias,
-      documentosSubidosRatio: h.documentosSubidosRatio, documentosAprobadosRatio: h.documentosAprobadosRatio, bitacoraCount: h.bitacoraCount,
-      qualityFlags: h.qualityFlags.filter((m): m is MarcaCalidad => MARCAS_P.has(m)),
-      organizationFlags: h.organizationFlags.filter((m): m is MarcaOrganizacion => MARCAS_O.has(m)),
-      duplicadoDe: h.duplicadoDe,
-      periodoCodigo: h.periodoNormalizado, ciclo: h.nivelInferido, modalidadCodigo: h.modalidadPracticaNormalizada, creadaEn: h.fechaCreacion,
-    };
-  }
+/** Proyección de una versión del SGP al modelo común (la usan la capa H4 y el serving H5). */
+export function proyectarFilaHistorica(h: FilaHistoricaCruda, sistema: SistemaOrigen, identidad: ((v: string, k: string | null) => string | null) | null): FilaAnalitica {
+  const estado = h.estadoAnalitico && ESTADOS_OPERATIVOS.has(h.estadoAnalitico) ? h.estadoAnalitico as EstadoOperativo : null;
+  const periodo = h.periodoNormalizado
+    ? dim(h.periodoNormalizado, h.periodoNormalizado)
+    : h.periodoOriginal ? dim(`sgp:${h.periodoOriginal}`, `${h.periodoOriginal} (SGP, legado)`) : null;
+  const modalidad = h.modalidadPracticaNormalizada
+    ? dim(`modalidad:${h.modalidadPracticaNormalizada}`, h.modalidadPracticaNormalizada)
+    : h.modalidadPracticaOriginal ? dim(`sgp:${claveTexto(h.modalidadPracticaOriginal)}`, `${h.modalidadPracticaOriginal} (SGP, sin equivalente)`) : null;
+  const regional = claveTexto(h.regional);
+  return {
+    analyticsId: `historical:${sistema}:${h.sourceRecordId}:${h.version}`, origen: 'historical', idOrigen: h.sourceRecordId,
+    // Sin unión, la identidad histórica es propia; en ALL se resuelve contra los estudiantes actuales.
+    identidadEstudiante: identidad ? identidad(h.hmacKeyVersion, h.studentKey) : h.studentKey ? `historical:${h.hmacKeyVersion}:${h.studentKey}` : null,
+    periodo,
+    programa: h.codigoSinu ? dim(`sinu:${h.codigoSinu}`, h.codigoSinu) : h.programaNormalizado ? dim(`sgp:${h.programaNormalizado}`, h.programaNormalizado) : null,
+    nivel: dim(h.nivelInferido, h.nivelInferido),
+    regional: regional ? dim(`regional:${regional}`, regional) : null,
+    modalidadEstudio: dim(h.modalidadEstudio ? `estudio:${h.modalidadEstudio}` : null, h.modalidadEstudio),
+    modalidadPractica: modalidad,
+    estado, estadoAl: h.estadoFechaCorte, esEstadoDeCorte: h.esEstadoDeCorte,
+    organizacion: h.empresaConfirmadaId
+      ? dim(`empresa:${h.empresaConfirmadaId}`, h.empresaConfirmadaNombre)
+      : h.organizacionId ? dim(`org-historica:${h.organizacionId}`, 'Organización histórica sin correspondencia') : null,
+    ciudad: h.ciudadNormalizada ? dim(`sgp-texto:${h.ciudadNormalizada}`, h.ciudadNormalizada) : null,
+    fechaInicio: h.fechaInicio, fechaFin: h.fechaFin, duracionDias: h.duracionDias,
+    documentosSubidosRatio: h.documentosSubidosRatio, documentosAprobadosRatio: h.documentosAprobadosRatio, bitacoraCount: h.bitacoraCount,
+    qualityFlags: h.qualityFlags.filter((m): m is MarcaCalidad => MARCAS_P.has(m)),
+    organizationFlags: h.organizationFlags.filter((m): m is MarcaOrganizacion => MARCAS_O.has(m)),
+    duplicadoDe: h.duplicadoDe,
+    periodoCodigo: h.periodoNormalizado, ciclo: h.nivelInferido, modalidadCodigo: h.modalidadPracticaNormalizada, creadaEn: h.fechaCreacion,
+  };
 }
