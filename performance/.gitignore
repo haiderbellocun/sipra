@@ -1,0 +1,9 @@
+# Resultados, métricas locales y archivos sintéticos: nunca se versionan.
+out/
+archivos/
+*.log
+*.tmp
+# Kit exportado al PC generador (contiene el PDF sintético): no se versiona.
+kit-pc-b/
+kit-pc-b.zip
+kit-pc-b-*.zip

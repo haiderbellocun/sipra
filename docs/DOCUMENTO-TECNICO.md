@@ -2570,6 +2570,29 @@ PostgreSQL **local**:
 
 Las garantías se verifican, no se asumen.
 
+### 13.3 Pruebas de carga locales (`performance/`)
+
+Tooling, procedimiento y resultados completos están en `performance/README.md`. La base `sipra_performance` y la API
+de performance (`:3100`) están separadas de `sipra_dev`, y los datos son 100 % sintéticos. El generador es externo:
+k6 nativo en otro equipo de la LAN.
+
+**P11 · carga sostenida de upload: APROBADA (26 de noviembre de 2026).** Caso: PDF de 2.096.839 bytes,
+`carta_aceptacion`, sin OCR, IA simulada, un estudiante distinto por upload. Modelo abierto a 8 uploads/s.
+
+| Corrida | Uploads | Errores | p95 / p99 | Integridad | Compuerta |
+|---|---|---|---|---|---|
+| `external-3000-003` (525 s) | 3.000 / 3.000 | 0 | 171 / 479 ms | OK | CONTINUAR |
+| `external-6000-001` (900 s, ≈ 12 GB) | 6.000 / 6.000 | 0 | 175 / 420 ms | OK | CONTINUAR |
+
+- En `external-6000-001`: la API no se reinició (CPU pico 49,9 % de un núcleo, RSS 334 MB, event loop p99 25,5 ms);
+  PostgreSQL tuvo 7 conexiones pico, 0 deadlocks y 0 rollbacks; el disco creció unos 2 MB por upload.
+- **No representa 6.000 usuarios concurrentes.** Son 6.000 uploads totales a una presión sostenida de 8/s durante 15
+  minutos.
+- No mide el punto de saturación ni la infraestructura de producción: Cloud Tasks, Cloud Storage, Cloud SQL, OCR e IA
+  reales y autenticación OIDC quedan fuera.
+- `external-3000-002` se descartó por 2 timeouts de transporte en la red, no de SIPRA. Detalle en `performance/README.md`.
+- La siguiente fase propuesta (P12, saturación por tasa y concurrencia) está descrita allí y no se ha ejecutado.
+
 ---
 
 ## 14. Cumplimiento del estándar de la Fábrica de Software
@@ -2722,7 +2745,7 @@ Lo que el siguiente ingeniero debe saber antes de leer el detalle:
 | **P-13** · Seguridad de red y sesión | **Endurecer la exposición de la API, el frontend y la sesión del navegador.** En `dev` API y web se despliegan `--allow-unauthenticated`; `cloudbuild.yaml` ya usa `--no-allow-unauthenticated --ingress=internal-and-cloud-load-balancing`, pero el proxy de nginx no adjunta ningún token de identidad, así que esa configuración produciría 403 sin balanceador o IAP delante: endurecer la API obliga a rediseñar el camino web→API, no solo a cambiar una bandera. No hay *rate limiting* (sin `@fastify/rate-limit` ni `@nestjs/throttler`), la CSP de la API está desactivada, el JWT dura 8 h sin revocación ni *refresh* y `salir()` solo borra el almacenamiento local (no hay cierre de sesión en el servidor). **Frontend:** el JWT completo se guarda en `localStorage` (expuesto a cualquier XSS); los `add_header` de seguridad de `nginx.conf` están a nivel de `server`, pero los bloques `location` de estáticos y de `index.html` declaran su propio `add_header Cache-Control` y nginx **no hereda** en ese caso: el documento principal y los artefactos se sirven **sin** `X-Frame-Options`, `nosniff`, `Referrer-Policy` ni `X-Robots-Tag`; no hay `Content-Security-Policy`, `Strict-Transport-Security` ni `Permissions-Policy` en ninguna parte del frontend. | `infra/gcp/desplegar.sh:219, 229` · `infra/gcp/cloudbuild.yaml:115-116` · `../.github/workflows/sipra-desplegar.yml:86, 120` · `apps/api/src/crear-aplicacion.ts:29-32` · `infrastructure/config/configuracion.ts:63` · `apps/web/nginx.conf:8-11, 20-26, 32-41` · `apps/web/src/app/core/auth/sesion.service.ts:71-80` · `apps/api/package.json` (sin `@fastify/rate-limit` ni `@nestjs/throttler`) · `§10.2` | Balanceador HTTPS con dominio institucional y certificado (o IAP) y token de identidad en el camino nginx→API, Cloud Armor o `@fastify/rate-limit` (formulario público de empresas, `§6.4`), lista de revocación o rotación de `JWT_SECRETO` y cierre de sesión en servidor, token fuera de `localStorage` (cookie `HttpOnly` o memoria), repetir las cabeceras en cada `location` o moverlas a un `include`, definir CSP, HSTS y Permissions-Policy. | Sí — Tecnología (dominio, certificados) | Bloqueante | 4 – 6 | Superficie pública abusable; sesiones no revocables; la página se sirve sin ninguna cabecera de seguridad. |
 | **P-14** · Respaldo | **Runbook y ensayo de restauración.** `aprovisionar-ambiente.sh` activa PITR y `REGIONAL` solo en `prod` y retiene 30 respaldos, pero `arranque-unico.sh` (el que sí creó `dev`) solo fija `--backup-start-time`; el versionado del bucket de documentos existe únicamente en `aprovisionar-ambiente.sh`, no en `arranque-unico.sh`. DT §10.7 promete RTO 4 h, RPO 1 h y «prueba de restauración semestral documentada», que no existe. | `infra/gcp/aprovisionar-ambiente.sh:29-38, 60-72, 88-89` · `infra/gcp/arranque-unico.sh:77-80, 103-105` · `§10.7` (995-1000) | Procedimiento de restauración (clon/PITR de Cloud SQL + versionado del bucket), activar versionado en `dev`, ensayo en `qa`, registro con tiempos medidos. | No | Alta | 1 – 2 | RTO/RPO no demostrables ante una pérdida. |
 | **P-15** · Observabilidad | **Alertas en Cloud Monitoring y roles de métricas.** Las seis reglas (`TasaDeErroresAlta`, `LatenciaP95Alta`, `TasaAutoAprobacionBaja`, `ObligacionesArlVencidas`, `AccesosFueraDeAlcance`, `CostoIaSobreTope`) existen solo para el Prometheus local; en GCP no hay políticas, canal ni recolección de `/metrics` en ningún guion; `permisos.sh` intenta `logging.logWriter` y `monitoring.metricWriter` y, si falla, imprime la orden; DT §10.10 los declara pendientes para `sipra-app-<amb>`. | `infra/docker/alertas.yml:1-57` · `infra/docker/prometheus.yml:1-19` · `infra/gcp/permisos.sh:24, 67-88` · `§10.10` (1076-1083), `§11` (1092-1122) | Políticas equivalentes (uptime de `/api/v1/salud`, 5xx > 1 %, P95 > 500 ms, auto-aprobación < 60 %, costo IA, ARL vencidas), canal de correo/chat, recolección de `/metrics` con Managed Prometheus desde la red interna (ver P-71), conceder los dos roles a la SA que realmente corre. | Sí — IAM de proyecto (Tecnología) | Alta | 2 – 3 | Incidentes y caída de la auto-aprobación sin aviso. |
-| **P-16** · Rendimiento | **Prueba de carga con el volumen de pico.** Nunca se ha medido el cierre de periodo; no hay herramienta ni guion (`k6`, `artillery`, `autocannon`, `locust` → solo coincidencias casuales en `package-lock.json`). | `§7.4, §10.6, §15` (M4b) (505-536, 983-993, 1285) · búsqueda en `sipra/` sin resultados en código | Guion (k6 o artillery) contra `qa` con Cloud Tasks real: cargue concurrente, profundidad de cola, P95, `max-instances`, costo de IA por hora. | No (requiere P-05) | Alta | 3 – 5 | Colapso en las dos últimas semanas del periodo. |
+| **P-16** · Rendimiento | **Prueba de carga con el volumen de pico.** Avance (0.53.0): ya hay tooling k6 en `performance/` y la carga sostenida LOCAL de upload (P11) quedó aprobada: 6.000 uploads a 8/s, 0 errores, integridad OK (§13.3). Sigue sin medirse en `qa`, con la infraestructura real, el cierre de periodo ni el punto de saturación. | `§7.4, §10.6, §15` (M4b) (505-536, 983-993, 1285) · búsqueda en `sipra/` sin resultados en código | Guion (k6 o artillery) contra `qa` con Cloud Tasks real: cargue concurrente, profundidad de cola, P95, `max-instances`, costo de IA por hora. | No (requiere P-05) | Alta | 3 – 5 | Colapso en las dos últimas semanas del periodo. |
 | **P-17** · Lectura con IA | **Calibrar el pipeline con documentos reales durante el piloto.** El arnés `ia:evaluar` genera un corpus sintético con pdfkit y solo instancia `simulado` u `openai`; es el único archivo de `herramientas/` (y queda fuera del lint, P-76). La tasa de auto-aprobación (indicador del proyecto) no se puede afirmar. Los umbrales son parámetros operativos `pipeline.umbral_verde` / `pipeline.umbral_amarillo` con validación de coherencia; la regla `TasaAutoAprobacionBaja` fija el 60 % como alarma. | `apps/api/herramientas/evaluar-lectura.ts:1-40, 250-266` · `application/use-cases/administracion/parametros.use-case.ts:107-108, 148-150` · `infra/docker/alertas.yml:25-36` · `§15.1` («Calibración del pipeline»), `§19.2` (1284, 1312-1314) | Muestra anonimizada por tipo documental (con aval jurídico), corrida `ia:evaluar --driver=openai` extendida a corpus real, matriz de confusión por tipo y criterio, ajuste de umbrales y de `CRITERIOS_DOCUMENTALES`, medición de la banda amarilla. | Sí — datos reales (Jurídica, Área de Prácticas) | Alta (bloqueante para escalar más allá del piloto) | 5 – 8 | Devoluciones falsas o aprobaciones indebidas; el objetivo del 10–15 % de revisión humana no se demuestra. |
 | **P-59** · Entrega / repositorio | **Resuelto el 14 de octubre de 2026: SIPRA tiene repositorio propio.** Hallazgo original: SIPRA no existía en `main` del repositorio `Productoacademico` (`git ls-tree origin/main` solo mostraba la app Producto Académico y la rama `claude/sipra-practicas-setup-l0zasi` estaba **56 commits adelante y 0 atrás**), de modo que `sipra-ci.yml` nunca había corrido y fusionar habría publicado `sipra/**` en `productoacademico.netlify.app` (`netlify.toml` con `publish = "."` sin exclusiones). Resolución: la carpeta `sipra/` se separó con `git subtree split` a este repositorio privado, `ironfuentes-netizen/sipra-practicas`, conservando los 57 commits de historial; la rama principal es `main`; los flujos de GitHub Actions pasaron a `.github/workflows/`; Netlify no interviene. | `git subtree split --prefix=sipra` (57 commits) · `git log --oneline main` en este repositorio · `.github/workflows/ci.yml:6-8` · GitHub Actions: ejecución 38628704343 de «SIPRA · integración continua» en verde (14 de octubre de 2026) | Queda decidir si la carpeta `sipra/` del repositorio Producto Académico se retira o se deja como historial (decisión del propietario). | No | Resuelto | 0 | Ninguno, siempre que no se sigan haciendo cambios en la copia antigua: desde ahora todo cambio de SIPRA se hace aquí. |
 | **P-60** · Identidad / piloto | **Cargue inicial de estudiantes del periodo y alta provisional de usuarios `empresa` y `estudiante`.** No hay código que cree usuarios `estudiante` desde SINU ni desde un cargue: `gestionar-usuarios.use-case.ts:18-19` lo delega a «la matrícula (SINU)» sin implementarlo y todos los usos de `sinu.buscarPorDocumento` son de solo consulta. `CrearUsuarioDto.rol` está restringido a `ROLES_ADMINISTRATIVOS` (sin `empresa` ni `estudiante`) y el caso de uso fija `empresaId: null`; los estudiantes y el único usuario `empresa` del sistema provienen de las semillas. Con OIDC obligatorio en `pre`/`prod` y el rechazo de cuentas sin perfil activo, **ningún estudiante podría entrar** al piloto hasta cargar sus perfiles, independientemente de P-18. | `application/use-cases/administracion/gestionar-usuarios.use-case.ts:18-19, 48, 54-72` · `application/dtos/usuario.dto.ts:13` · `domain/value-objects/rol.vo.ts:37-43` · `application/use-cases/practicas/registrar-practica.use-case.ts:120` · `application/use-cases/administracion/vistas-sinu.use-case.ts:73, 112` · `infrastructure/controllers/auth.controller.ts:108-114` · `infrastructure/config/configuracion.ts:182-187` · `infrastructure/persistence/postgres/seeds/ejecutar-semillas.ts:205-218` | Cargue inicial de estudiantes del periodo (CSV del listado de matriculados o desde el simulado de SINU) y alta manual provisional por administrador de usuarios `empresa` (con `empresaId`) y `estudiante` (con `programaId`) mientras llegan P-19 y P-35; debe estar listo **antes** de encender OIDC (P-01). | Sí — Registro / Área de Prácticas (listado de matriculados); arranca con el simulado | Bloqueante para el piloto | 3 – 4 | El piloto en `pre` no puede empezar; en `qa`/`pre` no hay forma de incorporar estudiantes ni empresas sin tocar la base a mano. |
@@ -3613,6 +3636,43 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.53.0 — 26 de noviembre de 2026
+
+**Performance · P11 carga sostenida de upload: APROBADA.** Solo tooling y documentación en `performance/`; no cambia el
+producto ni las migraciones. Ambiente local `sipra_performance`; no es un despliegue. Resumen en §13.3 y detalle en
+`performance/README.md` («Cierre de P11»).
+
+**Resultados.**
+
+- `external-3000-003`: 3.000/3.000, 0 errores, p95 171 ms, p99 479 ms, integridad OK, compuerta CONTINUAR.
+- `external-6000-001`: 6.000/6.000, 0 errores, p95 175 ms, p99 420 ms, integridad OK, compuerta CONTINUAR. Fueron
+  900 s a 8 uploads/s, ≈ 12 GB enviados.
+- **No equivale a 6.000 usuarios concurrentes.**
+
+**Incidente.** `external-3000-002` tuvo 2 timeouts de transporte en la red y no vale como resultado.
+
+- Uno no persistió nada.
+- El otro persistió completo en ≈ 60 ms después de que el cliente cortara (`persistidosSin201 = 1`).
+- La API estaba sana durante todo el incidente.
+
+**Tooling.**
+
+- `pc-sipra-iniciar.sh`:
+  - nombre de corrida único (se niega sin escribir nada si ya hay artefactos);
+  - PostgreSQL solo en localhost y sin muestreos vivos;
+  - suspensión del equipo en 0;
+  - red validada por la ruta real hacia el generador (`red-generador.ps1`): no asume Ethernet, porque aquí negocia
+    100 Mbps y la prueba usa Wi‑Fi;
+  - disco calculado con el consumo medido (2,1 MB por upload).
+- `ventana.cjs`: la compuerta y la campaña calculan cobertura y picos solo dentro de la ventana real de k6
+  (`summary.json → ventanaK6`), con el desfase de reloj entre equipos estimado por la integridad.
+- `muestrear.cjs`: lectura de calentamiento del event loop.
+- Kit del PC B: `correr-escalon.ps1` se niega a correr si `lib\resumen.js` no escribe la ventana real (el caso de
+  `-003`).
+- Dataset sintético ampliado a 13.000 estudiantes.
+
+**Siguiente fase propuesta (sin ejecutar):** P12, saturación por tasa y concurrencia.
 
 ### 0.52.0 — 24 de noviembre de 2026
 
