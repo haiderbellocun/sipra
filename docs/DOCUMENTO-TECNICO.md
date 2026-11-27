@@ -1749,7 +1749,7 @@ determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato 
   regulares sobre PDF de pdfkit. **Decisión (opción b):** el rescate se valida primero en `dev` con datos sintéticos.
   Los tipos sensibles solo entran cuando su interruptor esté encendido de forma explícita y exista aprobación
   institucional. Una lectura local genérica para los no sensibles (opción a) queda como frente aparte.
-- **Subfases:** 1.1 núcleo de dominio puro (hecha) · 1.2 fusión y validación de valores rescatados · 1.3 puerto
+- **Subfases:** 1.1 núcleo de dominio puro (hecha) · 1.2 fusión y validación de valores rescatados (hecha) · 1.3 puerto
   `LecturaRescateIaPort` sobre el adaptador de OpenAI · 1.4 configuración e interruptores · 1.5 paso de rescate en el
   pipeline, con auditoría y métricas (siempre termina en revisión humana cuando interviene la IA) · 1.6 Mesas y frontend
   con la fuente `ia_rescate`.
@@ -1774,6 +1774,39 @@ determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato 
     interruptor asignado queda bloqueado siempre.
   - Los interruptores son, por ahora, valores de dominio (`INTERRUPTORES_RESCATE_POR_DEFECTO`). Ningún documento
     sensible sale a OpenAI con esta subfase.
+
+**Subfase 1.2 (tampoco conectada):**
+
+- `domain/services/validacion-valores-rescatados.ts` → `validarValorRescatado(tipo, campo, valor, contexto?)` devuelve
+  `{ valido, valorNormalizado, motivo }`. El motivo es solo un código, nunca el valor. Únicamente reutiliza reglas que
+  ya existen:
+  - **NIT:** `Nit` (DV con pesos DIAN) y `controlarNitLeido`. Acepta separadores; si trae `-DV`, lo verifica y lo
+    quita, porque el campo se define sin DV. Nunca se corrige para que cuadre.
+  - **Documento de identidad:** `normalizarDocumento`. Devuelve solo el número y no consulta ninguna fuente.
+  - **Fecha:** `fechaIsoDe`. Exige una fecha real y devuelve `AAAA-MM-DD`.
+  - **Texto:** recorta y colapsa espacios, y rechaza valores vacíos o de relleno (`esRelleno`).
+  - **Campo fuera de `camposDe(tipo)`:** inválido.
+  - **Sin regla propia todavía:** `periodo`, `ibc`, `total_horas`, `vigente`, `estado_afiliacion` y `regimen` se
+    validan como texto; no se inventó una regla para ellos.
+- `domain/services/fusion-lecturas.ts` → `fusionarLecturas(tipo, base, rescate)` devuelve `campos` (con su
+  `fuente`), `fuentesFinales`, `discrepancias`, `camposRescatados`, `camposCorroborados`, `descartes`,
+  `camposFueraDeEsquemaIgnorados` y `requiereRevisionHumana`.
+  - **Regla de oro:** la IA solo llena campos vacíos y jamás sustituye un valor existente. Si trae un valor válido
+    distinto, se conserva el existente y se registra una discrepancia (solo campo, código y fuente, sin valores).
+  - `IA_CONTRADICE_LECTURA_CONFIABLE` cuando el valor existente viene de QR, texto nativo (con cualquier confianza),
+    OCR confiable o una lectura base confiable.
+  - `IA_DIFIERE_DE_LECTURA_DEBIL` cuando viene de OCR débil, de una confianza baja o es un valor mal formado. En ese
+    caso no se elige en silencio: queda el valor local y una persona decide.
+  - Si la IA repite un valor débil, el campo queda «corroborado» sin cambiar su fuente ni su confianza.
+  - Un valor inválido de la IA se descarta. La fuente que la IA dijera tener se ignora, y su confianza se guarda como
+    metadato acotado a [0, 1] sin intervenir en la precedencia.
+  - Los campos del esquema que estén vacíos se marcan `sin_valor`. Si el valor no declara fuente (extractor
+    configurado), se marca `lectura_base`.
+  - **Salida con tipo propio (`CampoFusionado`):** `CampoExtraido.fuente` no se amplió con `ia_rescate` porque esa
+    unión llega a `construirDatosExtraidosEps` (`validacion-eps.use-case.ts`) y a las fuentes persistidas de la
+    validación EPS. Decidir cómo trata EPS un dato rescatado le corresponde a la subfase 1.5.
+  - La fuente oficial verificada no existe aún en `CampoExtraido`. El modelo de precedencia la reserva por encima de
+    QR, pero no se creó infraestructura para ella.
 
 ---
 
@@ -3682,6 +3715,19 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.55.0 — 27 de noviembre de 2026
+
+**IA de rescate documental · subfase 1.2 (fusión de lecturas y validación determinística de valores rescatados).**
+Diseño en §7.35. Es dominio puro y nada lo invoca todavía: no cambian el pipeline, los adaptadores, la configuración,
+la base ni el frontend.
+
+- Nuevo `domain/services/validacion-valores-rescatados.ts`. Valida NIT, documento, fecha y texto reutilizando `Nit`,
+  `controlarNitLeido`, `normalizarDocumento`, `fechaIsoDe` y `esRelleno`; no crea reglas nuevas.
+- Nuevo `domain/services/fusion-lecturas.ts`. La IA solo llena campos vacíos. Cualquier contradicción con un valor
+  existente se registra como discrepancia sin valores y se conserva el valor local.
+- `servicios-externos.port.ts` no se modificó: la fusión tiene su propio tipo de salida con la fuente `ia_rescate`.
+- Pruebas nuevas: `test/validacion-valores-rescatados.spec.ts` y `test/fusion-lecturas.spec.ts`.
 
 ### 0.54.0 — 26 de noviembre de 2026
 
