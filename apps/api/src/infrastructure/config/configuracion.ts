@@ -163,6 +163,15 @@ export class VariablesEntorno {
    */
   @IsInt() IA_TOPE_DIARIO_USD = 50;
 
+  // ── IA de rescate documental (§7.35): TODO apagado de fábrica ────────
+  // Usa OpenAI directamente (OPENAI_*), con independencia de IA_DRIVER. Los interruptores por tipo solo
+  // pueden encenderse en `dev` y con el general encendido; el arranque lo impone (aplicarReglasDeAmbiente).
+  @IsBoolean() IA_RESCATE_HABILITADO = false;
+  @IsBoolean() IA_RESCATE_EPS = false;
+  @IsBoolean() IA_RESCATE_RUT = false;
+  @IsBoolean() IA_RESCATE_CAMARA = false;
+  @IsBoolean() IA_RESCATE_ACTA = false;
+
   // ── Flujo EPS: interruptores de incidente y políticas pendientes ─────
   // Apagar una pieza no borra datos: el trabajo queda en espera (503 para quien opera).
   @IsBoolean() EPS_VALIDACION_HABILITADA = true;
@@ -216,9 +225,12 @@ export class VariablesEntorno {
 
 const BOOLEANOS = new Set([
   'EPS_VALIDACION_HABILITADA', 'ADRES_ASISTIDO_HABILITADO', 'EPS_OCR_HABILITADO', 'VERIFICACION_EPS_HABILITADA', 'EPS_AUTOAPROBACION_HABILITADA',
+  'IA_RESCATE_HABILITADO', 'IA_RESCATE_EPS', 'IA_RESCATE_RUT', 'IA_RESCATE_CAMARA', 'IA_RESCATE_ACTA',
   'DB_SSL', 'METRICAS_HABILITADAS', 'SPE_ANEXO_CONFIRMADO', 'AUTH_ABIERTO_CONFIRMADO',
   'CONSENTIMIENTO_BLOQUEA_CARGUE', 'REPORTES_SEMESTRE_SINTETICO', 'REPORTES_PROGRAMAS_SINTETICOS', 'REPORTES_UBICACION_SINTETICA',
 ]);
+/** Interruptores de rescate por tipo sensible (EPS, RUT, Cámara, Acta): solo `dev`, y con el general encendido. */
+const FLAGS_RESCATE_SENSIBLES = ['IA_RESCATE_EPS', 'IA_RESCATE_RUT', 'IA_RESCATE_CAMARA', 'IA_RESCATE_ACTA'] as const;
 const ENTEROS = new Set([
   'ADRES_FRESCURA_DIAS', 'EPS_RETENCION_DIAS',
   'PORT', 'DB_PORT', 'REDIS_PORT', 'REDIS_TTL_SEGUNDOS',
@@ -440,16 +452,44 @@ function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
   if (config.IA_DRIVER === 'openai' && !config.OPENAI_API_KEY) {
     errores.push('IA_DRIVER=openai exige OPENAI_API_KEY (inyectada desde Secret Manager)');
   }
+  // IA de rescate: reglas de combinación. Nunca citan valores (ni llaves ni URL: una URL puede traer credenciales).
+  const flagsSensibles = FLAGS_RESCATE_SENSIBLES.filter((clave) => config[clave] === true);
+  if (flagsSensibles.length > 0 && !config.IA_RESCATE_HABILITADO) {
+    errores.push(
+      `${flagsSensibles.join(', ')} exige IA_RESCATE_HABILITADO=true: un interruptor por tipo no puede estar ` +
+        'encendido con el general apagado',
+    );
+  }
+  // Negación de `dev` (no una lista de ambientes): un ambiente nuevo nace bloqueado.
+  if (flagsSensibles.length > 0 && config.SIPRA_AMBIENTE !== Ambiente.DEV) {
+    errores.push(
+      `${flagsSensibles.join(', ')} solo puede encenderse en el ambiente "dev": no hay aprobación institucional ` +
+        'para enviar documentos sensibles a un proveedor externo',
+    );
+  }
+  // El rescate llama a OpenAI directamente, aunque IA_DRIVER sea `simulado` o `anthropic`.
+  const rescateActivo = config.IA_RESCATE_HABILITADO === true;
+  const usaOpenAi = config.IA_DRIVER === 'openai' || rescateActivo;
+  const causaOpenAi = config.IA_DRIVER === 'openai' ? 'IA_DRIVER=openai' : 'IA_RESCATE_HABILITADO=true';
+  // Una llave de solo espacios no es una llave: el adaptador enviaría el documento y el 401 llegaría después.
+  // Con IA_DRIVER=openai y llave ausente ya lo informa la regla anterior (no se duplica el error).
+  const yaInformada = config.IA_DRIVER === 'openai' && !config.OPENAI_API_KEY;
+  if (rescateActivo && !yaInformada && !config.OPENAI_API_KEY?.trim()) {
+    errores.push('IA_RESCATE_HABILITADO=true exige OPENAI_API_KEY (inyectada desde Secret Manager)');
+  }
   // Un modelo sin tarifa se valoraría con la de respaldo y el tope diario
   // perdería precisión: mejor negarse a arrancar que aproximar a ciegas.
-  if (config.IA_DRIVER === 'openai' && !tarifaDe(config.OPENAI_MODELO)) {
+  if (usaOpenAi && !tarifaDe(config.OPENAI_MODELO)) {
     const conocidos = TARIFAS_IA.filter((t) => t.proveedor === 'openai' && !t.retiro).map((t) => t.id).join(', ');
-    errores.push(`OPENAI_MODELO="${config.OPENAI_MODELO}" no está en la tabla de tarifas (tarifas-ia.ts). Modelos con tarifa: ${conocidos}`);
+    errores.push(
+      `OPENAI_MODELO="${config.OPENAI_MODELO}" no está en la tabla de tarifas (tarifas-ia.ts)` +
+        `${causaOpenAi === 'IA_DRIVER=openai' ? '' : ' y IA_RESCATE_HABILITADO=true lo exige'}. Modelos con tarifa: ${conocidos}`,
+    );
   }
   // La llave solo viaja cifrada. Se tolera http únicamente hacia la propia
   // máquina, para probar el adaptador contra un simulador local.
   if (
-    config.IA_DRIVER === 'openai' &&
+    usaOpenAi &&
     !/^https:\/\//.test(config.OPENAI_URL_BASE) &&
     !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/.test(config.OPENAI_URL_BASE)
   ) {

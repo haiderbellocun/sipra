@@ -1750,7 +1750,7 @@ determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato 
   Los tipos sensibles solo entran cuando su interruptor esté encendido de forma explícita y exista aprobación
   institucional. Una lectura local genérica para los no sensibles (opción a) queda como frente aparte.
 - **Subfases:** 1.1 núcleo de dominio puro (hecha) · 1.2 fusión y validación de valores rescatados (hecha) · 1.3 (hecha) puerto
-  `LecturaRescateIaPort` sobre el adaptador de OpenAI · 1.4 configuración e interruptores · 1.5 paso de rescate en el
+  `LecturaRescateIaPort` sobre el adaptador de OpenAI · 1.4 configuración e interruptores (hecha) · 1.5 paso de rescate en el
   pipeline, con auditoría y métricas (siempre termina en revisión humana cuando interviene la IA) · 1.6 Mesas y frontend
   con la fuente `ia_rescate`.
 
@@ -1845,6 +1845,39 @@ determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato 
 - **Privacidad:** no cambian `SOLO_LOCAL`, la autoaprobación ni las prohibiciones de EPS y del resto de tipos
   sensibles. El bloqueo por tipo con interruptores reales llega en la subfase 1.4. Hasta entonces nada llama a
   `rescatar`.
+
+**Subfase 1.4 (configuración y bloqueos de arranque; sigue sin conectarse al pipeline):**
+
+- **Variables** (todas booleanas, `false` por defecto, normalizadas con `BOOLEANOS`; solo «true», sin importar
+  mayúsculas, vale verdadero y cualquier otro valor queda en `false`): `IA_RESCATE_HABILITADO`, `IA_RESCATE_EPS`,
+  `IA_RESCATE_RUT`, `IA_RESCATE_CAMARA` e `IA_RESCATE_ACTA`. No hay `IA_RESCATE_MODELO`: el rescate usa `OPENAI_MODELO`,
+  `OPENAI_API_KEY`, `OPENAI_URL_BASE`, `OPENAI_TIEMPO_MAXIMO_MS` y `OPENAI_MAX_TOKENS_SALIDA`. Tampoco existe ningún
+  bypass de aprobación (`IA_RESCATE_APROBACION_REF` queda como decisión institucional futura).
+- **Reglas de arranque** (`aplicarReglasDeAmbiente`; el arranque falla y el mensaje nombra variables, nunca valores):
+  1. un interruptor por tipo (`EPS`, `RUT`, `CAMARA`, `ACTA`) en `true` con `IA_RESCATE_HABILITADO=false` es una
+     configuración contradictoria;
+  2. con `IA_RESCATE_HABILITADO=true` se exige `OPENAI_API_KEY` (no vacía ni solo espacios), un `OPENAI_MODELO` con
+     tarifa y una `OPENAI_URL_BASE` https (o http hacia localhost);
+  3. un interruptor por tipo en `true` con `SIPRA_AMBIENTE` distinto de `dev` (qa, pre, prod y cualquier ambiente
+     futuro) impide el arranque. La regla se escribe como negación de `dev`, no como lista de ambientes.
+- **Independencia de `IA_DRIVER`:** la regla 2 aplica aunque el driver sea `simulado` o `anthropic`. El rescate usa
+  OpenAI directamente, así que `IA_DRIVER=simulado` con rescate activo y llave válida es una configuración permitida
+  en `dev`. Las exigencias propias de cada driver no cambian (p. ej. `IA_DRIVER=anthropic` sigue pidiendo
+  `ANTHROPIC_API_KEY`), y con `IA_DRIVER=openai` los errores no se duplican.
+- **Helper de aplicación:** `application/services/interruptores-rescate-ia.ts` → `interruptoresRescateIa(config)` devuelve
+  el `InterruptoresRescateIa` del dominio. Solo lee de `ConfigService`, con fallo cerrado, y no contiene política: la
+  decisión sigue siendo de `decidirRescateIa`. No lanza 503 porque no hay endpoint ni pipeline conectado.
+- **Lo que no cambia:** `SOLO_LOCAL`, `SIN_AUTOAPROBACION_DEL_PIPELINE`, `permiteAutoAprobacionDelPipeline` (los cinco
+  tipos sensibles siguen sin autoaprobación) y la prohibición vigente de CLAUDE.md para datos reales.
+  `LECTURA_RESCATE_IA` no se registra en `AppModule` hasta la subfase 1.5. Que un tipo sensible arranque en `dev` con
+  su interruptor encendido es solo una posibilidad técnica: ningún código llama todavía a `rescatar`.
+- **Requisitos para la 1.5 (hallazgos de la revisión de esta subfase):**
+  - el pipeline debe llamar a `decidirRescateIa(tipo, interruptoresRescateIa(config), suficiencia)` antes de `rescatar`;
+  - `rescatar` no tiene bloqueo propio: quien construya el adaptador por fuera de `validarEntorno` (p. ej.
+    `herramientas/evaluar-lectura.ts`) o lo llame sin pasar por la política puede enviar un tipo sensible. Conviene que
+    el adaptador rechace los tipos `SOLO_LOCAL` como defensa en profundidad;
+  - `OPENAI_URL_BASE` acepta cualquier https. Cuando se enciendan interruptores sensibles, conviene una lista de hosts
+    permitidos: decisión pendiente.
 
 ---
 
@@ -3753,6 +3786,19 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.57.0 — 27 de noviembre de 2026
+
+**IA de rescate documental · subfase 1.4 (configuración, interruptores y bloqueos de arranque).** Detalle en §7.35.
+No cambian el pipeline, la base, las Mesas ni el frontend; `LECTURA_RESCATE_IA` sigue sin registrarse y no se hizo
+ninguna llamada a OpenAI.
+
+- Cinco variables nuevas, apagadas de fábrica: `IA_RESCATE_HABILITADO`, `IA_RESCATE_EPS`, `IA_RESCATE_RUT`,
+  `IA_RESCATE_CAMARA`, `IA_RESCATE_ACTA` (en `BOOLEANOS` y en `.env.example`).
+- Reglas de arranque: contradicción general/específico, exigencias de OpenAI con el general encendido (con
+  independencia de `IA_DRIVER`) y bloqueo de los interruptores sensibles fuera de `dev`.
+- Nuevo `application/services/interruptores-rescate-ia.ts`.
+- Pruebas nuevas: `test/config-ia-rescate.spec.ts`.
 
 ### 0.56.0 — 27 de noviembre de 2026
 
