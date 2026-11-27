@@ -41,7 +41,7 @@ import {
 
 import {
   GENERADOR_PDF, GENERADOR_CARTA_PDF, GENERADOR_HOJA_CALCULO,
-  ALMACENAMIENTO, COHERENCIA_CRUZADA, COLA, EXTRACCION_IA, EXTRACCION_LOCAL, LECTOR_CODIGO_BARRAS,
+  ALMACENAMIENTO, COHERENCIA_CRUZADA, COLA, EXTRACCION_IA, EXTRACCION_LOCAL, LECTOR_CODIGO_BARRAS, LECTURA_RESCATE_IA,
   NOTIFICACION, RUES, SINU,
 } from '../../domain/ports/out/servicios-externos.port';
 import {
@@ -55,6 +55,7 @@ import {
   CoherenciaCruzadaAdapter, ExtraccionAnthropicAdapter, ExtraccionSimuladaAdapter,
 } from '../adapters/ia/extraccion.adapter';
 import { ExtraccionOpenAiAdapter } from '../adapters/ia/openai.adapter';
+import { LecturaRescateIaSeguraAdapter } from '../adapters/ia/lectura-rescate-ia-segura.adapter';
 import {
   NotificacionConsolaAdapter, RuesNoDisponibleAdapter, RuesSimuladoAdapter, SinuSimuladoAdapter,
 } from '../adapters/externos/externos.adapter';
@@ -343,6 +344,9 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     ExtraccionSimuladaAdapter,
     ExtraccionAnthropicAdapter,
     ExtraccionOpenAiAdapter,
+    // IA de rescate (§7.35): el token apunta al proveedor PROTEGIDO, que vuelve a comprobar configuración, ambiente y
+    // destino y delega en la MISMA instancia de ExtraccionOpenAiAdapter (único cliente HTTP). Nunca al adaptador directo.
+    { provide: LECTURA_RESCATE_IA, useClass: LecturaRescateIaSeguraAdapter },
     {
       provide: EXTRACCION_IA,
       inject: [ConfigService, ExtraccionSimuladaAdapter, ExtraccionAnthropicAdapter, ExtraccionOpenAiAdapter],

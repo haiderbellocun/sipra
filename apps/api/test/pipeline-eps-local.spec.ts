@@ -58,6 +58,7 @@ function montar(tipo: TipoDocumento, externo: ExtraccionIaPort, local?: Extracci
     listarParaPurga: () => Promise.resolve([]),
     gastoIaDesde: () => Promise.resolve(0),
     contarLecturasDesde: () => Promise.resolve(0),
+    contarLecturasIaRealesDesde: () => Promise.resolve(0),
     ...operacionesAtomicasEnMemoria(() => almacenado, (d) => { almacenado = d; }),
   };
   const parametros = new ParametrosUseCase({

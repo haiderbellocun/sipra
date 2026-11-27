@@ -71,6 +71,53 @@ function rechazo(motivo: Exclude<MotivoPoliticaRescate, 'permitido'>): DecisionR
   return { permitido: false, motivo, camposSolicitados: [] };
 }
 
+/**
+ * ¿Está encendido el interruptor propio del tipo? Un tipo de procesamiento local (sensible) lo necesita; uno que
+ * no lo es no tiene interruptor propio. Un tipo `SOLO_LOCAL` sin interruptor asignado queda bloqueado siempre.
+ * Se deriva de `modoProcesamientoDe`: no hay una segunda lista de tipos sensibles.
+ */
+function interruptorDelTipoEncendido(tipo: TipoDocumento, interruptores: Readonly<Partial<InterruptoresRescateIa>>): boolean {
+  if (modoProcesamientoDe(tipo) !== ModoProcesamiento.LOCAL) return true;
+  const clave = INTERRUPTOR_POR_TIPO_SENSIBLE[tipo];
+  return clave !== undefined && encendido(interruptores, clave);
+}
+
+/** Ambiente en el que un tipo sensible puede salir a un proveedor externo. Comparación estricta: ausente bloquea. */
+const AMBIENTE_DE_SENSIBLES = 'dev';
+
+export type MotivoAutorizacionRescate = 'rescate_deshabilitado' | 'tipo_sensible_no_autorizado' | 'ambiente_no_permitido';
+
+export interface AutorizacionRescateIa {
+  autorizado: boolean;
+  motivo: MotivoAutorizacionRescate | null;
+}
+
+/**
+ * Compuerta de configuración del rescate, independiente de la lectura: general encendido, interruptor del tipo
+ * (si es sensible) y, para los sensibles, ambiente `dev` EXACTO. La usan el pipeline y el proveedor protegido
+ * (defensa en profundidad): ninguno confía en que el otro ya la haya comprobado.
+ */
+export function autorizarRescateIa(
+  tipo: TipoDocumento,
+  interruptores: Readonly<Partial<InterruptoresRescateIa>>,
+  ambiente: string | null | undefined,
+): AutorizacionRescateIa {
+  if (!encendido(interruptores, 'habilitado')) return { autorizado: false, motivo: 'rescate_deshabilitado' };
+  if (!interruptorDelTipoEncendido(tipo, interruptores)) return { autorizado: false, motivo: 'tipo_sensible_no_autorizado' };
+  if (modoProcesamientoDe(tipo) === ModoProcesamiento.LOCAL && ambiente !== AMBIENTE_DE_SENSIBLES) {
+    return { autorizado: false, motivo: 'ambiente_no_permitido' };
+  }
+  return { autorizado: true, motivo: null };
+}
+
+/** Un rescate rechazado por la compuerta del proveedor: NO es una invocación ni un fallo del proveedor. */
+export class RescateIaNoAutorizadoError extends Error {
+  constructor(readonly motivo: MotivoAutorizacionRescate | 'sin_campos' | 'destino_no_permitido') {
+    super(`Rescate con IA no autorizado: ${motivo}`);
+    this.name = 'RescateIaNoAutorizadoError';
+  }
+}
+
 export function decidirRescateIa(
   tipo: TipoDocumento,
   interruptores: Readonly<Partial<InterruptoresRescateIa>>,
@@ -80,10 +127,7 @@ export function decidirRescateIa(
   if (suficiencia.estado === 'no_aplica') return rechazo('tipo_sin_campos');
   if (suficiencia.estado === 'suficiente' || suficiencia.faltantes.length === 0) return rechazo('lectura_suficiente');
 
-  if (modoProcesamientoDe(tipo) === ModoProcesamiento.LOCAL) {
-    const clave = INTERRUPTOR_POR_TIPO_SENSIBLE[tipo];
-    if (!clave || !encendido(interruptores, clave)) return rechazo('tipo_sensible_no_autorizado');
-  }
+  if (!interruptorDelTipoEncendido(tipo, interruptores)) return rechazo('tipo_sensible_no_autorizado');
 
   return {
     permitido: true,

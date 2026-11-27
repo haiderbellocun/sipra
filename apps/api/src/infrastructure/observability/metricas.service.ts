@@ -65,6 +65,36 @@ export class MetricasService implements OnModuleInit {
     registers: [this.registro],
   });
 
+  // ── IA de rescate documental (§7.35). Sin ids, nombres, documentos, práctica ni valores. ──
+  readonly iaRescateInvocaciones = new Counter({
+    name: 'sipra_ia_rescate_invocaciones_total',
+    help: 'Invocaciones reales de la IA de rescate documental, por tipo y resultado',
+    labelNames: ['tipo', 'resultado'] as const,
+    registers: [this.registro],
+  });
+
+  readonly iaRescateCamposRecuperados = new Counter({
+    name: 'sipra_ia_rescate_campos_recuperados_total',
+    help: 'Campos que la IA de rescate recuperó con un valor válido, por tipo',
+    labelNames: ['tipo'] as const,
+    registers: [this.registro],
+  });
+
+  readonly iaRescateCosto = new Counter({
+    name: 'sipra_ia_rescate_costo_usd_total',
+    help: 'Costo acumulado de la IA de rescate (ya incluido en sipra_ia_costo_usd_total vía la extracción persistida)',
+    labelNames: ['modelo'] as const,
+    registers: [this.registro],
+  });
+
+  readonly iaRescateDuracion = new Histogram({
+    name: 'sipra_ia_rescate_duracion_seconds',
+    help: 'Duración de la invocación de la IA de rescate, por tipo',
+    labelNames: ['tipo'] as const,
+    buckets: [0.5, 1, 2, 5, 10, 30, 60, 120],
+    registers: [this.registro],
+  });
+
   readonly practicasBloqueadasArl = new Gauge({
     name: 'sipra_practicas_bloqueadas_arl',
     help: 'Prácticas en validación detenidas por la compuerta de ARL',

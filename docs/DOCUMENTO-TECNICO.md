@@ -1750,7 +1750,7 @@ determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato 
   Los tipos sensibles solo entran cuando su interruptor esté encendido de forma explícita y exista aprobación
   institucional. Una lectura local genérica para los no sensibles (opción a) queda como frente aparte.
 - **Subfases:** 1.1 núcleo de dominio puro (hecha) · 1.2 fusión y validación de valores rescatados (hecha) · 1.3 (hecha) puerto
-  `LecturaRescateIaPort` sobre el adaptador de OpenAI · 1.4 configuración e interruptores (hecha) · 1.5 paso de rescate en el
+  `LecturaRescateIaPort` sobre el adaptador de OpenAI · 1.4 configuración e interruptores (hecha) · 1.5 (hecha) paso de rescate en el
   pipeline, con auditoría y métricas (siempre termina en revisión humana cuando interviene la IA) · 1.6 Mesas y frontend
   con la fuente `ia_rescate`.
 
@@ -1871,13 +1871,97 @@ determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato 
   tipos sensibles siguen sin autoaprobación) y la prohibición vigente de CLAUDE.md para datos reales.
   `LECTURA_RESCATE_IA` no se registra en `AppModule` hasta la subfase 1.5. Que un tipo sensible arranque en `dev` con
   su interruptor encendido es solo una posibilidad técnica: ningún código llama todavía a `rescatar`.
-- **Requisitos para la 1.5 (hallazgos de la revisión de esta subfase):**
-  - el pipeline debe llamar a `decidirRescateIa(tipo, interruptoresRescateIa(config), suficiencia)` antes de `rescatar`;
-  - `rescatar` no tiene bloqueo propio: quien construya el adaptador por fuera de `validarEntorno` (p. ej.
-    `herramientas/evaluar-lectura.ts`) o lo llame sin pasar por la política puede enviar un tipo sensible. Conviene que
-    el adaptador rechace los tipos `SOLO_LOCAL` como defensa en profundidad;
-  - `OPENAI_URL_BASE` acepta cualquier https. Cuando se enciendan interruptores sensibles, conviene una lista de hosts
-    permitidos: decisión pendiente.
+- **Requisitos para la 1.5:** cumplidos en la subfase 1.5 (ver abajo): el pipeline pasa por `decidirRescateIa`, el
+  proveedor registrado es protegido y el destino del rescate tiene lista de hosts.
+
+**Subfase 1.5 (rescate conectado al pipeline, con doble compuerta):**
+
+- **Alcance:** el rescate se intenta SOLO para tipos con `modoProcesamientoDe(tipo) === LOCAL` (EPS, Acta, RUT natural,
+  RUT jurídico y Cámara). Los tipos no sensibles conservan su camino (el extractor configurado) y NO entran al rescate:
+  no hay «IA principal → IA de rescate». Que un tipo sensible llegue a OpenAI exige que los interruptores y el ambiente
+  `dev` lo permitan y, mientras no exista aprobación institucional, solo con datos sintéticos.
+- **Flujo** (`pipeline-validacion.use-case.ts`, método `intentarRescate`; entre el preproceso y la decisión de
+  «ilegible»):
+  1. lectura local; si es suficiente → flujo actual;
+  2. preproceso determinístico (ya existente) y nueva evaluación de suficiencia;
+  3. `autorizarRescateIa` y `decidirRescateIa` (compuerta 1);
+  4. presupuesto (tope diario y límite por práctica);
+  5. UNA invocación a `LECTURA_RESCATE_IA`;
+  6. `fusionarLecturas` (valida los valores y respeta la precedencia) y continuación por las capas existentes.
+  El rescate NO se activa solo por `ilegible`: también corre cuando el documento es legible pero faltan campos o hay
+  campos débiles. Un documento que la lectura local clasificó como de otro tipo no se envía a ningún proveedor.
+- **Doble compuerta.**
+  - Compuerta 1 (pipeline): `autorizarRescateIa(tipo, interruptores, ambiente)` más `decidirRescateIa`.
+  - Compuerta 2 (`LecturaRescateIaSeguraAdapter`, infraestructura): vuelve a comprobar, con la misma función pura,
+    que haya campos válidos, que los interruptores autoricen el tipo y que el ambiente sea `dev` EXACTO para los
+    sensibles (un ambiente ausente bloquea). Después valida el destino y delega en la MISMA instancia de
+    `ExtraccionOpenAiAdapter`, que sigue siendo el único cliente HTTP.
+  - `LECTURA_RESCATE_IA` está registrado en `AppModule` apuntando a ese proveedor protegido, nunca al adaptador directo.
+    Una prueba estructural comprueba que `.rescatar(` solo aparece en el pipeline (vía el puerto) y en el proveedor, y
+    que la capa de aplicación no inyecta `ExtraccionOpenAiAdapter`.
+  - Un rechazo de la compuerta 2 lanza `RescateIaNoAutorizadoError`: NO es una invocación (sin auditoría, métricas ni
+    conteo de presupuesto) y no es un fallo del proveedor. «Invocación» = la compuerta pasó y se delegó al adaptador.
+- **Destino permitido** (`destino-rescate-ia.ts`, solo para el rescate; la política de `IA_DRIVER=openai` no cambia):
+  `https://api.openai.com` (sin credenciales ni puerto distinto) y, solo con ambiente `dev`, `http(s)://localhost`,
+  `127.0.0.1` y `[::1]`. Se analiza con `URL` (no con regex): `https://api.openai.com@otro.host` y
+  `https://api.openai.com.otro.host` se rechazan. Se valida `urlBaseConfigurada`, el valor que el adaptador usa de
+  verdad. Los logs y errores llevan solo el motivo, nunca la URL.
+- **Un solo intento:** hay una única llamada a `rescatar()` por ejecución del pipeline, con cualquier resultado
+  (parcial, `null`, discrepancias o fallo). Un trabajo ya procesado no vuelve a entrar (el reclamo atómico existente).
+- **Fallo seguro:** un error del proveedor (tiempo agotado, 429/5xx agotados, error definitivo, respuesta inválida) no
+  se propaga: el documento sigue por revisión humana, o queda `ilegible` si la lectura local ya lo era y no se
+  recuperó nada. Lo que el proveedor haya facturado en una respuesta inservible se conserva.
+- **Regla de ilegibilidad** (`decidirLegibilidadTrasRescate`): si la lectura local era `ilegible` y la IA recuperó al
+  menos un campo válido, el documento NO se marca ilegible: continúa a revisión humana con los datos precargados. Si no
+  se recuperó ningún dato útil, se conserva `marcarIlegible` y la solicitud de nueva captura.
+- **Fusión y datos:** la IA solo llena campos vacíos y nunca reemplaza un valor existente (decisión de 1.2). Si difiere
+  de un valor local, este se conserva, se registra la discrepancia y la bandera `C2_DISCREPANCIA_IA_LOCAL` (ALTA) fuerza
+  la revisión. Si coincide con un valor débil queda «corroborado» sin cambiar su fuente: no es fuente oficial, no cambia
+  la autenticidad y no habilita autoaprobación. Se conservan `lecturaLocal`, acta, RUT, Cámara, tipo detectado,
+  hallazgos, resumen y gasto previo.
+- **Procedencia:** `CampoExtraido.fuente` NO se amplió. Los campos rescatados se guardan sin `fuente` y la procedencia de
+  cada campo vive en `extraccion.rescateIa.fuentesFinales` (fuente de verdad durante esta fase). Consecuencia a tener
+  presente: la confianza que declaró el modelo llega a `construirDatosExtraidosEps`, y si supera el umbral de
+  comparación, la comparación EPS trata la transcripción como leída. Es coherencia, no autenticidad, y la decide una
+  persona. Por eso `C2_RESCATE_IA_APLICADO` aparece siempre que haya campos rescatados; la subfase 1.6 debe mostrar la
+  procedencia en las Mesas.
+- **Presupuesto:**
+  - tope diario (`ia.tope_diario_usd`, con `gastoIaDesde`);
+  - límite por práctica (`ia.lecturas_por_practica_dia`) contado con `contarLecturasIaRealesDesde`.
+  `contarLecturasDesde` cuenta cualquier lectura con `extraccion` (también las locales), así que NO se usa para el
+  rescate. El conteo nuevo cuenta solo IA real: proveedor externo (`openai`/`anthropic`) o `extraccion.rescateIa.invocado`
+  (JSONB, sin migración); espeja `esLecturaIaReal`. Presupuesto agotado → sin llamada, metadata `invocado: false` y la
+  bandera de «no disponible».
+- **Costo:** el costo del rescate se suma a la extracción persistida (tokens, caché, razonamiento, duración) y se cuenta
+  una sola vez en `sipra_ia_costo_usd_total`, que ya lo toma de la extracción. Con gasto real, `modelo` y `proveedor`
+  de la extracción pasan al modelo que lo facturó, para que los reportes por modelo lo atribuyan bien; el modelo de la
+  lectura base queda en `rescateIa.modeloBase`. Nada decide por la igualdad de `proveedor`/`modelo`: solo se muestran.
+- **Metadata persistida** (`extraccion.rescateIa`, sin valores, nombres, documentos, NIT, texto OCR ni evidencia):
+  `invocado`, `resultado` (`recuperado`, `parcial`, `sin_datos`, `error`, `timeout`, `presupuesto`), modelo, duración,
+  tokens, costo, campos solicitados, recuperados, corroborados y descartados (solo nombres y códigos), discrepancias,
+  `fuentesFinales` y `requiereRevisionHumana`.
+- **Auditoría:** acción `LECTURA_RESCATE_IA`, exactamente una vez por invocación real (no si no hubo llamada), con
+  `documentoId`, tipo, resultado, modelo, duración, tokens, costo y los conteos de campos pedidos, recuperados y
+  discrepancias. Sin valores. Si falla, no tumba el procesamiento. No requiere migración: `accion` es texto.
+- **Métricas:** `sipra_ia_rescate_invocaciones_total{tipo,resultado}`, `sipra_ia_rescate_campos_recuperados_total{tipo}`,
+  `sipra_ia_rescate_costo_usd_total{modelo}` y `sipra_ia_rescate_duracion_seconds{tipo}`. Sin ids, práctica ni valores.
+- **Banderas:** `C2_RESCATE_IA_APLICADO` (informativa), `C2_RESCATE_IA_PARCIAL` (informativa), `C2_RESCATE_IA_SIN_DATOS`
+  (informativa), `C2_DISCREPANCIA_IA_LOCAL` (ALTA) y `C2_RESCATE_IA_NO_DISPONIBLE` (ALTA: era necesario y falló o no hubo
+  presupuesto). Sin valores en el mensaje; el mensaje al estudiante es genérico.
+- **Autoaprobación:** sin cambios. Aunque la IA recupere todos los campos, EPS, Acta, RUT y Cámara terminan en revisión
+  humana.
+- **Riesgos residuales:**
+  1. Si el proceso muere DESPUÉS de que OpenAI respondió y ANTES de persistir el documento, un reintento de Cloud Tasks
+     vuelve a invocar la IA: no existe un marcador durable previo (no se agregó migración ni escritura intermedia).
+  2. Si una capa POSTERIOR al rescate (coherencia, parámetros) lanza una excepción, `procesar()` libera el reclamo y
+     relanza: el reintento también volvería a rescatar. El rescate en sí nunca lanza.
+  3. El costo de un rescate cuyo resultado se descarta (decisión humana a mitad del proceso o caída) no llega a
+     `gastoIaDesde` ni al conteo por práctica; sí queda en la auditoría. Es el mismo comportamiento que ya tiene la
+     lectura principal.
+  4. Las lecturas locales ya inflaban el límite por práctica de los tipos NO sensibles (`contarLecturasDesde`); no se
+     corrigió porque está fuera del alcance (el rescate usa su propio conteo).
+  5. `herramientas/evaluar-lectura.ts` construye `ExtraccionOpenAiAdapter` por su cuenta; no llama a `rescatar`, pero
+     cualquier herramienta futura que lo haga se saltaría las compuertas. La prueba estructural lo detecta en `src/`.
 
 ---
 
@@ -3786,6 +3870,24 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.58.0 — 27 de noviembre de 2026
+
+**IA de rescate documental · subfase 1.5 (integración segura al pipeline).** Detalle en §7.35. No hay migraciones, ni
+cambios en `SOLO_LOCAL`, la autoaprobación, ADRES, RUES, las Mesas ni el frontend, y ninguna prueba llamó a OpenAI.
+
+- Pipeline: paso de rescate entre el preproceso y la decisión de «ilegible», solo para tipos de procesamiento local,
+  con un único intento por ejecución y fallo seguro.
+- Doble compuerta: `autorizarRescateIa` (dominio) en el pipeline y en el nuevo `LecturaRescateIaSeguraAdapter`, que
+  además restringe el destino (`api.openai.com`; localhost solo en `dev`) y delega en la misma instancia de
+  `ExtraccionOpenAiAdapter`. `LECTURA_RESCATE_IA` queda registrado en `AppModule` apuntando a ese proveedor.
+- Dominio nuevo: `destino-rescate-ia.ts` y `resultado-rescate-ia.ts` (clasificación, regla de ilegibilidad, incorporación
+  del rescate, metadata, banderas y `esLecturaIaReal`).
+- Presupuesto: nuevo `contarLecturasIaRealesDesde` (solo IA real, sin migración) en el puerto y en el adaptador Postgres.
+- Auditoría `LECTURA_RESCATE_IA`, cuatro métricas `sipra_ia_rescate_*` y cinco banderas `C2_*` de rescate.
+- `ResultadoExtraccion.rescateIa` (metadata sin valores). `CampoExtraido.fuente` no se amplió.
+- Se invirtió el invariante de 1.4 «LECTURA_RESCATE_IA no registrado» a «registrado solo con el proveedor protegido».
+- Pruebas nuevas: `pipeline-rescate-ia`, `rescate-compuertas` y `resultado-rescate-ia`.
 
 ### 0.57.0 — 27 de noviembre de 2026
 

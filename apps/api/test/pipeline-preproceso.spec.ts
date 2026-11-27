@@ -95,6 +95,7 @@ function pipeline(extractor: ExtraccionIaPort): {
     ...operacionesAtomicasEnMemoria(() => almacenado, (d) => { almacenado = d; }),
     gastoIaDesde: () => Promise.resolve(0),
     contarLecturasDesde: () => Promise.resolve(0),
+    contarLecturasIaRealesDesde: () => Promise.resolve(0),
   };
 
   const practicas = { buscarPorId: () => Promise.resolve(null) } as unknown as PracticaRepositoryPort;

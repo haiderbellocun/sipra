@@ -70,6 +70,7 @@ function montar(contenido: Buffer, mime: string, opciones: { duplicados?: number
     listarParaPurga: () => Promise.resolve([]),
     gastoIaDesde: () => Promise.resolve(0),
     contarLecturasDesde: () => Promise.resolve(0),
+    contarLecturasIaRealesDesde: () => Promise.resolve(0),
     ...operacionesAtomicasEnMemoria(() => almacenado, (d) => { almacenado = d; }),
   };
   const parametros = new ParametrosUseCase({

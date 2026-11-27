@@ -297,6 +297,25 @@ export class DocumentoRepositoryAdapter implements DocumentoRepositoryPort {
     );
     return Number(filas[0]?.total ?? 0);
   }
+
+  /**
+   * Solo cuenta IA real: proveedor externo, o un rescate cuya invocación quedó registrada
+   * (`extraccion.rescateIa.invocado`). Una lectura local (proveedor `local`, `pdf417`, `simulado`…) no cuenta.
+   * Espeja `esLecturaIaReal` (dominio). Sin migración: usa el JSONB de `documentos.extraccion`.
+   */
+  async contarLecturasIaRealesDesde(practicaId: string, desde: Date): Promise<number> {
+    const filas: { total: string | null }[] = await this.repo.manager.query(
+      `SELECT COUNT(*) AS total
+         FROM documentos
+        WHERE practica_id = $1
+          AND extraccion IS NOT NULL
+          AND (extraccion->>'proveedor' IN ('openai', 'anthropic')
+               OR extraccion->'rescateIa'->>'invocado' = 'true')
+          AND COALESCE((extraccion->>'leidoEn')::timestamptz, cargado_en) >= $2`,
+      [practicaId, desde],
+    );
+    return Number(filas[0]?.total ?? 0);
+  }
 }
 
 @Injectable()

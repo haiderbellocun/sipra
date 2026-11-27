@@ -152,6 +152,14 @@ export class ExtraccionOpenAiAdapter implements ExtraccionIaPort, LecturaRescate
     return this.modelo;
   }
 
+  /**
+   * URL base con la que este adaptador envía de verdad. La compuerta del rescate valida ESTE valor (y no vuelve a
+   * leer la configuración), para que lo validado y lo usado no puedan diferir.
+   */
+  get urlBaseConfigurada(): string {
+    return this.urlBase;
+  }
+
   async extraer(
     contenido: Buffer,
     mime: string,

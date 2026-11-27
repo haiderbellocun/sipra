@@ -157,6 +157,7 @@ function pipeline(extractor: ExtraccionIaPort, opciones: OpcionesArnes = {}): {
       consultasLecturas.push({ practicaId, desde });
       return Promise.resolve(opciones.lecturasHoy ?? 0);
     },
+    contarLecturasIaRealesDesde: () => Promise.resolve(0),
   };
 
   const practicas = { buscarPorId: () => Promise.resolve(null) } as unknown as PracticaRepositoryPort;

@@ -75,6 +75,7 @@ function montar(
     listarParaPurga: () => Promise.resolve([]),
     gastoIaDesde: () => Promise.resolve(0),
     contarLecturasDesde: () => Promise.resolve(0),
+    contarLecturasIaRealesDesde: () => Promise.resolve(0),
     ...operacionesAtomicasEnMemoria(() => almacenado, (d) => { guardados += 1; almacenado = d; }),
   };
   const parametros = new ParametrosUseCase({

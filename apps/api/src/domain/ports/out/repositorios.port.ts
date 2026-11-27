@@ -78,6 +78,12 @@ export interface DocumentoRepositoryPort {
   gastoIaDesde(desde: Date): Promise<number>;
   /** Lecturas automáticas de una práctica desde esa fecha; sostiene el límite por práctica y día. */
   contarLecturasDesde(practicaId: string, desde: Date): Promise<number>;
+  /**
+   * Lecturas de IA REALES de la práctica desde `desde`: una lectura con proveedor externo (OpenAI/Anthropic) o un
+   * rescate con IA efectivamente invocado. Una lectura local o determinística NO cuenta. Es el conteo que frena
+   * el rescate; `contarLecturasDesde` (que cuenta cualquier lectura) no se toca.
+   */
+  contarLecturasIaRealesDesde(practicaId: string, desde: Date): Promise<number>;
 
   // ── Concurrencia: compare-and-set en la base (correcto con varias instancias) ──
 

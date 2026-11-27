@@ -247,7 +247,7 @@ function montarPipeline(tipo: TipoDocumento, externo: { extraer: () => Promise<R
     buscarPorId: () => Promise.resolve(Documento.desde(almacenado)), listarPorPractica: () => Promise.resolve([]), contarPorHash: () => Promise.resolve(0),
     listarHashesPerceptuales: () => Promise.resolve([]), ultimaVersion: () => Promise.resolve(1),
     guardar: (d: DatosDocumento) => { almacenado = d; return Promise.resolve(Documento.desde(d)); },
-    listarParaPurga: () => Promise.resolve([]), gastoIaDesde: () => Promise.resolve(0), contarLecturasDesde: () => Promise.resolve(0),
+    listarParaPurga: () => Promise.resolve([]), gastoIaDesde: () => Promise.resolve(0), contarLecturasDesde: () => Promise.resolve(0), contarLecturasIaRealesDesde: () => Promise.resolve(0),
     ...operacionesAtomicasEnMemoria(() => almacenado, (d) => { almacenado = d; }),
   };
   const parametros = new ParametrosUseCase({ listarSobrescrituras: () => Promise.resolve([]), guardar: () => Promise.resolve(), restaurar: () => Promise.resolve() });

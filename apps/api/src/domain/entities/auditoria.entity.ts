@@ -49,6 +49,8 @@ export enum AccionAuditada {
   CONSENTIMIENTO_ACEPTADO = 'consentimiento_aceptado',
   CONSENTIMIENTO_REVOCADO = 'consentimiento_revocado',
   POLITICA_CONSENTIMIENTO_PUBLICADA = 'politica_consentimiento_publicada',
+  /** IA de rescate documental (§7.35): una vez por invocación real. Sin valores ni datos personales. */
+  LECTURA_RESCATE_IA = 'lectura_rescate_ia',
   VALIDACION_EPS_INICIADA = 'validacion_eps_iniciada',
   VALIDACION_EPS_PROCESADA = 'validacion_eps_procesada',
   EVIDENCIA_EPS_REGISTRADA = 'evidencia_eps_registrada',

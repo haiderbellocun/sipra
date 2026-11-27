@@ -5,13 +5,13 @@ import {
   Bandera, Documento, EstadoDocumento, SeveridadBandera, TipoDocumento,
 } from '../../../domain/entities/documento.entity';
 import {
-  DOCUMENTO_REPOSITORY, DocumentoRepositoryPort, PRACTICA_REPOSITORY, PracticaRepositoryPort,
-  USUARIO_REPOSITORY, UsuarioRepositoryPort,
+  AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, DOCUMENTO_REPOSITORY, DocumentoRepositoryPort, PRACTICA_REPOSITORY,
+  PracticaRepositoryPort, USUARIO_REPOSITORY, UsuarioRepositoryPort,
 } from '../../../domain/ports/out/repositorios.port';
 import {
   ALMACENAMIENTO, AlmacenamientoPort, COHERENCIA_CRUZADA, CoherenciaCruzadaPort,
-  EXTRACCION_IA, EXTRACCION_LOCAL, ExtraccionIaPort, LECTOR_CODIGO_BARRAS, LectorCodigoBarrasPort,
-  ResultadoExtraccion,
+  EXTRACCION_IA, EXTRACCION_LOCAL, ExtraccionIaPort, LECTOR_CODIGO_BARRAS, LECTURA_RESCATE_IA, LectorCodigoBarrasPort,
+  LecturaRescateIaPort, ResultadoExtraccion, ResultadoRescateIa,
 } from '../../../domain/ports/out/servicios-externos.port';
 import { ForenseDomainService } from '../../../domain/services/forense.domain-service';
 import {
@@ -25,6 +25,17 @@ import {
   ModoProcesamiento, modoProcesamientoDe, permiteAutoAprobacionDelPipeline,
 } from '../../../domain/services/politica-procesamiento';
 import { camposDe } from '../../../domain/entities/campos-extraccion';
+import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
+import { fusionarLecturas } from '../../../domain/services/fusion-lecturas';
+import {
+  RescateIaNoAutorizadoError, autorizarRescateIa, decidirRescateIa,
+} from '../../../domain/services/politica-rescate-ia';
+import {
+  MetadatosRescateIa, ResultadoRescate, UsoRescate, banderasDeRescate, clasificarResultadoRescate, incorporarRescate,
+} from '../../../domain/services/resultado-rescate-ia';
+import { evaluarSuficienciaLectura } from '../../../domain/services/suficiencia-lectura';
+import { interruptoresRescateIa } from '../../services/interruptores-rescate-ia';
+import { MetricasService } from '../../../infrastructure/observability/metricas.service';
 import { ClasificacionDocumentoEmpresarial } from '../../../domain/entities/documento-empresarial';
 import { inicioDelDiaEnColombia } from '../../../domain/services/fechas-colombia';
 import {
@@ -88,6 +99,11 @@ export class PipelineValidacionUseCase {
     private readonly parametros: ParametrosUseCase,
     @Optional() private readonly config?: ConfigService,
     @Optional() @Inject(EXTRACCION_LOCAL) private readonly extraccionLocal?: ExtraccionIaPort,
+    // IA de rescate (§7.35). Opcionales: sin proveedor, sin auditoría o sin métricas el flujo es el de siempre.
+    // El proveedor registrado en AppModule es el PROTEGIDO (segunda compuerta), nunca el adaptador de OpenAI.
+    @Optional() @Inject(LECTURA_RESCATE_IA) private readonly rescate?: LecturaRescateIaPort,
+    @Optional() @Inject(AUDITORIA_REPOSITORY) private readonly auditoria?: AuditoriaRepositoryPort,
+    @Optional() private readonly metricas?: MetricasService,
   ) {}
 
   /** Compatibilidad: devuelve el documento resultante, haya o no ejecutado capas. */
@@ -291,6 +307,13 @@ export class PipelineValidacionUseCase {
             pasosPreproceso.map((p) => p.descripcion).join('; '),
         });
       }
+    }
+
+    // ── IA de rescate (solo tipos de procesamiento LOCAL; §7.35) ───────────
+    // Un único intento por ejecución, DESPUÉS del preproceso y ANTES de decidir «ilegible». Nunca lanza: un fallo
+    // del proveedor degrada a revisión humana o ilegible según lo leído en local.
+    if (extraido && procesamientoLocal) {
+      extraido = await this.intentarRescate(documento, contenido, extraido, banderas);
     }
 
     if (extraido?.ilegible) {
@@ -767,6 +790,203 @@ export class PipelineValidacionUseCase {
   }
 
   /**
+   * IA de rescate: pide a la IA SOLO los campos que la lectura local dejó vacíos o débiles. Defensa en profundidad:
+   * aquí decide la política (compuerta 1) y el proveedor protegido vuelve a comprobar (compuerta 2).
+   *
+   * Garantías:
+   *  · una sola llamada a `rescatar()` por ejecución (no hay bucle ni segundo intento);
+   *  · nunca lanza: cualquier fallo devuelve la lectura base (con el gasto, si lo hubo);
+   *  · «invocación» = la compuerta del proveedor pasó y se delegó al adaptador. Solo una invocación se audita,
+   *    se cuenta en métricas y cuenta para el límite por práctica. Un rechazo de la compuerta no lo es;
+   *  · no registra valores: solo nombres de campo, códigos y conteos.
+   */
+  private async intentarRescate(
+    documento: Documento,
+    contenido: Buffer,
+    lectura: ResultadoExtraccion,
+    banderas: Bandera[],
+  ): Promise<ResultadoExtraccion> {
+    const datos = documento.instantanea();
+    const rescate = this.rescate;
+    if (!rescate || (lectura as { fallida?: boolean }).fallida) return lectura;
+    // Un documento de otro tipo no se manda a un proveedor externo «para recuperar campos».
+    if (lecturaEsDeOtroTipo(datos.tipo, lectura)) return lectura;
+
+    let camposSolicitados: string[];
+    try {
+      const suficiencia = evaluarSuficienciaLectura(datos.tipo, lectura);
+      if (suficiencia.estado !== 'insuficiente') return lectura;
+      const interruptores = interruptoresRescateIa(this.config);
+      const ambiente = this.config?.get<string>('SIPRA_AMBIENTE');
+      if (!autorizarRescateIa(datos.tipo, interruptores, ambiente).autorizado) return lectura;
+      const decision = decidirRescateIa(datos.tipo, interruptores, suficiencia);
+      if (!decision.permitido) return lectura;
+      camposSolicitados = decision.camposSolicitados;
+
+      const bloqueo = await this.presupuestoRescateAgotado(datos.practicaId);
+      if (bloqueo) {
+        this.log.warn(`Documento ${documento.id}: rescate con IA omitido por ${bloqueo}; pasa a revisión humana`);
+        return this.registrarRescateNoInvocado(lectura, camposSolicitados, 'presupuesto', banderas);
+      }
+    } catch (error) {
+      this.log.warn(`Documento ${documento.id}: no se pudo evaluar el rescate con IA (${(error as Error).name}); se omite`);
+      return lectura;
+    }
+
+    // ── La única invocación ──────────────────────────────────────────────
+    const inicio = Date.now();
+    let respuesta: ResultadoRescateIa | null = null;
+    let fallo: Error | null = null;
+    try {
+      respuesta = await rescate.rescatar({ contenido, mime: datos.mimeReal, tipo: datos.tipo, camposSolicitados });
+    } catch (error) {
+      fallo = error as Error;
+    }
+
+    if (fallo instanceof RescateIaNoAutorizadoError) {
+      // La segunda compuerta no dejó pasar la llamada: no es una invocación (sin auditoría, métricas ni conteo).
+      this.log.warn(`Documento ${documento.id}: el proveedor de rescate no autorizó la llamada (${fallo.motivo})`);
+      return this.registrarRescateNoInvocado(lectura, camposSolicitados, 'error', banderas, false);
+    }
+    if (respuesta && !respuesta.invocado) return lectura; // nada válido que pedir: sin llamada, sin costo, sin rastro
+
+    try {
+      const entrada = fallo
+        ? this.entradaDeFallo(camposSolicitados, fallo, Date.now() - inicio)
+        : this.entradaDeRespuesta(datos.tipo, lectura, camposSolicitados, respuesta as ResultadoRescateIa);
+      const { lectura: fusionada, metadatos } = incorporarRescate(lectura, entrada);
+      banderas.push(...banderasDeRescate(metadatos));
+      await this.registrarInvocacion(documento.id, datos.tipo, metadatos);
+      this.log.log(
+        `Documento ${documento.id}: rescate con IA ${metadatos.resultado} ` +
+          `(${metadatos.camposRecuperados.length}/${metadatos.camposSolicitados.length} campos, ${metadatos.costoUsd} USD)`,
+      );
+      return fusionada;
+    } catch (error) {
+      // Un fallo interno tras la llamada no puede tumbar el documento ni perder el gasto.
+      this.log.error(`Documento ${documento.id}: fallo al integrar el rescate con IA (${(error as Error).name})`);
+      const { lectura: conGasto, metadatos } = incorporarRescate(lectura, {
+        camposSolicitados, resultado: 'error', invocado: true, fusion: null,
+        uso: respuesta ? usoDeRespuesta(respuesta) : this.usoFacturado(fallo, Date.now() - inicio),
+      });
+      banderas.push(...banderasDeRescate(metadatos));
+      await this.registrarInvocacion(documento.id, datos.tipo, metadatos);
+      return conGasto;
+    }
+  }
+
+  private entradaDeRespuesta(
+    tipo: TipoDocumento, lectura: ResultadoExtraccion, camposSolicitados: string[], respuesta: ResultadoRescateIa,
+  ) {
+    const fusion = fusionarLecturas(tipo, lectura, respuesta.campos);
+    return {
+      camposSolicitados,
+      resultado: clasificarResultadoRescate(camposSolicitados.length, fusion) as ResultadoRescate,
+      invocado: true,
+      uso: usoDeRespuesta(respuesta),
+      fusion,
+    };
+  }
+
+  /** Fallo del proveedor (tiempo agotado, 429/5xx agotados, error definitivo, respuesta inválida), con lo facturado. */
+  private entradaDeFallo(camposSolicitados: string[], fallo: Error, duracionMs: number) {
+    const timeout = /timeout|timed out|aborted|abort/i.test(`${fallo.name} ${fallo.message}`);
+    return {
+      camposSolicitados,
+      resultado: (timeout ? 'timeout' : 'error') as ResultadoRescate,
+      invocado: true,
+      uso: this.usoFacturado(fallo, duracionMs),
+      fusion: null,
+    };
+  }
+
+  /** Lo que el proveedor facturó aunque la respuesta no sirviera (mismo mecanismo que la lectura principal). */
+  private usoFacturado(fallo: Error | null, duracionMs: number): UsoRescate | null {
+    const uso = (fallo as { uso?: Omit<UsoRescate, 'proveedor' | 'duracionMs'> | null } | null)?.uso;
+    if (!uso) return null;
+    return {
+      modelo: uso.modelo, proveedor: 'openai', tokensEntrada: uso.tokensEntrada, tokensSalida: uso.tokensSalida,
+      tokensCache: uso.tokensCache, tokensRazonamiento: uso.tokensRazonamiento, costoUsd: uso.costoUsd, duracionMs,
+    };
+  }
+
+  /**
+   * Resultado sin llamada real (presupuesto agotado o compuerta del proveedor): deja la lectura como estaba, con
+   * metadata `invocado: false` (salvo que `conMetadatos` sea false) y la bandera de «no disponible». No se audita ni
+   * se cuenta como invocación.
+   */
+  private registrarRescateNoInvocado(
+    lectura: ResultadoExtraccion,
+    camposSolicitados: string[],
+    resultado: ResultadoRescate,
+    banderas: Bandera[],
+    conMetadatos = true,
+  ): ResultadoExtraccion {
+    const { lectura: marcada, metadatos } = incorporarRescate(lectura, {
+      camposSolicitados, resultado, invocado: false, uso: null, fusion: null,
+    });
+    banderas.push(...banderasDeRescate(metadatos));
+    return conMetadatos ? marcada : lectura;
+  }
+
+  /** Auditoría (una vez) y métricas de UNA invocación real. Nunca lanza ni lleva valores. */
+  private async registrarInvocacion(documentoId: string, tipo: TipoDocumento, m: MetadatosRescateIa): Promise<void> {
+    try {
+      this.metricas?.iaRescateInvocaciones.inc({ tipo, resultado: m.resultado });
+      if (m.camposRecuperados.length > 0) this.metricas?.iaRescateCamposRecuperados.inc({ tipo }, m.camposRecuperados.length);
+      if (m.costoUsd > 0) this.metricas?.iaRescateCosto.inc({ modelo: m.modelo ?? 'desconocido' }, m.costoUsd);
+      if (m.duracionMs > 0) this.metricas?.iaRescateDuracion.observe({ tipo }, m.duracionMs / 1000);
+    } catch (error) {
+      this.log.warn(`Métricas del rescate con IA: no se registraron (${(error as Error).name})`);
+    }
+    try {
+      await this.auditoria?.registrar({
+        actorId: null,
+        actorCorreo: 'sistema',
+        actorRol: 'sistema',
+        accion: AccionAuditada.LECTURA_RESCATE_IA,
+        entidad: 'documento',
+        entidadId: documentoId,
+        justificacion: null,
+        metadatos: {
+          documentoId,
+          tipo,
+          resultado: m.resultado,
+          modelo: m.modelo,
+          duracionMs: m.duracionMs,
+          tokensEntrada: m.tokensEntrada,
+          tokensSalida: m.tokensSalida,
+          costoUsd: m.costoUsd,
+          camposSolicitados: m.camposSolicitados.length,
+          camposRecuperados: m.camposRecuperados.length,
+          discrepancias: m.discrepancias.length,
+          requiereRevisionHumana: m.requiereRevisionHumana,
+        },
+        ip: null,
+        agenteUsuario: null,
+        ocurridoEn: new Date(),
+      });
+    } catch (error) {
+      this.log.warn(`Auditoría del rescate con IA: no se registró (${(error as Error).name})`);
+    }
+  }
+
+  /**
+   * Presupuesto del rescate: tope diario de gasto y límite de lecturas de IA REALES por práctica. La lectura local
+   * no cuenta (por eso no se usa `contarLecturasDesde`, que cuenta cualquier lectura). Si no se puede verificar, se
+   * omite el rescate (la excepción la captura el llamador).
+   */
+  private async presupuestoRescateAgotado(practicaId: string): Promise<'tope_diario' | 'limite_por_practica' | null> {
+    if (await this.topeDiarioAlcanzado()) return 'tope_diario';
+    const limite = await this.parametros.numero('ia.lecturas_por_practica_dia');
+    if (limite > 0) {
+      const lecturas = await this.documentos.contarLecturasIaRealesDesde(practicaId, inicioDelDiaEnColombia(new Date()));
+      if (lecturas >= limite) return 'limite_por_practica';
+    }
+    return null;
+  }
+
+  /**
    * Capa 0 — reutilización de la misma imagen entre expedientes.
    *
    * El hash criptográfico solo detecta el archivo idéntico. Basta recomprimir
@@ -862,6 +1082,29 @@ export class PipelineValidacionUseCase {
     }
     return banderas;
   }
+}
+
+function usoDeRespuesta(r: ResultadoRescateIa): UsoRescate {
+  return {
+    modelo: r.modelo, proveedor: r.proveedor, tokensEntrada: r.tokensEntrada, tokensSalida: r.tokensSalida,
+    tokensCache: r.tokensCache, tokensRazonamiento: r.tokensRazonamiento, costoUsd: r.costoUsd, duracionMs: r.duracionMs,
+  };
+}
+
+/**
+ * La lectura LEYÓ el documento y es de otro tipo (mismas señales que producen `C2_TIPO_INCORRECTO` más abajo):
+ * no tiene sentido —ni es admisible— enviar a un proveedor externo un documento ajeno para «recuperar campos».
+ */
+function lecturaEsDeOtroTipo(tipo: TipoDocumento, lectura: ResultadoExtraccion): boolean {
+  if (tipo === TipoDocumento.CERTIFICADO_EPS && lectura.lecturaLocal?.clasificacion?.tipo === 'documento_incorrecto') return true;
+  if (tipo === TipoDocumento.ACTA_INICIO && lectura.lecturaActa?.clasificacion.tipoActaDetectada === 'documento_incorrecto') return true;
+  if (
+    (tipo === TipoDocumento.RUT_NATURAL || tipo === TipoDocumento.RUT_JURIDICO) && lectura.lecturaRut &&
+    ['documento_incorrecto', 'camara_matricula_persona_natural', 'camara_matricula_sociedad', 'camara_existencia_representacion']
+      .includes(lectura.lecturaRut.tipoDetectado)
+  ) return true;
+  if (tipo === TipoDocumento.CAMARA_COMERCIO && lectura.lecturaCamara?.tipoDetectado === ClasificacionDocumentoEmpresarial.DOCUMENTO_INCORRECTO) return true;
+  return lectura.tipoDetectado !== null && lectura.tipoDetectado !== tipo;
 }
 
 function etiqueta(tipo: TipoDocumento): string {

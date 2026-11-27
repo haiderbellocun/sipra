@@ -219,9 +219,9 @@ describe('IA de rescate · lo que no cambia', () => {
     for (const tipo of SENSIBLES_TIPO) expect(permiteAutoAprobacionDelPipeline(tipo)).toBe(false);
   });
 
-  it('24. LECTURA_RESCATE_IA no está registrado en AppModule (comprobación estructural del código fuente)', () => {
+  it('24. (1.5) LECTURA_RESCATE_IA ya está registrado, y solo con el proveedor protegido (nunca el adaptador directo)', () => {
     const modulo = readFileSync(join(__dirname, '..', 'src', 'infrastructure', 'modules', 'app.module.ts'), 'utf8');
-    expect(modulo).not.toMatch(/LECTURA_RESCATE_IA/);
-    expect(modulo).not.toMatch(/LecturaRescateIaPort/);
+    expect(modulo).toMatch(/provide:\s*LECTURA_RESCATE_IA\s*,\s*useClass:\s*LecturaRescateIaSeguraAdapter/);
+    expect(modulo).not.toMatch(/provide:\s*LECTURA_RESCATE_IA\s*,\s*(useClass|useExisting|useValue):\s*ExtraccionOpenAiAdapter/);
   });
 });
