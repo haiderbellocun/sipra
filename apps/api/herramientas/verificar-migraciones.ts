@@ -289,13 +289,22 @@ async function main(): Promise<void> {
     await ds.destroy();
     ds = await abrir(bases.hist, MIGRACIONES);
     const hist = await ds.runMigrations({ transaction: 'each' });
-    comprobar('la 25, la 26, la 27 y la 28 se aplican solas sobre una base ya poblada', hist.length === 4 && hist[0].name.startsWith('HistoricoSgp')
+    comprobar('la 25, la 26, la 27, la 28 y la 29 se aplican solas sobre una base ya poblada', hist.length === 5 && hist[0].name.startsWith('HistoricoSgp')
       && hist[1].name.startsWith('HistoricoPreparacionCarga') && hist[2].name.startsWith('HistoricoCorrespondenciaPracticas')
-      && hist[3].name.startsWith('HistoricoServingAnalitico'), hist.map((m) => m.name).join(','));
+      && hist[3].name.startsWith('HistoricoServingAnalitico') && hist[4].name.startsWith('DocumentoAutoDevuelto'), hist.map((m) => m.name).join(','));
     const tablaCorr = async (): Promise<boolean> => (await ds.query(`SELECT to_regclass('historico.practica_correspondencia') IS NOT NULL AS hay`))[0].hay as boolean;
     const tablaServing = async (): Promise<boolean> => (await ds.query(`SELECT to_regclass('historico.serving_practicas') IS NOT NULL AND to_regclass('historico.serving_publicacion') IS NOT NULL AS hay`))[0].hay as boolean;
     const usoApp = async (): Promise<boolean> => (await ds.query(`SELECT has_schema_privilege('sipra_app', 'historico', 'USAGE') AS v`))[0].v as boolean;
+    // La 29 (estado auto_devuelto, 1.6A) es la última: se baja primero (sin filas auto_devuelto, revierte limpio).
+    const admiteAutoDevuelto = async (): Promise<boolean> => (await ds.query(
+      `SELECT pg_get_constraintdef(oid) LIKE '%auto_devuelto%' AS si FROM pg_constraint WHERE conname = 'ck_documentos_estado'`))[0].si as boolean;
+    const bajar29 = async (etq: string): Promise<void> => {
+      comprobar(`${etq}: la 29 admite el estado auto_devuelto`, await admiteAutoDevuelto());
+      await ds.undoLastMigration({ transaction: 'each' });
+      comprobar(`${etq}: down de DocumentoAutoDevuelto (sin filas) restituye el CHECK anterior`, !(await admiteAutoDevuelto()));
+    };
     const bajar28 = async (etq: string): Promise<void> => {
+      await bajar29(etq);
       await ds.undoLastMigration({ transaction: 'each' });
       comprobar(`${etq}: down de HistoricoServingAnalitico quita el serving y los permisos de sipra_app`, !(await tablaServing()) && !(await usoApp()) && await tablaCorr());
     };
@@ -359,7 +368,10 @@ async function main(): Promise<void> {
       // Si el esquema exige otras columnas, se informa en vez de adivinar.
       comprobar('se pudo sembrar una evidencia OCR sintética', false, e.message.slice(0, 200));
     });
-    // La 28, la 27, la 26 y la 25 (histórico, vacío) bajan primero y limpio: así la 24 vuelve a ser la última para el bloque de la carta.
+    // La 29 (auto_devuelto, sin filas) y luego la 28, la 27, la 26 y la 25 (histórico, vacío) bajan primero y limpio: así la 24
+    // vuelve a ser la última para el bloque de la carta.
+    await ds.undoLastMigration({ transaction: 'each' });
+    comprobar('B: down de DocumentoAutoDevuelto (29) sin filas: limpio', !(await registradas(ds)).some((x) => x.startsWith('DocumentoAutoDevuelto')));
     await ds.undoLastMigration({ transaction: 'each' });
     await ds.undoLastMigration({ transaction: 'each' });
     await ds.undoLastMigration({ transaction: 'each' });

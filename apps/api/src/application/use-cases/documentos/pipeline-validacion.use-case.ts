@@ -22,7 +22,7 @@ import {
 } from '../../../domain/services/preprocesamiento.domain-service';
 import { Pdf417DomainService } from '../../../domain/services/pdf417.domain-service';
 import {
-  ModoProcesamiento, modoProcesamientoDe, permiteAutoAprobacionDelPipeline,
+  ModoProcesamiento, TIPOS_CON_DECISION_ESPECIALIZADA, modoProcesamientoDe, permiteAutoAprobacionDelPipeline,
 } from '../../../domain/services/politica-procesamiento';
 import { camposDe } from '../../../domain/entities/campos-extraccion';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
@@ -35,6 +35,7 @@ import {
 } from '../../../domain/services/resultado-rescate-ia';
 import { evaluarSuficienciaLectura } from '../../../domain/services/suficiencia-lectura';
 import { interruptoresRescateIa } from '../../services/interruptores-rescate-ia';
+
 import { MetricasService } from '../../../infrastructure/observability/metricas.service';
 import { ClasificacionDocumentoEmpresarial } from '../../../domain/entities/documento-empresarial';
 import { inicioDelDiaEnColombia } from '../../../domain/services/fechas-colombia';
@@ -456,8 +457,17 @@ export class PipelineValidacionUseCase {
     // ── Capa 5 — puntaje y decisión ───────────────────────────────────────
     // Los umbrales se leen ahora, no al compilar: la Dirección los calibra
     // durante el piloto y el cambio surte efecto sin desplegar.
+    // Los tipos con decisión especializada (§7.36) NUNCA se aprueban por la banda verde, con o sin motor encendido: solo su
+    // política especializada puede aprobarlos. Sin condicionales por interruptor aquí.
     const permiteAutoAprobacion = permiteAutoAprobacionDelPipeline(datos.tipo);
-    if (!permiteAutoAprobacion) {
+    if (TIPOS_CON_DECISION_ESPECIALIZADA.includes(datos.tipo) && modoProcesamientoDe(datos.tipo) !== ModoProcesamiento.LOCAL) {
+      banderas.push({
+        codigo: 'C3_DECISION_POR_MOTOR_ESPECIALIZADO',
+        capa: 3,
+        severidad: SeveridadBandera.INFORMATIVA,
+        mensaje: 'Este tipo lo decide su motor especializado, no el puntaje del pipeline',
+      });
+    } else if (!permiteAutoAprobacion) {
       banderas.push({
         codigo: 'C3_AUTOAPROBACION_NO_HABILITADA',
         capa: 3,

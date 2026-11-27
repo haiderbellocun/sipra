@@ -55,7 +55,7 @@ const APROBADOS: readonly EstadoDocumento[] = [
 
 /** Estados que exigen acción del estudiante: no cuentan como «cargado». */
 const REQUIEREN_REENVIO: readonly EstadoDocumento[] = [
-  EstadoDocumento.DEVUELTO, EstadoDocumento.ILEGIBLE, EstadoDocumento.RECHAZADO,
+  EstadoDocumento.DEVUELTO, EstadoDocumento.AUTO_DEVUELTO, EstadoDocumento.ILEGIBLE, EstadoDocumento.RECHAZADO,
 ];
 
 export class AvanceDocumentalDomainService {

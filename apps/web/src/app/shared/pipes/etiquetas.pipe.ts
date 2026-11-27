@@ -9,7 +9,7 @@ const ETIQUETAS: Record<string, string> = {
   al_dia: 'Al día', requiere_atencion: 'Requiere atención', en_riesgo: 'En riesgo',
   // Documentos
   recibido: 'Recibido', analizando: 'Analizando', auto_aprobado: 'Aprobado automáticamente',
-  en_revision: 'En revisión', ilegible: 'Ilegible', devuelto: 'Devuelto',
+  en_revision: 'En revisión', ilegible: 'Ilegible', devuelto: 'Devuelto', auto_devuelto: 'Devuelto automáticamente',
   aprobado: 'Aprobado', rechazado: 'Rechazado',
   // Tipos documentales
   cedula: 'Documento de identidad', carta_aceptacion: 'Carta de aceptación',

@@ -1,9 +1,9 @@
 import { RecomendacionEps } from '../entities/adres';
 import { EstadoDocumento } from '../entities/documento.entity';
-import { EstadoValidacionDocumentoEmpresarial as EstadoEmp } from '../entities/documento-empresarial';
+import { ESTADOS_DECIDIDOS_EMPRESARIAL, EstadoValidacionDocumentoEmpresarial as EstadoEmp } from '../entities/documento-empresarial';
 import { DatosValidacionActa, EstadoValidacionActa } from '../entities/validacion-acta.entity';
 import { DatosValidacionDocumentoEmpresarial } from '../entities/validacion-documento-empresarial.entity';
-import { DatosValidacionEps, DecisionEps, EstadoProcesamientoEps } from '../entities/validacion-eps.entity';
+import { DECISIONES_HUMANAS as DECISIONES_HUMANAS_EPS, DatosValidacionEps, DecisionEps, EstadoProcesamientoEps } from '../entities/validacion-eps.entity';
 import { FaseDocumento, SENAL_NORMAL, SenalDocumento } from './expediente-documental.domain-service';
 import { RecomendacionActa, recomendacionActa } from './mesa-acta.domain-service';
 import { RecomendacionCamara, recomendacionCamara, resumenHumanoCamara } from './mesa-camara.domain-service';
@@ -24,6 +24,7 @@ function faseDelDocumento(estado: EstadoDocumento): FaseDocumento {
     case EstadoDocumento.APROBADO:
     case EstadoDocumento.AUTO_APROBADO: return 'aprobado';
     case EstadoDocumento.DEVUELTO:
+    case EstadoDocumento.AUTO_DEVUELTO:
     case EstadoDocumento.ILEGIBLE: return 'devuelto';
     case EstadoDocumento.RECHAZADO: return 'rechazado';
     case EstadoDocumento.EN_REVISION: return 'listo_para_revisar';
@@ -38,11 +39,14 @@ export function faseGeneral(estado: EstadoDocumento): FaseDocumento {
 }
 
 /** Un documento ilegible vuelve al estudiante aunque el motor no haya llegado a registrar una decisión. */
-const vuelveAlEstudiante = (estado: EstadoDocumento): boolean => estado === EstadoDocumento.ILEGIBLE || estado === EstadoDocumento.DEVUELTO;
+const vuelveAlEstudiante = (estado: EstadoDocumento): boolean =>
+  estado === EstadoDocumento.ILEGIBLE || estado === EstadoDocumento.DEVUELTO || estado === EstadoDocumento.AUTO_DEVUELTO;
 
 export function faseEps(estadoDocumento: EstadoDocumento, v: DatosValidacionEps | null): FaseDocumento {
   if (vuelveAlEstudiante(estadoDocumento) && (!v || v.decision !== DecisionEps.DEVUELTO)) return 'devuelto';
-  if (!v) return estadoDocumento === EstadoDocumento.APROBADO ? 'aprobado' : 'procesando';
+  if (!v) return estadoDocumento === EstadoDocumento.APROBADO || estadoDocumento === EstadoDocumento.AUTO_APROBADO ? 'aprobado' : 'procesando';
+  // Aprobado por el motor automático (§7.36): la validación de EPS no cambia, el documento lo dice.
+  if (estadoDocumento === EstadoDocumento.AUTO_APROBADO && !DECISIONES_HUMANAS_EPS.includes(v.decision)) return 'aprobado';
   switch (v.decision) {
     case DecisionEps.APROBADO_MANUAL:
     case DecisionEps.APROBADO_AUTOMATICO: return 'aprobado';
@@ -70,6 +74,8 @@ export function faseActa(estadoDocumento: EstadoDocumento, v: DatosValidacionAct
 /** RUT y Cámara comparten la validación genérica de documentos empresariales. */
 export function faseEmpresarial(estadoDocumento: EstadoDocumento, v: DatosValidacionDocumentoEmpresarial | null): FaseDocumento {
   if (vuelveAlEstudiante(estadoDocumento) && (!v || v.estado !== EstadoEmp.DEVUELTO)) return 'devuelto';
+  // Aprobado por el motor automático (§7.36): la validación empresarial no cambia, el documento lo dice.
+  if (estadoDocumento === EstadoDocumento.AUTO_APROBADO && (!v || !ESTADOS_DECIDIDOS_EMPRESARIAL.includes(v.estado))) return 'aprobado';
   if (!v) return 'procesando';
   switch (v.estado) {
     case EstadoEmp.APROBADO_MANUAL: return 'aprobado';

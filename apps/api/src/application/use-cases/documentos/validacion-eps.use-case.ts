@@ -301,6 +301,10 @@ export class ValidacionEpsUseCase {
     const validacion = await this.cargar(validacionId);
     await this.exigirPracticaVisible(validacion.practicaId, actor);
     if (validacion.estaDecidida) throw new ConflictException('El caso ya fue decidido');
+    // Resuelto por el motor automático (§7.36): el documento manda; no es un caso pendiente.
+    if ((await this.documentos.buscarPorId(validacion.documentoId))?.bloqueaDecisionOrdinaria) {
+      throw new ConflictException('El documento ya fue resuelto automáticamente: no se reserva ni se decide por la Mesa');
+    }
 
     const hasta = new Date(ahora.getTime() + DURACION_RESERVA_EPS_MS);
     if (!(await this.validaciones.reservar(validacionId, actor.id, ahora, hasta))) {

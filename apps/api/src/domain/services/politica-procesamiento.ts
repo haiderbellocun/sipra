@@ -1,4 +1,6 @@
-import { TipoDocumento } from '../entities/documento.entity';
+import { TIPOS_CON_DECISION_ESPECIALIZADA, TipoDocumento } from '../entities/documento.entity';
+
+export { TIPOS_CON_DECISION_ESPECIALIZADA };
 
 /**
  * Política de procesamiento por tipo documental.
@@ -40,6 +42,11 @@ const SIN_AUTOAPROBACION_DEL_PIPELINE: readonly TipoDocumento[] = [
   TipoDocumento.CAMARA_COMERCIO,
 ];
 
+/**
+ * ¿El pipeline GENÉRICO puede autoaprobar este tipo por la banda verde? Nunca los tipos sin autoaprobación del pipeline
+ * (arriba) ni los tipos con DECISIÓN ESPECIALIZADA (EPS, RUT, Cámara, ARL: §7.36), que solo aprueba su política
+ * especializada. No depende de ningún interruptor: con el motor apagado, esos tipos quedan en revisión.
+ */
 export function permiteAutoAprobacionDelPipeline(tipo: TipoDocumento): boolean {
-  return !SIN_AUTOAPROBACION_DEL_PIPELINE.includes(tipo);
+  return !SIN_AUTOAPROBACION_DEL_PIPELINE.includes(tipo) && !TIPOS_CON_DECISION_ESPECIALIZADA.includes(tipo);
 }

@@ -187,6 +187,8 @@ export class MesaCamaraUseCase {
   async tomar(validacionId: string, actor: Actor, ahora: Date = new Date()): Promise<ReservaCamaraDto> {
     const { v, documento } = await this.cargarCaso(validacionId, actor);
     if (v.estaDecidida) throw new ConflictException('El caso ya fue decidido');
+    // Resuelto por el motor automático (§7.36): no es un caso pendiente.
+    if (documento.bloqueaDecisionOrdinaria) throw new ConflictException('El documento ya fue resuelto automáticamente: no se reserva ni se decide por la Mesa');
     if (!v.estaRevisable) throw new ConflictException('El certificado todavía no está listo para revisión');
     if (this.inconsistente(documento.instantanea().estado)) throw new ConflictException(MENSAJE_INCONSISTENCIA);
     if (documento.instantanea().version < (await this.validaciones.versionMaximaDocumento(v.instantanea().practicaId, documento.tipo))) {

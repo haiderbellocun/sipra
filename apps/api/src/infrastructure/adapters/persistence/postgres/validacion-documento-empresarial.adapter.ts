@@ -222,6 +222,8 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
           AND d.version = (SELECT max(d2.version) FROM documentos d2 WHERE d2.practica_id = d.practica_id AND d2.tipo = d.tipo)
           AND v.estado = ANY($1::text[])
           AND ($2::text[] IS NULL OR p.escuela_id = ANY($2::text[]))
+          -- Decidido por el motor automático (§7.36) y sin decisión humana: ya no espera revisión.
+          AND NOT (d.estado IN ('auto_aprobado','auto_devuelto') AND v.estado NOT IN ('aprobado_manual','devuelto','rechazado'))
         ORDER BY v.recibida_en ASC NULLS LAST, v.creada_en ASC
         LIMIT ${TOPE_LISTADO_MESA_RUT}`,
       [[...filtro.estados], filtro.escuelas ? [...filtro.escuelas] : null],
@@ -250,7 +252,9 @@ export class ValidacionDocumentoEmpresarialRepositoryAdapter implements Validaci
          JOIN practicas p ON p.id = v.practica_id
         WHERE d.tipo IN (${tiposSql})
           AND d.version = (SELECT max(d2.version) FROM documentos d2 WHERE d2.practica_id = d.practica_id AND d2.tipo = d.tipo)
-          AND ($1::text[] IS NULL OR p.escuela_id = ANY($1::text[]))`;
+          AND ($1::text[] IS NULL OR p.escuela_id = ANY($1::text[]))
+          -- Decidido por el motor automático (§7.36) y sin decisión humana: ya no espera revisión.
+          AND NOT (d.estado IN ('auto_aprobado','auto_devuelto') AND v.estado NOT IN ('aprobado_manual','devuelto','rechazado'))`;
     const resumen: Record<string, number>[] = await this.repo.query(
       `SELECT count(*) FILTER (WHERE v.estado = 'revision')::int AS abiertas,
               count(*) FILTER (WHERE v.estado = 'revision' AND (v.asignado_a IS NULL OR v.reserva_hasta <= $2))::int AS libres,

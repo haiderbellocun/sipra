@@ -60,13 +60,26 @@ Estas no son convenciones: si se rompen, el lint o la base fallan.
 
 Detalle en `docs/DOCUMENTO-TECNICO.md` (§7.15–7.20 y §7.21 «Estado piloto EPS»). Lo que el código hace cumplir:
 
-- **Lectura 100 % local** (pdf.js, ZXing y Tesseract en el proceso). **Nada de OpenAI/Anthropic**
-  para certificados de EPS, y ningún certificado sale a un servicio externo.
+- **Lectura local primero** (pdf.js, ZXing y Tesseract en el proceso). EPS, RUT, Cámara y Acta siguen
+  siendo tipos SENSIBLES de procesamiento local (`SOLO_LOCAL`): su lectura principal nunca sale a un
+  proveedor externo.
+- **IA de rescate (§7.35):** existe un rescate con OpenAI SOLO detrás de `IA_RESCATE_*`, apagado de
+  fábrica, para los campos que la lectura local no pudo leer. Los tipos sensibles solo pueden
+  habilitarlo en `dev` (el arranque falla en qa, pre y prod) y solo con datos SINTÉTICOS. Producción
+  no habilita rescate sensible hasta una decisión institucional. OpenAI solo ayuda a LEER: nunca prueba
+  autenticidad ni afiliación y nunca decide. Destino restringido a `api.openai.com` (localhost solo en dev).
 - **ADRES es asistido:** la persona abre el portal, resuelve ella misma el CAPTCHA y sube el PDF
   guardado. Prohibido automatizar el portal, el CAPTCHA, el scraping, los endpoints privados y
   construir una extensión de Chrome. ADRES contrasta la **afiliación**; no autentica el certificado.
-- **La autoaprobación NO existe.** Solo hay una etiqueta «candidato»; decide siempre una persona.
-  `EPS_AUTOAPROBACION_HABILITADA=true` impide el arranque en todos los ambientes.
+- **Decisión documental automática (§7.36):** existe un motor especializado para EPS, RUT, Cámara y
+  ARL, apagado de fábrica (`AUTO_DECISION_DOCUMENTAL_HABILITADA` y `AUTO_APROBACION_*` /
+  `AUTO_DEVOLUCION_*`) y autorizado por ahora SOLO en `dev`. Resultados: `auto_aprobado`,
+  `auto_devuelto` (el estudiante sube una nueva versión) o revisión. **Nunca hay rechazo automático**:
+  `rechazado` es siempre humano. Autoaprobar exige la política especializada del tipo (el pipeline
+  genérico nunca aprueba estos tipos por la banda verde). Una autodevolución nunca se apoya solo en IA.
+  RUES no está integrado (Cámara aprobada = consistente, no verificada); ADRES sigue asistido; ARL no
+  tiene verificación oficial. Una versión resuelta automáticamente no admite la decisión humana
+  ordinaria. `EPS_AUTOAPROBACION_HABILITADA=true` sigue impidiendo el arranque: no es este mecanismo.
 - **Verificadores oficiales:** inventario vacío (`VERIFICADORES_EPS_OFICIALES`) ⇒ cero salida HTTP.
 - **Interruptores de incidente** (sin desplegar código): `EPS_VALIDACION_HABILITADA`,
   `ADRES_ASISTIDO_HABILITADO`, `EPS_OCR_HABILITADO`, `VERIFICACION_EPS_HABILITADA` (apagada de fábrica).
@@ -100,7 +113,10 @@ debe exigir tocar lógica de negocio.
 - Nomenclatura `feature.type.ts` en `kebab-case`.
 - Datos de prueba **sintéticos**. Ningún dato personal real entra en
   desarrollo.
-- **Nunca** versionar credenciales. Los secretos van a Secret Manager.
+- **Nunca** versionar credenciales. Los secretos van a Secret Manager (y al `.env` local solo en
+  desarrollo); la llave de OpenAI jamás en el frontend, en logs ni en la base.
+- **Ningún dato personal ni valor documental en logs ni en auditorías**: solo códigos, conteos y nombres
+  de campo.
 
 ## Git
 
@@ -112,7 +128,7 @@ debe exigir tocar lógica de negocio.
 
 ```bash
 npm run lint                  # API y web: 0 advertencias
-npm test                      # API: 68 suites, 1.802 pruebas
+npm test                      # API: 147 suites, 3.774 pruebas (en equipos con poca RAM: npm run test --workspace=@sipra/api -- --maxWorkers=2)
 npm run test:web              # frontend (node --test + esbuild) y typecheck de sus pruebas
 npm run test:aislamiento      # condición de despliegue
 npm run build                 # API y web

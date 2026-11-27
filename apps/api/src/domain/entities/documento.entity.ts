@@ -6,6 +6,11 @@ export enum EstadoDocumento {
   EN_REVISION = 'en_revision',
   ILEGIBLE = 'ilegible',
   DEVUELTO = 'devuelto',
+  /**
+   * Devuelto por el MOTOR DE DECISIÓN AUTOMÁTICA (§7.36): documento de otro tipo o incumplimiento objetivo. No es una
+   * decisión humana (no tiene `decididoPor`), no es un rechazo y, como `ilegible`, permite cargar una nueva versión.
+   */
+  AUTO_DEVUELTO = 'auto_devuelto',
   APROBADO = 'aprobado',
   RECHAZADO = 'rechazado',
 }
@@ -30,6 +35,33 @@ export const ESTADOS_DECIDIDOS: readonly EstadoDocumento[] = [
   EstadoDocumento.DEVUELTO,
   EstadoDocumento.RECHAZADO,
 ];
+
+/**
+ * Resoluciones AUTOMÁTICAS de una versión (§7.36). No son decisiones humanas (no tienen actor, por eso no están en
+ * `ESTADOS_DECIDIDOS`), pero cierran esa versión: el estudiante subsana con una NUEVA versión y la decisión humana ordinaria
+ * no puede cambiarlas por accidente. Sobrescribir una resolución automática exigiría una acción explícita y auditada, que hoy
+ * no existe.
+ */
+export const ESTADOS_RESUELTOS_AUTOMATICAMENTE: readonly EstadoDocumento[] = [
+  EstadoDocumento.AUTO_APROBADO,
+  EstadoDocumento.AUTO_DEVUELTO,
+];
+
+/** La versión fue resuelta por el motor automático: la decisión humana ordinaria no la cambia. */
+export class DocumentoResueltoAutomaticamenteError extends Error {
+  constructor(estado: EstadoDocumento) {
+    super(`El documento fue resuelto automáticamente (${estado}): el estudiante debe cargar una nueva versión; no admite una decisión ordinaria`);
+    this.name = 'DocumentoResueltoAutomaticamenteError';
+  }
+}
+
+/** La decisión automática solo se aplica a un documento que espera revisión (`en_revision`). */
+export class DecisionAutomaticaNoAplicableError extends Error {
+  constructor(estado: EstadoDocumento) {
+    super(`La decisión automática no aplica a un documento en estado ${estado}`);
+    this.name = 'DecisionAutomaticaNoAplicableError';
+  }
+}
 
 /** Un documento ya decidido por una persona no admite otra decisión ni un resultado automático. */
 export class DocumentoYaDecididoError extends Error {
@@ -101,6 +133,15 @@ export enum TipoDocumento {
   /** Pasantía internacional: certificado del seguro médico internacional. */
   SEGURO_MEDICO_INTERNACIONAL = 'seguro_medico_internacional',
 }
+
+/**
+ * Tipos con DECISIÓN ESPECIALIZADA (§7.36): el pipeline genérico NUNCA los autoaprueba por la banda verde; solo su política
+ * especializada (motor de decisión automática) puede hacerlo. Vive junto al enum para no crear dependencias circulares.
+ */
+export const TIPOS_CON_DECISION_ESPECIALIZADA: readonly TipoDocumento[] = [
+  TipoDocumento.CERTIFICADO_EPS, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO, TipoDocumento.CAMARA_COMERCIO,
+  TipoDocumento.CERTIFICADO_ARL,
+];
 
 /** Banda del puntaje del pipeline (capa 5). Nunca hay rechazo automático. */
 export enum BandaPuntaje {
@@ -191,6 +232,17 @@ export class Documento {
   get estaDecidido(): boolean { return ESTADOS_DECIDIDOS.includes(this.datos.estado); }
 
   /**
+   * ¿La decisión humana ORDINARIA está bloqueada para esta versión? Siempre en `auto_devuelto` (solo lo produce el motor).
+   * En `auto_aprobado`, solo para los tipos con decisión especializada: ahí únicamente su motor puede aprobar. El
+   * `auto_aprobado` GENÉRICO del pipeline (p. ej. una cédula por banda verde) conserva el mecanismo existente y probado: una
+   * persona puede revertirlo con la decisión ordinaria.
+   */
+  get bloqueaDecisionOrdinaria(): boolean {
+    if (this.datos.estado === EstadoDocumento.AUTO_DEVUELTO) return true;
+    return this.datos.estado === EstadoDocumento.AUTO_APROBADO && TIPOS_CON_DECISION_ESPECIALIZADA.includes(this.datos.tipo);
+  }
+
+  /**
    * ¿El pipeline puede tomar este documento? Solo si está `recibido` o si otro
    * procesamiento quedó `analizando` más tiempo del que dura una ejecución
    * legítima (se interrumpió). Todo lo demás —incluido `auto_aprobado`— se
@@ -264,9 +316,38 @@ export class Documento {
     this.datos.actualizadoEn = ahora;
   }
 
+  /**
+   * Decisión del MOTOR AUTOMÁTICO (§7.36): solo desde `en_revision` (nunca sobre una decisión humana ni sobre otro resultado
+   * automático). Sin actor: no es una decisión de una persona.
+   */
+  aplicarAutoAprobacion(ahora: Date = new Date()): void {
+    this.exigirEnRevisionParaMotor();
+    this.datos.estado = EstadoDocumento.AUTO_APROBADO;
+    this.datos.actualizadoEn = ahora;
+  }
+
+  /** Devolución del motor automático: mensaje GENÉRICO al estudiante (nunca datos del documento). No es un rechazo. */
+  aplicarAutoDevolucion(mensajeUsuario: string, ahora: Date = new Date()): void {
+    if (!mensajeUsuario?.trim()) throw new DecisionSinJustificacionError();
+    this.exigirEnRevisionParaMotor();
+    this.datos.estado = EstadoDocumento.AUTO_DEVUELTO;
+    this.datos.motivoDevolucion = mensajeUsuario;
+    this.datos.actualizadoEn = ahora;
+  }
+
+  /** Decisión humana ordinaria: ni sobre una decisión humana previa ni sobre una resolución automática bloqueante. */
+  private exigirDecidiblePorPersona(): void {
+    this.exigirNoDecidido();
+    if (this.bloqueaDecisionOrdinaria) throw new DocumentoResueltoAutomaticamenteError(this.datos.estado);
+  }
+
+  private exigirEnRevisionParaMotor(): void {
+    if (this.datos.estado !== EstadoDocumento.EN_REVISION) throw new DecisionAutomaticaNoAplicableError(this.datos.estado);
+  }
+
   devolver(mensajeUsuario: string, actorId: string, ahora: Date = new Date()): void {
     if (!mensajeUsuario?.trim()) throw new DecisionSinJustificacionError();
-    this.exigirNoDecidido();
+    this.exigirDecidiblePorPersona();
     this.datos.estado = EstadoDocumento.DEVUELTO;
     this.datos.motivoDevolucion = mensajeUsuario;
     this.datos.decididoPor = actorId;
@@ -275,7 +356,7 @@ export class Documento {
 
   aprobar(actorId: string, justificacion: string, ahora: Date = new Date()): void {
     if (!justificacion?.trim()) throw new DecisionSinJustificacionError();
-    this.exigirNoDecidido();
+    this.exigirDecidiblePorPersona();
     this.datos.estado = EstadoDocumento.APROBADO;
     this.datos.decididoPor = actorId;
     this.datos.justificacionDecision = justificacion;
@@ -284,7 +365,7 @@ export class Documento {
 
   rechazar(actorId: string, justificacion: string, ahora: Date = new Date()): void {
     if (!justificacion?.trim()) throw new DecisionSinJustificacionError();
-    this.exigirNoDecidido();
+    this.exigirDecidiblePorPersona();
     this.datos.estado = EstadoDocumento.RECHAZADO;
     this.datos.decididoPor = actorId;
     this.datos.justificacionDecision = justificacion;

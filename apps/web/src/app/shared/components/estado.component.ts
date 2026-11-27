@@ -12,7 +12,7 @@ const TONOS: Record<string, Tono> = {
   al_dia: 'ok', requiere_atencion: 'aviso', en_riesgo: 'peligro',
   // Documentos
   auto_aprobado: 'ok', aprobado: 'ok', en_revision: 'aviso',
-  ilegible: 'aviso', devuelto: 'aviso', rechazado: 'peligro',
+  ilegible: 'aviso', devuelto: 'aviso', auto_devuelto: 'aviso', rechazado: 'peligro',
   recibido: 'neutra', analizando: 'info',
   // Empresas
   habilitada: 'ok', en_verificacion: 'aviso', requiere_info: 'aviso',

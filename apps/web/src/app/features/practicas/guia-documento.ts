@@ -35,7 +35,15 @@ export function guiaDocumento(estado: string | null | undefined, documento: stri
         estado: 'Necesita corrección', tono: 'aviso', que: `Tu ${documento.charAt(0).toLowerCase()}${documento.slice(1)} necesita una corrección.`,
         hacer: `Sube una nueva versión con lo indicado. Tienes ${DIAS_SUBSANACION} días calendario.`, necesitaCorreccion: true,
       };
-    case 'aprobado': case 'auto_aprobado':
+    case 'auto_devuelto':
+      // Devolución automática (documento de otro tipo o incumplimiento objetivo): no es un rechazo; se puede cargar otra versión.
+      return {
+        estado: 'Necesita corrección', tono: 'aviso', que: 'Este archivo no corresponde a lo solicitado o no cumple un requisito.',
+        hacer: `Revisa el mensaje y sube una nueva versión. Tienes ${DIAS_SUBSANACION} días calendario.`, necesitaCorreccion: true,
+      };
+    case 'auto_aprobado':
+      return { estado: 'Aprobado', tono: 'ok', que: 'Documento validado automáticamente.', hacer: 'No tienes que hacer nada más con este documento.', necesitaCorreccion: false };
+    case 'aprobado':
       return { estado: 'Aprobado', tono: 'ok', que: 'Tu documento fue aprobado.', hacer: 'No tienes que hacer nada más con este documento.', necesitaCorreccion: false };
     case 'rechazado':
       return { estado: 'Rechazado', tono: 'peligro', que: 'Tu documento no fue aceptado.', hacer: 'Consulta el motivo con tu docente o con coordinación antes de cargar otro.', necesitaCorreccion: false };

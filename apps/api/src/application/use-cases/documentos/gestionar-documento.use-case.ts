@@ -5,7 +5,7 @@ import {
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AccionAuditada } from '../../../domain/entities/auditoria.entity';
 import {
-  DatosDocumento, DecisionSinJustificacionError, Documento, DocumentoYaDecididoError, EstadoDocumento, MetricasCalidadCaptura, TipoDocumento,
+  DatosDocumento, DecisionSinJustificacionError, Documento, DocumentoResueltoAutomaticamenteError, DocumentoYaDecididoError, EstadoDocumento, MetricasCalidadCaptura, TipoDocumento,
 } from '../../../domain/entities/documento.entity';
 import {
   AUDITORIA_REPOSITORY, AuditoriaRepositoryPort, DOCUMENTO_REPOSITORY, DocumentoRepositoryPort,
@@ -383,7 +383,7 @@ export class GestionarDocumentoUseCase {
       }
     } catch (error) {
       // Un documento ya decidido por una persona no se decide otra vez por accidente.
-      if (error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);
+      if (error instanceof DocumentoYaDecididoError || error instanceof DocumentoResueltoAutomaticamenteError) throw new ConflictException(error.message);
       throw new BadRequestException((error as Error).message);
     }
 
@@ -424,7 +424,7 @@ export class GestionarDocumentoUseCase {
         contextoAuditoria: mesa.contexto,
       });
     } catch (error) {
-      if (error instanceof ConflictoDecisionActaError || error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);
+      if (error instanceof ConflictoDecisionActaError || error instanceof DocumentoYaDecididoError || error instanceof DocumentoResueltoAutomaticamenteError) throw new ConflictException(error.message);
       if (error instanceof DecisionSinJustificacionError) throw new BadRequestException(error.message);
       throw error;
     }
@@ -451,7 +451,7 @@ export class GestionarDocumentoUseCase {
         contextoAuditoria: mesa.contexto, ...extra,
       });
     } catch (error) {
-      if (error instanceof ConflictoDecisionRutError || error instanceof DocumentoYaDecididoError) throw new ConflictException(error.message);
+      if (error instanceof ConflictoDecisionRutError || error instanceof DocumentoYaDecididoError || error instanceof DocumentoResueltoAutomaticamenteError) throw new ConflictException(error.message);
       if (error instanceof DecisionSinJustificacionError) throw new BadRequestException(error.message);
       throw error;
     }
@@ -540,7 +540,7 @@ export class GestionarDocumentoUseCase {
    */
   private async notificarSiRequiereAccion(documento: Documento, _actor: Actor): Promise<void> {
     const datos = documento.instantanea();
-    if (![EstadoDocumento.DEVUELTO, EstadoDocumento.ILEGIBLE].includes(datos.estado)) return;
+    if (![EstadoDocumento.DEVUELTO, EstadoDocumento.ILEGIBLE, EstadoDocumento.AUTO_DEVUELTO].includes(datos.estado)) return;
 
     const practica = await this.practicas.buscarPorId(datos.practicaId);
     if (!practica) return;

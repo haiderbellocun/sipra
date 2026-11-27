@@ -66,6 +66,9 @@ export class ValidacionesRutMemoria extends RepoMemoria {
   override async listarMesaRut(filtro: FiltroMesaRut): Promise<FilaMesaRut[]> {
     return this.vigentes()
       .filter((v) => filtro.estados.includes(v.estado))
+      // Igual que el SQL real (§7.36): un documento resuelto por el motor y sin decisión humana no espera revisión.
+      .filter((v) => !(['auto_aprobado', 'auto_devuelto'].includes(this.ctx.documentos.filas.get(v.documentoId)?.estado ?? '')
+        && !['aprobado_manual', 'devuelto', 'rechazado'].includes(v.estado)))
       .filter((v) => !filtro.escuelas || filtro.escuelas.includes(this.ctx.practicas.get(v.practicaId)?.escuelaId ?? ''))
       .sort((a, b) => (a.recibidaEn?.getTime() ?? 0) - (b.recibidaEn?.getTime() ?? 0))
       .map((v) => {

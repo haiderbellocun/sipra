@@ -17,6 +17,11 @@ export type TipoDocumentalEps = 'certificado_eps_probable' | 'documento_incorrec
 
 export interface ClasificacionDocumentalEps {
   tipo: TipoDocumentalEps;
+  /**
+   * Solo con `documento_incorrecto`: qué parece ser (clasificación INTERNA, no un tipo del sistema). Sirve para explicar y
+   * auditar la devolución; nunca lleva texto del documento.
+   */
+  subtipoIncorrecto?: SubtipoIncorrectoEps;
   /** Códigos no sensibles (p. ej. `contiene_indicadores_laborales`). Nunca fragmentos del documento. */
   motivos: string[];
   puntajeEps: number;
@@ -57,6 +62,57 @@ const SENALES_OTRO: readonly Senal[] = [
   { codigo: 'menciona_empleador', patron: /\bEMPLEADOR\b/, peso: 0.5 },
 ];
 
+/**
+ * Documentos que NO sustituyen el certificado de afiliación y que se reconocen por SEÑALES COMBINADAS (nunca por una palabra
+ * aislada). Solo se evalúan cuando el documento NO es un certificado de EPS probable: no pueden cambiar ese resultado.
+ */
+export type SubtipoIncorrectoEps =
+  | 'desprendible_nomina' | 'planilla_aportes_pila' | 'certificado_arl' | 'certificacion_laboral' | 'documento_tributario'
+  | 'otro_documento';
+
+interface FamiliaIncorrecta { subtipo: SubtipoIncorrectoEps; senales: readonly Senal[]; umbral: number }
+
+const FAMILIAS_INCORRECTAS: readonly FamiliaIncorrecta[] = [
+  {
+    subtipo: 'desprendible_nomina', umbral: 5,
+    senales: [
+      { codigo: 'nomina_desprendible', patron: /\bDESPRENDIBLE(?: DE)? (?:PAGO|NOMINA)\b|\bCOMPROBANTE DE (?:PAGO|NOMINA)\b|\bVOLANTE DE PAGO\b|\bCOLILLA DE PAGO\b/, peso: 3 },
+      { codigo: 'nomina_devengados', patron: /\bDEVENGAD[OA]S?\b/, peso: 2 },
+      { codigo: 'nomina_deducciones', patron: /\bDEDUCCIONES\b/, peso: 1.5 },
+      { codigo: 'nomina_neto', patron: /\bNETO A PAGAR\b|\bNETO PAGADO\b|\bTOTAL A PAGAR\b/, peso: 2 },
+      { codigo: 'nomina_periodo', patron: /\bPERIODO (?:DE PAGO|LIQUIDADO|DE NOMINA)\b|\bQUINCENA\b/, peso: 1 },
+      { codigo: 'nomina_salario', patron: /\bSALARIO BASICO\b|\bSUELDO BASICO\b|\bAUXILIO DE TRANSPORTE\b/, peso: 1.5 },
+    ],
+  },
+  {
+    subtipo: 'planilla_aportes_pila', umbral: 5,
+    senales: [
+      { codigo: 'pila_planilla', patron: /\bPLANILLA (?:INTEGRADA DE LIQUIDACION DE APORTES|DE APORTES|DE AUTOLIQUIDACION)\b|\bPILA\b/, peso: 3 },
+      { codigo: 'pila_ibc', patron: /\bINGRESO BASE DE COTIZACION\b|\bIBC\b/, peso: 1.5 },
+      { codigo: 'pila_numero_planilla', patron: /\bNUMERO DE PLANILLA\b|\bPLANILLA (?:NO|NUMERO)\b/, peso: 2 },
+      { codigo: 'pila_operador', patron: /\bOPERADOR DE INFORMACION\b|\bAPORTES EN LINEA\b|\bMI PLANILLA\b|\bASOPAGOS\b|\bSIMPLE S\.?A\b/, peso: 1.5 },
+      { codigo: 'pila_subsistemas', patron: /\bCAJA DE COMPENSACION\b|\bFONDO DE PENSIONES\b/, peso: 1.5 },
+      { codigo: 'pila_periodo_cotizacion', patron: /\bPERIODO (?:DE )?(?:COTIZACION|SALUD|PENSION)\b/, peso: 1 },
+    ],
+  },
+  {
+    subtipo: 'certificado_arl', umbral: 5,
+    senales: [
+      { codigo: 'arl_administradora', patron: /\bADMINISTRADORA DE RIESGOS (?:LABORALES|PROFESIONALES)\b/, peso: 3 },
+      { codigo: 'arl_sigla', patron: /\bARL\b/, peso: 1 },
+      { codigo: 'arl_clase_riesgo', patron: /\b(?:CLASE|NIVEL) DE RIESGO\b/, peso: 2 },
+      { codigo: 'arl_riesgos_laborales', patron: /\bRIESGOS LABORALES\b|\bSISTEMA GENERAL DE RIESGOS\b/, peso: 2 },
+      { codigo: 'arl_cobertura', patron: /\bINICIO DE (?:LA )?COBERTURA\b|\bCOBERTURA DESDE\b/, peso: 1.5 },
+    ],
+  },
+];
+
+/** Señales que solo trae un certificado de SALUD (no uno de riesgos laborales). */
+const SENALES_PROPIAS_DE_SALUD: readonly string[] = [
+  'contiene_regimen', 'contiene_tipo_afiliado', 'contiene_plan_beneficios', 'contiene_entidad_promotora', 'contiene_afiliado_cotizante_beneficiario',
+];
+const UMBRAL_PROPIAS_DE_SALUD = 2;
+
 /** Por debajo de esto no hay texto suficiente para opinar: la lectura falló o el documento está vacío. */
 const MIN_CARACTERES_UTILES = 80;
 const UMBRAL_EPS = 3;
@@ -93,15 +149,45 @@ export function clasificarDocumentoEps(textoCrudo: string): ClasificacionDocumen
   const motivosEps = eps.codigos.filter((c) => c !== 'menciona_eps_en_razon_social' && c !== 'identifica_afiliado');
   const motivosOtro = otro.codigos;
 
+  const familias = FAMILIAS_INCORRECTAS
+    .map((f) => ({ ...f, ...evaluar(texto, f.senales) }))
+    .filter((f) => f.puntaje >= f.umbral)
+    .sort((a, b) => b.puntaje - a.puntaje);
+  const familia = familias[0];
+
+  // Un certificado de ARL comparte el lenguaje de afiliación («certificado de afiliación», «se encuentra afiliado», «estado de la
+  // afiliación»): sin las señales PROPIAS de salud (régimen, tipo de afiliado, plan de beneficios, entidad promotora) no es EPS.
+  const arl = familias.find((f) => f.subtipo === 'certificado_arl');
+  const propiasDeSalud = SENALES_EPS.filter((s) => SENALES_PROPIAS_DE_SALUD.includes(s.codigo) && eps.codigos.includes(s.codigo)).reduce((a, s) => a + s.peso, 0);
+  if (arl && propiasDeSalud < UMBRAL_PROPIAS_DE_SALUD) {
+    return {
+      ...base, tipo: 'documento_incorrecto', subtipoIncorrecto: 'certificado_arl',
+      motivos: ['contiene_indicadores_certificado_arl', ...arl.codigos, 'faltan_indicadores_salud', ...motivosEps, 'subtipo_certificado_arl'],
+    };
+  }
+
   // Probable: señales de afiliación suficientes y por encima de las de otro tipo. Si las de otro tipo también son fuertes, las de
   // afiliación deben dominar con holgura (el doble); si no, es ambiguo y lo decide una persona.
   if (fuertesEps >= UMBRAL_EPS && eps.puntaje > otro.puntaje && (otro.puntaje < UMBRAL_OTRO || eps.puntaje >= 2 * otro.puntaje)) {
     return { ...base, tipo: 'certificado_eps_probable', motivos: motivosEps };
   }
+
   if (otro.puntaje >= UMBRAL_OTRO && fuertesEps <= MAX_EPS_PARA_INCORRECTO) {
+    // Un desprendible de nómina también trae «salario»: si una familia específica se reconoce, ese es el subtipo.
+    const subtipo: SubtipoIncorrectoEps = familia?.subtipo
+      ?? (otro.codigos.some((c) => c === 'contiene_certificacion_laboral' || c === 'contiene_vinculacion_laboral' || c === 'contiene_labor_en_empresa')
+        ? 'certificacion_laboral'
+        : otro.codigos.includes('contiene_indicadores_tributarios') ? 'documento_tributario' : 'otro_documento');
     return {
-      ...base, tipo: 'documento_incorrecto',
-      motivos: ['contiene_indicadores_laborales', ...motivosOtro, 'faltan_indicadores_afiliacion', ...motivosEps],
+      ...base, tipo: 'documento_incorrecto', subtipoIncorrecto: subtipo,
+      motivos: ['contiene_indicadores_laborales', ...motivosOtro, ...(familia?.codigos ?? []), 'faltan_indicadores_afiliacion', ...motivosEps, `subtipo_${subtipo}`],
+    };
+  }
+  // Documentos de otra familia inequívoca (nómina, PILA, ARL): señales combinadas propias y pocas de afiliación.
+  if (familia && fuertesEps <= MAX_EPS_PARA_INCORRECTO) {
+    return {
+      ...base, tipo: 'documento_incorrecto', subtipoIncorrecto: familia.subtipo,
+      motivos: [`contiene_indicadores_${familia.subtipo}`, ...familia.codigos, 'faltan_indicadores_afiliacion', ...motivosEps, `subtipo_${familia.subtipo}`],
     };
   }
   // Señales de los dos lados o de ninguno: no se decide. Una persona lo revisa.

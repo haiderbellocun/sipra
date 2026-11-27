@@ -1,3 +1,4 @@
+import { DecisionAutomaticaDocumentalUseCase } from './decision-automatica-documental.use-case';
 import {
   BadRequestException, ConflictException, ForbiddenException, GoneException, Inject, Injectable, Logger, NotFoundException,
   Optional, UnsupportedMediaTypeException,
@@ -84,6 +85,7 @@ export class ConsultaAdresUseCase {
     @Inject(LECTOR_DOCUMENTO_LOCAL) lector: LectorDocumentoLocalPort,
     @Optional() @Inject(SINU) private readonly sinu?: SinuPort,
     @Optional() private readonly config?: ConfigService,
+    @Optional() private readonly decisiones?: DecisionAutomaticaDocumentalUseCase,
   ) {
     this.lectura = new LecturaLocalAdresService(lector);
   }
@@ -259,6 +261,9 @@ export class ConsultaAdresUseCase {
         recomendacion: evaluacion.recomendacion, criticos: evaluacion.comparacion.filter((c) => c.critico).length,
         afiliacion: evaluacion.afiliacion,
       }, actor);
+      // Ruta EPS sin QR (§7.36): con ADRES procesado, el motor de decisión automática puede reevaluar. Apagado de fábrica;
+      // no cambia nada de ADRES y nunca lanza.
+      await this.decisiones?.evaluar(v.documentoId, ahora);
       return this.aResultado((await this.validaciones.buscarPorId(v.id)) ?? actual, false);
     }
     return this.fallar(v.id, 'lectura_fallida', ahora, actor, a.evidenciaHash);

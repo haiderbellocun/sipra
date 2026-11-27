@@ -67,6 +67,7 @@ import { ValidacionRutUseCase } from '../../application/use-cases/documentos/val
 import { LECTURA_CAMARA } from '../../domain/ports/out/lectura-camara.port';
 import { LecturaCamaraLocalAdapter } from '../adapters/lectura-local/lectura-camara-local.adapter';
 import { ValidacionCamaraUseCase } from '../../application/use-cases/documentos/validacion-camara.use-case';
+import { DecisionAutomaticaDocumentalUseCase } from '../../application/use-cases/documentos/decision-automatica-documental.use-case';
 import { ValidacionDocumentoEmpresarialRepositoryAdapter } from '../adapters/persistence/postgres/validacion-documento-empresarial.adapter';
 import {
   NotificacionWorkspaceAdapter,
@@ -303,6 +304,8 @@ import { TareasProgramadasService } from './tareas-programadas.service';
     LecturaCamaraLocalAdapter,
     { provide: LECTURA_CAMARA, useExisting: LecturaCamaraLocalAdapter },
     ValidacionCamaraUseCase,
+    // Motor de decisión documental automática (§7.36): apagado de fábrica; solo dev.
+    DecisionAutomaticaDocumentalUseCase,
     { provide: DECISION_ACTA, useClass: DecisionActaPgAdapter },
     { provide: DISTRIBUCION_DOCENTES, useClass: DistribucionDocentesPgAdapter },
     { provide: CUMPLIMIENTO_LECTURA, useClass: CumplimientoLecturaPgAdapter },

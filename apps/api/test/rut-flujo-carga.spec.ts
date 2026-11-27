@@ -273,7 +273,8 @@ describe('Política y pipeline del RUT: solo local, jamás autoaprobado', () => 
       expect(permiteAutoAprobacionDelPipeline(t)).toBe(false);
     }
     expect(permiteAutoAprobacionDelPipeline(TipoDocumento.CEDULA)).toBe(true);
-    expect(permiteAutoAprobacionDelPipeline(TipoDocumento.CERTIFICADO_ARL)).toBe(true);
+    // 1.6A: el certificado de ARL es de decisión especializada: el pipeline genérico ya no lo autoaprueba por banda verde.
+    expect(permiteAutoAprobacionDelPipeline(TipoDocumento.CERTIFICADO_ARL)).toBe(false);
     // La Cámara de Comercio también es solo local desde su Bloque 2 (ver camara-lector.spec.ts).
     expect(modoProcesamientoDe(TipoDocumento.CAMARA_COMERCIO)).toBe(ModoProcesamiento.LOCAL);
     expect(modoProcesamientoDe(TipoDocumento.CERTIFICADO_EPS)).toBe(ModoProcesamiento.LOCAL);

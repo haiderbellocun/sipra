@@ -88,6 +88,9 @@ export class ValidacionArlDomainService {
         agregar(`Soporte: ${nombre}`, 'cumple', 'Aprobado en la revisión documental.');
       } else if (PENDIENTES.includes(aportado.estado)) {
         agregar(`Soporte: ${nombre}`, 'revision_manual', 'Pendiente de revisión documental.');
+      } else if (aportado.estado === EstadoDocumento.AUTO_DEVUELTO) {
+        // Devolución automática de esa versión (§7.36): no es un rechazo; falta que el estudiante cargue una nueva versión.
+        agregar(`Soporte: ${nombre}`, 'no_cumple', 'Devuelto automáticamente: el estudiante debe cargar una nueva versión.', MotivoRechazoArl.OTRO);
       } else if (aportado.estado === EstadoDocumento.ILEGIBLE) {
         agregar(`Soporte: ${nombre}`, 'no_cumple', 'Marcado como ilegible.',
           tipo === TipoDocumento.CEDULA ? MotivoRechazoArl.IDENTIFICACION_NO_LEGIBLE : MotivoRechazoArl.DOCUMENTO_BORROSO);

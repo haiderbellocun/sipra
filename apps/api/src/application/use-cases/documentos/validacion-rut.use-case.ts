@@ -89,7 +89,7 @@ export class ValidacionRutUseCase {
     if (lectura) return this.completar(d, lectura, ahora);
     // Sin lectura del pipeline: si el documento ya volvió al estudiante (ilegible, devuelto, rechazado) no hay nada que
     // registrar; en los demás casos (p. ej. un pipeline anterior a este flujo) se lee aquí, en local.
-    if ([EstadoDocumento.ILEGIBLE, EstadoDocumento.DEVUELTO, EstadoDocumento.RECHAZADO].includes(d.estado)) return null;
+    if ([EstadoDocumento.ILEGIBLE, EstadoDocumento.DEVUELTO, EstadoDocumento.AUTO_DEVUELTO, EstadoDocumento.RECHAZADO].includes(d.estado)) return null;
     return this.procesar(d.id, ahora);
   }
 

@@ -61,7 +61,7 @@ export class AcompanamientoDomainService {
     }
 
     const documentacionIncompleta = contexto.estadosDocumentos.some((e) =>
-      [EstadoDocumento.DEVUELTO, EstadoDocumento.ILEGIBLE, EstadoDocumento.EN_REVISION].includes(e),
+      [EstadoDocumento.DEVUELTO, EstadoDocumento.AUTO_DEVUELTO, EstadoDocumento.ILEGIBLE, EstadoDocumento.EN_REVISION].includes(e),
     );
     if (
       documentacionIncompleta &&

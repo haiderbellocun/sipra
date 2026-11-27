@@ -30,6 +30,7 @@ import { HistoricoSgp1756000025000 } from './1756000025000-HistoricoSgp';
 import { HistoricoPreparacionCarga1756000026000 } from './1756000026000-HistoricoPreparacionCarga';
 import { HistoricoCorrespondenciaPracticas1756000027000 } from './1756000027000-HistoricoCorrespondenciaPracticas';
 import { HistoricoServingAnalitico1756000028000 } from './1756000028000-HistoricoServingAnalitico';
+import { DocumentoAutoDevuelto1756000029000 } from './1756000029000-DocumentoAutoDevuelto';
 
 /**
  * Migraciones declaradas una a una, en orden, igual que las entidades.
@@ -69,4 +70,5 @@ export const MIGRACIONES: (new () => MigrationInterface)[] = [
   HistoricoPreparacionCarga1756000026000,
   HistoricoCorrespondenciaPracticas1756000027000,
   HistoricoServingAnalitico1756000028000,
+  DocumentoAutoDevuelto1756000029000,
 ];

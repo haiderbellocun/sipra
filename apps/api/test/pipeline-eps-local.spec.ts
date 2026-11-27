@@ -97,7 +97,8 @@ describe('Política de procesamiento por tipo (dominio)', () => {
     const locales = [TipoDocumento.CERTIFICADO_EPS, TipoDocumento.ACTA_INICIO, TipoDocumento.RUT_NATURAL, TipoDocumento.RUT_JURIDICO, TipoDocumento.CAMARA_COMERCIO];
     for (const tipo of Object.values(TipoDocumento).filter((t) => !locales.includes(t))) {
       expect(modoProcesamientoDe(tipo)).not.toBe(ModoProcesamiento.LOCAL);
-      expect(permiteAutoAprobacionDelPipeline(tipo)).toBe(true);
+      // 1.6A: el certificado de ARL es de DECISIÓN ESPECIALIZADA: el pipeline genérico nunca lo aprueba por banda verde.
+      expect(permiteAutoAprobacionDelPipeline(tipo)).toBe(tipo !== TipoDocumento.CERTIFICADO_ARL);
     }
   });
 });

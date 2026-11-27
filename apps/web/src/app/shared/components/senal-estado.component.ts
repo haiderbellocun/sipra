@@ -9,7 +9,7 @@ const TONO: Record<string, TonoV3> = {
   en_validacion: 'aviso', documentacion: 'aviso', inscrita: 'neutra',
   suspendida: 'peligro', cancelada: 'peligro', anulada: 'neutra', reprobada: 'peligro',
   al_dia: 'ok', requiere_atencion: 'aviso', en_riesgo: 'peligro',
-  auto_aprobado: 'ok', aprobado: 'ok', en_revision: 'aviso', ilegible: 'aviso', devuelto: 'aviso', rechazado: 'peligro',
+  auto_aprobado: 'ok', aprobado: 'ok', en_revision: 'aviso', ilegible: 'aviso', devuelto: 'aviso', auto_devuelto: 'aviso', rechazado: 'peligro',
   recibido: 'neutra', analizando: 'info',
 };
 

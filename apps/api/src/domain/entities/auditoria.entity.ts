@@ -51,6 +51,8 @@ export enum AccionAuditada {
   POLITICA_CONSENTIMIENTO_PUBLICADA = 'politica_consentimiento_publicada',
   /** IA de rescate documental (§7.35): una vez por invocación real. Sin valores ni datos personales. */
   LECTURA_RESCATE_IA = 'lectura_rescate_ia',
+  /** Motor de decisión documental automática (§7.36): auto_aprobado | auto_devuelto | revision. Solo códigos, sin datos personales. */
+  DECISION_AUTOMATICA_DOCUMENTO = 'decision_automatica_documento',
   VALIDACION_EPS_INICIADA = 'validacion_eps_iniciada',
   VALIDACION_EPS_PROCESADA = 'validacion_eps_procesada',
   EVIDENCIA_EPS_REGISTRADA = 'evidencia_eps_registrada',

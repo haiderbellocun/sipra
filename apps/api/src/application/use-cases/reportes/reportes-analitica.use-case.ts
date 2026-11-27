@@ -196,6 +196,7 @@ const ESTADO_OBLIGACION: Readonly<Record<EstadoDocumento, EstadoObligacion>> = {
   [EstadoDocumento.ANALIZANDO]: 'en_proceso',
   [EstadoDocumento.EN_REVISION]: 'en_revision',
   [EstadoDocumento.DEVUELTO]: 'correccion',
+  [EstadoDocumento.AUTO_DEVUELTO]: 'correccion',
   [EstadoDocumento.ILEGIBLE]: 'correccion',
   [EstadoDocumento.RECHAZADO]: 'rechazado',
   [EstadoDocumento.APROBADO]: 'aprobado',

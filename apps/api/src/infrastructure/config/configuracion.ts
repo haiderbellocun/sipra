@@ -172,6 +172,17 @@ export class VariablesEntorno {
   @IsBoolean() IA_RESCATE_CAMARA = false;
   @IsBoolean() IA_RESCATE_ACTA = false;
 
+  // ── Motor de decisión documental automática (§7.36): TODO apagado de fábrica ──
+  // Solo `dev` en esta fase; un interruptor específico exige el general. No reemplaza a EPS_AUTOAPROBACION_HABILITADA (que
+  // sigue impidiendo el arranque): ese era el interruptor de una autoaprobación de EPS que nunca existió.
+  @IsBoolean() AUTO_DECISION_DOCUMENTAL_HABILITADA = false;
+  @IsBoolean() AUTO_APROBACION_EPS = false;
+  @IsBoolean() AUTO_APROBACION_RUT = false;
+  @IsBoolean() AUTO_APROBACION_CAMARA = false;
+  @IsBoolean() AUTO_APROBACION_ARL = false;
+  @IsBoolean() AUTO_DEVOLUCION_DOCUMENTO_INCORRECTO = false;
+  @IsBoolean() AUTO_DEVOLUCION_INCUMPLIMIENTO = false;
+
   // ── Flujo EPS: interruptores de incidente y políticas pendientes ─────
   // Apagar una pieza no borra datos: el trabajo queda en espera (503 para quien opera).
   @IsBoolean() EPS_VALIDACION_HABILITADA = true;
@@ -226,9 +237,17 @@ export class VariablesEntorno {
 const BOOLEANOS = new Set([
   'EPS_VALIDACION_HABILITADA', 'ADRES_ASISTIDO_HABILITADO', 'EPS_OCR_HABILITADO', 'VERIFICACION_EPS_HABILITADA', 'EPS_AUTOAPROBACION_HABILITADA',
   'IA_RESCATE_HABILITADO', 'IA_RESCATE_EPS', 'IA_RESCATE_RUT', 'IA_RESCATE_CAMARA', 'IA_RESCATE_ACTA',
+  'AUTO_DECISION_DOCUMENTAL_HABILITADA', 'AUTO_APROBACION_EPS', 'AUTO_APROBACION_RUT', 'AUTO_APROBACION_CAMARA', 'AUTO_APROBACION_ARL',
+  'AUTO_DEVOLUCION_DOCUMENTO_INCORRECTO', 'AUTO_DEVOLUCION_INCUMPLIMIENTO',
   'DB_SSL', 'METRICAS_HABILITADAS', 'SPE_ANEXO_CONFIRMADO', 'AUTH_ABIERTO_CONFIRMADO',
   'CONSENTIMIENTO_BLOQUEA_CARGUE', 'REPORTES_SEMESTRE_SINTETICO', 'REPORTES_PROGRAMAS_SINTETICOS', 'REPORTES_UBICACION_SINTETICA',
 ]);
+/** Interruptores específicos del motor de decisión automática (§7.36): exigen el general y solo `dev`. */
+const FLAGS_DECISION_ESPECIFICOS = [
+  'AUTO_APROBACION_EPS', 'AUTO_APROBACION_RUT', 'AUTO_APROBACION_CAMARA', 'AUTO_APROBACION_ARL',
+  'AUTO_DEVOLUCION_DOCUMENTO_INCORRECTO', 'AUTO_DEVOLUCION_INCUMPLIMIENTO',
+] as const;
+
 /** Interruptores de rescate por tipo sensible (EPS, RUT, Cámara, Acta): solo `dev`, y con el general encendido. */
 const FLAGS_RESCATE_SENSIBLES = ['IA_RESCATE_EPS', 'IA_RESCATE_RUT', 'IA_RESCATE_CAMARA', 'IA_RESCATE_ACTA'] as const;
 const ENTEROS = new Set([
@@ -465,6 +484,20 @@ function aplicarReglasDeAmbiente(config: VariablesEntorno): void {
     errores.push(
       `${flagsSensibles.join(', ')} solo puede encenderse en el ambiente "dev": no hay aprobación institucional ` +
         'para enviar documentos sensibles a un proveedor externo',
+    );
+  }
+  // Motor de decisión automática (§7.36): combinaciones contradictorias y ambiente. Nombra variables, nunca valores.
+  const decisionEspecificos = FLAGS_DECISION_ESPECIFICOS.filter((clave) => config[clave] === true);
+  if (decisionEspecificos.length > 0 && !config.AUTO_DECISION_DOCUMENTAL_HABILITADA) {
+    errores.push(`${decisionEspecificos.join(', ')} exige AUTO_DECISION_DOCUMENTAL_HABILITADA=true`);
+  }
+  const decisionEncendidos = [
+    ...(config.AUTO_DECISION_DOCUMENTAL_HABILITADA ? ['AUTO_DECISION_DOCUMENTAL_HABILITADA'] : []), ...decisionEspecificos,
+  ];
+  if (decisionEncendidos.length > 0 && config.SIPRA_AMBIENTE !== Ambiente.DEV) {
+    errores.push(
+      `${decisionEncendidos.join(', ')} solo puede encenderse en el ambiente "dev": la decisión documental automática aún no ` +
+        'está autorizada en qa, pre ni prod',
     );
   }
   // El rescate llama a OpenAI directamente, aunque IA_DRIVER sea `simulado` o `anthropic`.

@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { DecisionAutomaticaDocumentalUseCase } from './decision-automatica-documental.use-case';
 import { Trabajo } from '../../../domain/ports/out/servicios-externos.port';
 import {
   ALMACENAMIENTO, AlmacenamientoPort,
@@ -49,6 +50,7 @@ export class ProcesarTrabajoUseCase {
     @Optional() private readonly validacionesActa?: ValidacionActaUseCase,
     @Optional() private readonly validacionesRut?: ValidacionRutUseCase,
     @Optional() private readonly validacionesCamara?: ValidacionCamaraUseCase,
+    @Optional() private readonly decisiones?: DecisionAutomaticaDocumentalUseCase,
   ) {}
 
   async ejecutar(trabajo: Trabajo): Promise<void> {
@@ -103,6 +105,9 @@ export class ProcesarTrabajoUseCase {
         this.log.warn(`Verificación EPS del documento ${documento.id}: sin resultado (${(error as Error).name})`);
       }
     }
+    // Motor de decisión documental automática (§7.36): DESPUÉS de los motores especializados, sobre sus hechos. Apagado de
+    // fábrica; idempotente (solo actúa sobre `en_revision`); nunca lanza.
+    await this.decisiones?.evaluar(documento.id);
   }
 
   /**
@@ -166,7 +171,7 @@ export class ProcesarTrabajoUseCase {
    */
   private async avisarSiRequiereAccion(documento: Documento): Promise<void> {
     const datos = documento.instantanea();
-    if (![EstadoDocumento.DEVUELTO, EstadoDocumento.ILEGIBLE].includes(datos.estado)) return;
+    if (![EstadoDocumento.DEVUELTO, EstadoDocumento.ILEGIBLE, EstadoDocumento.AUTO_DEVUELTO].includes(datos.estado)) return;
 
     const practica = await this.practicas.buscarPorId(datos.practicaId);
     if (!practica) return;

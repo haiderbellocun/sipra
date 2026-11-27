@@ -268,6 +268,13 @@ export function estadoRutParaEstudiante(e: EntradaEstadoRut): RutParaEstudiante 
   if (e.documento.estado === EstadoDocumento.ILEGIBLE) {
     return { estado: 'necesita_correccion', etiqueta: 'Necesita corrección', puedeReenviar: true, que: 'No pudimos leer tu RUT con claridad.', hacer: 'Cárgalo de nuevo en el PDF original descargado de la DIAN, completo y sin fotos ni capturas.' };
   }
+  // Decisión del motor automático (§7.36), siempre después de las decisiones humanas. Mensaje genérico, sin datos del documento.
+  if (e.documento.estado === EstadoDocumento.AUTO_DEVUELTO) {
+    return { estado: 'necesita_correccion', etiqueta: 'Necesita corrección', puedeReenviar: true, que: e.documento.motivoDevolucion ?? 'Este archivo no corresponde al RUT solicitado.', hacer: 'Carga el RUT correcto, en el PDF descargado de la DIAN.' };
+  }
+  if (e.documento.estado === EstadoDocumento.AUTO_APROBADO) {
+    return { estado: 'aprobado', etiqueta: 'Aprobado', puedeReenviar: false, que: 'Documento validado automáticamente.', hacer: 'No necesitas hacer nada más con este documento.' };
+  }
   if (v === Estado.PROCESANDO) {
     return { estado: 'en_procesamiento', etiqueta: 'En procesamiento', puedeReenviar: false, que: 'Estamos leyendo tu RUT.', hacer: 'No necesitas hacer nada: te avisamos cuando haya novedades.' };
   }

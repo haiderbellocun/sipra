@@ -1963,6 +1963,152 @@ determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato 
   5. `herramientas/evaluar-lectura.ts` construye `ExtraccionOpenAiAdapter` por su cuenta; no llama a `rescatar`, pero
      cualquier herramienta futura que lo haga se saltaría las compuertas. La prueba estructural lo detecta en `src/`.
 
+**Procedencia y decisión (subfase 1.6A):** el motor de decisión automática (§7.36) lee la procedencia de cada dato crítico
+de `rescateIa.fuentesFinales` (o de `campo.fuente`). Un dato `ia_rescate` nunca sostiene una devolución automática y, para
+aprobar, debe estar corroborado por una fuente oficial. La confianza que declara el modelo no es autoridad.
+
+### 7.36 Motor de decisión documental automática (subfase 1.6A)
+
+**Objetivo:** que las personas revisen solo lo ambiguo. Cada documento prioritario (certificado de EPS, RUT natural y
+jurídico, Cámara de Comercio y certificado de ARL) termina en UNO de tres resultados:
+
+| Resultado | Estado del documento | Qué significa |
+|---|---|---|
+| Autoaprobación | `auto_aprobado` | Todo lo crítico se cumple con fuentes de autoridad suficiente. |
+| Autodevolución | `auto_devuelto` (nuevo) | Hecho objetivo y confiable: documento de otro tipo o incumplimiento. El estudiante carga una nueva versión. |
+| Revisión | `en_revision` | Todo lo demás. Decide una persona. |
+
+- **No hay rechazo automático.** `rechazado` es siempre una decisión humana; el motor no tiene forma de producirlo.
+- **La IA solo lee.** OpenAI no decide, no prueba autenticidad y no confirma afiliación. Una devolución apoyada en un dato
+  `ia_rescate` (o en una lectura sin fuente) se convierte en revisión, por una guarda común (`consolidarDecision`).
+- **Documento incorrecto antes de la IA.** El clasificador local detecta el tipo antes del rescate. El pipeline no envía a
+  un proveedor externo un documento que ya sabe que es de otro tipo, y `no_determinable` va a revisión: no se devuelve un
+  documento por no poder leerlo.
+- **Arquitectura.** Las políticas viven en el dominio (`politicas-decision-documental.domain-service.ts`) y reciben los
+  HECHOS que ya calculó cada motor especializado: validación EPS, validación empresarial de RUT y Cámara, y lectura local.
+  No los recalculan ni los sustituyen; parten de `evaluarCandidatoAutoaprobacion`, `recomendacionRut` y
+  `recomendacionCamara`. El caso de uso `DecisionAutomaticaDocumentalUseCase` se ejecuta al final de `procesar-trabajo`
+  (después de los motores) y, para EPS, también al terminar el procesamiento de la evidencia ADRES. El acta de inicio
+  tiene su política reservada (`'acta'`), pero no se implementa en 1.6A.
+- **Por qué un estado nuevo y no `devuelto`:** `devuelto` es una decisión humana (`decidido_por`, terminal, atribuida a
+  un actor). `auto_devuelto` no tiene actor, no está en `ESTADOS_DECIDIDOS`, abre subsanación y permite una nueva versión,
+  como `ilegible`. La migración `1756000029000-DocumentoAutoDevuelto` solo amplía `ck_documentos_estado`; su reversión se
+  niega si hay filas `auto_devuelto`. Las validaciones de cada motor no cambian: el estado del documento es la única marca
+  de la decisión automática. Así se evita relajar `ck_veps_candidatura`, que exige `autenticidad = 'verificada'` para
+  `aprobado_automatico`.
+
+**Reglas por tipo** (propuestas; los interruptores y la guarda de IA se aplican después):
+
+- **EPS.**
+  - Documento incorrecto (desprendible de nómina, PILA, ARL, certificación laboral, tributario…) → autodevolución.
+  - No determinable o procesamiento incompleto → revisión.
+  - Afiliación INACTIVA confirmada por verificador o ADRES → autodevolución.
+  - Vencido con fecha de texto nativo o QR → autodevolución; con fecha por OCR o IA → revisión.
+  - Documento de identidad de otra persona leído por texto nativo, QR o fuente oficial → autodevolución; leído por OCR o
+    IA → revisión. Un nombre distinto → siempre revisión.
+  - Aprobación: procesado, coincidencia, vigente con fecha de fuente confiable (nunca solo IA), sin críticas y afiliación
+    ACTIVA por una de dos rutas: QR o verificador oficial (no exige ADRES), o ADRES.
+  - Identidad leída por IA: solo vale si una fuente oficial contrastó a la persona.
+- **RUT.**
+  - Base `recomendacionRut`: documento incorrecto o Cámara → autodevolución; variante natural/jurídica distinta con
+    lectura segura → autodevolución.
+  - NIT/DV inválido (`dv_no_coincide`, `nit_invalido`) leído en texto nativo y sin lectura dudosa → autodevolución.
+  - Discrepancia, lectura dudosa o información insuficiente → revisión.
+  - Aprobación: consistente, NIT y DV confiables, sin críticas.
+  - No se impone «año en curso»: esa regla vive solo en el flujo ARL/CUNbre.
+- **Cámara de Comercio.**
+  - Base `recomendacionCamara`: documento incorrecto, RUT o persona distinta con lectura segura → autodevolución.
+  - Matrícula cancelada, representante distinto, discrepancia, ambigüedad → revisión.
+  - Aprobación = «documentalmente consistente según los controles disponibles»: sin RUES, `verificacionOficial: false` y
+    motivo `sin_verificacion_rues`. No hay política de antigüedad del certificado y no se inventa una.
+- **ARL.**
+  - Clasificador local nuevo (`clasificacion-documental-arl.domain-service.ts`) sobre el texto NATIVO del PDF, sin OCR ni
+    proveedor externo: `certificado_arl_probable`, `documento_incorrecto` (EPS, nómina, PILA, RUT, Cámara, laboral,
+    contrato) o `no_determinable`.
+  - Aprobación: probable; documento del estudiante y NIT de la empresa (de SIPRA) PRESENTES en el texto; ARL reconocida;
+    fecha de afiliación leída localmente y no posterior al inicio de la práctica.
+  - Sin fuente oficial: `verificacionOficial: false`. Un PDF escaneado (sin texto nativo) va a revisión.
+- **Pipeline (endurecido al cierre de 1.6A):** `TIPOS_CON_DECISION_ESPECIALIZADA` (EPS, RUT natural y jurídico, Cámara y
+  ARL) vive junto a `TipoDocumento`, y `permiteAutoAprobacionDelPipeline` devuelve `false` para todos ellos. El pipeline
+  genérico NUNCA los aprueba por la banda verde, con o sin motor: no hay ningún condicional por interruptor. Con el motor
+  apagado quedan en revisión; solo la política especializada puede autoaprobarlos. El acta conserva su política. Cambio
+  de comportamiento: antes, un certificado de ARL con banda verde quedaba `auto_aprobado`; ahora queda en revisión. Lo
+  marca la bandera informativa `C3_DECISION_POR_MOTOR_ESPECIALIZADO`.
+- **Clasificador de EPS ampliado:** reconoce por señales combinadas el desprendible de nómina, la PILA, el certificado de
+  ARL y la certificación laboral (`subtipoIncorrecto` interno, no son tipos del sistema). Las familias nuevas solo se
+  evalúan cuando el documento no es un certificado probable. Corrige además un defecto anterior: un certificado de ARL
+  pasaba como `certificado_eps_probable`. Ahora exige las señales propias de salud (régimen, tipo de afiliado, plan de
+  beneficios, entidad promotora).
+
+**Interruptores** (todos `false` de fábrica):
+- `AUTO_DECISION_DOCUMENTAL_HABILITADA` (general);
+- `AUTO_APROBACION_EPS`, `AUTO_APROBACION_RUT`, `AUTO_APROBACION_CAMARA` y `AUTO_APROBACION_ARL`;
+- `AUTO_DEVOLUCION_DOCUMENTO_INCORRECTO` y `AUTO_DEVOLUCION_INCUMPLIMIENTO`.
+
+Reglas de arranque:
+- un interruptor específico sin el general → fallo;
+- cualquiera encendido fuera de `dev` → fallo (en esta fase no hay excepción para qa, pre ni prod);
+- el motor exige además `SIPRA_AMBIENTE === 'dev'` exacto en tiempo de ejecución.
+
+`EPS_AUTOAPROBACION_HABILITADA` no se reutiliza y sigue impidiendo el arranque: era el interruptor de una autoaprobación
+de EPS que nunca existió. **Nota:** CLAUDE.md declara «La autoaprobación NO existe». Este mecanismo, apagado de fábrica y
+solo en `dev`, cambia esa premisa cuando se encienda; actualizar CLAUDE.md es decisión del propietario.
+
+**Resolución automática ≠ decisión humana (cierre de 1.6A):** `ESTADOS_RESUELTOS_AUTOMATICAMENTE` = `auto_aprobado` y
+`auto_devuelto`, un concepto distinto de `ESTADOS_DECIDIDOS` (que sigue significando solo «decisión humana»).
+- `auto_devuelto` no lleva actor, el pipeline no lo reprocesa (solo toma `recibido`), abre subsanación y el estudiante carga
+  una NUEVA versión; la versión anterior queda histórica.
+- `Documento.bloqueaDecisionOrdinaria`: `aprobar`, `devolver` y `rechazar` (el flujo humano ordinario, también el de las
+  Mesas de RUT, Cámara y Acta, que pasan por la entidad) lanzan `DocumentoResueltoAutomaticamenteError` (HTTP 409):
+  siempre en `auto_devuelto`, y en `auto_aprobado` cuando el tipo es especializado.
+- El `auto_aprobado` GENÉRICO del pipeline (p. ej. una cédula por banda verde) conserva su mecanismo de reversión, que ya
+  existía y está probado: una persona puede revertirlo con la decisión ordinaria.
+- No existe todavía un «override» de una resolución automática: si se necesita, deberá ser una acción explícita y auditada.
+
+**Consistencia con las validaciones auxiliares:** las validaciones de EPS, RUT y Cámara conservan su estado interno
+(`pendiente`, `candidato` o `revision`) como evidencia histórica. Operativamente manda el documento:
+- la cola, el «tomar siguiente» y los KPI de EPS solo ven documentos `recibido`, `analizando` o `en_revision`;
+- la bandeja y la supervisión de RUT y Cámara excluyen los documentos auto-resueltos sin decisión humana;
+- reservar un caso (EPS `reservar`, RUT y Cámara `tomar`) se rechaza con 409;
+- el estudiante ve «Aprobado» («Documento validado automáticamente») o «Necesita corrección», con opción de reenviar;
+- el avance cuenta `auto_aprobado` como aprobado, y `auto_devuelto` ni como aprobado ni como rechazo (exige reenvío);
+- la solicitud de ARL marca el soporte `auto_devuelto` como «Devuelto automáticamente: el estudiante debe cargar una
+  nueva versión».
+
+**Respeto a las personas e idempotencia:**
+- solo actúa sobre `en_revision`;
+- nunca sobre una validación decidida por una persona ni sobre un caso reservado por un funcionario;
+- la escritura es condicional (`guardarSiEstado`): si otra decisión llegó en medio, la suya manda y no se audita lo que no
+  se aplicó;
+- nunca lanza.
+
+Las colas de RUT y Cámara excluyen los documentos auto-decididos sin decisión humana; la de EPS ya filtraba por el estado
+del documento.
+
+**Auditoría:** acción `decision_automatica_documento`, una entrada por decisión, con:
+- `documentoId`, tipo, resultado (`auto_aprobado` | `auto_devuelto` | `revision`) y resultado propuesto;
+- política y motivos (códigos);
+- si hubo rescate IA y si hubo verificación oficial;
+- fuentes críticas (nombres y fuentes, sin valores);
+- en una devolución, el tipo y el mensaje genérico al estudiante.
+
+Sin datos personales ni valores.
+
+**Mensajes al estudiante** (genéricos, sin puntajes, banderas, razonamiento de IA ni valores):
+- «Documento validado automáticamente.»
+- «Este archivo no corresponde al … Cargue el … correcto.»
+- «El certificado está fuera de la vigencia permitida. Cargue uno actualizado.»
+
+**Riesgos residuales:**
+- **RUES** no está integrado: una Cámara aprobada es consistente, no verificada.
+- **ADRES** es asistido: la ruta sin QR de EPS depende de que una persona cargue la evidencia ADRES.
+- **ARL** no tiene verificación oficial, y un PDF escaneado no se clasifica (va a revisión).
+- **Clasificadores:** se basan en señales y pueden fallar ante formatos nuevos. Por eso la devolución exige
+  clasificación inequívoca y la ambigüedad va a revisión; conviene calibrarlos con documentos reales anonimizados antes
+  de encender la autodevolución fuera de `dev`.
+- **Mesas:** la presentación de la procedencia (`ia_rescate`) y de las decisiones automáticas en las Mesas es la subfase
+  1.6B.
+
 ---
 
 ## 8. Cumplimiento normativo
@@ -3870,6 +4016,44 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.59.1 — 27 de noviembre de 2026
+
+**Cierre y endurecimiento de la subfase 1.6A** (detalle en §7.36). Sin funcionalidades nuevas y con todos los
+interruptores apagados.
+
+- ARL siempre es de decisión especializada: `TIPOS_CON_DECISION_ESPECIALIZADA` en `permiteAutoAprobacionDelPipeline`, sin
+  condicionales por interruptor en el pipeline. Un ARL con banda verde ya no queda `auto_aprobado`.
+- `ESTADOS_RESUELTOS_AUTOMATICAMENTE` y `Documento.bloqueaDecisionOrdinaria`: la decisión humana ordinaria sobre
+  `auto_devuelto` (y sobre `auto_aprobado` de un tipo especializado) responde 409. Las reservas de EPS, RUT y Cámara se
+  rechazan sobre documentos auto-resueltos.
+- La solicitud de ARL trata `auto_devuelto` como «devuelto automáticamente», no como rechazo.
+- CLAUDE.md actualizado a la arquitectura real (lectura local primero, rescate detrás de `IA_RESCATE_*`, motor de
+  decisión apagado y solo en dev, sin rechazo automático). Se conservan todas las protecciones de datos.
+- Pruebas: `decision-automatica-consistencia` (nueva) y casos de ARL fail-closed en `pipeline-rescate-ia`. Se actualizaron
+  los invariantes que afirmaban que ARL era autoaprobable por banda (`pipeline-eps-local`, `rut-flujo-carga`) y los
+  arneses en memoria de las bandejas de RUT y Cámara, que ahora replican el SQL real.
+
+### 0.59.0 — 27 de noviembre de 2026
+
+**Motor de decisión documental automática · subfase 1.6A** (detalle en §7.36). Todo apagado de fábrica y solo en `dev`;
+no hay rechazo automático y la IA nunca sostiene una devolución.
+
+- Dominio nuevo:
+  - `decision-automatica-documental.domain-service.ts`: resultados, códigos, procedencia, guardas e interruptores;
+  - `politicas-decision-documental.domain-service.ts`: EPS, RUT, Cámara y ARL;
+  - `clasificacion-documental-arl.domain-service.ts`: clasificador local y corroboración de ARL.
+- Clasificador de EPS: subtipos de documento incorrecto (nómina, PILA, ARL, laboral) y corrección del falso
+  `certificado_eps_probable` de un certificado de ARL.
+- Estado `auto_devuelto` en `documentos`: migración `1756000029000`, retrocompatible, con reversión protegida; métodos
+  `aplicarAutoAprobacion` y `aplicarAutoDevolucion`; avance, subsanación, señales, vista del estudiante y web.
+- `DecisionAutomaticaDocumentalUseCase`, enganchado al final de `procesar-trabajo` y tras procesar ADRES; colas de RUT y
+  Cámara sin documentos auto-decididos.
+- Siete interruptores `AUTO_*` con reglas de arranque; auditoría `decision_automatica_documento`.
+- Pipeline: con el motor encendido, la banda verde no aprueba ARL.
+- Verificador `herramientas/verificar-migracion-auto-devuelto-pg.ts`, ejecutado contra un PostgreSQL efímero.
+- Pruebas nuevas: `decision-automatica-politicas`, `decision-automatica-use-case`, `clasificacion-documentos-incorrectos`
+  y `config-decision-automatica`, más casos 1.6A en `pipeline-rescate-ia`.
 
 ### 0.58.0 — 27 de noviembre de 2026
 

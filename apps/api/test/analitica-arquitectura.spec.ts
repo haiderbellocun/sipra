@@ -83,8 +83,10 @@ describe('Migración 28 · serving analítico del histórico (sin ejecutar)', ()
     return emitido.join('\n');
   }
 
-  it('es la última migración y solo crea tablas derivadas en historico', async () => {
-    expect(MIGRACIONES[MIGRACIONES.length - 1]).toBe(HistoricoServingAnalitico1756000028000);
+  it('está en su lugar (solo la sigue la 29, estado auto_devuelto de 1.6A) y solo crea tablas derivadas en historico', async () => {
+    const i = MIGRACIONES.indexOf(HistoricoServingAnalitico1756000028000);
+    expect(i).toBeGreaterThan(0);
+    expect(MIGRACIONES.slice(i + 1).map((m) => m.name)).toEqual(['DocumentoAutoDevuelto1756000029000']);
     const s = await sql28('up');
     expect(s).toMatch(/CREATE TABLE IF NOT EXISTS historico\.serving_publicacion/);
     expect(s).toMatch(/CREATE TABLE IF NOT EXISTS historico\.serving_practicas/);

@@ -674,3 +674,86 @@ describe('Pipeline · rescate con IA · costo, auditoría y métricas', () => {
     expect(extraccion().campos.documento_afiliado.valor).toBe('1000000001');
   });
 });
+
+describe('Pipeline · subfase 1.6A (motor de decisión y rescate de RUT/Cámara)', () => {
+  const MOTOR = { AUTO_DECISION_DOCUMENTAL_HABILITADA: 'true', AUTO_APROBACION_ARL: 'true' };
+
+  class ExtractorGenerico implements ExtraccionIaPort {
+    constructor(private readonly tipo: TipoDocumento) {}
+    extraer(): Promise<ResultadoExtraccion> {
+      const campos = Object.fromEntries(camposDe(this.tipo).map((n) => [n, campo(`valor-${n}`, 0.95)]));
+      return Promise.resolve({ ...lecturaLocal(), tipoDetectado: this.tipo, campos, proveedor: 'simulado' });
+    }
+  }
+
+  class ExtractorArlCompleto implements ExtraccionIaPort {
+    extraer(): Promise<ResultadoExtraccion> {
+      const campos = Object.fromEntries(camposDe(TipoDocumento.CERTIFICADO_ARL).map((n) => [n, campo(`valor-${n}`, 0.95)]));
+      return Promise.resolve({ ...lecturaLocal(), tipoDetectado: TipoDocumento.CERTIFICADO_ARL, campos, proveedor: 'simulado' });
+    }
+  }
+
+  it.each([
+    ['1/16. motor general apagado (interruptores de fábrica)', { AUTO_DECISION_DOCUMENTAL_HABILITADA: 'false', AUTO_APROBACION_ARL: 'false' }],
+    ['2. general encendido y AUTO_APROBACION_ARL apagado', { AUTO_DECISION_DOCUMENTAL_HABILITADA: 'true', AUTO_APROBACION_ARL: 'false' }],
+    ['motor completo encendido (la banda verde tampoco basta: solo la política ARL aprueba, después)', MOTOR],
+  ])('ARL con banda verde y %s → el pipeline genérico NO lo autoaprueba; queda en revisión', async (_n, config) => {
+    const { pipeline, actual } = montar({ tipo: TipoDocumento.CERTIFICADO_ARL, externo: new ExtractorArlCompleto(), config });
+    await pipeline.procesar('doc-1');
+    expect(actual().banda).toBe('verde');
+    expect(actual().estado).toBe(EstadoDocumento.EN_REVISION);
+    expect(codigos(actual())).toContain('C3_DECISION_POR_MOTOR_ESPECIALIZADO');
+  });
+
+  it('16. con todo apagado ningún tipo especializado vuelve al autoaprobado genérico; un tipo genérico sí conserva su banda verde', async () => {
+    const apagado = { AUTO_DECISION_DOCUMENTAL_HABILITADA: 'false' };
+    const cedula = montar({ tipo: TipoDocumento.CARTA_ACEPTACION, externo: new ExtractorGenerico(TipoDocumento.CARTA_ACEPTACION), config: apagado });
+    await cedula.pipeline.procesar('doc-1');
+    expect(cedula.actual().estado).toBe(EstadoDocumento.AUTO_APROBADO);
+    for (const tipo of [TipoDocumento.CERTIFICADO_ARL]) {
+      const { pipeline, actual } = montar({ tipo, externo: new ExtractorGenerico(tipo), config: apagado });
+      await pipeline.procesar('doc-1');
+      expect(actual().estado).toBe(EstadoDocumento.EN_REVISION);
+    }
+  });
+
+  const rutLocal = (cambios: Record<string, CampoExtraido> = {}, extra: Partial<ResultadoExtraccion> = {}) => {
+    const campos = Object.fromEntries(camposDe(TipoDocumento.RUT_NATURAL).map((n) => [n, campo(`valor-${n}`, 0.95, 'texto_nativo')]));
+    return { ...lecturaLocal(), tipoDetectado: TipoDocumento.RUT_NATURAL, campos: { ...campos, ...cambios }, ...extra };
+  };
+
+  it('41. el rescate de RUT sigue usando como máximo una llamada', async () => {
+    const rescate = rescateCon({ nit: { valor: '901458772' } });
+    const { pipeline } = montar({ tipo: TipoDocumento.RUT_NATURAL, rescate, local: new ExtractorLocal(() => rutLocal({ nit: campo(null, 0) })) });
+    await pipeline.procesar('doc-1');
+    await pipeline.procesar('doc-1');
+    expect(rescate.llamadas).toHaveLength(1);
+    expect(rescate.llamadas[0].camposSolicitados).toEqual(['nit']);
+  });
+
+  it('41b. el rescate de Cámara sigue usando como máximo una llamada', async () => {
+    const campos = Object.fromEntries(camposDe(TipoDocumento.CAMARA_COMERCIO).map((n) => [n, campo(`valor-${n}`, 0.95, 'texto_nativo')]));
+    const rescate = rescateCon({ matricula: { valor: '123456' } });
+    const { pipeline } = montar({
+      tipo: TipoDocumento.CAMARA_COMERCIO, rescate,
+      local: new ExtractorLocal(() => ({ ...lecturaLocal(), tipoDetectado: TipoDocumento.CAMARA_COMERCIO, campos: { ...campos, matricula: campo(null, 0) } })),
+    });
+    await pipeline.procesar('doc-1');
+    expect(rescate.llamadas).toHaveLength(1);
+  });
+
+  it('42. un documento incorrecto conocido por la lectura local corta ANTES del rescate externo', async () => {
+    const rescate = rescateCon({ nit: { valor: '901458772' } });
+    const rut = montar({
+      tipo: TipoDocumento.RUT_NATURAL, rescate,
+      local: new ExtractorLocal(() => rutLocal({ nit: campo(null, 0) }, { lecturaRut: { tipoDetectado: 'camara_existencia_representacion' } } as never)),
+    });
+    await rut.pipeline.procesar('doc-1');
+    const eps = montar({
+      rescate,
+      local: new ExtractorLocal(() => lecturaLocal({ documento_afiliado: campo(null, 0) }, { lecturaLocal: { clasificacion: { tipo: 'documento_incorrecto', motivos: [] } } } as never)),
+    });
+    await eps.pipeline.procesar('doc-1');
+    expect(rescate.llamadas).toHaveLength(0);
+  });
+});

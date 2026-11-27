@@ -76,7 +76,7 @@ export function subsanacionesVigentes(
     if (!previa || s.vence > previa.vence) porTipo.set(s.tipo, s);
   };
   for (const v of ultima.values()) {
-    if (v.estado === EstadoDocumento.DEVUELTO || v.estado === EstadoDocumento.ILEGIBLE) {
+    if (v.estado === EstadoDocumento.DEVUELTO || v.estado === EstadoDocumento.AUTO_DEVUELTO || v.estado === EstadoDocumento.ILEGIBLE) {
       proponer({ tipo: v.tipo, vence: diaDeInstante(v.actualizadoEn, diasSubsanacion), origen: 'devolucion' });
     }
   }

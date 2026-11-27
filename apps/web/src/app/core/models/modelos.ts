@@ -12,7 +12,7 @@ export type SenalAcompanamiento = 'al_dia' | 'requiere_atencion' | 'en_riesgo';
 
 export type EstadoDocumento =
   | 'recibido' | 'analizando' | 'auto_aprobado' | 'en_revision'
-  | 'ilegible' | 'devuelto' | 'aprobado' | 'rechazado';
+  | 'ilegible' | 'devuelto' | 'auto_devuelto' | 'aprobado' | 'rechazado';
 
 export type EstadoEmpresa =
   | 'solicitud_recibida' | 'en_verificacion' | 'requiere_info'
