@@ -1729,6 +1729,52 @@ Pantalla propia, independiente de las Mesas de EPS y de Actas (`features/rut`, r
 - **/validacion-documental, pase de fidelidad a 1440 × 1024 (F1 Dark, F2 Light, F3 crítica):** valores leídos del Figma por MCP (cajas, colores, tipografía, sombras). Cola de 340 px como feed con pestañas compactas (Todos · Pendientes · Problemas · Míos · Reservas, con sus cifras) y filtros avanzados en un disclosure dentro de la búsqueda; fila activa con profundidad tonal, luz de borde y línea de señal; encabezado compacto (id · periodo, modalidad · empresa, metadatos en una línea); Document Signal a 128 px por nodo con halo del activo; progreso «N /T» con leyenda; bahía grafito/hielo con el visor en una píldora técnica (página, zoom, ajuste, ampliar) y el papel flotante; inspector continuo numerado con la comparación como hoja clara; barra de decisión al pie del inspector. La piel de los motores vive en dos componentes sin encapsulación (`VdPielBahiaComponent`, `VdPielInspectorComponent`) anclados en `#vd-motor` (antes se repetía en los cuatro envoltorios). Estados vacío/procesando/aprobado con Topology Orb y loader Document Signal (`vd-estados.component.ts`). Contraste MEDIDO sobre píxeles reales: 42/42 textos ≥ 4,5:1 en cada tema; para lograrlo se ajustaron, solo donde el Figma no llegaba, el tenue oscuro dentro de la Mesa (#94AEAC), `--status-success` claro (#0A7366), `--status-pending` claro (#45606E) y la leyenda del progreso en claro. Sin aumento de presupuestos.
 - **Límites conocidos:** los acordeones 04–06 del inspector siguen siendo las pestañas propias de cada motor; no existen «Anterior»/«Siguiente estudiante» en la API actual (no se inventaron); los puntos de la cola no distinguen crítico (el resumen no trae criticidad); la comparación visual completa contra Figma (F3, F7, F9–F13) y la medición de fps están pendientes; presupuesto de CSS por componente subido a 12 kB (aviso).
 
+### 7.35 IA de rescate documental (diseño y subfase 1.1)
+
+**Principio: local primero; la IA solo cuando aporta.** Cuando la lectura de un documento (texto nativo, QR, OCR y
+preprocesamiento determinístico) deja campos sin leer con certeza, una IA de rescate (el `ExtraccionOpenAiAdapter`
+existente, sin un segundo cliente) podrá pedir **solo esos campos**. Lo que devuelva se valida de forma
+determinística, se fusiona sin reemplazar ningún valor confiable y el caso sigue las reglas actuales. La IA no
+determina autenticidad ni afiliación, devuelve `null` si no puede leer un dato y su confianza declarada no aprueba nada.
+
+- **Precedencia:** fuente oficial verificada > QR > texto nativo > OCR confiable > IA de rescate validada > OCR débil.
+  Si la IA contradice una fuente confiable, se marca una discrepancia y el caso va a revisión humana.
+- **Separación:** A lectura · B coherencia · C autenticidad · D decisión. La IA participa en A y aporta datos a B. C
+  queda solo para fuentes oficiales, QR verificado y mecanismos determinísticos.
+- **Interruptores (todos apagados de fábrica):** `IA_RESCATE_HABILITADO`, `IA_RESCATE_EPS`, `IA_RESCATE_RUT`,
+  `IA_RESCATE_CAMARA` e `IA_RESCATE_ACTA`. Los tipos `SOLO_LOCAL` (EPS, Acta, RUT natural, RUT jurídico y Cámara) siguen
+  protegidos y sin autoaprobación (`permiteAutoAprobacionDelPipeline`); ningún interruptor de rescate cambia eso.
+- **Hallazgo previo:** los tipos no sensibles no tienen hoy una lectura local real. El extractor configurado
+  (`IA_DRIVER`) es su lector principal: con `openai`, OpenAI ya lee primero, y `simulado` solo aplica expresiones
+  regulares sobre PDF de pdfkit. **Decisión (opción b):** el rescate se valida primero en `dev` con datos sintéticos.
+  Los tipos sensibles solo entran cuando su interruptor esté encendido de forma explícita y exista aprobación
+  institucional. Una lectura local genérica para los no sensibles (opción a) queda como frente aparte.
+- **Subfases:** 1.1 núcleo de dominio puro (hecha) · 1.2 fusión y validación de valores rescatados · 1.3 puerto
+  `LecturaRescateIaPort` sobre el adaptador de OpenAI · 1.4 configuración e interruptores · 1.5 paso de rescate en el
+  pipeline, con auditoría y métricas (siempre termina en revisión humana cuando interviene la IA) · 1.6 Mesas y frontend
+  con la fuente `ia_rescate`.
+
+**Subfase 1.1 (sin conexión con pipeline, OpenAI, configuración, red ni base de datos):**
+
+- `domain/services/suficiencia-lectura.ts` → `evaluarSuficienciaLectura(tipo, lectura)` devuelve
+  `{ estado: 'suficiente'|'insuficiente'|'no_aplica', suficiente, faltantes: [{ campo, motivo }] }`.
+  - Recorre `camposDe(tipo)` sin repetir campos. Los motivos son `nulo` (campo ausente, `null` o vacío),
+    `confianza_baja` (por debajo de `CONFIANZA_MINIMA_CAMPO`) y `ocr_debil`. Este último aplica a un campo de fuente OCR
+    cuando la señal existente `lecturaLocal.ocr.suficiencia` es `debil` o `insuficiente`.
+  - Un campo de fuente `qr` con valor no se degrada por confianza.
+  - Un tipo sin campos queda `no_aplica` con `suficiente = false`: nunca se interpreta como lectura suficiente.
+  - `CONFIANZA_MINIMA_CAMPO = 0.7` es el mismo criterio que `banderasPorConfianza` del pipeline, que allí sigue en línea.
+    En la subfase 1.5 el pipeline debe importar la constante para que haya un solo valor.
+- `domain/services/politica-rescate-ia.ts` → `decidirRescateIa(tipo, interruptores, suficiencia)` devuelve
+  `{ permitido, motivo, camposSolicitados }`.
+  - El orden de evaluación es: global apagado → `rescate_deshabilitado`; `no_aplica` → `tipo_sin_campos`; suficiente →
+    `lectura_suficiente`; tipo `SOLO_LOCAL` sin su interruptor → `tipo_sensible_no_autorizado`; en otro caso,
+    `permitido` con solo los campos faltantes.
+  - Funciona con fallo cerrado: un interruptor solo cuenta si vale `true` estricto. Un tipo `SOLO_LOCAL` futuro sin
+    interruptor asignado queda bloqueado siempre.
+  - Los interruptores son, por ahora, valores de dominio (`INTERRUPTORES_RESCATE_POR_DEFECTO`). Ningún documento
+    sensible sale a OpenAI con esta subfase.
+
 ---
 
 ## 8. Cumplimiento normativo
@@ -3636,6 +3682,21 @@ con una prueba; lo que el manual no dice, no se inventa.
 ---
 
 ## 21. Bitácora de cambios
+
+### 0.54.0 — 26 de noviembre de 2026
+
+**IA de rescate documental · subfase 1.1 (núcleo de dominio puro).** Diseño y alcance en §7.35. No cambia el
+comportamiento del producto: nada invoca todavía estas funciones.
+
+- Nuevos `domain/services/suficiencia-lectura.ts` (qué campos del esquema faltan y por qué: `nulo`, `confianza_baja`,
+  `ocr_debil`; `no_aplica` explícito para tipos sin campos) y `domain/services/politica-rescate-ia.ts` (si se puede
+  intentar un rescate y de qué campos; interruptores apagados de fábrica y tipos `SOLO_LOCAL` protegidos).
+- `CONFIANZA_MINIMA_CAMPO = 0.7`, con su origen documentado: es el mismo criterio de `banderasPorConfianza`. Se
+  unificará al integrar el pipeline (subfase 1.5).
+- La autoaprobación no cambia: EPS, Acta, RUT natural, RUT jurídico y Cámara siguen sin autoaprobación del pipeline.
+- Pruebas nuevas: `test/suficiencia-lectura.spec.ts` y `test/politica-rescate-ia.spec.ts`.
+- Decisión: opción (b). El rescate se valida primero en `dev` con datos sintéticos; la lectura local genérica para
+  tipos no sensibles queda como frente aparte.
 
 ### 0.53.0 — 26 de noviembre de 2026
 
