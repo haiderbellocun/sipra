@@ -88,6 +88,47 @@ export interface ExtraccionIaPort {
 }
 export const EXTRACCION_IA = Symbol('EXTRACCION_IA');
 
+/** Uso facturado de una lectura con IA: mismos campos y significado que en `ResultadoExtraccion`. */
+export type UsoLecturaIa = Pick<
+  ResultadoExtraccion,
+  'modelo' | 'tokensEntrada' | 'tokensSalida' | 'costoUsd' | 'proveedor' | 'tokensCache' | 'tokensRazonamiento'
+  | 'duracionMs' | 'tarifaDesconocida'
+>;
+
+/** Qué campos intentar recuperar de un documento. Los que no sean de `camposDe(tipo)` no salen. */
+export interface SolicitudRescateIa {
+  contenido: Buffer;
+  mime: string;
+  tipo: TipoDocumento;
+  camposSolicitados: readonly string[];
+}
+
+/**
+ * Resultado de una IA de rescate. Solo LECTURA: no trae tipo detectado, legibilidad, criterios, autenticidad ni
+ * decisión. `campos` tiene exactamente los campos enviados; cada valor es lo que el modelo transcribió o `null`, y
+ * su confianza es la DECLARADA por el modelo (metadato, no autoridad). La fuente de todo es `ia_rescate`; la fusión
+ * (`fusionarLecturas`) la asigna campo por campo tras la validación determinística.
+ */
+export interface ResultadoRescateIa extends UsoLecturaIa {
+  fuente: 'ia_rescate';
+  /** `false` cuando no había nada válido que pedir: no hubo llamada ni costo. */
+  invocado: boolean;
+  /** Campos realmente enviados al proveedor (depurados). */
+  camposSolicitados: string[];
+  /** Campos pedidos fuera del esquema del tipo: no se enviaron. */
+  camposRechazados: string[];
+  campos: Record<string, Omit<CampoExtraido, 'fuente'>>;
+}
+
+/**
+ * Lectura de rescate con IA: «lee este documento SOLO para intentar recuperar estos campos». No decide, no compara
+ * ni verifica. Que pueda o no usarse para un tipo lo decide la política (`decidirRescateIa`), no este puerto.
+ */
+export interface LecturaRescateIaPort {
+  rescatar(solicitud: SolicitudRescateIa): Promise<ResultadoRescateIa>;
+}
+export const LECTURA_RESCATE_IA = Symbol('LECTURA_RESCATE_IA');
+
 /** Coherencia cruzada entre documentos de una misma práctica (capa 3). */
 export interface CoherenciaCruzadaPort {
   evaluar(

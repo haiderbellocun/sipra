@@ -7,11 +7,15 @@ import {
 } from '../../../domain/entities/tarifas-ia';
 import { esquemaLectura } from '../../../domain/services/esquema-lectura';
 import {
-  ExtraccionIaPort, HallazgoCriterio, ResultadoExtraccion,
+  CampoExtraido, ExtraccionIaPort, HallazgoCriterio, LecturaRescateIaPort, ResultadoExtraccion, ResultadoRescateIa,
+  SolicitudRescateIa,
 } from '../../../domain/ports/out/servicios-externos.port';
 import {
   ConocimientoDocumentalDomainService,
 } from '../../../domain/services/conocimiento-documental.domain-service';
+import {
+  depurarCamposSolicitados, esquemaRescate, instruccionesRescate,
+} from '../../../domain/services/solicitud-rescate-ia';
 import { DecodificadorImagenAdapter } from '../imagen/decodificador.adapter';
 
 /**
@@ -114,8 +118,13 @@ interface LecturaModelo {
 
 export { esquemaLectura };
 
+/**
+ * También implementa la IA de rescate (`LecturaRescateIaPort`, subfase 1.3) con el MISMO cliente: autenticación,
+ * Responses API, `store: false`, tiempo máximo, reintentos, clasificación de errores, razonamiento, uso y costo.
+ * Solo cambian la instrucción (acotada) y el esquema (solo los campos pedidos). Nada lo invoca todavía.
+ */
 @Injectable()
-export class ExtraccionOpenAiAdapter implements ExtraccionIaPort {
+export class ExtraccionOpenAiAdapter implements ExtraccionIaPort, LecturaRescateIaPort {
   private readonly log = new Logger(ExtraccionOpenAiAdapter.name);
   private readonly conocimiento = new ConocimientoDocumentalDomainService();
   private readonly modelo: string;
@@ -154,6 +163,74 @@ export class ExtraccionOpenAiAdapter implements ExtraccionIaPort {
     const cuerpo = this.cuerpoPeticion(tipoEsperado, archivo, criterios.map((c) => c.codigo));
     const respuesta = await this.llamar(cuerpo);
     return this.interpretar(respuesta, tipoEsperado, criterios, Date.now() - inicio);
+  }
+
+  /**
+   * IA de rescate: pide SOLO los campos solicitados que pertenecen al esquema del tipo. Sin campos válidos no hay
+   * llamada ni costo. Los fallos se lanzan igual que en `extraer` (mismo `ErrorProveedorIa`, mismo reintento).
+   * El log lleva tipo, cantidades, modelo, tokens, costo y duración; nunca valores, evidencia ni contenido.
+   */
+  async rescatar(solicitud: SolicitudRescateIa): Promise<ResultadoRescateIa> {
+    const { tipo, contenido, mime } = solicitud;
+    const { solicitados, rechazados } = depurarCamposSolicitados(tipo, solicitud.camposSolicitados);
+    if (solicitados.length === 0) {
+      return {
+        fuente: 'ia_rescate', invocado: false, camposSolicitados: [], camposRechazados: rechazados, campos: {},
+        modelo: this.modelo, proveedor: 'openai', tokensEntrada: 0, tokensSalida: 0, tokensCache: 0,
+        tokensRazonamiento: 0, costoUsd: 0, duracionMs: 0,
+      };
+    }
+
+    const inicio = Date.now();
+    const archivo = this.parteArchivo(contenido, mime);
+    const nombreTipo = this.conocimiento.nombreDe(tipo);
+    const cuerpo = this.cuerpoBase(
+      instruccionesRescate(tipo, nombreTipo, solicitados),
+      archivo,
+      `Documento adjunto declarado como «${nombreTipo}» (código ${tipo}). ` +
+        'Devuelve únicamente el JSON del esquema con los campos pedidos.',
+      'rescate_campos',
+      esquemaRescate(solicitados),
+    );
+    const respuesta = await this.llamar(cuerpo);
+    const duracionMs = Date.now() - inicio;
+    const modelo = respuesta.model ?? this.modelo;
+    const facturado = this.usoFacturado(modelo, respuesta);
+    const lectura = this.jsonDeRespuesta(respuesta, facturado);
+    if (lectura === null || typeof lectura !== 'object' || Array.isArray(lectura)) {
+      const error = new ErrorProveedorIa('La respuesta del modelo no tiene la forma del esquema de rescate', false);
+      error.uso = facturado;
+      throw error;
+    }
+
+    // Solo se leen las claves pedidas: cualquier otra que llegara se ignora (el esquema estricto ya las impide).
+    const porCampo = lectura as Record<string, unknown>;
+    const campos: Record<string, Omit<CampoExtraido, 'fuente'>> = {};
+    for (const nombre of solicitados) campos[nombre] = campoRescatado(porCampo[nombre]);
+
+    const recuperados = Object.values(campos).filter((c) => c.valor !== null).length;
+    this.log.debug(
+      `Rescate OpenAI ${tipo} con ${modelo}: ${solicitados.length} campos pedidos, ${recuperados} con valor; ` +
+        `${facturado.tokensEntrada} entrada (${facturado.tokensCache} caché) / ${facturado.tokensSalida} salida ` +
+        `(${facturado.tokensRazonamiento} razonamiento), ${facturado.costoUsd} USD, ${duracionMs} ms`,
+    );
+
+    return {
+      fuente: 'ia_rescate',
+      invocado: true,
+      camposSolicitados: solicitados,
+      camposRechazados: rechazados,
+      campos,
+      modelo,
+      proveedor: 'openai',
+      tokensEntrada: facturado.tokensEntrada,
+      tokensSalida: facturado.tokensSalida,
+      tokensCache: facturado.tokensCache,
+      tokensRazonamiento: facturado.tokensRazonamiento,
+      costoUsd: facturado.costoUsd,
+      duracionMs,
+      ...(facturado.tarifaDesconocida ? { tarifaDesconocida: true } : {}),
+    };
   }
 
   /**
@@ -227,26 +304,39 @@ export class ExtraccionOpenAiAdapter implements ExtraccionIaPort {
     archivo: ParteArchivo,
     codigosCriterios: readonly string[],
   ): Record<string, unknown> {
+    return this.cuerpoBase(
+      this.conocimiento.instruccionesPara(tipo),
+      archivo,
+      `Lee el documento adjunto, que el estudiante cargó como «${this.conocimiento.nombreDe(tipo)}» ` +
+        `(código ${tipo}), y responde únicamente con el JSON del esquema.`,
+      'lectura_documento',
+      esquemaLectura(tipo, codigosCriterios),
+    );
+  }
+
+  /**
+   * Cuerpo común de toda petición a la Responses API (lectura completa y rescate): salida estructurada estricta,
+   * `store: false`, tope de salida y razonamiento efectivo (o temperatura cero en modelos sin razonamiento).
+   */
+  private cuerpoBase(
+    instrucciones: string,
+    archivo: ParteArchivo,
+    textoUsuario: string,
+    nombreEsquema: string,
+    esquema: Record<string, unknown>,
+  ): Record<string, unknown> {
     const { razonador, esfuerzo } = this.razonamiento();
     const cuerpo: Record<string, unknown> = {
       model: this.modelo,
-      instructions: this.conocimiento.instruccionesPara(tipo),
+      instructions: instrucciones,
       input: [
         {
           role: 'user',
-          content: [
-            archivo,
-            {
-              type: 'input_text',
-              text:
-                `Lee el documento adjunto, que el estudiante cargó como «${this.conocimiento.nombreDe(tipo)}» ` +
-                `(código ${tipo}), y responde únicamente con el JSON del esquema.`,
-            },
-          ],
+          content: [archivo, { type: 'input_text', text: textoUsuario }],
         },
       ],
       text: {
-        format: { type: 'json_schema', name: 'lectura_documento', strict: true, schema: esquemaLectura(tipo, codigosCriterios) },
+        format: { type: 'json_schema', name: nombreEsquema, strict: true, schema: esquema },
         ...(razonador ? { verbosity: 'low' } : {}),
       },
       max_output_tokens: this.maxTokensSalida,
@@ -383,27 +473,7 @@ export class ExtraccionOpenAiAdapter implements ExtraccionIaPort {
     // que el pipeline lo registre y el tope diario no lo pierda.
     const modelo = respuesta.model ?? this.modelo;
     const facturado = this.usoFacturado(modelo, respuesta);
-    const fallo = (mensaje: string): ErrorProveedorIa => {
-      const error = new ErrorProveedorIa(mensaje, false);
-      error.uso = facturado;
-      return error;
-    };
-    if (respuesta.status === 'incomplete') {
-      const motivo = respuesta.incomplete_details?.reason ?? 'desconocido';
-      throw fallo(`Respuesta incompleta del modelo (${motivo})`);
-    }
-    const mensaje = respuesta.output?.find((o) => o.type === 'message');
-    const rehusado = mensaje?.content?.find((c) => c.type === 'refusal');
-    if (rehusado) throw fallo(`El modelo rehusó leer el documento: ${rehusado.refusal ?? ''}`);
-    const texto = mensaje?.content?.find((c) => c.type === 'output_text')?.text;
-    if (!texto) throw fallo('La respuesta del modelo no trae texto');
-
-    let lectura: LecturaModelo;
-    try {
-      lectura = JSON.parse(texto) as LecturaModelo;
-    } catch {
-      throw fallo('La respuesta del modelo no es JSON válido');
-    }
+    const lectura = this.jsonDeRespuesta(respuesta, facturado) as LecturaModelo;
 
     const campos: ResultadoExtraccion['campos'] = {};
     const porNombre = new Map((lectura.campos ?? []).map((c) => [c.nombre, c]));
@@ -475,6 +545,32 @@ export class ExtraccionOpenAiAdapter implements ExtraccionIaPort {
     };
   }
 
+  /**
+   * El JSON de la respuesta (lectura completa o rescate). Incompleta, rehusada, sin texto o sin JSON válido es un
+   * fallo definitivo que lleva lo facturado: el gasto no se pierde aunque la respuesta no sirva.
+   */
+  private jsonDeRespuesta(respuesta: RespuestaOpenAi, facturado: UsoFacturado): unknown {
+    const fallo = (mensaje: string): ErrorProveedorIa => {
+      const error = new ErrorProveedorIa(mensaje, false);
+      error.uso = facturado;
+      return error;
+    };
+    if (respuesta.status === 'incomplete') {
+      const motivo = respuesta.incomplete_details?.reason ?? 'desconocido';
+      throw fallo(`Respuesta incompleta del modelo (${motivo})`);
+    }
+    const mensaje = respuesta.output?.find((o) => o.type === 'message');
+    const rehusado = mensaje?.content?.find((c) => c.type === 'refusal');
+    if (rehusado) throw fallo(`El modelo rehusó leer el documento: ${rehusado.refusal ?? ''}`);
+    const texto = mensaje?.content?.find((c) => c.type === 'output_text')?.text;
+    if (!texto) throw fallo('La respuesta del modelo no trae texto');
+    try {
+      return JSON.parse(texto) as unknown;
+    } catch {
+      throw fallo('La respuesta del modelo no es JSON válido');
+    }
+  }
+
   private usoFacturado(modelo: string, respuesta: RespuestaOpenAi): UsoFacturado {
     const uso = respuesta.usage ?? {};
     const entrada = uso.input_tokens ?? 0;
@@ -529,6 +625,17 @@ function quitarDetalleDeArchivos(cuerpo: Record<string, unknown>): void {
       if (parte.type === 'input_file' || parte.type === 'input_image') delete parte.detail;
     }
   }
+}
+
+/** Un campo del rescate con la misma limpieza que la lectura completa: vacío → null; confianza acotada. */
+function campoRescatado(crudo: unknown): Omit<CampoExtraido, 'fuente'> {
+  const leido = crudo !== null && typeof crudo === 'object' ? (crudo as Record<string, unknown>) : {};
+  const valor = typeof leido.valor === 'string' && leido.valor.trim() !== '' ? leido.valor.trim() : null;
+  return {
+    valor,
+    confianza: valor === null ? 0 : acotar(Number(leido.confianza ?? 0)),
+    evidencia: typeof leido.evidencia === 'string' && leido.evidencia.trim() !== '' ? leido.evidencia : null,
+  };
 }
 
 function acotar(valor: number): number {
